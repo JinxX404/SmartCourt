@@ -1,9 +1,10 @@
 using System;
 
+using SmartCourt.Core.Common;
+
 namespace SmartCourt.Core.Entities;
 
-public class TestEntity
+public class TestEntity : BaseEntity
 {
-    public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
 }
