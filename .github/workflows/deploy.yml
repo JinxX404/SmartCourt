@@ -35,4 +35,4 @@ jobs:
           MONSTERASP_USERNAME: ${{ secrets.MONSTERASP_USERNAME }}
           MONSTERASP_PASSWORD: ${{ secrets.MONSTERASP_PASSWORD }}
         run: |
-          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:contentPath="%GITHUB_WORKSPACE%\publish" -dest:contentPath="%MONSTERASP_SITENAME%",ComputerName="https://%MONSTERASP_SERVER%/msdeploy.axd?site=%MONSTERASP_SITENAME%",UserName="%MONSTERASP_USERNAME%",Password="%MONSTERASP_PASSWORD%",AuthType="Basic" -allowUntrusted -enableRule:AppOffline
+          "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:contentPath="%GITHUB_WORKSPACE%\publish" -dest:contentPath="%MONSTERASP_SITENAME%",ComputerName="https://%MONSTERASP_SERVER%:8172/msdeploy.axd?site=%MONSTERASP_SITENAME%",UserName="%MONSTERASP_USERNAME%",Password="%MONSTERASP_PASSWORD%",AuthType="Basic" -allowUntrusted -enableRule:AppOffline
