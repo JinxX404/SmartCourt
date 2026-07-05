@@ -19,9 +19,17 @@ public class ApplicationDbContext : DbContext
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = System.DateTime.UtcNow;
+                    if (entry.Entity is SmartCourt.Core.Common.AuditableEntity auditableAdded)
+                    {
+                        auditableAdded.CreatedBy = "System"; // Placeholder for now
+                    }
                     break;
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = System.DateTime.UtcNow;
+                    if (entry.Entity is SmartCourt.Core.Common.AuditableEntity auditableModified)
+                    {
+                        auditableModified.LastModifiedBy = "System"; // Placeholder for now
+                    }
                     break;
             }
         }
