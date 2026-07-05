@@ -1,0 +1,1667 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Smart Court API — Auth, Users & Files",
+    "version": "1.0.0",
+    "description": "API contracts for Authentication, Users management, and File upload systems."
+  },
+  "paths": {
+    "/api/auth/register/client": {
+      "post": {
+        "summary": "Register a new client account.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "201": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "confirmPassword": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register/lawyer": {
+      "post": {
+        "summary": "Register a new lawyer account.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "201": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  },
+                  "confirmPassword": {
+                    "type": "string"
+                  },
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "summary": "Authenticate and receive JWT tokens.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": {
+                          "type": "string"
+                        },
+                        "refreshToken": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "email": {
+                              "type": "string"
+                            },
+                            "firstName": {
+                              "type": "string"
+                            },
+                            "lastName": {
+                              "type": "string"
+                            },
+                            "role": {
+                              "type": "string"
+                            },
+                            "profilePictureUrl": {
+                              "type": "string"
+                            },
+                            "isVerified": {
+                              "type": "boolean"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "summary": "Refresh an expired access token.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "accessToken": {
+                          "type": "string"
+                        },
+                        "refreshToken": {
+                          "type": "string"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "summary": "Verify user's email address using the token from verification email.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "token": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-verification": {
+      "post": {
+        "summary": "Resend the email verification link.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Request a password reset link.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Reset password using the token from the reset email.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string"
+                  },
+                  "confirmNewPassword": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "summary": "Change password while logged in.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "currentPassword": {
+                    "type": "string"
+                  },
+                  "newPassword": {
+                    "type": "string"
+                  },
+                  "confirmNewPassword": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/profile": {
+      "get": {
+        "summary": "Get the current authenticated user's full profile.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "email": {
+                          "type": "string"
+                        },
+                        "firstName": {
+                          "type": "string"
+                        },
+                        "lastName": {
+                          "type": "string"
+                        },
+                        "phoneNumber": {
+                          "type": "string"
+                        },
+                        "profilePictureUrl": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "isActive": {
+                          "type": "boolean"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "lawyerProfile": {
+                          "type": "object",
+                          "properties": {
+                            "bio": {
+                              "type": "string"
+                            },
+                            "officeAddress": {
+                              "type": "string"
+                            },
+                            "yearsOfExperience": {
+                              "type": "integer"
+                            },
+                            "isAvailable": {
+                              "type": "boolean"
+                            },
+                            "nationalIdVerificationStatus": {
+                              "type": "integer"
+                            },
+                            "nationalIdVerificationStatusName": {
+                              "type": "string"
+                            },
+                            "barCardVerificationStatus": {
+                              "type": "integer"
+                            },
+                            "barCardVerificationStatusName": {
+                              "type": "string"
+                            },
+                            "isFullyVerified": {
+                              "type": "boolean"
+                            },
+                            "specializations": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "format": "uuid"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "success": {
+                    "type": "boolean"
+                  },
+                  "statusCode": {
+                    "type": "integer"
+                  },
+                  "data": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid"
+                      },
+                      "email": {
+                        "type": "string"
+                      },
+                      "firstName": {
+                        "type": "string"
+                      },
+                      "lastName": {
+                        "type": "string"
+                      },
+                      "phoneNumber": {
+                        "type": "string"
+                      },
+                      "profilePictureUrl": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string"
+                      },
+                      "isActive": {
+                        "type": "boolean"
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "clientProfile": {
+                        "type": "object",
+                        "properties": {
+                          "dateOfBirth": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "nationalIdVerificationStatus": {
+                            "type": "integer"
+                          },
+                          "nationalIdVerificationStatusName": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "summary": "Update common profile fields (shared by all roles).",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {}
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string"
+                  },
+                  "lastName": {
+                    "type": "string"
+                  },
+                  "phoneNumber": {
+                    "type": "string"
+                  },
+                  "profilePictureFileId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/profile/client": {
+      "put": {
+        "summary": "Update client-specific profile fields.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Client\")]`",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dateOfBirth": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/profile/lawyer": {
+      "put": {
+        "summary": "Update lawyer-specific profile fields.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Lawyer\")]`",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bio": {
+                    "type": "string"
+                  },
+                  "officeAddress": {
+                    "type": "string"
+                  },
+                  "yearsOfExperience": {
+                    "type": "string"
+                  },
+                  "isAvailable": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/users/profile/lawyer/specializations": {
+      "put": {
+        "summary": "Set the lawyer's legal specializations (replaces all existing).",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Lawyer\")]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "specializations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "legalCategoryIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/legal-categories": {
+      "get": {
+        "summary": "List all available legal categories.",
+        "description": "Authentication requirement: `[AllowAnonymous]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/lawyer-verification/national-id": {
+      "post": {
+        "summary": "Submit National ID documents for verification.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Lawyer\")]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nationalIdVerificationStatus": {
+                          "type": "integer"
+                        },
+                        "nationalIdVerificationStatusName": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "frontFileId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "backFileId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/lawyer-verification/bar-card": {
+      "post": {
+        "summary": "Submit Bar Association card documents for verification.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Lawyer\")]`",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "frontFileId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "backFileId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/lawyer-verification/status": {
+      "get": {
+        "summary": "Get current verification status for the logged-in lawyer.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Lawyer\")]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "nationalId": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "integer"
+                            },
+                            "statusName": {
+                              "type": "string"
+                            },
+                            "frontFileId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "backFileId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "reviewedByUserId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "verifiedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "barCard": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "integer"
+                            },
+                            "statusName": {
+                              "type": "string"
+                            },
+                            "frontFileId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "backFileId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "reviewedByUserId": {
+                              "type": "string",
+                              "format": "uuid"
+                            },
+                            "verifiedAt": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        },
+                        "isFullyVerified": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/verifications/pending": {
+      "get": {
+        "summary": "List all lawyers with pending verification requests.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Admin\")]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "lawyerUserId": {
+                                "type": "string",
+                                "format": "uuid"
+                              },
+                              "lawyerName": {
+                                "type": "string"
+                              },
+                              "lawyerEmail": {
+                                "type": "string"
+                              },
+                              "verificationType": {
+                                "type": "string"
+                              },
+                              "frontFileUrl": {
+                                "type": "string"
+                              },
+                              "backFileUrl": {
+                                "type": "string"
+                              },
+                              "submittedAt": {
+                                "type": "string",
+                                "format": "date-time"
+                              }
+                            }
+                          }
+                        },
+                        "totalCount": {
+                          "type": "integer"
+                        },
+                        "pageNumber": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/verifications/{userId}/national-id": {
+      "put": {
+        "summary": "Approve or reject a lawyer's National ID verification.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Admin\")]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string"
+                  },
+                  "rejectionReason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/verifications/{userId}/bar-card": {
+      "put": {
+        "summary": "Approve or reject a lawyer's Bar Card verification.",
+        "description": "Authentication requirement: `[Authorize(Roles = \"Admin\")]`",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/files/upload": {
+      "post": {
+        "summary": "Upload a file to the platform.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "201": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "originalFileName": {
+                          "type": "string"
+                        },
+                        "contentType": {
+                          "type": "string"
+                        },
+                        "extension": {
+                          "type": "string"
+                        },
+                        "fileSize": {
+                          "type": "integer"
+                        },
+                        "downloadUrl": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/files/upload/multiple": {
+      "post": {
+        "summary": "Upload multiple files at once.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "201": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "originalFileName": {
+                            "type": "string"
+                          },
+                          "contentType": {
+                            "type": "string"
+                          },
+                          "extension": {
+                            "type": "string"
+                          },
+                          "fileSize": {
+                            "type": "integer"
+                          },
+                          "downloadUrl": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/files/{id}/download": {
+      "get": {
+        "summary": "Download a file by its StoredFile ID.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/files/{id}": {
+      "delete": {
+        "summary": "Delete a previously uploaded file.",
+        "description": "Authentication requirement: `[Authorize]`",
+        "responses": {
+          "200": {
+            "description": "Response schema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "statusCode": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
