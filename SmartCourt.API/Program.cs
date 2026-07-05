@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.API.Middleware;
-using Microsoft.EntityFrameworkCore;
-using SmartCourt.Infrastructure.Persistence;
+using SmartCourt.API.Extensions;
 
 namespace SmartCourt.API
 {
@@ -13,19 +12,17 @@ namespace SmartCourt.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // 1. Add API Services
             builder.Services.AddControllers();
-
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
+            builder.Services.AddInfrastructureServices(builder.Configuration);
+
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+            // 3. Configure HTTP Request Pipeline
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -36,25 +33,12 @@ namespace SmartCourt.API
                 app.UseHttpsRedirection();
             }
 
-            // Register Custom Global Exception Handling Middleware
             app.UseMiddleware<ExceptionHandlingMiddleware>();
-
             app.UseAuthorization();
-
             app.MapControllers();
 
-            try 
-            {
-                using (var scope = app.Services.CreateScope())
-                {
-                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    db.Database.Migrate();
-                }
-            }
-            catch (System.Exception ex)
-            {
-                System.AppDomain.CurrentDomain.SetData("MigrationError", ex.ToString());
-            }
+            // 4. Auto-Migrate Database on Startup
+            app.UseAutoMigration();
 
             app.Run();
         }
