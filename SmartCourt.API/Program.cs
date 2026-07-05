@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.API.Middleware;
+using Microsoft.EntityFrameworkCore;
+using SmartCourt.Infrastructure.Persistence;
 
 namespace SmartCourt.API
 {
@@ -13,6 +15,9 @@ namespace SmartCourt.API
 
             // Add services to the container.
             builder.Services.AddControllers();
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -37,6 +42,12 @@ namespace SmartCourt.API
             app.UseAuthorization();
 
             app.MapControllers();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
+            }
 
             app.Run();
         }
