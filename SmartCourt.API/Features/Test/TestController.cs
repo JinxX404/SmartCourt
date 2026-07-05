@@ -23,4 +23,12 @@ public class TestController : ControllerBase
             Version = "1.0.1"
         });
     }
+
+    [HttpGet("error")]
+    public IActionResult GetError()
+    {
+        var error = AppDomain.CurrentDomain.GetData("MigrationError") as string;
+        if (string.IsNullOrEmpty(error)) return Ok("No migration error recorded on startup.");
+        return Ok(error);
+    }
 }

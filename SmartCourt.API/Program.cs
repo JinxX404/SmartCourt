@@ -43,10 +43,17 @@ namespace SmartCourt.API
 
             app.MapControllers();
 
-            using (var scope = app.Services.CreateScope())
+            try 
             {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
+                using (var scope = app.Services.CreateScope())
+                {
+                    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                    db.Database.Migrate();
+                }
+            }
+            catch (System.Exception ex)
+            {
+                System.AppDomain.CurrentDomain.SetData("MigrationError", ex.ToString());
             }
 
             app.Run();
