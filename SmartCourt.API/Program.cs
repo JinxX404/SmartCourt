@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.API.Middleware;
 using SmartCourt.API.Extensions;
+using Hangfire;
 
 namespace SmartCourt.API
 {
@@ -19,6 +20,7 @@ namespace SmartCourt.API
 
             // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
             builder.Services.AddInfrastructureServices(builder.Configuration);
+            
 
             var app = builder.Build();
 
@@ -32,6 +34,8 @@ namespace SmartCourt.API
             {
                 app.UseHttpsRedirection();
             }
+
+            app.UseHangfireDashboard();
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();
             app.UseAuthorization();

@@ -31,4 +31,16 @@ public class TestController : ControllerBase
         if (string.IsNullOrEmpty(error)) return Ok("No migration error recorded on startup.");
         return Ok(error);
     }
+
+    [HttpPost("email")]
+    public async System.Threading.Tasks.Task<IActionResult> SendTestEmail([FromServices] SmartCourt.Core.Interfaces.Providers.IEmailProvider emailProvider)
+    {
+        var result = await emailProvider.SendEmailAsync(
+            to: "moatazmohammed2392003@gmail.com",
+            subject: "Smart Court - Hangfire Test",
+            body: "If you are reading this, the background Hangfire email provider is fully operational on Smart Court!",
+            isHtml: false);
+
+        return Ok(SmartCourt.API.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "Email has been enqueued to Hangfire!"));
+    }
 }
