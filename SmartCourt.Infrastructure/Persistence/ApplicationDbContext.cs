@@ -13,23 +13,17 @@ public class ApplicationDbContext : DbContext
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var entry in ChangeTracker.Entries<SmartCourt.Core.Common.BaseEntity>())
+        foreach (var entry in ChangeTracker.Entries<SmartCourt.Core.Common.AuditableEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = System.DateTime.UtcNow;
-                    if (entry.Entity is SmartCourt.Core.Common.AuditableEntity auditableAdded)
-                    {
-                        auditableAdded.CreatedBy = "System"; // Placeholder for now
-                    }
+                    entry.Entity.CreatedBy = "System"; // Placeholder for now
                     break;
                 case EntityState.Modified:
                     entry.Entity.UpdatedAt = System.DateTime.UtcNow;
-                    if (entry.Entity is SmartCourt.Core.Common.AuditableEntity auditableModified)
-                    {
-                        auditableModified.LastModifiedBy = "System"; // Placeholder for now
-                    }
+                    entry.Entity.LastModifiedBy = "System"; // Placeholder for now
                     break;
             }
         }
