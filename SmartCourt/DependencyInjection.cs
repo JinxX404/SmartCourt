@@ -1,7 +1,12 @@
+using Hangfire;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using SmartCourt.Common;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
-using Hangfire;
+using SmartCourt.Providers.FileStorage;
+using static SmartCourt.Interfaces.Providers.IFileStorageService;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -52,9 +57,25 @@ public static class DependencyInjection
             }));
         services.AddHangfireServer();
         services.AddScoped<SmartCourt.Interfaces.Providers.IBackgroundJobProvider, SmartCourt.Providers.Jobs.HangfireJobProvider>();
-            
+
+        services.Configure<SupabaseOptions>(configuration.GetSection("Supabase"));
+        services.AddScoped<IFileStorageService, SupabaseFileStorageService>();
+
+        services.AddSingleton<Supabase.Client>(sp =>
+        {
+            var options = sp.GetRequiredService<IOptions<SupabaseOptions>>().Value;
+
+            var client = new Supabase.Client(
+                options.Url,
+                options.ApiKey);
+
+            client.InitializeAsync().GetAwaiter().GetResult();
+
+            return client;
+        });
+
         // In the future, we will register Repositories, Identity, and Email services here
-            
+
         return services;
     }
 }
