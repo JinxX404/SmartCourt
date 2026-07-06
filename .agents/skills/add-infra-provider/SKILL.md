@@ -8,17 +8,17 @@ description: Scaffolds a new external infrastructure provider (e.g., SMS, Paymen
 When the user asks to add a new external integration or "provider" (like a new payment gateway, SMS service, or third-party API) to the Smart Court project, follow these exact steps to ensure the business logic remains decoupled from the external SDK:
 
 1. **Create the Interface (Provider Layer)**:
-   Create the interface in `SmartCourt/Infrastructure/Providers/<Category>/I<ProviderName>Provider.cs`.
+   Create the interface in `SmartCourt/Providers/<Category>/I<ProviderName>Provider.cs`.
    - Ensure the interface uses domain terminology, not third-party specific terminology.
    - Example: `Task<bool> SendSmsAsync(string phoneNumber, string message);`
 
 2. **Create the Options Class (Provider Layer)**:
-   Create a settings class in `SmartCourt/Infrastructure/Providers/<Category>/<ProviderName>Options.cs` to hold configuration values (API Keys, URLs).
+   Create a settings class in `SmartCourt/Providers/<Category>/<ProviderName>Options.cs` to hold configuration values (API Keys, URLs).
    - Example: `TwilioOptions.cs` with properties for `AccountSid` and `AuthToken`.
    - Create the `<Category>` folder (e.g., `Sms`, `Payment`, `Storage`) if it doesn't already exist.
 
 3. **Create the Implementation (Provider Layer)**:
-   Create the implementation class in `SmartCourt/Infrastructure/Providers/<Category>/<ProviderName>Provider.cs` that implements the interface.
+   Create the implementation class in `SmartCourt/Providers/<Category>/<ProviderName>Provider.cs` that implements the interface.
    - Inject `IOptions<<ProviderName>Options>` and `ILogger<<ProviderName>Provider>`.
    - This is the ONLY place where you should use the external SDK/Library.
 

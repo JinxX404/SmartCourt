@@ -3,6 +3,7 @@
 > **Timeline:** 30 calendar days | **Sprints:** 4 × 1 week (5 working days each)
 > **Team:** BE-1, BE-2, BE-3, BE-4 (Backend) + FE-1, FE-2 (Frontend)
 > **Buffer:** Days 29-30 reserved for final testing & deployment prep
+> **Approach:** Code-First — entities, EF configurations, and migrations evolve incrementally per feature per sprint.
 
 ---
 
@@ -15,11 +16,27 @@
 | Story points per person per sprint | ~8-10 SP |
 
 | Role | Members | SP/Sprint | 4 Sprints Total |
-|------|---------|-----------|-----------------|
+|------|---------|-----------|-----------------| 
 | Backend | 4 | 32-40 | 128-160 |
 | Frontend | 2 | 16-20 | 64-80 |
 | **Total** | **6** | **48-60** | **192-240** |
-| **Planned** | | | **204 SP** ✅ |
+| **Planned** | | | **202 SP** ✅ |
+
+---
+
+## Code-First Migration Schedule
+
+> Each migration is small, focused, and owned by the developer building the feature that needs the tables.
+
+| Migration | Sprint | Owner | Tables Created | Feature Trigger |
+|-----------|--------|-------|----------------|-----------------|
+| **M1** | S1 | BE-1 | Identity (ASP.NET), `ClientProfile`, `LawyerProfile`, `StoredFile`, `LegalCategory`, `LawyerSpecialization` | Auth & Profiles |
+| **M2** | S2 | BE-1 | `LegalCase`, `AIAnalysis`, `LawyerMatch`, `CaseAttachment` | Cases & AI |
+| **M3** | S2 | BE-2 | `Contract`, `Milestone`, `ScheduledPayment`, `PaymentRelease`, `PaymentTransaction`, `ContractAttachment`, `Notification`, `UserNotification`, `NotificationPreference` | Contracts & Notifications |
+| **M4** | S2 | BE-4 | `Proposal`, `Conversation`, `ConversationParticipant`, `Message`, `MessageAttachment` | Proposals & Chat |
+| **M5** | S3 | BE-2 | `LegalArticle`, `LegalArticleCategory`, `LegalArticleAttachment`, `Review` | Articles & Reviews |
+| **M6** | S3 | BE-3 | `AIConversation`, `AIMessage` | AI Assistant |
+| **M7** | S4 | BE-1 | `Dispute`, `DisputeAttachment` | Disputes |
 
 ---
 
@@ -52,16 +69,17 @@ gantt
 ## Sprint 1 — Foundation & Auth (Days 1-5)
 
 > **Sprint Goal:** Project infrastructure ready, authentication working end-to-end, shared UI components built, file upload functional.
+> **Migration:** M1 (Identity + Profiles + Files + Categories)
 
 ### BE-1 — Infrastructure Lead
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D1 | Create .NET solution (3 projects), configure `Program.cs` middleware pipeline, install all NuGet packages | SC-001 |
-| D2 | Write ALL entity classes (Core project), create `ApplicationDbContext` with ALL DbSets | SC-001 |
-| D3 | Write ALL EF Core Fluent API configurations (all 7 modules from schema) | SC-001 |
-| D4 | Generate initial migration, test against SQL Server, create `ApiResponse<T>`, `PagedRequest/Response`, `ExceptionHandlingMiddleware` | SC-001 |
-| D5 | Seed legal categories, configure Swagger, configure CORS, finalize `appsettings.json` with all sections | SC-001, SC-002 |
+| D1 | Configure `Program.cs` middleware pipeline (CORS, JWT auth, rate limiting, exception handling, Swagger), install NuGet packages (EF Core, Identity, FluentValidation, Serilog, Swagger, SignalR, MailKit) | SC-001 |
+| D2 | Create `ApiResponse<T>`, `PagedRequest/Response`, `ExceptionHandlingMiddleware` with Arabic error messages, configure Serilog | SC-001 |
+| D3 | Write **Module 1 entities** only: `StoredFile`, `ClientProfile`, `LawyerProfile`, `LegalCategory`, `LawyerSpecialization` — each in its feature slice or `Common/Entities` | SC-001 |
+| D4 | Write EF Core Fluent API configurations for Module 1 entities, generate **Migration M1**, test against SQL Server | SC-001 |
+| D5 | Seed Egyptian legal categories (قانون مدني، قانون جنائي، etc.) in M1 migration, configure Swagger, configure CORS, finalize `appsettings.json` | SC-001 |
 
 ### BE-2 — Auth Developer
 
@@ -73,11 +91,11 @@ gantt
 | D4 | Implement email verification, password reset, `ICurrentUserService` | SC-010, SC-011, SC-006 |
 | D5 | Create `AuthController` with all endpoints, test with Swagger, implement `ConsoleEmailProvider` for dev | SC-007-011 |
 
-### BE-3 — File & Categories
+### BE-3 — File & Providers
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D1 | Define `ILlmProvider`, `IPaymentProvider`, `ISmsProvider`, `IEmailProvider`, `IFileStorageProvider`, `IVectorStoreProvider` interfaces in Core | SC-003 |
+| D1 | Define `ILlmProvider`, `IPaymentProvider`, `ISmsProvider`, `IEmailProvider`, `IFileStorageProvider`, `IVectorStoreProvider` interfaces in `Infrastructure/Providers` | SC-003 |
 | D2 | Implement `LocalFileStorageProvider` (upload, download, delete, URL generation) | SC-003 |
 | D3 | Create `FileUploadService`, `FileUploadController` (multipart upload, validation) | SC-003 |
 | D4 | Test file upload end-to-end, add file type & size validation | SC-003 |
@@ -117,8 +135,7 @@ gantt
 
 | ID | Title | Assignee | SP | Priority | Dep | Sprint |
 |----|-------|----------|-----|----------|-----|--------|
-| SC-001 | Backend Solution Scaffolding | BE-1 | 5 | P0 | — | S1 |
-| SC-002 | Seed Data — Legal Categories | BE-1 | 2 | P0 | SC-001 | S1 |
+| SC-001 | Backend Solution Scaffolding + Module 1 Entities + Seed Data | BE-1 | 5 | P0 | — | S1 |
 | SC-006 | ICurrentUserService & JWT Claims | BE-2 | 2 | P0 | SC-001 | S1 |
 | SC-007 | Client Registration | BE-2 | 3 | P0 | SC-001 | S1 |
 | SC-008 | Lawyer Registration | BE-2 | 2 | P0 | SC-001 | S1 |
@@ -133,14 +150,19 @@ gantt
 | SC-012 | Auth Pages (Frontend) | FE-1 | 6 | P0 | SC-004 | S1 |
 | SC-005 | Shared UI Component Library | FE-2 | 4 | P0 | — | S1 |
 
-**Sprint 1 Total: 47 SP** (BE: 33 SP, FE: 14 SP)
+**Sprint 1 Total: 45 SP** (BE: 31 SP, FE: 14 SP)
+
+> [!NOTE]
+> SC-002 (Seed Data — Legal Categories) is merged into SC-001. Seeding is part of the same Migration M1 that creates the `LegalCategory` table. No separate story is needed.
 
 ### Sprint 1 — Definition of Done
 - [ ] Backend API running with Swagger docs accessible
+- [ ] **Migration M1** applied — Module 1 tables created (Identity, Profiles, Files, Categories)
 - [ ] Client + Lawyer can register, verify email, login, get JWT
 - [ ] File upload working (local storage)
 - [ ] User profiles viewable and editable via API
 - [ ] Lawyer verification documents uploadable
+- [ ] Legal categories seeded
 - [ ] React app running with login → dashboard flow working
 - [ ] Shared component library built and documented
 - [ ] All auth pages functional and integrated with API
@@ -149,25 +171,26 @@ gantt
 
 ## Sprint 2 — Cases, AI & Marketplace (Days 6-10)
 
-> **Sprint Goal:** Case lifecycle working (create → submit → AI analysis → matching), marketplace browsable, proposals submittable, notifications functional.
+> **Sprint Goal:** Case lifecycle working (create → submit → AI analysis → matching), marketplace browsable, proposals submittable, contracts & notifications available.
+> **Migrations:** M2 (Cases & AI), M3 (Contracts & Notifications), M4 (Proposals & Chat)
 
 ### BE-1 — Cases
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D6 | Implement `CaseService` — CreateCase, UpdateCase, DeleteCase, GetCases (paginated) | SC-018 |
-| D7 | Implement case attachments (upload, list, delete), link to `StoredFile` | SC-019 |
-| D8 | Implement case status transitions — submit, finalize, resubmit, status machine validation | SC-020 |
+| D6 | Write **Module 2 entities**: `LegalCase`, `AIAnalysis`, `LawyerMatch`, `CaseAttachment` + EF configs → generate **Migration M2** | SC-018 |
+| D7 | Implement `CaseService` — CreateCase, UpdateCase, DeleteCase, GetCases (paginated) | SC-018 |
+| D8 | Implement case attachments (upload, list, delete), link to `StoredFile`. Implement case status transitions — submit, finalize, resubmit, status machine validation | SC-019, SC-020 |
 | D9 | Implement `MarketplaceService` — browse lawyers with filters, search | SC-028 |
-| D10 | Implement lawyer public profile endpoint, test all case + marketplace endpoints | SC-029 |
+| D10 | Implement lawyer public profile endpoint, create `CasesController`, `MarketplaceController`, test all endpoints | SC-029 |
 
-### BE-2 — Contracts
+### BE-2 — Contracts & Notifications
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D6 | Implement `ContractService` — CreateContract, UpdateContract, GetContracts | SC-038 |
-| D7 | Implement milestones CRUD — add, update, delete, ordering, amount validation | SC-039 |
-| D8 | Implement verification review endpoints (admin approve/reject national ID, bar card) | SC-015 |
+| D6 | Write **Module 4 entities** (`Contract`, `Milestone`, `ScheduledPayment`, `PaymentRelease`, `PaymentTransaction`, `ContractAttachment`) + **Module 5 notification entities** (`Notification`, `UserNotification`, `NotificationPreference`) + EF configs → generate **Migration M3** | SC-038, SC-051 |
+| D7 | Implement `ContractService` — CreateContract, UpdateContract, GetContracts | SC-038 |
+| D8 | Implement milestones CRUD — add, update, delete, ordering, amount validation | SC-039 |
 | D9 | Implement `NotificationService` — SendAsync, GetUserNotifications, MarkAsRead, UnreadCount | SC-051 |
 | D10 | Create `ContractsController`, `NotificationsController`, push notification via SignalR stub | SC-038, SC-051 |
 
@@ -181,15 +204,15 @@ gantt
 | D9 | Implement `LawyerMatchingService` — scoring algorithm (specialization, experience, availability, location, rating) | SC-026 |
 | D10 | Implement matching endpoint, cache results in `LawyerMatch` table, create controllers | SC-027 |
 
-### BE-4 — Proposals & Notifications
+### BE-4 — Proposals & Verification Review
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D6 | Implement `ProposalService` — CreateProposal with auto-conversation creation | SC-031 |
-| D7 | Implement proposal accept/reject, notifications on status change | SC-032 |
-| D8 | Wire up notification triggers: proposal created → notify lawyer, accepted → notify client | SC-031, SC-032 |
-| D9 | Create `ProposalsController`, test full proposal flow end-to-end | SC-031, SC-032 |
-| D10 | Add notification triggers to verification approval flow, add SignalR notification push | SC-051 |
+| D6 | Write **Module 3 entities**: `Proposal`, `Conversation`, `ConversationParticipant`, `Message`, `MessageAttachment` + EF configs → generate **Migration M4** | SC-031 |
+| D7 | Implement `ProposalService` — CreateProposal with auto-conversation creation | SC-031 |
+| D8 | Implement proposal accept/reject, notifications on status change | SC-032 |
+| D9 | Implement verification review endpoints (admin approve/reject national ID, bar card) | SC-015 |
+| D10 | Create `ProposalsController`, test full proposal flow end-to-end, add notification triggers | SC-031, SC-032, SC-015 |
 
 ### FE-1 — Cases
 
@@ -215,22 +238,22 @@ gantt
 
 | ID | Title | Assignee | SP | Priority | Dep | Sprint |
 |----|-------|----------|-----|----------|-----|--------|
-| SC-018 | Case CRUD (Backend) | BE-1 | 5 | P0 | SC-001 | S2 |
+| SC-018 | Case CRUD + Module 2 Entities (M2) | BE-1 | 5 | P0 | SC-001 | S2 |
 | SC-019 | Case Attachments | BE-1 | 2 | P1 | SC-003 | S2 |
 | SC-020 | Case Status Transitions | BE-1 | 3 | P0 | SC-018 | S2 |
 | SC-028 | Marketplace Browse & Search | BE-1 | 3 | P1 | SC-001 | S2 |
 | SC-029 | Lawyer Public Profile | BE-1 | 2 | P1 | SC-028 | S2 |
-| SC-038 | Contract CRUD | BE-2 | 4 | P0 | SC-001 | S2 |
+| SC-038 | Contract CRUD + Module 4 & Notification Entities (M3) | BE-2 | 4 | P0 | SC-001 | S2 |
 | SC-039 | Milestones | BE-2 | 3 | P1 | SC-038 | S2 |
-| SC-015 | Verification Review (Admin) | BE-2 | 2 | P1 | SC-014 | S2 |
-| SC-051 | Notification Service — In-App | BE-2 | 4 | P1 | SC-001 | S2 |
+| SC-051 | Notification Service — In-App | BE-2 | 4 | P1 | SC-038 | S2 |
 | SC-023 | ILlmProvider + OpenAI | BE-3 | 4 | P0 | SC-001 | S2 |
 | SC-024 | Case Analysis Prompt | BE-3 | 3 | P0 | SC-023 | S2 |
 | SC-025 | AI Analysis Service | BE-3 | 4 | P0 | SC-024 | S2 |
 | SC-026 | Matching Algorithm | BE-3 | 5 | P0 | SC-023 | S2 |
 | SC-027 | Matching Endpoint | BE-3 | 3 | P0 | SC-026 | S2 |
-| SC-031 | Proposal Service | BE-4 | 4 | P0 | SC-018 | S2 |
+| SC-031 | Proposal Service + Module 3 Entities (M4) | BE-4 | 4 | P0 | SC-018 | S2 |
 | SC-032 | Proposal Accept/Reject | BE-4 | 2 | P0 | SC-031 | S2 |
+| SC-015 | Verification Review (Admin) | BE-4 | 2 | P1 | SC-014 | S2 |
 | SC-021 | Case Management Pages | FE-1 | 4 | P0 | SC-012 | S2 |
 | SC-022 | Case Detail with AI & Matching | FE-1 | 2 | P0 | SC-021 | S2 |
 | SC-016 | Profile Pages | FE-2 | 4 | P1 | SC-005 | S2 |
@@ -240,9 +263,10 @@ gantt
 **Sprint 2 Total: 69 SP** (BE: 53 SP, FE: 16 SP)
 
 > [!WARNING]
-> Sprint 2 is the heaviest sprint. Backend is over capacity at ~53 SP vs ~40 SP capacity. **Mitigation:** SC-051 (Notifications, 4 SP) can be assigned to BE-2 as a stretch goal — if not completed, push SC-052 to S4 and keep SC-051 simplified. Alternatively, SC-029 (Lawyer Public Profile) is a simple query and can be combined with SC-028 as part of the same endpoint work.
+> Sprint 2 is the heaviest sprint. Backend is over capacity at ~53 SP vs ~40 SP capacity. **Mitigation:** Entity/migration creation is included as part of each feature story (not separate SP). SC-029 (Lawyer Public Profile) is a simple query and can be combined with SC-028 as part of the same endpoint work. SC-051 (Notifications, 4 SP) can be a stretch goal for BE-2 — if not completed, push to S3.
 
 ### Sprint 2 — Definition of Done
+- [ ] **Migrations M2, M3, M4** applied — Cases, AI, Contracts, Notifications, Proposals, Chat tables created
 - [ ] Client can create case → submit → see AI analysis → improve → resubmit → finalize → see matched lawyers
 - [ ] AI analysis returns structured Arabic results (strengths, weaknesses, recommendations)
 - [ ] Matching shows ranked lawyers with scores
@@ -259,6 +283,7 @@ gantt
 ## Sprint 3 — Chat, Contracts & Payments (Days 11-15)
 
 > **Sprint Goal:** Real-time chat working, contracts signable, escrow payments functional, articles publishable, AI assistant available.
+> **Migrations:** M5 (Articles & Reviews), M6 (AI Assistant)
 
 ### BE-1 — Payments
 
@@ -270,13 +295,13 @@ gantt
 | D14 | Implement payment release (on milestone approval) and refund logic | SC-044 |
 | D15 | Implement webhook handler stub, create `PaymentsController` | SC-045 |
 
-### BE-2 — Contracts & Reviews
+### BE-2 — Contracts, Articles & Reviews
 
 | Day | Tasks | Story |
 |-----|-------|-------|
 | D11 | Implement contract signing — both parties sign, status transitions, validation | SC-040 |
 | D12 | Implement contract complete and cancel flows | SC-040 |
-| D13 | Implement `ArticleService` — CRUD, categories, status (PendingApproval → Published), viewCount | SC-054 |
+| D13 | Write **Module 7 entities** (`LegalArticle`, `LegalArticleCategory`, `LegalArticleAttachment`) + `Review` entity (Module 5) + EF configs → generate **Migration M5**. Implement `ArticleService` — CRUD, categories, status (PendingApproval → Published), viewCount | SC-054 |
 | D14 | Implement article moderation endpoints (admin approve/reject) | SC-056 |
 | D15 | Implement `ReviewService` — create review, get reviews, average calculation | SC-047 |
 
@@ -284,7 +309,7 @@ gantt
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D11 | Implement `AIAssistantService` — create conversation, send message, get history | SC-057 |
+| D11 | Write **Module 6 entities** (`AIConversation`, `AIMessage`) + EF configs → generate **Migration M6**. Implement `AIAssistantService` — create conversation, send message, get history | SC-057 |
 | D12 | Design legal assistant system prompt (Arabic, with disclaimer), test with OpenAI | SC-057 |
 | D13 | Implement conversation management — list conversations, auto-title from first message | SC-057 |
 | D14 | Set up Qdrant vector store, implement `QdrantProvider` — store/search embeddings | SC-058 |
@@ -328,10 +353,10 @@ gantt
 | SC-044 | Escrow Deposit & Release | BE-1 | 5 | P0 | SC-043 | S3 |
 | SC-045 | Payment Webhook Handler | BE-1 | 3 | P1 | SC-044 | S3 |
 | SC-040 | Contract Signing | BE-2 | 3 | P0 | SC-038 | S3 |
-| SC-054 | Article Service | BE-2 | 4 | P2 | SC-003 | S3 |
+| SC-054 | Article Service + Module 7 Entities (M5) | BE-2 | 4 | P2 | SC-003 | S3 |
 | SC-056 | Article Moderation | BE-2 | 2 | P2 | SC-054 | S3 |
-| SC-047 | Review Service | BE-2 | 3 | P2 | SC-040 | S3 |
-| SC-057 | Client AI Assistant | BE-3 | 4 | P1 | SC-023 | S3 |
+| SC-047 | Review Service + Review Entity (M5) | BE-2 | 3 | P2 | SC-040 | S3 |
+| SC-057 | Client AI Assistant + Module 6 Entities (M6) | BE-3 | 4 | P1 | SC-023 | S3 |
 | SC-058 | Lawyer AI Assistant (RAG) | BE-3 | 5 | P2 | SC-057 | S3* |
 | SC-034 | Chat Service & SignalR Hub | BE-4 | 5 | P0 | SC-031 | S3 |
 | SC-035 | File & Voice Messages in Chat | BE-4 | 3 | P1 | SC-034 | S3 |
@@ -348,6 +373,7 @@ gantt
 > *SC-058 (RAG pipeline) starts in S3 but may carry over into S4 for refinement. The skeleton must work by end of S3; tuning continues in S4.
 
 ### Sprint 3 — Definition of Done
+- [ ] **Migrations M5, M6** applied — Articles, Reviews, AI Assistant tables created
 - [ ] Real-time chat working (text + file + voice between client and lawyer)
 - [ ] Contracts signable by both parties → status becomes Active
 - [ ] Milestones submittable and approvable
@@ -363,12 +389,13 @@ gantt
 ## Sprint 4 — Admin, Polish & Integration (Days 16-20)
 
 > **Sprint Goal:** Admin dashboard functional, disputes working, AI refined, all features integrated end-to-end, bug fixes.
+> **Migration:** M7 (Disputes)
 
 ### BE-1 — Disputes & Polish
 
 | Day | Tasks | Story |
 |-----|-------|-------|
-| D16 | Implement `DisputeService` — create dispute, list, assign moderator, resolve | SC-049 |
+| D16 | Write **Module 5 remaining entities** (`Dispute`, `DisputeAttachment`) + EF configs → generate **Migration M7**. Implement `DisputeService` — create dispute, list, assign moderator, resolve | SC-049 |
 | D17 | Wire dispute notifications, dispute attachments | SC-049 |
 | D18 | Payment edge cases — retry failed payments, partial refunds, timeout handling | SC-044 |
 | D19 | Performance review — add database indexes, optimize heavy queries (marketplace, notifications) | — |
@@ -428,7 +455,7 @@ gantt
 
 | ID | Title | Assignee | SP | Priority | Dep | Sprint |
 |----|-------|----------|-----|----------|-----|--------|
-| SC-049 | Dispute Service | BE-1 | 4 | P2 | SC-040 | S4 |
+| SC-049 | Dispute Service + Dispute Entities (M7) | BE-1 | 4 | P2 | SC-040 | S4 |
 | SC-060 | Admin Dashboard Stats | BE-2 | 3 | P2 | SC-001 | S4 |
 | SC-061 | Admin User Management | BE-2 | 3 | P2 | SC-060 | S4 |
 | SC-063 | Admin Role & Route Protection | BE-2 | 1 | P0 | SC-001 | S4 |
@@ -446,6 +473,7 @@ gantt
 > Sprint 4 has lower planned SP to allow for bug fixes, integration testing, and polish. Days 19-20 for all team members are dedicated to testing and fixing issues found during integration.
 
 ### Sprint 4 — Definition of Done
+- [ ] **Migration M7** applied — Dispute tables created
 - [ ] Admin dashboard fully functional (stats, user management, moderation queues)
 - [ ] Disputes can be raised and resolved
 - [ ] All notifications wired across features
@@ -474,8 +502,8 @@ gantt
 
 ```mermaid
 graph TD
-    subgraph S1["Sprint 1"]
-        SC001["SC-001<br/>Solution Setup<br/>BE-1"]
+    subgraph S1["Sprint 1 — M1"]
+        SC001["SC-001<br/>Solution Setup<br/>+ Module 1 Entities<br/>+ Seed Data<br/>BE-1"]
         SC003["SC-003<br/>File Upload<br/>BE-3"]
         SC007["SC-007/008/009<br/>Auth APIs<br/>BE-2"]
         SC013["SC-013/014<br/>Profiles & Verification<br/>BE-4"]
@@ -484,28 +512,30 @@ graph TD
         SC012["SC-012<br/>Auth Pages<br/>FE-1"]
     end
 
-    subgraph S2["Sprint 2"]
-        SC018["SC-018/020<br/>Cases<br/>BE-1"]
-        SC038["SC-038/039<br/>Contracts<br/>BE-2"]
+    subgraph S2["Sprint 2 — M2, M3, M4"]
+        SC018["SC-018/020<br/>Cases + M2<br/>BE-1"]
+        SC038["SC-038/039<br/>Contracts + M3<br/>BE-2"]
         SC023["SC-023/025<br/>AI Analysis<br/>BE-3"]
         SC026["SC-026/027<br/>Matching<br/>BE-3"]
-        SC031["SC-031/032<br/>Proposals<br/>BE-4"]
+        SC031["SC-031/032<br/>Proposals + M4<br/>BE-4"]
+        SC015["SC-015<br/>Verification Review<br/>BE-4"]
         SC051["SC-051<br/>Notifications<br/>BE-2"]
         SC021["SC-021/022<br/>Case Pages<br/>FE-1"]
         SC030["SC-030<br/>Marketplace<br/>FE-2"]
     end
 
-    subgraph S3["Sprint 3"]
+    subgraph S3["Sprint 3 — M5, M6"]
         SC044["SC-043/044<br/>Payments<br/>BE-1"]
         SC040["SC-040<br/>Contract Signing<br/>BE-2"]
-        SC057["SC-057<br/>AI Assistant<br/>BE-3"]
+        SC054["SC-054<br/>Articles + M5<br/>BE-2"]
+        SC057["SC-057<br/>AI Assistant + M6<br/>BE-3"]
         SC034["SC-034/035<br/>Chat<br/>BE-4"]
         SC033["SC-033/041<br/>Proposals & Contracts<br/>FE-1"]
         SC036["SC-036<br/>Chat UI<br/>FE-2"]
     end
 
-    subgraph S4["Sprint 4"]
-        SC049["SC-049<br/>Disputes<br/>BE-1"]
+    subgraph S4["Sprint 4 — M7"]
+        SC049["SC-049<br/>Disputes + M7<br/>BE-1"]
         SC060["SC-060/061<br/>Admin<br/>BE-2"]
         SC058["SC-058<br/>RAG Pipeline<br/>BE-3"]
         SC046["SC-046/062<br/>Payments & Admin<br/>FE-1"]
@@ -521,6 +551,7 @@ graph TD
     SC004 --> SC012
     SC012 --> SC021
     SC005 --> SC030
+    SC013 --> SC015
     SC018 --> SC031
     SC023 --> SC026
     SC023 --> SC057
@@ -545,10 +576,10 @@ graph TD
 
 | Sprint | BE-1 | BE-2 | BE-3 | BE-4 | FE-1 | FE-2 |
 |--------|------|------|------|------|------|------|
-| **S1** | Solution Setup, DbContext, Migrations, Swagger, Seed Data | Auth Service (Register, Login, JWT, Email Verify, Password Reset) | Provider Interfaces, File Upload Service, Email/SMS Providers | User Profiles, Lawyer Verification, Specializations | React Setup, i18n RTL, Auth Pages (Login, Register, Forgot) | Theme, Layouts, Shared Components (DataTable, FileUpload, Modal, Forms) |
-| **S2** | Cases CRUD, Attachments, Status Transitions, Marketplace API | Contracts CRUD, Milestones, Verification Review, Notification Service | OpenAI Provider, Case Analysis Prompt, AI Analysis Service, Matching Algorithm | Proposal Service, Accept/Reject, Notification Triggers | Case Pages (List, Create, Detail), AI Analysis View, Matched Lawyers | Profile Pages, Verification Page, Marketplace, Notification UI |
-| **S3** | Payment Provider, Escrow Deposit/Release, Webhook | Contract Signing, Articles CRUD, Article Moderation, Reviews | Client AI Assistant, Qdrant Setup, RAG Pipeline Skeleton | Chat Hub (SignalR), Chat Service, File/Voice Messages | Proposal Pages, Contract Pages, Milestone Workflow | SignalR Hook, Chat UI, Article Pages |
-| **S4** | Disputes, Payment Edge Cases, Performance, Integration Testing | Admin Dashboard, User Management, Route Protection, Bug Fixes | RAG Refinement, Prompt Tuning, Matching Tuning, AI Testing | Notification Preferences, Notification Triggers (all features), Chat Polish | Payment Pages, Review UI, Admin Dashboard Pages | AI Assistant UI, Dispute Pages, UI Polish, RTL Fixes |
+| **S1** | Solution Setup, **Module 1 Entities + M1 Migration**, Seed Data, Swagger, CORS | Auth Service (Register, Login, JWT, Email Verify, Password Reset) | Provider Interfaces, File Upload Service, Email/SMS Providers | User Profiles, Lawyer Verification, Specializations | React Setup, i18n RTL, Auth Pages (Login, Register, Forgot) | Theme, Layouts, Shared Components (DataTable, FileUpload, Modal, Forms) |
+| **S2** | **Module 2 Entities + M2 Migration**, Cases CRUD, Attachments, Status Transitions, Marketplace API | **Module 4 + Notification Entities + M3 Migration**, Contracts CRUD, Milestones, Notification Service | OpenAI Provider, Case Analysis Prompt, AI Analysis Service, Matching Algorithm | **Module 3 Entities + M4 Migration**, Proposal Service, Accept/Reject, Verification Review | Case Pages (List, Create, Detail), AI Analysis View, Matched Lawyers | Profile Pages, Verification Page, Marketplace, Notification UI |
+| **S3** | Payment Provider, Escrow Deposit/Release, Webhook | Contract Signing, **Module 7 + Review Entities + M5 Migration**, Articles CRUD, Article Moderation, Reviews | **Module 6 Entities + M6 Migration**, Client AI Assistant, Qdrant Setup, RAG Pipeline Skeleton | Chat Hub (SignalR), Chat Service, File/Voice Messages | Proposal Pages, Contract Pages, Milestone Workflow | SignalR Hook, Chat UI, Article Pages |
+| **S4** | **Dispute Entities + M7 Migration**, Disputes, Payment Edge Cases, Performance, Integration Testing | Admin Dashboard, User Management, Route Protection, Bug Fixes | RAG Refinement, Prompt Tuning, Matching Tuning, AI Testing | Notification Preferences, Notification Triggers (all features), Chat Polish | Payment Pages, Review UI, Admin Dashboard Pages | AI Assistant UI, Dispute Pages, UI Polish, RTL Fixes |
 
 ---
 
@@ -556,13 +587,40 @@ graph TD
 
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|-----------|------------|
+| Migration conflicts between team members (S2 has 3 parallel migrations) | Medium | Medium | Each developer owns their migration; coordinate via pull request order. Run `dotnet ef migrations add` sequentially. |
 | OpenAI API integration complexity | High | Medium | BE-3 starts AI in S2 Day 1; stub responses available for frontend testing |
-| Sprint 2 backend overload (53 SP) | Medium | High | Notifications (SC-051) can be simplified; marketplace query is straightforward |
+| Sprint 2 backend overload (53 SP) | Medium | High | Entity/migration work is absorbed into feature stories. SC-029 is a simple query combined with SC-028. SC-051 is a stretch goal. |
 | Payment gateway not finalized | High | High | `StubPaymentProvider` used through all sprints; real integration can happen post-MVP |
 | Arabic RTL edge cases | Medium | Medium | FE-2 dedicated to RTL fixes in S4; test early in S1 |
 | SignalR scalability on-prem | Low | Low | Connection limits manageable for MVP user base |
 | RAG corpus not ready | Medium | High | RAG works in S4 with minimal seed data; full corpus can be loaded post-launch |
 | Team unfamiliar with AI/LLM | High | High | BE-3 is designated AI lead; team studies AI in Sprint 1 parallel |
+
+---
+
+## Backlog Coverage Verification
+
+> All 63 stories from the Product Backlog are accounted for in this sprint plan.
+
+| Epic | Stories | Sprint(s) | Status |
+|------|---------|-----------|--------|
+| E-01: Project Setup & Infrastructure | SC-001 (includes SC-002), SC-003, SC-004, SC-005, SC-006 | S1 | ✅ All covered |
+| E-02: Authentication & Registration | SC-007, SC-008, SC-009, SC-010, SC-011, SC-012 | S1 | ✅ All covered |
+| E-03: User Profiles & Verification | SC-013, SC-014, SC-015, SC-016, SC-017 | S1-S2 | ✅ All covered |
+| E-04: Legal Case Management | SC-018, SC-019, SC-020, SC-021, SC-022 | S2 | ✅ All covered |
+| E-05: AI Case Analysis | SC-023, SC-024, SC-025 | S2 | ✅ All covered |
+| E-06: Lawyer Matching | SC-026, SC-027 | S2 | ✅ All covered |
+| E-07: Lawyer Marketplace | SC-028, SC-029, SC-030 | S2 | ✅ All covered |
+| E-08: Proposals | SC-031, SC-032, SC-033 | S2-S3 | ✅ All covered |
+| E-09: Communication (Chat) | SC-034, SC-035, SC-036, SC-037 | S3 | ✅ All covered |
+| E-10: Contract Management | SC-038, SC-039, SC-040, SC-041, SC-042 | S2-S3 | ✅ All covered |
+| E-11: Payments & Escrow | SC-043, SC-044, SC-045, SC-046 | S3-S4 | ✅ All covered |
+| E-12: Reviews & Ratings | SC-047, SC-048 | S3-S4 | ✅ All covered |
+| E-13: Disputes | SC-049, SC-050 | S4 | ✅ All covered |
+| E-14: Notifications | SC-051, SC-052, SC-053 | S2, S4 | ✅ All covered |
+| E-15: Articles & Knowledge Base | SC-054, SC-055, SC-056 | S3-S4 | ✅ All covered |
+| E-16: AI Assistant | SC-057, SC-058, SC-059 | S3-S4 | ✅ All covered |
+| E-17: Admin Dashboard | SC-060, SC-061, SC-062, SC-063 | S4 | ✅ All covered |
 
 ---
 
@@ -572,6 +630,7 @@ graph TD
 
 1. **Create Epics** (E-01 through E-17) in your board
 2. **Create Stories** (SC-001 through SC-063) under their respective epics
+   - Note: SC-002 is merged into SC-001 — create a single story with combined acceptance criteria
 3. **Copy Acceptance Criteria** from the Product Backlog into each story's description
 4. **Set Story Points** as specified
 5. **Create Sprints** (S1, S2, S3, S4) and drag stories into the correct sprint
@@ -583,3 +642,4 @@ graph TD
 - `Dependency` — link type "is blocked by" for task dependencies
 - `Sprint` — use Jira's sprint board
 - `Role` — custom field or use labels for team filtering
+- `Migration` — custom field to tag which migration (M1-M7) a story contributes to
