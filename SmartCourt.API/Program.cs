@@ -19,7 +19,7 @@ namespace SmartCourt.API
             builder.Services.AddSwaggerGen();
 
             // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
-            builder.Services.AddInfrastructureServices(builder.Configuration);
+            builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment.IsDevelopment());
             
 
             var app = builder.Build();
