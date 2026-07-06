@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SmartCourt.Common;
-using SmartCourt.Common;
 
 namespace SmartCourt.Middleware;
 
