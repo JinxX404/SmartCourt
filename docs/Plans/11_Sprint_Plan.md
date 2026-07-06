@@ -86,7 +86,7 @@ gantt
 | Day | Tasks | Story |
 |-----|-------|-------|
 | D1 | Set up ASP.NET Identity, configure JWT options, create `JwtTokenService` | SC-006, SC-009 |
-| D2 | Implement `AuthService.RegisterClientAsync()`, `RegisterLawyerAsync()` with `IEmailProvider` | SC-007, SC-008 |
+| D2 | Implement `AuthService.RegisterClientAsync()`, `RegisterLawyerAsync()` (multipart + file uploads) with `IEmailProvider` | SC-007, SC-008 |
 | D3 | Implement `AuthService.LoginAsync()`, JWT generation with claims, refresh token storage | SC-009 |
 | D4 | Implement email verification, password reset, `ICurrentUserService` | SC-010, SC-011, SC-006 |
 | D5 | Create `AuthController` with all endpoints, test with Swagger, implement `ConsoleEmailProvider` for dev | SC-007-011 |
@@ -107,7 +107,7 @@ gantt
 |-----|-------|-------|
 | D1 | Study schema.md Module 1 entities, plan UserService interface | SC-013 |
 | D2 | Implement `UserService` — get/update profile (client + lawyer), profile picture | SC-013 |
-| D3 | Implement `LawyerVerificationService` — submit National ID + Bar Card docs | SC-014 |
+| D3 | Implement `LawyerVerificationService` — re-submit National ID + Bar Card docs | SC-014 |
 | D4 | Implement specialization management (`GET /legal-categories`, `PUT /specializations`) | SC-017 |
 | D5 | Create `UsersController`, `LawyerVerificationController`, test all endpoints | SC-013, SC-014, SC-017 |
 
@@ -138,13 +138,13 @@ gantt
 | SC-001 | Backend Solution Scaffolding + Module 1 Entities + Seed Data | BE-1 | 5 | P0 | — | S1 |
 | SC-006 | ICurrentUserService & JWT Claims | BE-2 | 2 | P0 | SC-001 | S1 |
 | SC-007 | Client Registration | BE-2 | 3 | P0 | SC-001 | S1 |
-| SC-008 | Lawyer Registration | BE-2 | 2 | P0 | SC-001 | S1 |
+| SC-008 | Lawyer Registration | BE-2 | 2 | P0 | SC-001, SC-003 | S1 |
 | SC-009 | Login & JWT Token | BE-2 | 3 | P0 | SC-001 | S1 |
 | SC-010 | Email Verification | BE-2 | 2 | P1 | SC-007 | S1 |
 | SC-011 | Password Reset | BE-2 | 2 | P1 | SC-007 | S1 |
 | SC-003 | File Upload Service & Provider | BE-3 | 4 | P0 | SC-001 | S1 |
 | SC-013 | User Profile Management | BE-4 | 3 | P1 | SC-001 | S1 |
-| SC-014 | Lawyer Verification Submission | BE-4 | 3 | P1 | SC-003 | S1 |
+| SC-014 | Lawyer Verification Re-submission | BE-4 | 3 | P1 | SC-003 | S1 |
 | SC-017 | Lawyer Specialization Management | BE-4 | 2 | P1 | SC-001 | S1 |
 | SC-004 | React Project Setup | FE-1 | 4 | P0 | — | S1 |
 | SC-012 | Auth Pages (Frontend) | FE-1 | 6 | P0 | SC-004 | S1 |

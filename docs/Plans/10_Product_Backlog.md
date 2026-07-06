@@ -130,7 +130,7 @@
 - **SP:** 3 | **Sprint:** S1 | **Priority:** P0 | **Label:** `backend`
 - **Assignee:** BE-2
 - **Acceptance Criteria:**
-  - [ ] POST `/api/auth/register/client` with `{ email, password, firstName, lastName, phoneNumber }`
+  - [ ] POST `/api/auth/register/client` with `{ fullName, email, password, confirmPassword }`
   - [ ] Creates `AspNetUsers` entry + `ClientProfile` entry
   - [ ] Password hashed via ASP.NET Identity
   - [ ] Sends email verification link (via `IEmailProvider`)
@@ -143,7 +143,7 @@
 - **SP:** 2 | **Sprint:** S1 | **Priority:** P0 | **Label:** `backend`
 - **Assignee:** BE-2
 - **Acceptance Criteria:**
-  - [ ] POST `/api/auth/register/lawyer` with `{ email, password, firstName, lastName, phoneNumber }`
+  - [ ] POST `/api/auth/register/lawyer` (multipart/form-data) with text fields (`fullName`, `email`, `password`, `confirmPassword`, `phone`, `address`, `government`, `city`, `gender`, `nationalNumber`) and files (`idCardImageFront`, `idCardImageBack`, `barAssociationIdCardFront`, `barAssociationIdCardBack`)
   - [ ] Creates `AspNetUsers` entry + `LawyerProfile` entry (with default IsAvailable = false)
   - [ ] Sends email verification link
   - [ ] Returns 201
@@ -155,7 +155,7 @@
 - **Acceptance Criteria:**
   - [ ] POST `/api/auth/login` with `{ email, password }`
   - [ ] Validates credentials via Identity
-  - [ ] Returns `{ accessToken, refreshToken, expiresAt, user: { id, email, role, firstName, lastName } }`
+  - [ ] Returns `{ accessToken, refreshToken, expiresAt, user: { id, email, role, fullName } }`
   - [ ] JWT contains claims: sub, email, role, jti, exp
   - [ ] Access token expires in 60 min (configurable)
   - [ ] Refresh token stored in DB, expires in 7 days
@@ -189,8 +189,8 @@
 - **Assignee:** FE-1
 - **Acceptance Criteria:**
   - [ ] Login page with email + password form, validation, error display
-  - [ ] Client registration page with all fields + validation
-  - [ ] Lawyer registration page with all fields + validation
+  - [ ] Client registration page with fullName, email, password, confirmPassword + validation
+  - [ ] Lawyer registration page with all text + file upload fields (multipart) + validation
   - [ ] Forgot password page (enter email)
   - [ ] Reset password page (new password form)
   - [ ] Email verification success/error page
@@ -208,19 +208,19 @@
 - **Assignee:** BE-4
 - **Acceptance Criteria:**
   - [ ] GET `/api/users/profile` — returns current user's profile (client or lawyer)
-  - [ ] PUT `/api/users/profile` — update common fields (firstName, lastName, phone, profilePicture)
+  - [ ] PUT `/api/users/profile` — update common fields (fullName, profilePicture)
   - [ ] PUT `/api/users/profile/client` — update client-specific fields (dateOfBirth)
-  - [ ] PUT `/api/users/profile/lawyer` — update lawyer-specific fields (bio, officeAddress, yearsOfExperience, isAvailable, specializations)
+  - [ ] PUT `/api/users/profile/lawyer` — update lawyer-specific fields (bio, address, government, city, gender, phone, yearsOfExperience, isAvailable, specializations)
   - [ ] Profile picture upload via FileUpload service
 
-### SC-014 · Lawyer Verification Submission (Backend)
-- **As a** lawyer, **I want** to submit my National ID and Bar Card for verification, **so that** I can become a verified lawyer on the platform.
+### SC-014 · Lawyer Verification Re-submission (Backend)
+- **As a** lawyer, **I want** to re-submit my National ID and Bar Card if they were rejected, **so that** I can try verifying my account again.
 - **SP:** 3 | **Sprint:** S1 | **Priority:** P1 | **Label:** `backend`
 - **Assignee:** BE-4
 - **Acceptance Criteria:**
-  - [ ] POST `/api/lawyer-verification/national-id` with front + back images (StoredFileId)
-  - [ ] POST `/api/lawyer-verification/bar-card` with front + back images (StoredFileId)
-  - [ ] Sets NationalIdVerificationStatus / BarCardVerificationStatus to Pending
+  - [ ] POST `/api/lawyer-verification/national-id/resubmit` with front + back images (multipart)
+  - [ ] POST `/api/lawyer-verification/bar-card/resubmit` with front + back images (multipart)
+  - [ ] Sets VerificationStatus back to Pending
   - [ ] GET `/api/lawyer-verification/status` — returns verification statuses
   - [ ] Triggers notification to admin
 

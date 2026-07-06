@@ -78,12 +78,10 @@ All endpoints return this wrapper:
 
 ```json
 {
+  "fullName": "string — required, max 100 chars",
   "email": "string — required, valid email format",
   "password": "string — required, min 8 chars, must contain uppercase + lowercase + digit",
-  "confirmPassword": "string — required, must match password",
-  "firstName": "string — required, max 50 chars",
-  "lastName": "string — required, max 50 chars",
-  "phoneNumber": "string — required, Egyptian format (+20xxxxxxxxxx)"
+  "confirmPassword": "string — required, must match password"
 }
 ```
 
@@ -97,8 +95,7 @@ All endpoints return this wrapper:
   "data": {
     "userId": "uuid",
     "email": "string",
-    "firstName": "string",
-    "lastName": "string",
+    "fullName": "string",
     "role": "Client"
   }
 }
@@ -126,18 +123,26 @@ All endpoints return this wrapper:
 **Description:** Register a new lawyer account.
 **Auth:** `[AllowAnonymous]`
 
-**Request Body:**
+**Content-Type:** `multipart/form-data`
 
-```json
-{
-  "email": "string — required, valid email format",
-  "password": "string — required, min 8 chars, must contain uppercase + lowercase + digit",
-  "confirmPassword": "string — required, must match password",
-  "firstName": "string — required, max 50 chars",
-  "lastName": "string — required, max 50 chars",
-  "phoneNumber": "string — required, Egyptian format (+20xxxxxxxxxx)"
-}
-```
+**Request Body (Form Data):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fullName` | string | required, max 100 chars |
+| `email` | string | required, valid email format |
+| `password` | string | required, min 8 chars, must contain uppercase + lowercase + digit |
+| `confirmPassword` | string | required, must match password |
+| `phone` | string | required, Egyptian format (+20xxxxxxxxxx) |
+| `address` | string | required |
+| `government` | string | required, Governorate name |
+| `city` | string | required |
+| `gender` | string | required (e.g., Male/Female) |
+| `nationalNumber` | string | required, 14 digits |
+| `idCardImageFront` | file | required (JPEG/PNG/PDF) |
+| `idCardImageBack` | file | required (JPEG/PNG/PDF) |
+| `barAssociationIdCardFront` | file | required (JPEG/PNG/PDF) |
+| `barAssociationIdCardBack` | file | required (JPEG/PNG/PDF) |
 
 **Response (201 Created):**
 
@@ -149,8 +154,7 @@ All endpoints return this wrapper:
   "data": {
     "userId": "uuid",
     "email": "string",
-    "firstName": "string",
-    "lastName": "string",
+    "fullName": "string",
     "role": "Lawyer"
   }
 }
@@ -193,8 +197,7 @@ All endpoints return this wrapper:
     "user": {
       "id": "uuid",
       "email": "string",
-      "firstName": "string",
-      "lastName": "string",
+      "fullName": "string",
       "role": "Client | Lawyer | Admin",
       "profilePictureUrl": "string | null",
       "isVerified": true

@@ -14,8 +14,7 @@ Table AspNetUsers {
   Email varchar
   PhoneNumber varchar
 
-  FirstName varchar
-  LastName varchar
+  FullName varchar
 
   ProfilePictureFileId uuid [null]
 
@@ -79,7 +78,14 @@ Table LawyerProfile {
 
   UserId uuid [pk]
 
-  OfficeAddress text
+  Address text
+
+  Government varchar
+  City varchar
+
+  Gender varchar
+
+  NationalNumber varchar
 
   Bio text
 
@@ -96,14 +102,14 @@ Table LawyerProfile {
 
   NationalIdVerifiedAt datetime [null]
 
-  BarCardFrontFileId uuid [null]
-  BarCardBackFileId uuid [null]
+  BarAssociationIdCardFrontFileId uuid [null]
+  BarAssociationIdCardBackFileId uuid [null]
 
-  BarCardVerificationStatus int
+  BarAssociationIdCardVerificationStatus int
 
-  BarCardReviewedByUserId uuid [null]
+  BarAssociationIdCardReviewedByUserId uuid [null]
 
-  BarCardVerifiedAt datetime [null]
+  BarAssociationIdCardVerifiedAt datetime [null]
 
   CreatedAt datetime
   UpdatedAt datetime
@@ -160,11 +166,11 @@ Ref: LawyerProfile.UserId > AspNetUsers.Id
 Ref: LawyerProfile.NationalIdFrontFileId > StoredFile.Id
 Ref: LawyerProfile.NationalIdBackFileId > StoredFile.Id
 
-Ref: LawyerProfile.BarCardFrontFileId > StoredFile.Id
-Ref: LawyerProfile.BarCardBackFileId > StoredFile.Id
+Ref: LawyerProfile.BarAssociationIdCardFrontFileId > StoredFile.Id
+Ref: LawyerProfile.BarAssociationIdCardBackFileId > StoredFile.Id
 
 Ref: LawyerProfile.NationalIdReviewedByUserId > AspNetUsers.Id
-Ref: LawyerProfile.BarCardReviewedByUserId > AspNetUsers.Id
+Ref: LawyerProfile.BarAssociationIdCardReviewedByUserId > AspNetUsers.Id
 
 Ref: LawyerSpecialization.LawyerUserId > LawyerProfile.UserId
 
