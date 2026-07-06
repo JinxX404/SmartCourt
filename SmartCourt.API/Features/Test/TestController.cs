@@ -43,4 +43,16 @@ public class TestController : ControllerBase
 
         return Ok(SmartCourt.API.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "Email has been enqueued to Hangfire!"));
     }
+
+    [HttpPost("sms")]
+    public async System.Threading.Tasks.Task<IActionResult> SendTestSms([FromServices] SmartCourt.Core.Interfaces.Providers.ISmsProvider smsProvider, [FromQuery] string to)
+    {
+        if (string.IsNullOrEmpty(to)) return BadRequest("Please provide a 'to' query parameter with your phone number.");
+
+        var result = await smsProvider.SendSmsAsync(
+            phoneNumber: to,
+            message: "Smart Court - If you are reading this, the background Hangfire Twilio SMS provider is fully operational!");
+
+        return Ok(SmartCourt.API.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "SMS has been enqueued to Hangfire!"));
+    }
 }

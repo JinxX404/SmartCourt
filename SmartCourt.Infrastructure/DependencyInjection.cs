@@ -12,10 +12,15 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             
-        // Infrastructure Providers
+        // Email Infrastructure Providers
         services.Configure<SmartCourt.Infrastructure.Providers.Email.MailKitOptions>(configuration.GetSection("SmtpSettings"));
         services.AddScoped<SmartCourt.Infrastructure.Providers.Email.ISmtpEmailSender, SmartCourt.Infrastructure.Providers.Email.SmtpEmailSender>();
         services.AddScoped<SmartCourt.Core.Interfaces.Providers.IEmailProvider, SmartCourt.Infrastructure.Providers.Email.BackgroundEmailProvider>();
+
+        // SMS Infrastructure Providers
+        services.Configure<SmartCourt.Infrastructure.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
+        services.AddScoped<SmartCourt.Infrastructure.Providers.Sms.ISmsSender, SmartCourt.Infrastructure.Providers.Sms.TwilioSmsSender>();
+        services.AddScoped<SmartCourt.Core.Interfaces.Providers.ISmsProvider, SmartCourt.Infrastructure.Providers.Sms.BackgroundSmsProvider>();
 
         // Background Jobs (Hangfire)
         services.AddHangfire(config => config
