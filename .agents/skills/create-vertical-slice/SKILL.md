@@ -8,7 +8,7 @@ description: Scaffolds a new vertical slice for the Smart Court API including Co
 When the user asks you to create a new feature or a new vertical slice in the Smart Court API, follow these steps exactly:
 
 1. **Create the Folder Structure**: 
-   Create a new directory under `SmartCourt.API/Features/<FeatureName>`.
+   Create a new directory under `SmartCourt/Features/<FeatureName>`.
    Inside it, create `DTOs/` and `Validators/` subdirectories.
 
 2. **Create the DTOs**:
