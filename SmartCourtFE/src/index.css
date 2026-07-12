@@ -6,9 +6,14 @@
   --color-surface: #f8f9fa;
   --color-gold: #c5a059;
   --color-gold-hover: #b08d4b;
+
+  --color-secondary-gray:#374151;
+
+  --color-gradient-start: #1f232b;
+  --color-gradient-end: #1a1d23;
   
   /* You can easily add your custom font here too */
-  --font-sans: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Setting up the global body styles and RTL direction */
