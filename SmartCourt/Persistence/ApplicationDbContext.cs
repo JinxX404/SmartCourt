@@ -10,6 +10,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<TestEntity> TestEntities { get; set; }
+    public DbSet<SampleEntity> SampleEntities { get; set; }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
