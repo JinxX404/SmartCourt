@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using SmartCourt.Features.Auth.Enums;
 
 namespace SmartCourt.Features.Auth;
@@ -31,7 +31,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? Address { get; set; }
 
     /// <summary>
-    /// User's status (required, defaults to PendingReview)
+    /// User's status (required, defaults to Unverified)
     /// </summary>
-    public UserStatus Status { get; set; } = UserStatus.PendingReview;
+    public UserStatus Status { get; set; } = UserStatus.Unverified;
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Features.Auth.Enums;
 
@@ -41,7 +41,7 @@ public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
         builder.Property(u => u.Status)
             .IsRequired()
             .HasConversion<int>()
-            .HasDefaultValue(UserStatus.PendingReview);
+            .HasDefaultValue(UserStatus.Unverified);
 
 
         builder.HasIndex(u => u.Email)

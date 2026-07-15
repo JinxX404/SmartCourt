@@ -87,7 +87,7 @@ public class AuthService : IAuthService
             Email = request.Email,
             FullName = request.FullName,
             NationalNumber = request.NationalNumber,
-            Status = UserStatus.PendingReview
+            Status = UserStatus.Unverified
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
@@ -122,7 +122,7 @@ public class AuthService : IAuthService
             Address = fullAddress,
             Gender = request.Gender,
             NationalNumber = request.NationalNumber,
-            Status = UserStatus.PendingReview
+            Status = UserStatus.Unverified
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);
