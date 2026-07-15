@@ -1,15 +1,23 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Entities;
+using SmartCourt.Features.Auth;
 
 namespace SmartCourt.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) :
+    IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>(options)
 {
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<TestEntity> TestEntities { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        // Apply entity configurations
+        builder.ApplyConfiguration(new UserConfiguration());
+    }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

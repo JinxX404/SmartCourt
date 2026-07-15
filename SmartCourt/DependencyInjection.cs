@@ -1,8 +1,14 @@
+using System.Text;
 using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using SmartCourt.Common;
+using SmartCourt.Features.Auth;
+using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using SmartCourt.Providers.FileStorage;
@@ -17,19 +23,10 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             
-        // Email Infrastructure Providers
         services.Configure<SmartCourt.Providers.Email.MailKitOptions>(configuration.GetSection("SmtpSettings"));
-        if (isDevelopment)
-        {
-            services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.MockSmtpEmailSender>();
-        }
-        else
-        {
-            services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.SmtpEmailSender>();
-        }
+        services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.SmtpEmailSender>();
         services.AddScoped<SmartCourt.Interfaces.Providers.IEmailProvider, SmartCourt.Providers.Email.BackgroundEmailProvider>();
 
-        // SMS Infrastructure Providers
         services.Configure<SmartCourt.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
         if (isDevelopment)
         {
@@ -41,7 +38,6 @@ public static class DependencyInjection
         }
         services.AddScoped<SmartCourt.Interfaces.Providers.ISmsProvider, SmartCourt.Providers.Sms.BackgroundSmsProvider>();
 
-        // Background Jobs (Hangfire)
         services.AddHangfire(config => config
             .SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
@@ -74,7 +70,47 @@ public static class DependencyInjection
             return client;
         });
 
-        // In the future, we will register Repositories, Identity, and Email services here
+        services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
+
+        services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+        {
+            options.User.RequireUniqueEmail = true;
+            options.Password.RequireDigit = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireUppercase = true;
+            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequiredLength = 8;
+            options.SignIn.RequireConfirmedEmail = false;
+        })
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddDefaultTokenProviders();
+
+        var jwtOptions = configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
+        var key = Encoding.UTF8.GetBytes(jwtOptions.Secret ?? string.Empty);
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtOptions.Issuer,
+                ValidAudience = jwtOptions.Audience,
+                IssuerSigningKey = new SymmetricSecurityKey(key),
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+        });
+
+        services.AddAuthorization();
+        services.AddScoped<JwtProvider>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
