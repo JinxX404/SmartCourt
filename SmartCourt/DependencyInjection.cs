@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using System.Text;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -18,6 +20,43 @@ namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
+    public static IServiceCollection AddApiServices(this IServiceCollection services)
+    {
+        services.AddControllers();
+        services.AddFluentValidationAutoValidation();
+        services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.LoginRequestValidator>();
+        services.AddEndpointsApiExplorer();
+        services.AddSwaggerGen(c =>
+        {
+            c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter your token in the text input below.",
+                Name = "Authorization",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+                Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+                Scheme = "Bearer",
+                BearerFormat = "JWT"
+            });
+
+            c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
+            {
+                {
+                    new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                    {
+                        Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                        {
+                            Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                    },
+                    new string[] {}
+                }
+            });
+        });
+
+        return services;
+    }
+
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
@@ -111,6 +150,7 @@ public static class DependencyInjection
         services.AddAuthorization();
         services.AddScoped<JwtProvider>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<SmartCourt.Features.Users.IUserService, SmartCourt.Features.Users.UserService>();
 
         return services;
     }

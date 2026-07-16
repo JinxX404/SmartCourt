@@ -1,5 +1,3 @@
-using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -16,11 +14,7 @@ namespace SmartCourt
             var builder = WebApplication.CreateBuilder(args);
 
             // 1. Add API Services
-            builder.Services.AddControllers();
-            builder.Services.AddFluentValidationAutoValidation();
-            builder.Services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.LoginRequestValidator>();
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddApiServices();
 
             // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
             builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment.IsDevelopment());
@@ -48,6 +42,12 @@ namespace SmartCourt
 
             // 4. Auto-Migrate Database on Startup
             app.UseAutoMigration();
+
+            // 5. Seed Database
+            using (var scope = app.Services.CreateScope())
+            {
+                SmartCourt.Persistence.DatabaseSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
+            }
 
             app.Run();
         }

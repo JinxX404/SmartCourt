@@ -264,4 +264,60 @@ public class AuthService : IAuthService
 
         await _emailProvider.SendEmailAsync(user.Email!, subject, body, true);
     }
+
+    public Task ForgotPasswordAsync(string email)
+    {
+        /*
+         * ALGORITHM:
+         * 1. Find user by email (_userManager.FindByEmailAsync).
+         * 2. If user doesn't exist, return immediately (don't throw error to prevent enumeration).
+         * 3. Check if email is confirmed. If not, optionally return or send verification link instead.
+         * 4. Generate reset token: _userManager.GeneratePasswordResetTokenAsync(user).
+         * 5. URL encode token: WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token)).
+         * 6. Construct reset URL: $"{_appUrl}/api/auth/reset-password?email={email}&token={encodedToken}".
+         *    (Note: This will point to the frontend when a domain is available).
+         * 7. Construct HTML email body and send via _emailProvider.SendEmailAsync.
+         */
+        throw new NotImplementedException();
+    }
+
+    public Task ResetPasswordAsync(string email, string token, string newPassword)
+    {
+        /*
+         * ALGORITHM:
+         * 1. Find user by email. If not found, throw BusinessException("بيانات غير صالحة").
+         * 2. Decode the token: Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)).
+         * 3. Call _userManager.ResetPasswordAsync(user, decodedToken, newPassword).
+         * 4. If result is not Succeeded, throw ValidationException with errors.
+         */
+        throw new NotImplementedException();
+    }
+
+    public async Task ChangePasswordAsync(string userId, string currentPassword, string newPassword)
+    {
+
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw new AuthenticationException("المستخدم غير معروف");
+        }
+
+        var result = await _userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        if (!result.Succeeded)
+        {
+            throw new ValidationException("Password", string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
+    }
+
+    public Task ResendVerificationEmailAsync(string email)
+    {
+        /*
+         * ALGORITHM:
+         * 1. Find user by email. If not found, return immediately (don't throw error).
+         * 2. If user.EmailConfirmed == true, return immediately.
+         * 3. Check rate limiting (e.g., max 3 per hour) if implemented in DB or Cache.
+         * 4. Call SendConfirmationEmailAsync(user) to resend the email.
+         */
+        throw new NotImplementedException();
+    }
 }
