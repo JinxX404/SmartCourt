@@ -1,3 +1,5 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,6 +17,8 @@ namespace SmartCourt
 
             // 1. Add API Services
             builder.Services.AddControllers();
+            builder.Services.AddFluentValidationAutoValidation();
+            builder.Services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.LoginRequestValidator>();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -38,6 +42,7 @@ namespace SmartCourt
             app.UseHangfireDashboard();
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
 

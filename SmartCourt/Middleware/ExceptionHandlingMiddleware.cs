@@ -38,7 +38,7 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
 
         var statusCode = (int)HttpStatusCode.InternalServerError;
-        var message = "An internal server error occurred.";
+        var message = "An internal server error occurred. Details: " + exception.ToString();
         var errors = new System.Collections.Generic.List<string>();
 
         switch (exception)
@@ -47,6 +47,10 @@ public class ExceptionHandlingMiddleware
                 statusCode = (int)HttpStatusCode.BadRequest;
                 message = e.Message;
                 errors = e.Errors.SelectMany(kv => kv.Value.Select(v => $"{kv.Key}: {v}")).ToList();
+                break;
+            case AuthenticationException e:
+                statusCode = (int)HttpStatusCode.Unauthorized;
+                message = e.Message;
                 break;
             case BusinessException e:
                 statusCode = (int)HttpStatusCode.BadRequest;
