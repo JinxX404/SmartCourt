@@ -267,18 +267,6 @@ public class AuthService : IAuthService
 
     public async Task ForgotPasswordAsync(string email)
     {
-        /*
-         * ALGORITHM:
-         * 1. Find user by email (_userManager.FindByEmailAsync).
-         * 2. If user doesn't exist, return immediately (don't throw error to prevent enumeration).
-         * 3. Check if email is confirmed. If not, optionally return or send verification link instead.
-         * 4. Generate reset token: _userManager.GeneratePasswordResetTokenAsync(user).
-         * 5. URL encode token: WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token)).
-         * 6. Construct reset URL: $"{_appUrl}/api/auth/reset-password?email={email}&token={encodedToken}".
-         *    (Note: This will point to the frontend when a domain is available).
-         * 7. Construct HTML email body and send via _emailProvider.SendEmailAsync.
-         */
-
         var user = await _userManager.FindByEmailAsync(email);
 
         if (user == null)
@@ -390,16 +378,20 @@ public class AuthService : IAuthService
         await _emailProvider.SendEmailAsync(user.Email!, subject, body, true);
     }
 
-    public Task ResetPasswordAsync(string email, string token, string newPassword)
+    public async Task ResetPasswordAsync(string email, string token, string newPassword)
     {
-        /*
-         * ALGORITHM:
-         * 1. Find user by email. If not found, throw BusinessException("بيانات غير صالحة").
-         * 2. Decode the token: Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token)).
-         * 3. Call _userManager.ResetPasswordAsync(user, decodedToken, newPassword).
-         * 4. If result is not Succeeded, throw ValidationException with errors.
-         */
-        throw new NotImplementedException();
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user == null)
+        {
+            throw new BusinessException("بيانات غير صالحة");
+        }
+
+        var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, newPassword);
+        if (!result.Succeeded)
+        {
+            throw new ValidationException("Password", string.Join(" ", result.Errors.Select(e => e.Description)));
+        }
     }
 
     public async Task ChangePasswordAsync(string userId, string currentPassword, string newPassword)
@@ -418,15 +410,116 @@ public class AuthService : IAuthService
         }
     }
 
-    public Task ResendVerificationEmailAsync(string email)
+    public async Task ResendVerificationEmailAsync(string email)
     {
-        /*
-         * ALGORITHM:
-         * 1. Find user by email. If not found, return immediately (don't throw error).
-         * 2. If user.EmailConfirmed == true, return immediately.
-         * 3. Check rate limiting (e.g., max 3 per hour) if implemented in DB or Cache.
-         * 4. Call SendConfirmationEmailAsync(user) to resend the email.
-         */
-        throw new NotImplementedException();
+
+        var user = await _userManager.FindByEmailAsync(email);
+
+        if (user == null)
+        {
+            return;
+        }
+
+        if (user.EmailConfirmed)
+        {
+            return;
+        }
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var confirmationUrl = $"{_appUrl}/api/auth/confirm-email?email={email}&token={encodedToken}";
+
+        var subject = "تأكيد البريد الإلكتروني - المحكمة الذكية";
+        var body = $@"""
+<!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }}
+        .header {{
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }}
+        .content {{
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }}
+        .content h2 {{
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }}
+        .btn-container {{
+            text-align: center;
+            margin: 30px 0;
+        }}
+        .btn {{
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }}
+        .footer {{
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً {user.FullName}،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='{confirmationUrl}' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; {DateTime.UtcNow.Year} منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+        """;
+
+        await _emailProvider.SendEmailAsync(user.Email!, subject, body, true);
     }
 }

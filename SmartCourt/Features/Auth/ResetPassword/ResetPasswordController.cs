@@ -19,6 +19,8 @@ public class ResetPasswordController(IAuthService authService) : ControllerBase
          * 2. Call IAuthService.ResetPasswordAsync(request)
          * 3. Return ApiResponse<string>.Ok() with message: "تم إعادة تعيين كلمة المرور بنجاح"
          */
-        throw new NotImplementedException();
+
+        await authService.ResetPasswordAsync(request.Email, request.Token, request.NewPassword);
+        return Ok(ApiResponse<string>.Ok("تم إعادة تعيين كلمة المرور بنجاح"));
     }
 }
