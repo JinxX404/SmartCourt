@@ -150,7 +150,8 @@ public static class DependencyInjection
         services.AddAuthorization();
         services.AddScoped<JwtProvider>();
         services.AddScoped<IAuthService, AuthService>();
-        services.AddScoped<SmartCourt.Features.Users.IUserService, SmartCourt.Features.Users.UserService>();
+        services.AddScoped<SmartCourt.Features.Users.Lawyers.ILawyerService, SmartCourt.Features.Users.Lawyers.LawyerService>();
+        services.AddScoped<SmartCourt.Features.Users.Clients.IClientService, SmartCourt.Features.Users.Clients.ClientService>();
 
         return services;
     }

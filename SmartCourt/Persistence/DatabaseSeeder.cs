@@ -78,5 +78,48 @@ public static class DatabaseSeeder
                 await userManager.AddToRoleAsync(moatazUser, "Admin");
             }
         }
+
+        var lawyerEmail = "lawyer@smartcourt.com";
+        var lawyerUser = await userManager.FindByEmailAsync(lawyerEmail);
+
+        if (lawyerUser == null)
+        {
+            lawyerUser = new ApplicationUser
+            {
+                UserName = lawyerEmail,
+                Email = lawyerEmail,
+                FullName = "Test Lawyer",
+                PhoneNumber = "01000000000",
+                NationalNumber = "00000000000003",
+                Gender = "Male",
+                DateOfBirth = new DateOnly(1980, 1, 1),
+                Address = "123 Legal St",
+                Status = UserStatus.Active,
+                EmailConfirmed = true,
+                LawyerProfile = new LawyerProfile
+                {
+                    Specialization = "Corporate Law",
+                    YearsOfExperience = 5,
+                    Bio = "Experienced corporate lawyer.",
+                    Address = "123 Legal St Office"
+                }
+            };
+
+            var result = await userManager.CreateAsync(lawyerUser, "Lawyer@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(lawyerUser, "Lawyer");
+            }
+        }
+        else
+        {
+            // Update existing record if it was already seeded from the previous run
+            lawyerUser.PhoneNumber = "01000000000";
+            lawyerUser.Gender = "Male";
+            lawyerUser.DateOfBirth = new DateOnly(1980, 1, 1);
+            lawyerUser.Address = "123 Legal St";
+            
+            await userManager.UpdateAsync(lawyerUser);
+        }
     }
 }

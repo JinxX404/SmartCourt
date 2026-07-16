@@ -54,5 +54,40 @@ public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 
         builder.HasIndex(u => u.Status)
             .HasDatabaseName("IX_ApplicationUser_Status");
+
+        builder.HasOne(u => u.LawyerProfile)
+            .WithOne(p => p.User)
+            .HasForeignKey<LawyerProfile>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(u => u.ClientProfile)
+            .WithOne(p => p.User)
+            .HasForeignKey<ClientProfile>(p => p.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile>
+{
+    public void Configure(EntityTypeBuilder<LawyerProfile> builder)
+    {
+        builder.HasKey(p => p.UserId);
+        
+        builder.Property(p => p.Specialization)
+            .HasMaxLength(150);
+            
+        builder.Property(p => p.Bio)
+            .HasMaxLength(500);
+            
+        builder.Property(p => p.Address)
+            .HasMaxLength(255);
+    }
+}
+
+public class ClientProfileConfiguration : IEntityTypeConfiguration<ClientProfile>
+{
+    public void Configure(EntityTypeBuilder<ClientProfile> builder)
+    {
+        builder.HasKey(p => p.UserId);
     }
 }

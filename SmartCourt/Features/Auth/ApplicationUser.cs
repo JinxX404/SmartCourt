@@ -34,4 +34,7 @@ public class ApplicationUser : IdentityUser<Guid>
     /// User's status (required, defaults to Unverified)
     /// </summary>
     public UserStatus Status { get; set; } = UserStatus.Unverified;
+
+    public LawyerProfile? LawyerProfile { get; set; }
+    public ClientProfile? ClientProfile { get; set; }
 }
