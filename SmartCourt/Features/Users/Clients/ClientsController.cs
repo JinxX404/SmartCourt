@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common;
+using SmartCourt.Common.Attributes;
 using SmartCourt.Features.Users.Clients.DTOs;
 
 namespace SmartCourt.Features.Users.Clients;
@@ -11,39 +12,26 @@ namespace SmartCourt.Features.Users.Clients;
 public class ClientsController(IClientService clientService) : ControllerBase
 {
     [HttpGet("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> GetAsync(Guid id)
     {
-        /*
-         * ALGORITHM:
-         * 1. Verify that the authenticated user has permission to access this profile.
-         * 2. Call IClientService.GetProfileAsync(id).
-         * 3. Return ApiResponse<ClientProfileResponse>.Ok(result).
-         */
-        throw new NotImplementedException();
+        var result = await clientService.GetProfileAsync(id);
+        return Ok(ApiResponse<ClientProfileResponse>.Ok(result));
     }
 
     [HttpPut("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateClientProfileRequest request)
     {
-        /*
-         * ALGORITHM:
-         * 1. Validate the incoming DTO (handled by FluentValidation pipeline).
-         * 2. Verify that the authenticated user has permission to update this profile.
-         * 3. Call IClientService.UpdateProfileAsync(id, request).
-         * 4. Return ApiResponse<string>.Ok("Profile updated successfully.").
-         */
-        throw new NotImplementedException();
+        await clientService.UpdateProfileAsync(id, request);
+        return Ok(ApiResponse<string>.Ok("تم تحديث الملف الشخصي بنجاح."));
     }
 
     [HttpDelete("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
-        /*
-         * ALGORITHM:
-         * 1. Verify that the authenticated user has permission to delete this profile.
-         * 2. Call IClientService.DeleteProfileAsync(id).
-         * 3. Return ApiResponse<string>.Ok("Profile deleted successfully.").
-         */
-        throw new NotImplementedException();
+        await clientService.DeleteProfileAsync(id);
+        return Ok(ApiResponse<string>.Ok("تم حذف الملف الشخصي بنجاح."));
     }
 }

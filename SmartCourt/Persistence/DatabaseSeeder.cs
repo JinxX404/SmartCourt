@@ -121,5 +121,41 @@ public static class DatabaseSeeder
             
             await userManager.UpdateAsync(lawyerUser);
         }
+
+        var clientEmail = "client@smartcourt.com";
+        var clientUser = await userManager.FindByEmailAsync(clientEmail);
+
+        if (clientUser == null)
+        {
+            clientUser = new ApplicationUser
+            {
+                UserName = clientEmail,
+                Email = clientEmail,
+                FullName = "Test Client",
+                PhoneNumber = "01100000000",
+                NationalNumber = "00000000000004",
+                Gender = "Male",
+                DateOfBirth = new DateOnly(1990, 1, 1),
+                Address = "456 Client Ave",
+                Status = UserStatus.Active,
+                EmailConfirmed = true,
+                ClientProfile = new ClientProfile()
+            };
+
+            var result = await userManager.CreateAsync(clientUser, "Client@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(clientUser, "Client");
+            }
+        }
+        else
+        {
+            clientUser.PhoneNumber = "01100000000";
+            clientUser.Gender = "Male";
+            clientUser.DateOfBirth = new DateOnly(1990, 1, 1);
+            clientUser.Address = "456 Client Ave";
+            
+            await userManager.UpdateAsync(clientUser);
+        }
     }
 }

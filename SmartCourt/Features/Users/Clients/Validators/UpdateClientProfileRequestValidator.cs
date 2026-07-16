@@ -1,5 +1,6 @@
 using FluentValidation;
 using SmartCourt.Features.Users.Clients.DTOs;
+using System;
 
 namespace SmartCourt.Features.Users.Clients.Validators;
 
@@ -7,12 +8,19 @@ public class UpdateClientProfileRequestValidator : AbstractValidator<UpdateClien
 {
     public UpdateClientProfileRequestValidator()
     {
-        /*
-         * ALGORITHM:
-         * 1. RuleFor Email: NotEmpty, EmailAddress
-         * 2. RuleFor PhoneNumber: NotEmpty, Matches specific format
-         * 3. RuleFor DateOfBirth: NotEmpty, Must be in the past
-         * 4. RuleFor Address: MaximumLength
-         */
+        RuleFor(x => x.Email)
+            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
+            .EmailAddress().WithMessage("البريد الإلكتروني غير صالح");
+
+        RuleFor(x => x.PhoneNumber)
+            .NotEmpty().WithMessage("رقم الهاتف مطلوب")
+            .Matches(@"^01[0125][0-9]{8}$").WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح");
+
+        RuleFor(x => x.DateOfBirth)
+            .NotEmpty().WithMessage("تاريخ الميلاد مطلوب")
+            .LessThan(DateOnly.FromDateTime(DateTime.Today)).WithMessage("تاريخ الميلاد يجب أن يكون في الماضي");
+
+        RuleFor(x => x.Address)
+            .MaximumLength(500).WithMessage("يجب ألا يتجاوز العنوان 500 حرف");
     }
 }

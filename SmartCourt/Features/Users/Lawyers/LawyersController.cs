@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common;
+using SmartCourt.Common.Attributes;
 using SmartCourt.Features.Users.Lawyers.DTOs;
 
 namespace SmartCourt.Features.Users.Lawyers;
@@ -11,14 +12,15 @@ namespace SmartCourt.Features.Users.Lawyers;
 public class LawyersController(ILawyerService lawyerService) : ControllerBase
 {
     [HttpGet("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> GetAsync(Guid id)
     {
-
         var result = await lawyerService.GetProfileAsync(id);
         return Ok(ApiResponse<LawyerProfileResponse>.Ok(result));
     }
 
     [HttpPut("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateLawyerProfileRequest request)
     {
         await lawyerService.UpdateProfileAsync(id, request);
@@ -26,6 +28,7 @@ public class LawyersController(ILawyerService lawyerService) : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [AuthorizeOwner]
     public async Task<IActionResult> DeleteAsync(Guid id)
     {
         await lawyerService.DeleteProfileAsync(id);
