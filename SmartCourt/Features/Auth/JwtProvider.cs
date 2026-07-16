@@ -1,12 +1,15 @@
+
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
+
+using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Features.Auth;
 
-public class JwtProvider
+public class JwtProvider : IJwtProvider
 {
     private readonly JwtOptions _options;
 
@@ -48,6 +51,35 @@ public class JwtProvider
 
         return new TokenResult(token, expiresAt, expiresInSeconds);
     }
+
+    public string? ValidateToken(string token, bool validateLifetime = true)
+    {
+        if (string.IsNullOrWhiteSpace(_options.Secret))
+        {
+            throw new InvalidOperationException("JWT secret is not configured.");
+        }
+        JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
+        SymmetricSecurityKey key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret));
+        try
+        {
+            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = validateLifetime,
+                ClockSkew = TimeSpan.Zero
+            }, out SecurityToken validatedToken);
+            JwtSecurityToken jwtToken = (JwtSecurityToken)validatedToken;
+            return jwtToken.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub)?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
 
 public record TokenResult(string Token, DateTime ExpiresAt, int ExpiresInSeconds);
+

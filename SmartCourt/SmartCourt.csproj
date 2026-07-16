@@ -31,5 +31,10 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Twilio" Version="7.14.9" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="Features\Auth\Shared\Templates\*.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>
