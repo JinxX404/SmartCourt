@@ -45,6 +45,7 @@ public static class DatabaseSeeder
                 UserName = adminEmail,
                 Email = adminEmail,
                 FullName = "System Administrator",
+                NationalNumber = "00000000000001",
                 Status = UserStatus.Active,
                 EmailConfirmed = true
             };
@@ -53,6 +54,28 @@ public static class DatabaseSeeder
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+
+        var moatazEmail = "moatazmohammed2392003@gmail.com";
+        var moatazUser = await userManager.FindByEmailAsync(moatazEmail);
+
+        if (moatazUser == null)
+        {
+            moatazUser = new ApplicationUser
+            {
+                UserName = moatazEmail,
+                Email = moatazEmail,
+                FullName = "Moataz Mohammed",
+                NationalNumber = "00000000000002",
+                Status = UserStatus.Active,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(moatazUser, "Admin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(moatazUser, "Admin");
             }
         }
     }
