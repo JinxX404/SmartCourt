@@ -33,13 +33,14 @@ public class TestController : ControllerBase
     }
 
     [HttpPost("email")]
-    public async System.Threading.Tasks.Task<IActionResult> SendTestEmail([FromServices] SmartCourt.Interfaces.Providers.IEmailProvider emailProvider)
+    public async System.Threading.Tasks.Task<IActionResult> SendTestEmail([FromServices] SmartCourt.Interfaces.Providers.IEmailProvider emailProvider, CancellationToken cancellationToken)
     {
         var result = await emailProvider.SendEmailAsync(
             to: "moatazmohammed2392003@gmail.com",
             subject: "Smart Court - Hangfire Test",
             body: "If you are reading this, the background Hangfire email provider is fully operational on Smart Court!",
-            isHtml: false);
+            isHtml: false,
+            cancellationToken: cancellationToken);
 
         return Ok(SmartCourt.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "Email has been enqueued to Hangfire!"));
     }

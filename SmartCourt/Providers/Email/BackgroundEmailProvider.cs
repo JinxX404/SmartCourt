@@ -11,7 +11,7 @@ public class BackgroundEmailProvider : IEmailProvider
         _jobProvider = jobProvider;
     }
 
-    public Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = false)
+    public Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = false, CancellationToken cancellationToken = default)
     {
         // Enqueue the email to be sent in the background by Hangfire
         _jobProvider.Enqueue<ISmtpEmailSender>(x => x.SendEmailAsync(to, subject, body, isHtml));

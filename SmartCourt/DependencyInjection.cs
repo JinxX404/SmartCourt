@@ -8,6 +8,13 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using SmartCourt.Common;
 using SmartCourt.Features.Auth;
+using SmartCourt.Features.Auth.ConfirmEmail;
+using SmartCourt.Features.Auth.Login;
+using SmartCourt.Features.Auth.RefreshToken;
+using SmartCourt.Features.Auth.RegisterClient;
+using SmartCourt.Features.Auth.RegisterLawyer;
+using SmartCourt.Features.Auth.RevokeRefreshToken;
+using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
@@ -109,8 +116,14 @@ public static class DependencyInjection
         });
 
         services.AddAuthorization();
-        services.AddScoped<JwtProvider>();
-        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IJwtProvider, JwtProvider>();
+        services.AddScoped<IAuthHelperService, AuthHelperService>();
+        services.AddScoped<ILoginService, LoginService>();
+        services.AddScoped<IConfirmEmailService, ConfirmEmailService>();
+        services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+        services.AddScoped<IRegisterClientService, RegisterClientService>();
+        services.AddScoped<IRegisterLawyerService, RegisterLawyerService>();
+        services.AddScoped<IRevokeRefreshTokenService, RevokeRefreshTokenService>();
 
         return services;
     }
