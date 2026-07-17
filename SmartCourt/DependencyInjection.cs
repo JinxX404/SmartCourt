@@ -4,7 +4,9 @@ using SmartCourt.Common.Options;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using System.Text;
+using FluentValidation;
 using Hangfire;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -22,9 +24,15 @@ using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Entities;
+using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
+using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
+using SmartCourt.Features.UserVerification.SubmitVerificationDocuments;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
+using SmartCourt.Persistence.DataSeeders;
 using SmartCourt.Providers.FileStorage;
+using Twilio.Types;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
 
 namespace SmartCourt;
@@ -173,6 +181,19 @@ public static class DependencyInjection
         services.AddScoped<IResendVerificationService, ResendVerificationService>();
         services.AddScoped<SmartCourt.Features.Users.Lawyers.ILawyerService, SmartCourt.Features.Users.Lawyers.LawyerService>();
         services.AddScoped<SmartCourt.Features.Users.Clients.IClientService, SmartCourt.Features.Users.Clients.ClientService>();
+
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
+
+        services.AddDataProtection();
+
+        services.AddScoped<SubmitVerificationDocumentsCommand>();
+        services.AddScoped<IValidator<SubmitVerificationDocumentsCommand>, SubmitVerificationDocumentsCommandValidator>();
+
+        services.AddScoped<GetUserVerificationDocumentsQuery>();
+        services.AddScoped<IValidator<GetUserVerificationDocumentsQuery>, GetUserVerificationDocumentsQueryValidator>();
+
+        services.AddScoped<DeleteVerificationDocumentCommand>();
+        services.AddScoped<IValidator<DeleteVerificationDocumentCommand>, DeleteVerificationDocumentCommandValidator>();
 
         return services;
     }

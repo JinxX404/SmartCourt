@@ -1,7 +1,7 @@
 using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
+using SmartCourt.Entities;
 using SmartCourt.Features.Auth.Enums;
-using SmartCourt.Features.Auth.RefreshToken;
 
 public class ApplicationUser : IdentityUser<Guid>
 {
@@ -14,4 +14,6 @@ public class ApplicationUser : IdentityUser<Guid>
     public LawyerProfile? LawyerProfile { get; set; }
     public ClientProfile? ClientProfile { get; set; }
     public List<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<UserVerificationDocument> VerificationDocuments { get; set; }
+        = new List<UserVerificationDocument>();
 }
