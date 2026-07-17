@@ -1,6 +1,6 @@
+using SmartCourt.Common.Entities;
 using System;
 
-using SmartCourt.Common;
 
 namespace SmartCourt.Entities;
 

@@ -1,5 +1,8 @@
+using SmartCourt.Features.Auth.RegisterClient.DTOs;
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Auth.RegisterLawyer.DTOs;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
-using SmartCourt.Common;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Features.Auth.Shared;
 

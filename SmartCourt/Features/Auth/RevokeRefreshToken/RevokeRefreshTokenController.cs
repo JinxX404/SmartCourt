@@ -1,5 +1,7 @@
+using SmartCourt.Common.Models;
+using SmartCourt.Features.Auth.RevokeRefreshToken.DTOs;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common;
 
 namespace SmartCourt.Features.Auth.RevokeRefreshToken;
 

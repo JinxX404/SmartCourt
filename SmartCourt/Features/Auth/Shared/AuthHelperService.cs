@@ -1,3 +1,4 @@
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using SmartCourt.Interfaces.Providers;

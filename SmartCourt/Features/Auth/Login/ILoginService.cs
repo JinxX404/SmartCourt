@@ -1,3 +1,4 @@
+using SmartCourt.Features.Auth.Login.DTOs;
 namespace SmartCourt.Features.Auth.Login;
 
 public interface ILoginService

@@ -1,6 +1,7 @@
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
-using SmartCourt.Common;
 using System.Text;
 
 namespace SmartCourt.Features.Auth.ConfirmEmail;

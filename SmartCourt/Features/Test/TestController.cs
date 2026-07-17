@@ -1,5 +1,7 @@
+using SmartCourt.Common.Models;
 using System;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace SmartCourt.Features.Test;
 
@@ -42,7 +44,7 @@ public class TestController : ControllerBase
             isHtml: false,
             cancellationToken: cancellationToken);
 
-        return Ok(SmartCourt.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "Email has been enqueued to Hangfire!"));
+        return Ok(SmartCourt.Common.Models.ApiResponse<object>.Ok(new { Enqueued = result }, "Email has been enqueued to Hangfire!"));
     }
 
     [HttpPost("sms")]
@@ -54,6 +56,6 @@ public class TestController : ControllerBase
             phoneNumber: to,
             message: "Smart Court - If you are reading this, the background Hangfire Twilio SMS provider is fully operational!");
 
-        return Ok(SmartCourt.Common.ApiResponse<object>.Ok(new { Enqueued = result }, "SMS has been enqueued to Hangfire!"));
+        return Ok(SmartCourt.Common.Models.ApiResponse<object>.Ok(new { Enqueued = result }, "SMS has been enqueued to Hangfire!"));
     }
 }

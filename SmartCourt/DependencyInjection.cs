@@ -1,3 +1,6 @@
+using SmartCourt.Providers.Jwt;
+using SmartCourt.Common.Entities;
+using SmartCourt.Common.Options;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using System.Text;
@@ -8,22 +11,23 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using SmartCourt.Common;
-using SmartCourt.Features.Auth;
 using SmartCourt.Features.Auth.ConfirmEmail;
+using SmartCourt.Features.Auth.ChangePassword;
+using SmartCourt.Features.Auth.ForgotPassword;
+using SmartCourt.Features.Auth.ResetPassword;
+using SmartCourt.Features.Auth.ResendVerification;
 using SmartCourt.Features.Auth.Login;
 using SmartCourt.Features.Auth.RefreshToken;
 using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
-using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using SmartCourt.Providers.FileStorage;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
 
-namespace Microsoft.Extensions.DependencyInjection;
+namespace SmartCourt;
 
 public static class DependencyInjection
 {
@@ -31,7 +35,7 @@ public static class DependencyInjection
     {
         services.AddControllers();
         services.AddFluentValidationAutoValidation();
-        services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.LoginRequestValidator>();
+        services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(c =>
         {
@@ -163,7 +167,10 @@ public static class DependencyInjection
         services.AddScoped<IRegisterClientService, RegisterClientService>();
         services.AddScoped<IRegisterLawyerService, RegisterLawyerService>();
         services.AddScoped<IRevokeRefreshTokenService, RevokeRefreshTokenService>();
-        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IChangePasswordService, ChangePasswordService>();
+        services.AddScoped<IForgotPasswordService, ForgotPasswordService>();
+        services.AddScoped<IResetPasswordService, ResetPasswordService>();
+        services.AddScoped<IResendVerificationService, ResendVerificationService>();
         services.AddScoped<SmartCourt.Features.Users.Lawyers.ILawyerService, SmartCourt.Features.Users.Lawyers.LawyerService>();
         services.AddScoped<SmartCourt.Features.Users.Clients.IClientService, SmartCourt.Features.Users.Clients.ClientService>();
 

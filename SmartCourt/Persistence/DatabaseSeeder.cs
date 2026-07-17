@@ -1,6 +1,6 @@
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
-using SmartCourt.Features.Auth;
 using SmartCourt.Features.Auth.Enums;
 
 namespace SmartCourt.Persistence;

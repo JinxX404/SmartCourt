@@ -1,9 +1,10 @@
+using SmartCourt.Features.Auth.Login.DTOs;
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common;
 using SmartCourt.Features.Auth.Login;
 using SmartCourt.Features.Auth.Shared;
-using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Features.Auth.RefreshToken;
@@ -64,7 +65,7 @@ public class RefreshTokenService : IRefreshTokenService
         var newRefreshToken = _authHelper.GenerateRefreshToken();
 
         userRefreshToken.RevokedOn = DateTime.UtcNow;
-        user.RefreshTokens.Add(new RefreshToken
+        user.RefreshTokens.Add(new SmartCourt.Common.Entities.RefreshToken
         {
             Token = newRefreshToken,
             ExpiresOn = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),

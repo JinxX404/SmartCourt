@@ -1,8 +1,9 @@
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+// Removed duplicate using
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Entities;
-using SmartCourt.Features.Auth;
 
 namespace SmartCourt.Persistence;
 
@@ -22,7 +23,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var entry in ChangeTracker.Entries<SmartCourt.Common.AuditableEntity>())
+        foreach (var entry in ChangeTracker.Entries<SmartCourt.Common.Entities.AuditableEntity>())
         {
             switch (entry.State)
             {

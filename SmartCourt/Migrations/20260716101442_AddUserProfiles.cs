@@ -1,4 +1,5 @@
 ﻿using System;
+using SmartCourt.Common.Entities;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable

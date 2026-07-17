@@ -1,3 +1,4 @@
+using SmartCourt.Features.Auth.RegisterClient.DTOs;
 namespace SmartCourt.Features.Auth.RegisterClient;
 
 public interface IRegisterClientService

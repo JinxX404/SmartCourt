@@ -1,7 +1,7 @@
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common;
-using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Features.Auth.RevokeRefreshToken;

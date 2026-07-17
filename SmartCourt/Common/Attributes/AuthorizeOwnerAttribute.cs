@@ -1,5 +1,5 @@
+using SmartCourt.Common.Exceptions;
 using Microsoft.AspNetCore.Mvc.Filters;
-using SmartCourt.Common;
 using SmartCourt.Extensions;
 
 namespace SmartCourt.Common.Attributes;

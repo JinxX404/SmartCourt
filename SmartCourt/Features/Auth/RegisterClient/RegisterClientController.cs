@@ -1,6 +1,7 @@
+using SmartCourt.Common.Models;
+using SmartCourt.Features.Auth.RegisterClient.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using SmartCourt.Common;
 
 namespace SmartCourt.Features.Auth.RegisterClient;
 

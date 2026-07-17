@@ -1,3 +1,5 @@
+using SmartCourt.Common.Models;
+using SmartCourt.Common.Exceptions;
 using System;
 using System.Linq;
 using System.Net;
@@ -5,7 +7,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using SmartCourt.Common;
 
 namespace SmartCourt.Middleware;
 

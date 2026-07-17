@@ -1,5 +1,5 @@
+using SmartCourt.Common.Exceptions;
 using System.Security.Claims;
-using SmartCourt.Common;
 
 namespace SmartCourt.Extensions;
 

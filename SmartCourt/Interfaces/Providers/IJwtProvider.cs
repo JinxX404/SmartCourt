@@ -1,4 +1,5 @@
-using SmartCourt.Features.Auth;
+using SmartCourt.Common.Entities;
+using SmartCourt.Providers.Jwt;
 
 namespace SmartCourt.Interfaces.Providers;
 

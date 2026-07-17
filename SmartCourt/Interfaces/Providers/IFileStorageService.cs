@@ -1,5 +1,5 @@
-﻿using SmartCourt.Common;
-
+﻿
+using SmartCourt.Common.Models;
 namespace SmartCourt.Interfaces.Providers
 {
     public interface IFileStorageService

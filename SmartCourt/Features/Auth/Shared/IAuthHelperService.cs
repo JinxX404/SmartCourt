@@ -1,3 +1,4 @@
+using SmartCourt.Common.Entities;
 namespace SmartCourt.Features.Auth.Shared;
 
 public interface IAuthHelperService

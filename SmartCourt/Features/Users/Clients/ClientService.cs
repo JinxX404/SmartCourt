@@ -1,7 +1,7 @@
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common;
-using SmartCourt.Features.Auth;
 using SmartCourt.Features.Users.Clients.DTOs;
 
 namespace SmartCourt.Features.Users.Clients;

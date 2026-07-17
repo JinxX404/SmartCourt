@@ -1,6 +1,6 @@
+using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common;
 using SmartCourt.Common.Attributes;
 using SmartCourt.Features.Users.Clients.DTOs;
 
