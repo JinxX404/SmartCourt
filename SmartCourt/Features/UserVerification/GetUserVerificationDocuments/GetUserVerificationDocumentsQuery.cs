@@ -6,6 +6,6 @@ namespace SmartCourt.Features.UserVerification.GetUserVerificationDocuments
 {
     public sealed record GetUserVerificationDocumentsQuery : IRequest<ApiResponse<GetUserVerificationDocumentsResponseDto>>
     {
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
     }
 }

@@ -360,41 +360,50 @@ namespace SmartCourt.Migrations
                     b.ToTable("TestEntities");
                 });
 
-            modelBuilder.Entity("ApplicationUser", b =>
+            modelBuilder.Entity("SmartCourt.Entities.UserVerificationDocument", b =>
                 {
-                    b.OwnsMany("SmartCourt.Features.Auth.RefreshToken.RefreshToken", "RefreshTokens", b1 =>
-                        {
-                            b1.Property<Guid>("UserId")
-                                .HasColumnType("uniqueidentifier");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                            b1.Property<int>("Id")
-                                .ValueGeneratedOnAdd()
-                                .HasColumnType("int");
+                    b.Property<byte>("DocumentType")
+                        .HasColumnType("tinyint");
 
-                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+                    b.Property<DateOnly>("ExpirationDate")
+                        .HasColumnType("date");
 
-                            b1.Property<DateTime>("CreatedOn")
-                                .HasColumnType("datetime2");
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("bit");
 
-                            b1.Property<DateTime>("ExpiresOn")
-                                .HasColumnType("datetime2");
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
-                            b1.Property<DateTime?>("RevokedOn")
-                                .HasColumnType("datetime2");
+                    b.Property<string>("RejectionReason")
+                        .HasColumnType("nvarchar(max)");
 
-                            b1.Property<string>("Token")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
 
-                            b1.HasKey("UserId", "Id");
+                    b.Property<Guid>("StoredFileId")
+                        .HasColumnType("uniqueidentifier");
 
-                            b1.ToTable("RefreshTokens", (string)null);
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
-                            b1.WithOwner()
-                                .HasForeignKey("UserId");
-                        });
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("datetime2");
 
-                    b.Navigation("RefreshTokens");
+                    b.Property<string>("VerifiedByAdminId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoredFileId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserVerificationDocuments");
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Auth.ClientProfile", b =>
@@ -431,6 +440,43 @@ namespace SmartCourt.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("LawyerProfile");
+                });
+
+            modelBuilder.Entity("ApplicationUser", b =>
+                {
+                    b.OwnsMany("SmartCourt.Features.Auth.RefreshToken.RefreshToken", "RefreshTokens", b1 =>
+                        {
+                            b1.Property<Guid>("UserId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
+
+                            b1.Property<DateTime>("CreatedOn")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime>("ExpiresOn")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime?>("RevokedOn")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<string>("Token")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("UserId", "Id");
+
+                            b1.ToTable("RefreshTokens", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
+                    b.Navigation("RefreshTokens");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -484,9 +530,28 @@ namespace SmartCourt.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SmartCourt.Entities.UserVerificationDocument", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.StoredFile", "StoredFile")
+                        .WithOne()
+                        .HasForeignKey("SmartCourt.Entities.UserVerificationDocument", "StoredFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", "User")
+                        .WithMany("VerificationDocuments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("StoredFile");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Auth.ClientProfile", b =>
                 {
-                    b.HasOne("SmartCourt.Features.Auth.ApplicationUser", "User")
+                    b.HasOne("ApplicationUser", "User")
                         .WithOne("ClientProfile")
                         .HasForeignKey("SmartCourt.Features.Auth.ClientProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -497,7 +562,7 @@ namespace SmartCourt.Migrations
 
             modelBuilder.Entity("SmartCourt.Features.Auth.LawyerProfile", b =>
                 {
-                    b.HasOne("SmartCourt.Features.Auth.ApplicationUser", "User")
+                    b.HasOne("ApplicationUser", "User")
                         .WithOne("LawyerProfile")
                         .HasForeignKey("SmartCourt.Features.Auth.LawyerProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -506,11 +571,13 @@ namespace SmartCourt.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Auth.ApplicationUser", b =>
+            modelBuilder.Entity("ApplicationUser", b =>
                 {
                     b.Navigation("ClientProfile");
 
                     b.Navigation("LawyerProfile");
+
+                    b.Navigation("VerificationDocuments");
                 });
 #pragma warning restore 612, 618
         }

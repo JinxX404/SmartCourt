@@ -75,7 +75,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("LocalConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             
         services.Configure<SmartCourt.Providers.Email.MailKitOptions>(configuration.GetSection("SmtpSettings"));
         services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.SmtpEmailSender>();
@@ -178,22 +178,6 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
         services.AddDataProtection();
-
-        services.AddIdentityCore<ApplicationUser>(options =>
-        {
-            options.Password.RequiredLength = 8;
-            options.Password.RequireDigit = false;
-            options.Password.RequireLowercase = false;
-            options.Password.RequireUppercase = false;
-            options.Password.RequireNonAlphanumeric = false;
-
-            options.User.RequireUniqueEmail = true;
-        })
-        .AddRoles<IdentityRole>()
-        .AddEntityFrameworkStores<ApplicationDbContext>()
-        .AddUserManager<UserManager<ApplicationUser>>()
-        .AddRoleManager<RoleManager<IdentityRole>>()
-        .AddDefaultTokenProviders();
 
         services.AddScoped<SubmitVerificationDocumentsCommand>();
         services.AddScoped<IValidator<SubmitVerificationDocumentsCommand>, SubmitVerificationDocumentsCommandValidator>();

@@ -38,7 +38,7 @@ namespace SmartCourt.Features.UserVerification.DeleteVerificationDocument
             if (!validationResult.IsValid)
                 return ApiResponse.Fail(validationResult.Errors.Select(x => x.ErrorMessage).ToList(), 400);
 
-            var user = await _userManager.FindByIdAsync(request.UserId);
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
 
             if (user is null)
                 return ApiResponse.Fail(new List<string>{ "The specified user doesn't exist." }, 404);

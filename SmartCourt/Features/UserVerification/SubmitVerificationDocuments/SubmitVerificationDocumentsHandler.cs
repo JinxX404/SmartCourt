@@ -47,7 +47,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
                     .Fail(validationResult.Errors.Select(e => e.ErrorMessage).ToList(), 400);
 
-            var user = await _userManager.FindByIdAsync(request.UserId);
+            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
 
             if (user is null)
                 return ApiResponse<SubmitVerificationDocumentResponseDto>

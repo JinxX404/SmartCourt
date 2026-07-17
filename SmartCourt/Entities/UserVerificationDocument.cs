@@ -9,7 +9,7 @@ namespace SmartCourt.Entities
         public Guid Id { get; set; }
 
         [ForeignKey("User")]
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
         public ApplicationUser User { get; set; }
 
         [ForeignKey("StoredFile")]

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Entities;
 using SmartCourt.Features.Auth;
+using SmartCourt.Features.Auth.RefreshToken;
 using SmartCourt.Persistence.EntitiesConfigurations;
 
 namespace SmartCourt.Persistence;

@@ -6,7 +6,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
 {
     public class SubmitVerificationDocumentsCommand : IRequest<ApiResponse<SubmitVerificationDocumentResponseDto>>
     {
-        public string UserId { get; set; }
+        public Guid UserId { get; set; }
         public List<VerificationDocumentDto> Documents { get; set; }
     }
 }
