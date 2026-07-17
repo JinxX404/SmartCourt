@@ -1,7 +1,7 @@
+using SmartCourt.Common.Models;
 ﻿using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common;
 using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs;

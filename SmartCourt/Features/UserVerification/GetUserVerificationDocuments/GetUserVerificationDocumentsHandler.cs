@@ -1,8 +1,8 @@
+using SmartCourt.Common.Models;
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common;
 using SmartCourt.Entities;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs;
 using SmartCourt.Persistence;

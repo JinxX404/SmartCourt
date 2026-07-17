@@ -1,5 +1,5 @@
+using SmartCourt.Common.Models;
 ﻿using MediatR;
-using SmartCourt.Common;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs;
 
 namespace SmartCourt.Features.UserVerification.GetUserVerificationDocuments

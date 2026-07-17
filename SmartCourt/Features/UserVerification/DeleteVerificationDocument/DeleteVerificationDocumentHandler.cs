@@ -1,8 +1,8 @@
+using SmartCourt.Common.Models;
 ﻿using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common;
 using SmartCourt.Common.Enums;
 using SmartCourt.Entities;
 using SmartCourt.Interfaces.Providers;

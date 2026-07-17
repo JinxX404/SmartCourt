@@ -1,5 +1,5 @@
+using SmartCourt.Common.Models;
 ﻿using MediatR;
-using SmartCourt.Common;
 
 namespace SmartCourt.Features.UserVerification.DeleteVerificationDocument
 {

@@ -1,3 +1,4 @@
+using SmartCourt.Common.Entities;
 ﻿using SmartCourt.Common;
 using SmartCourt.Common.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
