@@ -1,7 +1,9 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using System.Text;
+using FluentValidation;
 using Hangfire;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -18,9 +20,15 @@ using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Interfaces;
+using SmartCourt.Entities;
+using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
+using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
+using SmartCourt.Features.UserVerification.SubmitVerificationDocuments;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
+using SmartCourt.Persistence.DataSeeders;
 using SmartCourt.Providers.FileStorage;
+using Twilio.Types;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -67,7 +75,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("LocalConnection")));
             
         services.Configure<SmartCourt.Providers.Email.MailKitOptions>(configuration.GetSection("SmtpSettings"));
         services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.SmtpEmailSender>();
@@ -166,6 +174,35 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<SmartCourt.Features.Users.Lawyers.ILawyerService, SmartCourt.Features.Users.Lawyers.LawyerService>();
         services.AddScoped<SmartCourt.Features.Users.Clients.IClientService, SmartCourt.Features.Users.Clients.ClientService>();
+
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
+
+        services.AddDataProtection();
+
+        services.AddIdentityCore<ApplicationUser>(options =>
+        {
+            options.Password.RequiredLength = 8;
+            options.Password.RequireDigit = false;
+            options.Password.RequireLowercase = false;
+            options.Password.RequireUppercase = false;
+            options.Password.RequireNonAlphanumeric = false;
+
+            options.User.RequireUniqueEmail = true;
+        })
+        .AddRoles<IdentityRole>()
+        .AddEntityFrameworkStores<ApplicationDbContext>()
+        .AddUserManager<UserManager<ApplicationUser>>()
+        .AddRoleManager<RoleManager<IdentityRole>>()
+        .AddDefaultTokenProviders();
+
+        services.AddScoped<SubmitVerificationDocumentsCommand>();
+        services.AddScoped<IValidator<SubmitVerificationDocumentsCommand>, SubmitVerificationDocumentsCommandValidator>();
+
+        services.AddScoped<GetUserVerificationDocumentsQuery>();
+        services.AddScoped<IValidator<GetUserVerificationDocumentsQuery>, GetUserVerificationDocumentsQueryValidator>();
+
+        services.AddScoped<DeleteVerificationDocumentCommand>();
+        services.AddScoped<IValidator<DeleteVerificationDocumentCommand>, DeleteVerificationDocumentCommandValidator>();
 
         return services;
     }

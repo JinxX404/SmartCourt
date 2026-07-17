@@ -22,3 +22,23 @@ public class ApiResponse<T>
     public static ApiResponse<T> Fail(List<string> errors, int statusCode = 400)
         => new() { Success = false, Errors = errors, StatusCode = statusCode };
 }
+
+public class ApiResponse
+{
+    public bool Success { get; set; }
+    public string? Message { get; set; }
+    public List<string>? Errors { get; set; }
+    public int StatusCode { get; set; }
+
+    public static ApiResponse Ok(string? message = null)
+        => new() { Success = true, StatusCode = 200, Message = message };
+
+    public static ApiResponse Created()
+        => new() { Success = true, StatusCode = 201 };
+
+    public static ApiResponse Fail(string message, int statusCode = 400)
+        => new() { Success = false, Message = message, StatusCode = statusCode };
+
+    public static ApiResponse Fail(List<string> errors, int statusCode = 400)
+        => new() { Success = false, Errors = errors, StatusCode = statusCode };
+}
