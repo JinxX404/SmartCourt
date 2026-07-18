@@ -15,7 +15,7 @@ public class ForgotPasswordService(
 {
     private readonly string _appUrl = configuration["AppUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
 
-    public async Task ForgotPasswordAsync(string email)
+    public async Task ForgotPasswordAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
 
@@ -26,16 +26,16 @@ public class ForgotPasswordService(
 
         if (!user.EmailConfirmed)
         {
-            throw new BusinessException("البريد الإلكتروني غير مؤكد");
+            return;
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var resetUrl = $"{_appUrl}/api/auth/reset-password?email={email}&token={encodedToken}";
+        var resetUrl = $"{_appUrl}/auth/reset-password?email={email}&token={encodedToken}";
 
         var subject = "إعادة تعيين كلمة المرور - المحكمة الذكية";
         var templatePath = Path.Combine(env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ResetPasswordEmail.html");
-        var template = await File.ReadAllTextAsync(templatePath);
+        var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
         var body = template.Replace("{{FullName}}", user.FullName)
                            .Replace("{{ResetUrl}}", resetUrl)
                            .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());

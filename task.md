@@ -9,12 +9,12 @@
 - `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ChangePasswordService`.
 
 ## 2. Auth > Forgot Password
-- `[ ]` **Anti-Enumeration Leak (P1):** Ensure unverified emails return a silent 200 OK instead of throwing a 400 error.
-- `[ ]` **Rate Limiting:** Implement rate limiting (max 3/hour).
-- `[ ]` **Token Lifetime:** Explicitly configure the reset-token lifetime to 1 hour instead of Identity's default.
-- `[ ]` **URL Target:** Update the generated reset URL to point to a confirmed frontend UI page instead of the API POST route.
-- `[ ]` **Cancellation:** Add `CancellationToken` propagation.
-- `[ ]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ForgotPasswordService`.
+- `[x]` **Anti-Enumeration Leak (P1):** Ensure unverified emails return a silent 200 OK instead of throwing a 400 error.
+- `[x]` **Rate Limiting:** Implement rate limiting (max 3/hour).
+- `[x]` **Token Lifetime:** Explicitly configure the reset-token lifetime to 1 hour instead of Identity's default.
+- `[x]` **URL Target:** Update the generated reset URL to point to a confirmed frontend UI page instead of the API POST route.
+- `[x]` **Cancellation:** Add `CancellationToken` propagation.
+- `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ForgotPasswordService`.
 
 ## 3. Auth > Resend Verification
 - `[ ]` **Broken URL Generation (P0):** Change query parameter from `?email={email}` to `?userId={user.Id}`.

@@ -36,6 +36,7 @@ namespace SmartCourt
             app.UseHangfireDashboard();
 
             app.UseMiddleware<ExceptionHandlingMiddleware>();
+            app.UseRateLimiter();
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
