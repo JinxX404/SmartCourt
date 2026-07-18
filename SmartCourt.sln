@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartCourt", "SmartCourt\SmartCourt.csproj", "{67900D39-75B8-4569-8C22-2ED960BAA51C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartCourt.Tests", "SmartCourt.Tests\SmartCourt.Tests.csproj", "{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{67900D39-75B8-4569-8C22-2ED960BAA51C}.Release|x64.Build.0 = Release|Any CPU
 		{67900D39-75B8-4569-8C22-2ED960BAA51C}.Release|x86.ActiveCfg = Release|Any CPU
 		{67900D39-75B8-4569-8C22-2ED960BAA51C}.Release|x86.Build.0 = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|x64.Build.0 = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Debug|x86.Build.0 = Debug|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|x64.ActiveCfg = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|x64.Build.0 = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|x86.ActiveCfg = Release|Any CPU
+		{BAA70B44-9258-4ECE-8AA8-B289E93A8CFA}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

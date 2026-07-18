@@ -1,12 +1,9 @@
 using Hangfire;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using SmartCourt.Entities;
 using SmartCourt.Extensions;
 using SmartCourt.Middleware;
-using SmartCourt.Persistence.DataSeeders;
 
 namespace SmartCourt
 {
@@ -34,17 +31,6 @@ namespace SmartCourt
             else
             {
                 app.UseHttpsRedirection();
-            }
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var services = scope.ServiceProvider;
-
-                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-
-                await UserSeeder.SeedRolesAsync(roleManager);
-                await UserSeeder.SeedTestLawyerAsync(userManager);
             }
 
             app.UseHangfireDashboard();
