@@ -483,3 +483,4 @@ $RECYCLE.BIN/
 
 # Ignore local development settings
 appsettings.Development.json
+appsettings.Development.*.json
