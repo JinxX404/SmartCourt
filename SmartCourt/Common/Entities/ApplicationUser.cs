@@ -16,4 +16,5 @@ public class ApplicationUser : IdentityUser<Guid>
     public List<RefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<UserVerificationDocument> VerificationDocuments { get; set; }
         = new List<UserVerificationDocument>();
+    public string? ProfilePictureUrl { get; set; }
 }

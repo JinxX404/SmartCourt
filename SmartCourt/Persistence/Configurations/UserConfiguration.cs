@@ -79,8 +79,10 @@ public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile
     {
         builder.HasKey(p => p.UserId);
         
-        builder.Property(p => p.Specialization)
-            .HasMaxLength(150);
+        builder.HasOne(p => p.Specialization)
+            .WithMany()
+            .HasForeignKey(p => p.SpecializationId)
+            .OnDelete(DeleteBehavior.SetNull);
             
         builder.Property(p => p.Bio)
             .HasMaxLength(500);

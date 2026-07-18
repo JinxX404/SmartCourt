@@ -1,37 +1,49 @@
-using SmartCourt.Common.Models;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common.Attributes;
 using SmartCourt.Features.Users.Lawyers.DTOs;
+using SmartCourt.Common.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using SmartCourt.Common.Exceptions;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
+[Route("api/lawyers")]
 [ApiController]
-[Route("api/v1/lawyers")]
-[Authorize]
-public class LawyersController(ILawyerService lawyerService) : ControllerBase
+[Authorize(Roles = "Lawyer")]
+public class LawyersController : ControllerBase
 {
-    [HttpGet("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> GetAsync(Guid id)
+    private readonly ILawyerService _lawyerService;
+
+    public LawyersController(ILawyerService lawyerService)
     {
-        var result = await lawyerService.GetProfileAsync(id);
+        _lawyerService = lawyerService;
+    }
+
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
+    {
+        var result = await _lawyerService.GetProfileAsync(cancellationToken);
         return Ok(ApiResponse<LawyerProfileResponse>.Ok(result));
     }
 
-    [HttpPut("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateLawyerProfileRequest request)
+    [HttpPut("profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
     {
-        await lawyerService.UpdateProfileAsync(id, request);
-        return Ok(ApiResponse<string>.Ok("تم تحديث الملف الشخصي بنجاح."));
+        await _lawyerService.UpdateProfileAsync(request, cancellationToken);
+        return Ok(ApiResponse<string>.Ok("تم تحديث البيانات بنجاح"));
     }
 
-    [HttpDelete("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> DeleteAsync(Guid id)
+    [HttpDelete("profile")]
+    public async Task<IActionResult> DeleteProfile(CancellationToken cancellationToken)
     {
-        await lawyerService.DeleteProfileAsync(id);
-        return Ok(ApiResponse<string>.Ok("تم حذف الملف الشخصي بنجاح."));
+        await _lawyerService.DeleteProfileAsync(cancellationToken);
+        return Ok(ApiResponse<string>.Ok("تم حذف الحساب بنجاح"));
+    }
+
+    [HttpGet("public/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetPublicProfile(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _lawyerService.GetPublicProfileAsync(id, cancellationToken);
+        return Ok(ApiResponse<PublicLawyerProfileResponse>.Ok(result));
     }
 }

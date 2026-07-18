@@ -41,7 +41,11 @@ public class RegisterLawyerService : IRegisterLawyerService
             Address = fullAddress,
             Gender = request.Gender,
             NationalNumber = request.NationalNumber,
-            Status = UserStatus.Unverified
+            Status = UserStatus.Unverified,
+            LawyerProfile = new LawyerProfile 
+            { 
+                IsAvailable = true 
+            }
         };
 
         var result = await _userManager.CreateAsync(user, request.Password);

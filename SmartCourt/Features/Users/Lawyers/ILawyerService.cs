@@ -4,7 +4,8 @@ namespace SmartCourt.Features.Users.Lawyers;
 
 public interface ILawyerService
 {
-    Task<LawyerProfileResponse> GetProfileAsync(Guid id);
-    Task UpdateProfileAsync(Guid id, UpdateLawyerProfileRequest request);
-    Task DeleteProfileAsync(Guid id);
+    Task<LawyerProfileResponse> GetProfileAsync(CancellationToken cancellationToken);
+    Task<PublicLawyerProfileResponse> GetPublicProfileAsync(Guid lawyerId, CancellationToken cancellationToken);
+    Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken);
+    Task DeleteProfileAsync(CancellationToken cancellationToken);
 }

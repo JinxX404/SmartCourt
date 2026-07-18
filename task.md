@@ -44,9 +44,9 @@
 - `[x]` **Cancellation:** Add `CancellationToken` propagation across asynchronous reads.
 
 ## 6. Users Slice > Lawyers
-- `[ ]` **Profile Creation Bug:** Ensure `LawyerProfile` is actually created during registration, not just upon a later update.
-- `[ ]` **Marketplace Browsing:** Provide a separate public DTO/endpoint for public marketplace browsing (since the current GET is owner-only).
-- `[ ]` **Validation Errors:** Fix `YearsOfExperience` to allow `0` and enforce an upper bound.
-- `[ ]` **Validation Details:** Map Specialization to legal-category relationships instead of an unrestricted string.
-- `[ ]` **Missing Data Fields:** Add `IsAvailable`, profile picture, verification status, government/city, and specializations to the profile.
-- `[ ]` **Shared Client Issues:** Apply the same fixes for hard-delete, atomicity, and query optimization as in the Clients slice.
+- `[x]` **Profile Creation Bug:** Ensure `LawyerProfile` is actually created during registration, not just upon a later update.
+- `[x]` **Marketplace Browsing:** Provide a separate public DTO/endpoint for public marketplace browsing (since the current GET is owner-only).
+- `[x]` **Validation Errors:** Fix `YearsOfExperience` to allow `0` and enforce an upper bound.
+- `[x]` **Validation Details:** Map Specialization to legal-category relationships instead of an unrestricted string.
+- `[x]` **Missing Data Fields:** Add `IsAvailable`, profile picture, verification status, government/city, and specializations to the profile.
+- `[x]` **Shared Client Issues:** Apply the same fixes for hard-delete, atomicity, and query optimization as in the Clients slice.

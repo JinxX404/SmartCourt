@@ -23,6 +23,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SampleEntity> SampleEntities { get; set; }
     public DbSet<StoredFile> StoredFiles { get; set; }
     public DbSet<UserVerificationDocument> UserVerificationDocuments { get; set; }
+    public DbSet<LegalCategory> LegalCategories { get; set; }
+    public DbSet<LegalSpecialization> LegalSpecializations { get; set; }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

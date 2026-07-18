@@ -16,24 +16,21 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
 
          RuleFor(x => x.PhoneNumber)
          .NotEmpty()
-         .Matches(@"^\+?[0-9]{7,15}$")
-         .WithMessage("رقم الهاتف غير صالح.");
+         .Matches(@"^\+20\d{10}$")
+         .WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
 
          RuleFor(x => x.DateOfBirth)
          .NotEmpty()
          .WithMessage("يجب إدخال تاريخ الميلاد.");
 
-         RuleFor(x => x.Specialization)
+         RuleFor(x => x.SpecializationId)
          .NotEmpty()
          .WithMessage("يجب إدخال التخصص.");
 
          RuleFor(x => x.YearsOfExperience)
-         .NotEmpty()
-         .WithMessage("يجب إدخال عدد سنوات الخبرة.");
-
-        RuleFor(x => x.YearsOfExperience)
-        .GreaterThanOrEqualTo(0)
-        .WithMessage("عدد سنوات الخبرة يجب أن يكون صفر أو أكبر.");
+         .GreaterThanOrEqualTo(0)
+         .LessThan(50)
+         .WithMessage("عدد سنوات الخبرة يجب أن يكون بين 0 و 50.");
 
          RuleFor(x => x.Bio)
          .MaximumLength(500)
