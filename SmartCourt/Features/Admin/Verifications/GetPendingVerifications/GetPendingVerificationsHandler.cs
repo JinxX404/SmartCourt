@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Admin.Verifications.GetPendingVerifications.DTOs;
+using SmartCourt.Features.Admin.Verifications.Shared;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Admin.Verifications.GetPendingVerifications;
@@ -43,8 +44,7 @@ public sealed class GetPendingVerificationsHandler(
             .AsNoTracking()
             .Where(user => context.UserRoles.Any(userRole =>
                 userRole.UserId == user.Id && userRole.RoleId == lawyerRoleId))
-            .Where(user => user.VerificationDocuments.Any(document =>
-                document.IsCurrent && document.Status == VerificationDocumentStatus.Pending));
+            .Where(VerificationQueueFilter.HasCurrentDocumentWithStatus(request.Status));
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

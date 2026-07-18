@@ -15,5 +15,9 @@ public sealed class GetPendingVerificationsQueryValidator : AbstractValidator<Ge
         RuleFor(query => query.Search)
             .MaximumLength(100)
             .When(query => !string.IsNullOrWhiteSpace(query.Search));
+
+        RuleFor(query => query.Status)
+            .Must(status => status is null || Enum.IsDefined(status.Value))
+            .WithMessage("Status must be a valid verification document status.");
     }
 }
