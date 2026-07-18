@@ -17,12 +17,12 @@
 - `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ForgotPasswordService`.
 
 ## 3. Auth > Resend Verification
-- `[ ]` **Broken URL Generation (P0):** Change query parameter from `?email={email}` to `?userId={user.Id}`.
-- `[ ]` **Code Duplication:** Reuse `IAuthHelperService.SendConfirmationEmailAsync` instead of manually duplicating logic.
-- `[ ]` **Rate Limiting:** Implement rate limiting (max 3/hour).
-- `[ ]` **Response Formatting:** Move success message from `data` to `message` property.
-- `[ ]` **Cancellation:** Add `CancellationToken` propagation.
-- `[ ]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResendVerificationService`.
+- `[x]` **Broken URL Generation (P0):** Change query parameter from `?email={email}` to `?userId={user.Id}`.
+- `[x]` **Code Duplication:** Reuse `IAuthHelperService.SendConfirmationEmailAsync` instead of manually duplicating logic.
+- `[x]` **Rate Limiting:** Implement rate limiting (max 3/hour).
+- `[x]` **Response Formatting:** Move success message from `data` to `message` property.
+- `[x]` **Cancellation:** Add `CancellationToken` propagation.
+- `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResendVerificationService`.
 
 ## 4. Auth > Reset Password
 - `[ ]` **Session Invalidation (P0):** Revoke existing refresh tokens after password reset.

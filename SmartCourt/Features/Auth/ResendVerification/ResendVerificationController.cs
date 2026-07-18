@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Auth.ResendVerification.DTOs;
 
@@ -11,9 +12,10 @@ namespace SmartCourt.Features.Auth.ResendVerification;
 public class ResendVerificationController(IResendVerificationService resendVerificationService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> HandleAsync([FromBody] ResendVerificationRequest request)
+    [EnableRateLimiting("ResendVerification")]
+    public async Task<IActionResult> HandleAsync([FromBody] ResendVerificationRequest request, CancellationToken cancellationToken)
     {
-        await resendVerificationService.ResendVerificationEmailAsync(request.Email);
-        return Ok(ApiResponse<string>.Ok("تم إرسال رابط التحقق مرة أخرى"));
+        await resendVerificationService.ResendVerificationEmailAsync(request.Email, cancellationToken);
+        return Ok(ApiResponse.Ok("تم إرسال رابط التحقق مرة أخرى"));
     }
 }

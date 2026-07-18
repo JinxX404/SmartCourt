@@ -1,20 +1,15 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.WebUtilities;
 using SmartCourt.Common.Entities;
-using SmartCourt.Interfaces.Providers;
-using System.Text;
+using SmartCourt.Features.Auth.Shared;
 
 namespace SmartCourt.Features.Auth.ResendVerification;
 
 public class ResendVerificationService(
     UserManager<ApplicationUser> userManager,
-    IEmailProvider emailProvider,
-    IConfiguration configuration,
-    IWebHostEnvironment env) : IResendVerificationService
+    IAuthHelperService authHelperService
+) : IResendVerificationService
 {
-    private readonly string _appUrl = configuration["AppUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
-
-    public async Task ResendVerificationEmailAsync(string email)
+    public async Task ResendVerificationEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var user = await userManager.FindByEmailAsync(email);
 
@@ -28,17 +23,6 @@ public class ResendVerificationService(
             return;
         }
 
-        var token = await userManager.GenerateEmailConfirmationTokenAsync(user);
-        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = $"{_appUrl}/api/auth/confirm-email?email={email}&token={encodedToken}";
-
-        var subject = "تأكيد البريد الإلكتروني - المحكمة الذكية";
-        var templatePath = Path.Combine(env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ResendVerificationEmail.html");
-        var template = await File.ReadAllTextAsync(templatePath);
-        var body = template.Replace("{{FullName}}", user.FullName)
-                           .Replace("{{ConfirmationUrl}}", confirmationUrl)
-                           .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
-
-        await emailProvider.SendEmailAsync(user.Email!, subject, body, true);
+        await authHelperService.SendConfirmationEmailAsync(user, cancellationToken);
     }
 }
