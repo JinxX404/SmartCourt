@@ -25,12 +25,12 @@
 - `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResendVerificationService`.
 
 ## 4. Auth > Reset Password
-- `[ ]` **Session Invalidation (P0):** Revoke existing refresh tokens after password reset.
-- `[ ]` **Validation:** Mirror registration password strength rules.
-- `[ ]` **Error Handling:** Add safe handling for malformed encoded tokens to prevent unhandled 500 errors.
-- `[ ]` **Response Formatting:** Move success message from `data` to `message` property.
-- `[ ]` **Cancellation & Throttling:** Add `CancellationToken` propagation and throttling.
-- `[ ]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResetPasswordService`.
+- `[x]` **Session Invalidation (P0):** Revoke existing refresh tokens after password reset.
+- `[x]` **Validation:** Mirror registration password strength rules.
+- `[x]` **Error Handling:** Add safe handling for malformed encoded tokens to prevent unhandled 500 errors.
+- `[x]` **Response Formatting:** Move success message from `data` to `message` property.
+- `[x]` **Cancellation & Throttling:** Add `CancellationToken` propagation and throttling.
+- `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResetPasswordService`.
 
 ## 5. Users Slice > Clients
 - `[ ]` **Sensitive Data Exposure:** Ensure the National Number is NOT returned in public profile DTOs.
