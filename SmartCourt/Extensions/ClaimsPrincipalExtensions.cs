@@ -16,4 +16,16 @@ public static class ClaimsPrincipalExtensions
 
         return userId;
     }
+
+    public static Guid GetUserIdAsGuid(this ClaimsPrincipal principal)
+    {
+        var userIdString = principal.GetUserId();
+        
+        if (!Guid.TryParse(userIdString, out var userId))
+        {
+            throw new AuthenticationException("المستخدم غير معروف");
+        }
+
+        return userId;
+    }
 }

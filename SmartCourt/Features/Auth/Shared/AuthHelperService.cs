@@ -42,6 +42,15 @@ public class AuthHelperService : IAuthHelperService
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
     }
 
+    public void RevokeAllActiveRefreshTokens(ApplicationUser applicationUser)
+    {
+        var activeTokens = applicationUser.RefreshTokens.Where(rt => rt.IsActive).ToList();
+        foreach (var token in activeTokens) {
+            token.RevokedOn = DateTime.UtcNow;
+        }
+
+    }
+
     public async Task SendConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken = default)
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);

@@ -1,4 +1,5 @@
 using SmartCourt.Providers.Jwt;
+using SmartCourt.Providers;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Options;
 using FluentValidation;
@@ -27,6 +28,7 @@ using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments;
 using SmartCourt.Interfaces.Providers;
+using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using SmartCourt.Persistence.DataSeeders;
 using SmartCourt.Providers.FileStorage;
@@ -76,6 +78,9 @@ public static class DependencyInjection
 
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration, bool isDevelopment)
     {
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, CurrentUserService>();
+
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             

@@ -14,13 +14,10 @@ namespace SmartCourt.Features.Auth.ChangePassword;
 public class ChangePasswordController(IChangePasswordService changePasswordService) : ControllerBase
 {
     [HttpPost]
-    public async Task<IActionResult> HandleAsync([FromBody] ChangePasswordRequest request)
+    public async Task<IActionResult> HandleAsync([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
+        await changePasswordService.ChangePasswordAsync(request.CurrentPassword, request.NewPassword, cancellationToken);
 
-        var userId = User.GetUserId();
-
-        await changePasswordService.ChangePasswordAsync(userId, request.CurrentPassword, request.NewPassword);
-
-        return Ok(ApiResponse<string>.Ok("تم تغيير كلمة المرور بنجاح"));
+        return Ok(ApiResponse.Ok("تم تغيير كلمة المرور بنجاح"));
     }
 }
