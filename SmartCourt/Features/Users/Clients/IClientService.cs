@@ -4,7 +4,7 @@ namespace SmartCourt.Features.Users.Clients;
 
 public interface IClientService
 {
-    Task<ClientProfileResponse> GetProfileAsync(Guid id);
-    Task UpdateProfileAsync(Guid id, UpdateClientProfileRequest request);
-    Task DeleteProfileAsync(Guid id);
+    Task<ClientProfileResponse> GetProfileAsync(CancellationToken cancellationToken);
+    Task UpdateProfileAsync(UpdateClientProfileRequest request, CancellationToken cancellationToken);
+    Task DeleteProfileAsync(CancellationToken cancellationToken);
 }

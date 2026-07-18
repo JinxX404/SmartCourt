@@ -6,5 +6,6 @@ public enum UserStatus
     PendingReview,
     Active,
     Suspended,
-    Rejected
+    Rejected,
+    Deleted
 }

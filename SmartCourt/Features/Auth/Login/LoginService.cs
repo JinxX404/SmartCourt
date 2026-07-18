@@ -54,6 +54,11 @@ public class LoginService : ILoginService
             throw new ForbiddenAccessException("تم تعليق حسابك. تواصل مع الدعم");
         }
 
+        if (user.Status == UserStatus.Deleted)
+        {
+            throw new AuthenticationException("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
+        }
+
         var roles = await _userManager.GetRolesAsync(user);
         var tokenResult = _jwtProvider.GenerateToken(user, roles);
 

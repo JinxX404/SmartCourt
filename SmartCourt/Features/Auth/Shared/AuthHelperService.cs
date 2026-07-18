@@ -66,4 +66,20 @@ public class AuthHelperService : IAuthHelperService
 
         await _emailProvider.SendEmailAsync(user.Email!, subject, body, true, cancellationToken);
     }
+
+    public async Task SendChangeEmailConfirmationAsync(ApplicationUser user, string newEmail, CancellationToken cancellationToken = default)
+    {
+        var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var confirmationUrl = $"{_appUrl}/api/auth/confirm-email-change?userId={user.Id}&newEmail={newEmail}&token={encodedToken}";
+
+        var subject = "تأكيد تغيير البريد الإلكتروني - المحكمة الذكية";
+        var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html"); // using same template for now
+        var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
+        var body = template.Replace("{{FullName}}", user.FullName)
+                           .Replace("{{ConfirmationUrl}}", confirmationUrl)
+                           .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
+
+        await _emailProvider.SendEmailAsync(newEmail, subject, body, true, cancellationToken);
+    }
 }

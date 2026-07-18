@@ -33,15 +33,15 @@
 - `[x]` **Architecture:** Move logic from monolithic `AuthService` into a dedicated `ResetPasswordService`.
 
 ## 5. Users Slice > Clients
-- `[ ]` **Sensitive Data Exposure:** Ensure the National Number is NOT returned in public profile DTOs.
-- `[ ]` **Data Integrity:** Implement soft-delete rules / retention policies instead of a hard-delete of the Identity account.
-- `[ ]` **Atomicity:** Ensure email and username updates are persisted atomically (e.g., within a transaction).
-- `[ ]` **Email Verification:** Implement email-change verification workflow.
-- `[ ]` **Data Mapping:** Fix null dates of birth so they remain `null` instead of `DateOnly.MinValue`.
-- `[ ]` **Validation:** Align Egyptian phone format validation with lawyer registration.
-- `[ ]` **Contract Alignment:** Align routes with the canonical `/api/users/profile` contract.
-- `[ ]` **Performance:** Optimize the GET endpoint into a single query instead of three separate database operations.
-- `[ ]` **Cancellation:** Add `CancellationToken` propagation across asynchronous reads.
+- `[x]` **Sensitive Data Exposure:** Ensure the National Number is NOT returned in public profile DTOs.
+- `[x]` **Data Integrity:** Implement soft-delete rules / retention policies instead of a hard-delete of the Identity account.
+- `[x]` **Atomicity:** Ensure email and username updates are persisted atomically (e.g., within a transaction).
+- `[x]` **Email Verification:** Implement email-change verification workflow.
+- `[x]` **Data Mapping:** Fix null dates of birth so they remain `null` instead of `DateOnly.MinValue`.
+- `[x]` **Validation:** Align Egyptian phone format validation with lawyer registration.
+- `[x]` **Contract Alignment:** Align routes with the canonical `/api/users/profile` contract.
+- `[x]` **Performance:** Optimize the GET endpoint into a single query instead of three separate database operations.
+- `[x]` **Cancellation:** Add `CancellationToken` propagation across asynchronous reads.
 
 ## 6. Users Slice > Lawyers
 - `[ ]` **Profile Creation Bug:** Ensure `LawyerProfile` is actually created during registration, not just upon a later update.

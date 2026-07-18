@@ -14,7 +14,7 @@ public class UpdateClientProfileRequestValidator : AbstractValidator<UpdateClien
 
         RuleFor(x => x.PhoneNumber)
             .NotEmpty().WithMessage("رقم الهاتف مطلوب")
-            .Matches(@"^01[0125][0-9]{8}$").WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح");
+            .Matches(@"^\+20\d{10}$").WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
 
         RuleFor(x => x.DateOfBirth)
             .NotEmpty().WithMessage("تاريخ الميلاد مطلوب")

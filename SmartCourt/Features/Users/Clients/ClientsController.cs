@@ -1,37 +1,33 @@
 using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common.Attributes;
 using SmartCourt.Features.Users.Clients.DTOs;
 
 namespace SmartCourt.Features.Users.Clients;
 
 [ApiController]
-[Route("api/v1/clients")]
-[Authorize]
+[Route("api/clients/profile")]
+[Authorize(Roles = "Client")]
 public class ClientsController(IClientService clientService) : ControllerBase
 {
-    [HttpGet("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> GetAsync(Guid id)
+    [HttpGet]
+    public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
     {
-        var result = await clientService.GetProfileAsync(id);
+        var result = await clientService.GetProfileAsync(cancellationToken);
         return Ok(ApiResponse<ClientProfileResponse>.Ok(result));
     }
 
-    [HttpPut("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> UpdateAsync(Guid id, [FromBody] UpdateClientProfileRequest request)
+    [HttpPut]
+    public async Task<IActionResult> UpdateAsync([FromBody] UpdateClientProfileRequest request, CancellationToken cancellationToken)
     {
-        await clientService.UpdateProfileAsync(id, request);
+        await clientService.UpdateProfileAsync(request, cancellationToken);
         return Ok(ApiResponse<string>.Ok("تم تحديث الملف الشخصي بنجاح."));
     }
 
-    [HttpDelete("{id:guid}")]
-    [AuthorizeOwner]
-    public async Task<IActionResult> DeleteAsync(Guid id)
+    [HttpDelete]
+    public async Task<IActionResult> DeleteAsync(CancellationToken cancellationToken)
     {
-        await clientService.DeleteProfileAsync(id);
+        await clientService.DeleteProfileAsync(cancellationToken);
         return Ok(ApiResponse<string>.Ok("تم حذف الملف الشخصي بنجاح."));
     }
 }
