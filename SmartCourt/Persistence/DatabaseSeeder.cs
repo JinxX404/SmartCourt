@@ -25,6 +25,9 @@ public static class DatabaseSeeder
         using var scope = serviceProvider.CreateScope();
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        await DataSeeders.LegalCategorySeeder.SeedAsync(context);
 
         var roles = new[] { "Client", "Lawyer", "Admin" };
         foreach (var role in roles)

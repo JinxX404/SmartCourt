@@ -13,6 +13,7 @@ public class LawyerProfileResponse
     public string SpecializationName { get; set; } = string.Empty;
     public string CategoryName { get; set; } = string.Empty;
     public int YearsOfExperience { get; set; }
+    public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }
     public string Status { get; set; } = string.Empty;

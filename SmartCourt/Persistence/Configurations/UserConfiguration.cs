@@ -89,6 +89,10 @@ public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile
             
         builder.Property(p => p.Address)
             .HasMaxLength(255);
+
+        builder.Property(p => p.Level)
+            .HasConversion<int>()
+            .HasDefaultValue(SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration);
     }
 }
 

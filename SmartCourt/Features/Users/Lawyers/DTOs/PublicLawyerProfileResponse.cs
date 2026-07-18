@@ -11,6 +11,7 @@ public class PublicLawyerProfileResponse
     public string CategoryName { get; set; } = string.Empty;
     
     public int YearsOfExperience { get; set; }
+    public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
     public bool IsAvailable { get; set; }
     public string? ProfilePictureUrl { get; set; }

@@ -1,5 +1,6 @@
-namespace SmartCourt.Common.Entities;
+using SmartCourt.Common.Enums;
 
+namespace SmartCourt.Common.Entities;
 public class LawyerProfile
 {
     public Guid UserId { get; set; }
@@ -9,6 +10,7 @@ public class LawyerProfile
     public LegalSpecialization? Specialization { get; set; }
 
     public int YearsOfExperience { get; set; }
+    public LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }
     public bool IsAvailable { get; set; } = true;

@@ -42,6 +42,7 @@ public class LawyerService(
                 SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null ? u.LawyerProfile.Specialization.Name : string.Empty,
                 CategoryName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null && u.LawyerProfile.Specialization.Category != null ? u.LawyerProfile.Specialization.Category.Name : string.Empty,
                 YearsOfExperience = u.LawyerProfile != null ? u.LawyerProfile.YearsOfExperience : 0,
+                Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
                 ProfilePictureUrl = u.ProfilePictureUrl
@@ -68,6 +69,7 @@ public class LawyerService(
                 SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null ? u.LawyerProfile.Specialization.Name : string.Empty,
                 CategoryName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null && u.LawyerProfile.Specialization.Category != null ? u.LawyerProfile.Specialization.Category.Name : string.Empty,
                 YearsOfExperience = u.LawyerProfile != null ? u.LawyerProfile.YearsOfExperience : 0,
+                Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
                 ProfilePictureUrl = u.ProfilePictureUrl
@@ -116,6 +118,7 @@ public class LawyerService(
 
             user.LawyerProfile.SpecializationId = request.SpecializationId;
             user.LawyerProfile.YearsOfExperience = request.YearsOfExperience;
+            user.LawyerProfile.Level = request.Level;
             user.LawyerProfile.Bio = request.Bio;
 
             var updateResult = await _userManager.UpdateAsync(user);
