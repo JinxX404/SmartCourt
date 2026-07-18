@@ -19,8 +19,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 
-    public DbSet<TestEntity> TestEntities { get; set; }
-    public DbSet<SampleEntity> SampleEntities { get; set; }
+
     public DbSet<StoredFile> StoredFiles { get; set; }
     public DbSet<UserVerificationDocument> UserVerificationDocuments { get; set; }
     public DbSet<LegalCategory> LegalCategories { get; set; }

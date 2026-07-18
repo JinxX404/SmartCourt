@@ -1,0 +1,19 @@
+using Microsoft.AspNetCore.Mvc;
+
+namespace SmartCourt.Features.Health;
+
+[ApiController]
+[Route("api/[controller]")]
+public class HealthController : ControllerBase
+{
+    [HttpGet("ping")]
+    public IActionResult Ping()
+    {
+        return Ok(new 
+        { 
+            Message = "Pong! Smart Court API is fully operational.",
+            ServerTimeUtc = DateTime.UtcNow,
+            Version = "1.0.0"
+        });
+    }
+}
