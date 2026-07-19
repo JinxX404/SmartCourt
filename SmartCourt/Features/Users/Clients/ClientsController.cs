@@ -25,7 +25,7 @@ public class ClientsController(IClientService clientService) : ControllerBase
     public async Task<IActionResult> UpdateAsync([FromBody] UpdateClientProfileRequest request, CancellationToken cancellationToken)
     {
         await clientService.UpdateProfileAsync(request, cancellationToken);
-        return Ok(ApiResponse<string>.Ok("تم تحديث الملف الشخصي بنجاح."));
+        return Ok(ApiResponse.Ok("تم تحديث الملف الشخصي بنجاح."));
     }
 
     [HttpDelete]
@@ -35,6 +35,6 @@ public class ClientsController(IClientService clientService) : ControllerBase
         CancellationToken cancellationToken)
     {
         await clientService.DeleteProfileAsync(request, cancellationToken);
-        return Ok(ApiResponse<string>.Ok("تم حذف الملف الشخصي بنجاح."));
+        return Ok(ApiResponse.Ok("تم حذف الملف الشخصي بنجاح."));
     }
 }
