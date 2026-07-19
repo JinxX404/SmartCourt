@@ -7,6 +7,7 @@ using SmartCourt.Persistence;
 using SmartCourt.Interfaces;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Common.Enums;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
@@ -83,6 +84,8 @@ public class LawyerService(
 
     public async Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
     {
+        ValidateProfileRequest(request);
+
         var userId = _currentUserService.UserId;
         var user = await _userManager.Users
             .Include(u => u.LawyerProfile)
@@ -90,6 +93,15 @@ public class LawyerService(
 
         if (user == null)
             throw new NotFoundException("المحامي غير موجود");
+
+        var specializationExists = await _dbContext.LegalSpecializations
+            .AnyAsync(s => s.Id == request.SpecializationId && !s.IsDeleted, cancellationToken);
+        if (!specializationExists)
+        {
+            throw new ValidationException(
+                nameof(request.SpecializationId),
+                "التخصص غير صالح.");
+        }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
@@ -127,6 +139,27 @@ public class LawyerService(
         {
             await transaction.RollbackAsync(cancellationToken);
             throw;
+        }
+    }
+
+    private static void ValidateProfileRequest(UpdateLawyerProfileRequest request)
+    {
+        if (!Enum.IsDefined(typeof(LawyerLevel), request.Level))
+        {
+            throw new ValidationException(nameof(request.Level), "مستوى المحامي غير صالح.");
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (request.DateOfBirth == default || request.DateOfBirth >= today)
+        {
+            throw new ValidationException(nameof(request.DateOfBirth), "يجب أن يكون تاريخ الميلاد في الماضي.");
+        }
+
+        if (request.YearsOfExperience is < 0 or > 50)
+        {
+            throw new ValidationException(
+                nameof(request.YearsOfExperience),
+                "عدد سنوات الخبرة يجب أن يكون بين 0 و 50.");
         }
     }
 
