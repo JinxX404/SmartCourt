@@ -42,7 +42,7 @@ public class RegisterLawyerRequestValidator : AbstractValidator<RegisterLawyerRe
 
         RuleFor(x => x.Gender)
             .NotEmpty().WithMessage("النوع مطلوب.")
-            .MaximumLength(20).WithMessage("النوع يجب أن لا يزيد عن 20 حرفًا.");
+            .Must(g => g == "Male" || g == "Female").WithMessage("النوع يجب أن يكون Male أو Female فقط.");
 
         RuleFor(x => x.NationalNumber)
             .NotEmpty().WithMessage("الرقم القومي مطلوب.")

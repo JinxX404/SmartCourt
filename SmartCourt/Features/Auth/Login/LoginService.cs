@@ -1,12 +1,10 @@
-using SmartCourt.Features.Auth.Login.DTOs;
-using SmartCourt.Common.Exceptions;
-using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Features.Auth.Login.DTOs;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Interfaces.Providers;
-using System.Security.Cryptography;
 
 namespace SmartCourt.Features.Auth.Login;
 
@@ -16,7 +14,7 @@ public class LoginService : ILoginService
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IJwtProvider _jwtProvider;
     private readonly IAuthHelperService _authHelper;
-    private readonly int _refreshTokenExpiryDays = 14;
+    private readonly int _refreshTokenExpiryDays = 7;
 
     public LoginService(
         UserManager<ApplicationUser> userManager,
@@ -32,13 +30,16 @@ public class LoginService : ILoginService
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _userManager.FindByEmailAsync(request.Email);
+        var user = await _userManager.Users
+            .Include(u => u.RefreshTokens)
+            .SingleOrDefaultAsync(u => u.Email == request.Email, cancellationToken);
+
         if (user is null)
         {
             throw new AuthenticationException("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
         }
 
-        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: false);
+        var signInResult = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
         if (!signInResult.Succeeded)
         {
             throw new AuthenticationException("البريد الإلكتروني أو كلمة المرور غير صحيحة.");
@@ -63,21 +64,28 @@ public class LoginService : ILoginService
         var tokenResult = _jwtProvider.GenerateToken(user, roles);
 
         var refreshToken = _authHelper.GenerateRefreshToken();
+        var hashedRefreshToken = _authHelper.HashRefreshToken(refreshToken);
         var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
 
         user.RefreshTokens.Add(new SmartCourt.Common.Entities.RefreshToken
         {
-            Token = refreshToken,
+            HashedToken = hashedRefreshToken,
             ExpiresOn = refreshTokenExpiration
         });
 
+        user.LastLoginAt = DateTime.UtcNow;
+
         await _userManager.UpdateAsync(user);
 
-        return new LoginResponse(
+        var userDto = new UserDto(
             user.Id.ToString(),
             user.Email ?? string.Empty,
             user.FullName,
-            roles.FirstOrDefault() ?? "User",
+            roles.FirstOrDefault() ?? "User"
+        );
+
+        return new LoginResponse(
+            userDto,
             tokenResult.Token,
             tokenResult.ExpiresInSeconds,
             refreshToken,

@@ -1,11 +1,8 @@
-﻿namespace SmartCourt.Features.Auth.Login.DTOs;
+namespace SmartCourt.Features.Auth.Login.DTOs;
 
 public record LoginResponse(
-    string Id,
-    string Email,
-    string FullName,
-    string Role,
-    string Token,
+    UserDto User,
+    string AccessToken,
     int ExpiresIn,
     string RefreshToken,
     DateTime RefreshTokenExpiration

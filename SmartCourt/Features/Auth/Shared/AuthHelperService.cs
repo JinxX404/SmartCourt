@@ -1,4 +1,3 @@
-using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using SmartCourt.Interfaces.Providers;
@@ -12,7 +11,7 @@ public class AuthHelperService : IAuthHelperService
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailProvider _emailProvider;
-    private readonly string _appUrl;
+    private readonly string _clientUrl;
     private readonly IWebHostEnvironment _env;
 
     public AuthHelperService(
@@ -25,7 +24,7 @@ public class AuthHelperService : IAuthHelperService
         _roleManager = roleManager;
         _userManager = userManager;
         _emailProvider = emailProvider;
-        _appUrl = configuration["AppUrl"]?.TrimEnd('/') ?? "http://localhost:5000";
+        _clientUrl = configuration["ClientUrl"]?.TrimEnd('/') ?? "http://localhost:3000";
         _env = env;
     }
 
@@ -45,7 +44,8 @@ public class AuthHelperService : IAuthHelperService
     public void RevokeAllActiveRefreshTokens(ApplicationUser applicationUser)
     {
         var activeTokens = applicationUser.RefreshTokens.Where(rt => rt.IsActive).ToList();
-        foreach (var token in activeTokens) {
+        foreach (var token in activeTokens)
+        {
             token.RevokedOn = DateTime.UtcNow;
         }
 
@@ -55,7 +55,7 @@ public class AuthHelperService : IAuthHelperService
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = $"{_appUrl}/api/auth/confirm-email?userId={user.Id}&token={encodedToken}";
+        var confirmationUrl = $"{_clientUrl}/verify-email?userId={user.Id}&token={encodedToken}";
 
         var subject = "تأكيد البريد الإلكتروني - المحكمة الذكية";
         var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html");
@@ -71,7 +71,7 @@ public class AuthHelperService : IAuthHelperService
     {
         var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = $"{_appUrl}/api/auth/confirm-email-change?userId={user.Id}&newEmail={newEmail}&token={encodedToken}";
+        var confirmationUrl = $"{_clientUrl}/verify-email-change?userId={user.Id}&newEmail={newEmail}&token={encodedToken}";
 
         var subject = "تأكيد تغيير البريد الإلكتروني - المحكمة الذكية";
         var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html"); // using same template for now
@@ -81,5 +81,13 @@ public class AuthHelperService : IAuthHelperService
                            .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
 
         await _emailProvider.SendEmailAsync(newEmail, subject, body, true, cancellationToken);
+    }
+
+    public string HashRefreshToken(string refreshToken)
+    {
+        using var sha256 = SHA256.Create();
+        var bytes = Encoding.UTF8.GetBytes(refreshToken);
+        var hash = sha256.ComputeHash(bytes);
+        return Convert.ToBase64String(hash);
     }
 }

@@ -1,9 +1,7 @@
-using SmartCourt.Common.Models;
-using SmartCourt.Features.Auth.RefreshToken.DTOs;
-using SmartCourt.Common.Entities;
-using SmartCourt.Features.Auth.Login.DTOs;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Features.Auth.Login;
+using SmartCourt.Common.Models;
+using SmartCourt.Features.Auth.Login.DTOs;
+using SmartCourt.Features.Auth.RefreshToken.DTOs;
 
 namespace SmartCourt.Features.Auth.RefreshToken;
 
@@ -12,9 +10,9 @@ namespace SmartCourt.Features.Auth.RefreshToken;
 public class RefreshTokenController(IRefreshTokenService refreshTokenService) : ControllerBase
 {
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<LoginResponse>>> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<RefreshTokenResponse>>> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
     {
-        var response = await refreshTokenService.GetRefreshTokenAsync(request.Token, request.RefreshToken, cancellationToken);
-        return Ok(ApiResponse<LoginResponse>.Ok(response));
+        var response = await refreshTokenService.GetRefreshTokenAsync(request.RefreshToken, cancellationToken);
+        return Ok(ApiResponse<RefreshTokenResponse>.Ok(response));
     }
 }

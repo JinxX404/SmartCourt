@@ -1,4 +1,5 @@
 using SmartCourt.Features.Auth.Login.DTOs;
+using SmartCourt.Features.Auth.RefreshToken.DTOs;
 using SmartCourt.Common.Extensions;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Entities;
@@ -15,7 +16,7 @@ public class RefreshTokenService : IRefreshTokenService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IJwtProvider _jwtProvider;
     private readonly IAuthHelperService _authHelper;
-    private readonly int _refreshTokenExpiryDays = 14;
+    private readonly int _refreshTokenExpiryDays = 7;
 
     public RefreshTokenService(
         UserManager<ApplicationUser> userManager,
@@ -27,27 +28,23 @@ public class RefreshTokenService : IRefreshTokenService
         _authHelper = authHelper;
     }
 
-    public async Task<LoginResponse> GetRefreshTokenAsync(string token, string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<RefreshTokenResponse> GetRefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
-        var userIdString = _jwtProvider.ValidateToken(token, validateLifetime: false);
-        if (userIdString is null || !Guid.TryParse(userIdString, out var userId))
-        {
-            throw new BusinessException("Invalid access token.");
-        }
+        var hashedRefreshToken = _authHelper.HashRefreshToken(refreshToken);
 
         var user = await _userManager.Users
             .Include(u => u.RefreshTokens)
-            .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
+            .SingleOrDefaultAsync(u => u.RefreshTokens.Any(t => t.HashedToken == hashedRefreshToken), cancellationToken);
 
         if (user is null || !user.IsAccessEligible())
         {
-            throw new BusinessException("Invalid refresh token.");
+            throw new AuthenticationException("Invalid or expired refresh token.");
         }
 
-        var userRefreshToken = user.RefreshTokens.SingleOrDefault(rt => rt.Token == refreshToken);
+        var userRefreshToken = user.RefreshTokens.SingleOrDefault(rt => rt.HashedToken == hashedRefreshToken);
         if (userRefreshToken is null)
         {
-            throw new BusinessException("Invalid refresh token.");
+            throw new AuthenticationException("Invalid or expired refresh token.");
         }
 
         if (!userRefreshToken.IsActive)
@@ -59,17 +56,18 @@ public class RefreshTokenService : IRefreshTokenService
             }
             var revokeResult = await _userManager.UpdateAsync(user);
             EnsureSucceeded(revokeResult);
-            throw new BusinessException("Invalid or expired refresh token.");
+            throw new AuthenticationException("Invalid or expired refresh token.");
         }
 
         var roles = await _userManager.GetRolesAsync(user);
         var newAccessToken = _jwtProvider.GenerateToken(user, roles);
         var newRefreshToken = _authHelper.GenerateRefreshToken();
-
+        var newHashedRefreshToken = _authHelper.HashRefreshToken(newRefreshToken);
+        
         userRefreshToken.RevokedOn = DateTime.UtcNow;
         user.RefreshTokens.Add(new SmartCourt.Common.Entities.RefreshToken
         {
-            Token = newRefreshToken,
+            HashedToken = newHashedRefreshToken,
             ExpiresOn = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),
             CreatedOn = DateTime.UtcNow
         });
@@ -77,13 +75,8 @@ public class RefreshTokenService : IRefreshTokenService
         var updateResult = await _userManager.UpdateAsync(user);
         EnsureSucceeded(updateResult);
 
-        return new LoginResponse(
-             user.Id.ToString(),
-             user.Email ?? string.Empty,
-             user.FullName,
-             roles.FirstOrDefault() ?? "User",
+        return new RefreshTokenResponse(
              newAccessToken.Token,
-             newAccessToken.ExpiresInSeconds,
              newRefreshToken,
              DateTime.UtcNow.AddDays(_refreshTokenExpiryDays));
     }

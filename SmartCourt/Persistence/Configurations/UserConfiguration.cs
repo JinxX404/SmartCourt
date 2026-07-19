@@ -92,7 +92,8 @@ public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile
 
         builder.Property(p => p.Level)
             .HasConversion<int>()
-            .HasDefaultValue(SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration);
+            .HasDefaultValue(SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration)
+            .HasSentinel((SmartCourt.Common.Enums.LawyerLevel)0);
     }
 }
 

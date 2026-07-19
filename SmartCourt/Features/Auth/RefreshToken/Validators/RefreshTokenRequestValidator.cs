@@ -8,10 +8,6 @@ public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenReques
 {
     public RefreshTokenRequestValidator()
     {
-        RuleFor(x => x.Token)
-            .NotEmpty()
-            .WithMessage("Access token is required.");
-
         RuleFor(x => x.RefreshToken)
             .NotEmpty()
             .WithMessage("Refresh token is required.");
