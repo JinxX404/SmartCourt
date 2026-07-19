@@ -1,5 +1,7 @@
 using FluentValidation;
+using SmartCourt.Common.Enums;
 using SmartCourt.Features.Users.Lawyers.DTOs;
+using System;
 
 namespace SmartCourt.Features.Users.Lawyers.Validators;
 
@@ -14,16 +16,20 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
 
          RuleFor(x => x.DateOfBirth)
          .NotEmpty()
-         .WithMessage("يجب إدخال تاريخ الميلاد.");
+         .LessThan(DateOnly.FromDateTime(DateTime.Today))
+         .WithMessage("يجب أن يكون تاريخ الميلاد في الماضي.");
 
          RuleFor(x => x.SpecializationId)
          .NotEmpty()
          .WithMessage("يجب إدخال التخصص.");
 
          RuleFor(x => x.YearsOfExperience)
-         .GreaterThanOrEqualTo(0)
-         .LessThan(50)
+         .InclusiveBetween(0, 50)
          .WithMessage("عدد سنوات الخبرة يجب أن يكون بين 0 و 50.");
+
+         RuleFor(x => x.Level)
+         .IsInEnum()
+         .WithMessage("مستوى المحامي غير صالح.");
 
          RuleFor(x => x.Bio)
          .MaximumLength(500)
