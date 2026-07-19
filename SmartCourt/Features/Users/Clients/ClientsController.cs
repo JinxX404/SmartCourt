@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Features.Users.Clients.DTOs;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Features.Users.Shared.DTOs;
 
 namespace SmartCourt.Features.Users.Clients;
 
@@ -29,9 +30,11 @@ public class ClientsController(IClientService clientService) : ControllerBase
 
     [HttpDelete]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
-    public async Task<IActionResult> DeleteAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteAsync(
+        [FromBody] DeleteAccountRequest request,
+        CancellationToken cancellationToken)
     {
-        await clientService.DeleteProfileAsync(cancellationToken);
+        await clientService.DeleteProfileAsync(request, cancellationToken);
         return Ok(ApiResponse<string>.Ok("تم حذف الملف الشخصي بنجاح."));
     }
 }
