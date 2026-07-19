@@ -23,21 +23,21 @@ namespace SmartCourt
             var app = builder.Build();
 
             // 3. Configure HTTP Request Pipeline
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
+                app.UseHangfireDashboard();
             }
             else
             {
                 app.UseHttpsRedirection();
             }
 
-            app.UseHangfireDashboard();
-
-            app.UseMiddleware<ExceptionHandlingMiddleware>();
-            app.UseRateLimiter();
             app.UseAuthentication();
+            app.UseRateLimiter();
             app.UseAuthorization();
             app.MapControllers();
 

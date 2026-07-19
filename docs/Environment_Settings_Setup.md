@@ -50,3 +50,9 @@ dotnet ef migrations add "YourMigrationName" -p SmartCourt --environment Develop
 
 > [!WARNING]  
 > Always double-check your `--environment` flag before running an `update` to ensure you aren't accidentally pushing unfinished schema changes to the hosted environment!
+
+## 4. MVP Hosting Topology
+
+The MVP API is directly hosted and is not behind a reverse proxy. Forwarded headers are intentionally not configured, so IP-based security controls use the client's direct connection address.
+
+If the deployment topology changes, configure forwarded headers only for known trusted proxies and place that middleware before authentication and IP-based rate limiting.
