@@ -57,7 +57,8 @@ public sealed class ExceptionHandlingMiddlewareTests
         { new AuthenticationException("Authentication failed."), HttpStatusCode.Unauthorized },
         { new ForbiddenAccessException("Forbidden access."), HttpStatusCode.Forbidden },
         { new NotFoundException("Resource was not found."), HttpStatusCode.NotFound },
-        { new BusinessException("Business rule failed."), HttpStatusCode.BadRequest }
+        { new BusinessException("Business rule failed."), HttpStatusCode.BadRequest },
+        { new TooManyRequestsException(), HttpStatusCode.TooManyRequests }
     };
 
     private static async Task<MiddlewareResult> InvokeAsync(Exception exception)

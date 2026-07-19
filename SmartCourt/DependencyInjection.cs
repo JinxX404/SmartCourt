@@ -8,6 +8,8 @@ using SmartCourt.Providers;
 using SmartCourt.Common.Extensions;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Options;
+using SmartCourt.Common.RateLimiting;
+using SmartCourt.Common.Models;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using System.Text;
@@ -49,31 +51,17 @@ public static class DependencyInjection
     {
         services.AddRateLimiter(options =>
         {
-            options.AddFixedWindowLimiter("ForgotPassword", limiterOptions =>
-            {
-                limiterOptions.PermitLimit = 3;
-                limiterOptions.Window = TimeSpan.FromHours(1);
-                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                limiterOptions.QueueLimit = 0;
-            });
-            options.AddFixedWindowLimiter("ResendVerification", limiterOptions =>
-            {
-                limiterOptions.PermitLimit = 3;
-                limiterOptions.Window = TimeSpan.FromHours(1);
-                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                limiterOptions.QueueLimit = 0;
-            });
-            options.AddFixedWindowLimiter("ResetPassword", limiterOptions =>
-            {
-                limiterOptions.PermitLimit = 3;
-                limiterOptions.Window = TimeSpan.FromHours(1);
-                limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-                limiterOptions.QueueLimit = 0;
-            });
+            options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+                CreateIpRateLimiter(),
+                CreateUserRateLimiter());
             options.OnRejected = async (context, token) =>
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                await context.HttpContext.Response.WriteAsync("Too many requests. Please try again later.", token);
+                await context.HttpContext.Response.WriteAsJsonAsync(
+                    ApiResponse<string>.Fail(
+                        RateLimitResponse.Message,
+                        StatusCodes.Status429TooManyRequests),
+                    cancellationToken: token);
             };
         });
 
@@ -182,6 +170,8 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
+        services.AddSingleton<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
+
         services.Configure<DataProtectionTokenProviderOptions>(options =>
         {
             options.TokenLifespan = TimeSpan.FromHours(1);
@@ -264,5 +254,64 @@ public static class DependencyInjection
         services.AddScoped<IValidator<DeleteVerificationDocumentCommand>, DeleteVerificationDocumentCommandValidator>();
 
         return services;
+    }
+
+    private static PartitionedRateLimiter<HttpContext> CreateIpRateLimiter()
+    {
+        return PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        {
+            var attribute = context.GetEndpoint()?.Metadata.GetMetadata<SecurityRateLimitAttribute>();
+            if (attribute is null
+                || !SecurityRateLimitPolicies.TryGet(attribute.PolicyName, out var policy))
+            {
+                return RateLimitPartition.GetNoLimiter("ip:none");
+            }
+
+            var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return CreateFixedWindowPartition(
+                $"{attribute.PolicyName}:ip:{clientIp}",
+                policy.Ip);
+        });
+    }
+
+    private static PartitionedRateLimiter<HttpContext> CreateUserRateLimiter()
+    {
+        return PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        {
+            var attribute = context.GetEndpoint()?.Metadata.GetMetadata<SecurityRateLimitAttribute>();
+            if (attribute is null
+                || !SecurityRateLimitPolicies.TryGet(attribute.PolicyName, out var policy)
+                || policy.User is null)
+            {
+                return RateLimitPartition.GetNoLimiter("user:none");
+            }
+
+            var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (context.User.Identity?.IsAuthenticated != true
+                || string.IsNullOrWhiteSpace(userId))
+            {
+                return RateLimitPartition.GetNoLimiter("user:anonymous");
+            }
+
+            return CreateFixedWindowPartition(
+                $"{attribute.PolicyName}:user:{userId}",
+                policy.User);
+        });
+    }
+
+    private static RateLimitPartition<string> CreateFixedWindowPartition(
+        string partitionKey,
+        RateLimitBucket bucket)
+    {
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey,
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = bucket.PermitLimit,
+                Window = bucket.Window,
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
     }
 }

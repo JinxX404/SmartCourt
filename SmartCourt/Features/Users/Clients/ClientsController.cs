@@ -2,6 +2,7 @@ using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Features.Users.Clients.DTOs;
+using SmartCourt.Common.RateLimiting;
 
 namespace SmartCourt.Features.Users.Clients;
 
@@ -11,6 +12,7 @@ namespace SmartCourt.Features.Users.Clients;
 public class ClientsController(IClientService clientService) : ControllerBase
 {
     [HttpGet]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileGet)]
     public async Task<IActionResult> GetAsync(CancellationToken cancellationToken)
     {
         var result = await clientService.GetProfileAsync(cancellationToken);
@@ -18,6 +20,7 @@ public class ClientsController(IClientService clientService) : ControllerBase
     }
 
     [HttpPut]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
     public async Task<IActionResult> UpdateAsync([FromBody] UpdateClientProfileRequest request, CancellationToken cancellationToken)
     {
         await clientService.UpdateProfileAsync(request, cancellationToken);
@@ -25,6 +28,7 @@ public class ClientsController(IClientService clientService) : ControllerBase
     }
 
     [HttpDelete]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
     public async Task<IActionResult> DeleteAsync(CancellationToken cancellationToken)
     {
         await clientService.DeleteProfileAsync(cancellationToken);
