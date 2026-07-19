@@ -5,6 +5,7 @@ using SmartCourt.Common.Models;
 using SmartCourt.Features.Auth.ChangePassword;
 using System.Security.Claims;
 using SmartCourt.Extensions;
+using SmartCourt.Common.RateLimiting;
 
 namespace SmartCourt.Features.Auth.ChangePassword;
 
@@ -14,6 +15,7 @@ namespace SmartCourt.Features.Auth.ChangePassword;
 public class ChangePasswordController(IChangePasswordService changePasswordService) : ControllerBase
 {
     [HttpPost]
+    [SecurityRateLimit(RateLimitPolicyNames.ChangePassword)]
     public async Task<IActionResult> HandleAsync([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         await changePasswordService.ChangePasswordAsync(request.CurrentPassword, request.NewPassword, cancellationToken);

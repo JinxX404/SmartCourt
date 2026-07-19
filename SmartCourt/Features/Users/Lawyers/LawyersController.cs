@@ -3,6 +3,7 @@ using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.RateLimiting;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
@@ -19,6 +20,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpGet("profile")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileGet)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
         var result = await _lawyerService.GetProfileAsync(cancellationToken);
@@ -26,6 +28,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpPut("profile")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
     {
         await _lawyerService.UpdateProfileAsync(request, cancellationToken);
@@ -33,6 +36,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpDelete("profile")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
     public async Task<IActionResult> DeleteProfile(CancellationToken cancellationToken)
     {
         await _lawyerService.DeleteProfileAsync(cancellationToken);
@@ -41,6 +45,7 @@ public class LawyersController : ControllerBase
 
     [HttpGet("public/{id:guid}")]
     [AllowAnonymous]
+    [SecurityRateLimit(RateLimitPolicyNames.PublicLawyerGet)]
     public async Task<IActionResult> GetPublicProfile(Guid id, CancellationToken cancellationToken)
     {
         var result = await _lawyerService.GetPublicProfileAsync(id, cancellationToken);
