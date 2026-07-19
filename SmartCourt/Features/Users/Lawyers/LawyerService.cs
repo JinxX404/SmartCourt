@@ -58,13 +58,12 @@ public class LawyerService(
     public async Task<PublicLawyerProfileResponse> GetPublicProfileAsync(Guid lawyerId, CancellationToken cancellationToken)
     {
         var response = await _userManager.Users
-            .Where(u => u.Id == lawyerId)
+            .WherePublicLawyer(lawyerId)
             .Select(u => new PublicLawyerProfileResponse
             {
                 Id = u.Id,
                 Name = u.FullName ?? string.Empty,
                 Gender = u.Gender ?? string.Empty,
-                Status = u.Status.ToString(),
                 SpecializationId = u.LawyerProfile != null ? u.LawyerProfile.SpecializationId : null,
                 SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null ? u.LawyerProfile.Specialization.Name : string.Empty,
                 CategoryName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null && u.LawyerProfile.Specialization.Category != null ? u.LawyerProfile.Specialization.Category.Name : string.Empty,
