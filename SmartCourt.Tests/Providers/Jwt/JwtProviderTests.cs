@@ -1,6 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Options;
-using SmartCourt.Common;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Providers.Jwt;
 using Xunit;
@@ -20,7 +20,7 @@ public sealed class JwtProviderTests
 
         Assert.Equal(
             user.SecurityStamp,
-            token.Claims.Single(claim => claim.Type == AuthSecurity.SecurityStampClaimType).Value);
+            token.Claims.Single(claim => claim.Type == ApplicationUserExtensions.SecurityStampClaimType).Value);
     }
 
     [Fact]

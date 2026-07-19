@@ -1,5 +1,5 @@
 using SmartCourt.Features.Auth.Login.DTOs;
-using SmartCourt.Common;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -39,7 +39,7 @@ public class RefreshTokenService : IRefreshTokenService
             .Include(u => u.RefreshTokens)
             .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        if (user is null || !AuthSecurity.IsAccessEligible(user))
+        if (user is null || !user.IsAccessEligible())
         {
             throw new BusinessException("Invalid refresh token.");
         }

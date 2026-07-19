@@ -1,5 +1,5 @@
 
-using SmartCourt.Common;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Common.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -35,7 +35,7 @@ public class JwtProvider : IJwtProvider
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new Claim("name", user.FullName),
-            new Claim(AuthSecurity.SecurityStampClaimType, user.SecurityStamp ?? string.Empty),
+            new Claim(ApplicationUserExtensions.SecurityStampClaimType, user.SecurityStamp ?? string.Empty),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

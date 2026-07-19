@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using SmartCourt.Providers.Jwt;
 using SmartCourt.Providers;
-using SmartCourt.Common;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Options;
 using FluentValidation;
@@ -224,9 +224,9 @@ public static class DependencyInjection
                     var user = await userManager.FindByIdAsync(parsedUserId.ToString());
 
                     if (user is null
-                        || !AuthSecurity.IsAccessEligible(user)
+                        || !user.IsAccessEligible()
                         || context.Principal is null
-                        || !AuthSecurity.HasValidSecurityStamp(user, context.Principal))
+                        || !user.HasValidSecurityStamp(context.Principal))
                     {
                         context.Fail("Invalid access token.");
                     }

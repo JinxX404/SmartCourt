@@ -1,11 +1,11 @@
 using System.Security.Claims;
-using SmartCourt.Common;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Features.Auth.Enums;
 using Xunit;
 
-namespace SmartCourt.Tests.Features.Auth;
+namespace SmartCourt.Tests.Common.Extensions;
 
-public sealed class AuthSecurityTests
+public sealed class ApplicationUserExtensionsTests
 {
     [Theory]
     [InlineData(UserStatus.Active, true)]
@@ -22,7 +22,7 @@ public sealed class AuthSecurityTests
             Status = status
         };
 
-        var result = AuthSecurity.IsAccessEligible(user);
+        var result = user.IsAccessEligible();
 
         Assert.Equal(expected, result);
     }
@@ -36,7 +36,7 @@ public sealed class AuthSecurityTests
             Status = UserStatus.Active
         };
 
-        var result = AuthSecurity.IsAccessEligible(user);
+        var result = user.IsAccessEligible();
 
         Assert.False(result);
     }
@@ -47,7 +47,7 @@ public sealed class AuthSecurityTests
         var user = new ApplicationUser { SecurityStamp = "current-stamp" };
         var principal = CreatePrincipal("current-stamp");
 
-        var result = AuthSecurity.HasValidSecurityStamp(user, principal);
+        var result = user.HasValidSecurityStamp(principal);
 
         Assert.True(result);
     }
@@ -61,7 +61,7 @@ public sealed class AuthSecurityTests
         var user = new ApplicationUser { SecurityStamp = "current-stamp" };
         var principal = CreatePrincipal(tokenSecurityStamp);
 
-        var result = AuthSecurity.HasValidSecurityStamp(user, principal);
+        var result = user.HasValidSecurityStamp(principal);
 
         Assert.False(result);
     }
@@ -71,7 +71,7 @@ public sealed class AuthSecurityTests
         var claims = new List<Claim>();
         if (securityStamp is not null)
         {
-            claims.Add(new Claim(AuthSecurity.SecurityStampClaimType, securityStamp));
+            claims.Add(new Claim(ApplicationUserExtensions.SecurityStampClaimType, securityStamp));
         }
 
         return new ClaimsPrincipal(new ClaimsIdentity(claims));
