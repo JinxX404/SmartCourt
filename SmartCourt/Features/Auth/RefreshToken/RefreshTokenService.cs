@@ -1,4 +1,5 @@
 using SmartCourt.Features.Auth.Login.DTOs;
+using SmartCourt.Common;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -38,7 +39,7 @@ public class RefreshTokenService : IRefreshTokenService
             .Include(u => u.RefreshTokens)
             .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        if (user is null)
+        if (user is null || !AuthSecurity.IsAccessEligible(user))
         {
             throw new BusinessException("Invalid refresh token.");
         }
@@ -56,7 +57,8 @@ public class RefreshTokenService : IRefreshTokenService
             {
                 activeToken.RevokedOn = DateTime.UtcNow;
             }
-            await _userManager.UpdateAsync(user);
+            var revokeResult = await _userManager.UpdateAsync(user);
+            EnsureSucceeded(revokeResult);
             throw new BusinessException("Invalid or expired refresh token.");
         }
 
@@ -72,7 +74,8 @@ public class RefreshTokenService : IRefreshTokenService
             CreatedOn = DateTime.UtcNow
         });
 
-        await _userManager.UpdateAsync(user);
+        var updateResult = await _userManager.UpdateAsync(user);
+        EnsureSucceeded(updateResult);
 
         return new LoginResponse(
              user.Id.ToString(),
@@ -83,5 +86,13 @@ public class RefreshTokenService : IRefreshTokenService
              newAccessToken.ExpiresInSeconds,
              newRefreshToken,
              DateTime.UtcNow.AddDays(_refreshTokenExpiryDays));
+    }
+
+    private static void EnsureSucceeded(IdentityResult result)
+    {
+        if (!result.Succeeded)
+        {
+            throw new BusinessException(string.Join(" ", result.Errors.Select(error => error.Description)));
+        }
     }
 }

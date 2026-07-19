@@ -1,9 +1,11 @@
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Builder;
 using SmartCourt.Providers.Jwt;
 using SmartCourt.Providers;
+using SmartCourt.Common;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Options;
 using FluentValidation;
@@ -205,6 +207,30 @@ public static class DependencyInjection
                 ValidAudience = jwtOptions.Audience,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ClockSkew = TimeSpan.FromMinutes(1)
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnTokenValidated = async context =>
+                {
+                    var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                    if (!Guid.TryParse(userId, out var parsedUserId))
+                    {
+                        context.Fail("Invalid access token.");
+                        return;
+                    }
+
+                    var userManager = context.HttpContext.RequestServices
+                        .GetRequiredService<UserManager<ApplicationUser>>();
+                    var user = await userManager.FindByIdAsync(parsedUserId.ToString());
+
+                    if (user is null
+                        || !AuthSecurity.IsAccessEligible(user)
+                        || context.Principal is null
+                        || !AuthSecurity.HasValidSecurityStamp(user, context.Principal))
+                    {
+                        context.Fail("Invalid access token.");
+                    }
+                }
             };
         });
 
