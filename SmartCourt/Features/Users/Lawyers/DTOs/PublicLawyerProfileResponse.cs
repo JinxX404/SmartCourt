@@ -15,5 +15,4 @@ public class PublicLawyerProfileResponse
     public string? Bio { get; set; }
     public bool IsAvailable { get; set; }
     public string? ProfilePictureUrl { get; set; }
-    public string Status { get; set; } = string.Empty;
 }
