@@ -60,11 +60,6 @@ public class ClientService(
 
         try
         {
-            if (user.Email != request.Email)
-            {
-                await _authHelperService.SendChangeEmailConfirmationAsync(user, request.Email, cancellationToken);
-            }
-
             if (user.PhoneNumber != request.PhoneNumber)
             {
                 var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, request.PhoneNumber);

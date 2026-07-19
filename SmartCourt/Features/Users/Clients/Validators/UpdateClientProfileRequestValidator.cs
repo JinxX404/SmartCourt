@@ -8,10 +8,6 @@ public class UpdateClientProfileRequestValidator : AbstractValidator<UpdateClien
 {
     public UpdateClientProfileRequestValidator()
     {
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("البريد الإلكتروني مطلوب")
-            .EmailAddress().WithMessage("البريد الإلكتروني غير صالح");
-
         RuleFor(x => x.PhoneNumber)
             .NotEmpty().WithMessage("رقم الهاتف مطلوب")
             .Matches(@"^\+20\d{10}$").WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");

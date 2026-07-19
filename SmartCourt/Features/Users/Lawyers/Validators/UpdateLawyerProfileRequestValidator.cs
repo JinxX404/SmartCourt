@@ -7,13 +7,6 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
 {
     public UpdateLawyerProfileRequestValidator()
     {
-
-         RuleFor(x => x.Email)
-         .NotEmpty()
-         .EmailAddress()
-         .MaximumLength(255)
-         .WithMessage("البريد الإلكتروني غير صالح.");
-
          RuleFor(x => x.PhoneNumber)
          .NotEmpty()
          .Matches(@"^\+20\d{10}$")
