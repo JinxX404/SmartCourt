@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Features.Users.Shared.DTOs;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
@@ -37,9 +38,11 @@ public class LawyersController : ControllerBase
 
     [HttpDelete("profile")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
-    public async Task<IActionResult> DeleteProfile(CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteProfile(
+        [FromBody] DeleteAccountRequest request,
+        CancellationToken cancellationToken)
     {
-        await _lawyerService.DeleteProfileAsync(cancellationToken);
+        await _lawyerService.DeleteProfileAsync(request, cancellationToken);
         return Ok(ApiResponse<string>.Ok("تم حذف الحساب بنجاح"));
     }
 

@@ -8,6 +8,7 @@ using SmartCourt.Interfaces;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Common.Enums;
+using SmartCourt.Features.Users.Shared.DTOs;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
@@ -163,24 +164,53 @@ public class LawyerService(
         }
     }
 
-    public async Task DeleteProfileAsync(CancellationToken cancellationToken)
+    public async Task DeleteProfileAsync(
+        DeleteAccountRequest request,
+        CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId;
         var user = await _userManager.Users
             .Include(u => u.RefreshTokens)
+            .Include(u => u.LawyerProfile)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        if (user == null)
-            throw new NotFoundException("المحامي غير موجود");
+        if (user is null || user.Status == UserStatus.Deleted)
+            return;
 
-        user.Status = UserStatus.Deleted;
-        _authHelperService.RevokeAllActiveRefreshTokens(user);
-
-        var updateResult = await _userManager.UpdateAsync(user);
-        
-        if (!updateResult.Succeeded)
+        if (!await _userManager.CheckPasswordAsync(user, request.CurrentPassword))
         {
-            throw new BusinessException(string.Join(" ", updateResult.Errors.Select(e => e.Description)));
+            throw new BusinessException("كلمة المرور الحالية غير صحيحة.");
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            user.Status = UserStatus.Deleted;
+            if (user.LawyerProfile is not null)
+            {
+                user.LawyerProfile.IsAvailable = false;
+            }
+
+            _authHelperService.RevokeAllActiveRefreshTokens(user);
+
+            var securityStampResult = await _userManager.UpdateSecurityStampAsync(user);
+            EnsureSucceeded(securityStampResult);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private static void EnsureSucceeded(IdentityResult result)
+    {
+        if (!result.Succeeded)
+        {
+            throw new BusinessException(string.Join(" ", result.Errors.Select(error => error.Description)));
         }
     }
 }
