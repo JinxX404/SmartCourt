@@ -33,7 +33,7 @@ public class LawyersController : ControllerBase
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
     {
         await _lawyerService.UpdateProfileAsync(request, cancellationToken);
-        return Ok(ApiResponse<string>.Ok("تم تحديث البيانات بنجاح"));
+        return Ok(ApiResponse.Ok("تم تحديث البيانات بنجاح"));
     }
 
     [HttpDelete("profile")]
@@ -43,7 +43,7 @@ public class LawyersController : ControllerBase
         CancellationToken cancellationToken)
     {
         await _lawyerService.DeleteProfileAsync(request, cancellationToken);
-        return Ok(ApiResponse<string>.Ok("تم حذف الحساب بنجاح"));
+        return Ok(ApiResponse.Ok("تم حذف الحساب بنجاح"));
     }
 
     [HttpGet("public/{id:guid}")]
