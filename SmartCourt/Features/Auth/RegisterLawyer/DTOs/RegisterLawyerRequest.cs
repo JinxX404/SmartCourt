@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace SmartCourt.Features.Auth.RegisterLawyer.DTOs;
 
 public record RegisterLawyerRequest(
@@ -10,5 +12,9 @@ public record RegisterLawyerRequest(
     string Government,
     string City,
     string Gender,
-    string NationalNumber
+    string NationalNumber,
+    IFormFile NationalIdFront,
+    IFormFile NationalIdBack,
+    IFormFile SyndicateCard,
+    IFormFile PersonalPhoto
 );

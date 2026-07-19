@@ -24,9 +24,5 @@ public class RegisterClientRequestValidator : AbstractValidator<RegisterClientRe
         RuleFor(x => x.ConfirmPassword)
             .Equal(x => x.Password).WithMessage("تأكيد كلمة المرور غير مطابق.");
 
-        RuleFor(x => x.NationalNumber)
-            .NotEmpty().WithMessage("الرقم القومي مطلوب.")
-            .Length(14).WithMessage("الرقم القومي يجب أن يكون 14 رقمًا.")
-            .Matches("^[0-9]{14}$").WithMessage("الرقم القومي غير صالح.");
     }
 }

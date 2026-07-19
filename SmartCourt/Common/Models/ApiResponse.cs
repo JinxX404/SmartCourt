@@ -13,8 +13,8 @@ public class ApiResponse<T>
     public static ApiResponse<T> Ok(T data, string? message = null)
         => new() { Success = true, Data = data, StatusCode = 200, Message = message };
 
-    public static ApiResponse<T> Created(T data)
-        => new() { Success = true, Data = data, StatusCode = 201 };
+    public static ApiResponse<T> Created(T data, string? message = null)
+        => new() { Success = true, Data = data, StatusCode = 201, Message = message };
 
     public static ApiResponse<T> Fail(string message, int statusCode = 400)
         => new() { Success = false, Message = message, StatusCode = statusCode };
@@ -33,8 +33,8 @@ public class ApiResponse
     public static ApiResponse Ok(string? message = null)
         => new() { Success = true, StatusCode = 200, Message = message };
 
-    public static ApiResponse Created()
-        => new() { Success = true, StatusCode = 201 };
+    public static ApiResponse Created(string? message = null)
+        => new() { Success = true, StatusCode = 201, Message = message };
 
     public static ApiResponse Fail(string message, int statusCode = 400)
         => new() { Success = false, Message = message, StatusCode = statusCode };

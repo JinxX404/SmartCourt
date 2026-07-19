@@ -19,19 +19,38 @@ public class ConfirmEmailService : IConfirmEmailService
     {
         var user = await GetUserAndValidateAsync(userId);
         
-        var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        }
+        catch (FormatException)
+        {
+            throw new BusinessException("رمز تأكيد البريد الإلكتروني غير صالح أو مشوه.");
+        }
         var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
         if (!result.Succeeded)
         {
             throw new BusinessException("رمز تأكيد البريد الإلكتروني غير صالح أو منتهي الصلاحية.");
         }
+
+        user.Status = SmartCourt.Features.Auth.Enums.UserStatus.Active;
+        await _userManager.UpdateAsync(user);
     }
 
     public async Task ConfirmEmailChangeAsync(string userId, string newEmail, string token, CancellationToken cancellationToken = default)
     {
         var user = await GetUserAndValidateAsync(userId);
 
-        var decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(token));
+        }
+        catch (FormatException)
+        {
+            throw new BusinessException("رمز تأكيد تغيير البريد الإلكتروني غير صالح أو مشوه.");
+        }
         var result = await _userManager.ChangeEmailAsync(user, newEmail, decodedToken);
         
         if (!result.Succeeded)

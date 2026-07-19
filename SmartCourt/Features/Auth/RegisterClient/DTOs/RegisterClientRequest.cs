@@ -4,6 +4,5 @@ public record RegisterClientRequest(
     string FullName,
     string Email,
     string Password,
-    string ConfirmPassword,
-    string NationalNumber
+    string ConfirmPassword
 );
