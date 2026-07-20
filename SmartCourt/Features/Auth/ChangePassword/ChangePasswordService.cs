@@ -4,15 +4,20 @@ using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Interfaces;
+using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Auth.ChangePassword;
 
-public class ChangePasswordService(UserManager<ApplicationUser> userManager, IAuthHelperService authHelperService, ICurrentUserService CurrentUserService) : IChangePasswordService
+public class ChangePasswordService(
+    UserManager<ApplicationUser> userManager,
+    ApplicationDbContext dbContext,
+    IAuthHelperService authHelperService,
+    ICurrentUserService currentUserService) : IChangePasswordService
 {
     public async Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
-        var userId = CurrentUserService.UserId;
-        
+        var userId = currentUserService.UserId;
+
         var user = await userManager.Users
             .Include(u => u.RefreshTokens)
             .SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
@@ -22,28 +27,70 @@ public class ChangePasswordService(UserManager<ApplicationUser> userManager, IAu
             throw new AuthenticationException("المستخدم غير معروف");
         }
 
-        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
-        if (!result.Succeeded)
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
         {
-            var failures = new List<KeyValuePair<string, string[]>>();
-            
-            var passwordMismatchError = result.Errors.FirstOrDefault(e => e.Code == "PasswordMismatch");
-            if (passwordMismatchError != null)
+            if (!await userManager.CheckPasswordAsync(user, currentPassword))
             {
-                failures.Add(new KeyValuePair<string, string[]>("CurrentPassword", new[] { "كلمة المرور الحالية غير صحيحة." }));
+                throw new ValidationException("CurrentPassword", "كلمة المرور الحالية غير صحيحة.");
             }
 
-            var otherErrors = result.Errors.Where(e => e.Code != "PasswordMismatch").Select(e => e.Description).ToArray();
-            if (otherErrors.Any())
+            if (string.Equals(currentPassword, newPassword, StringComparison.Ordinal))
             {
-                failures.Add(new KeyValuePair<string, string[]>("NewPassword", otherErrors));
+                throw new ValidationException(
+                    "NewPassword",
+                    "يجب أن تختلف كلمة المرور الجديدة عن كلمة المرور الحالية.");
             }
 
-            throw new ValidationException(failures);
+            var changeResult = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+            EnsurePasswordChangeSucceeded(changeResult);
+
+            authHelperService.RevokeAllActiveRefreshTokens(user);
+
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                throw new BusinessException(
+                    string.Join(" ", updateResult.Errors.Select(error => error.Description)));
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    private static void EnsurePasswordChangeSucceeded(IdentityResult result)
+    {
+        if (result.Succeeded)
+        {
+            return;
         }
 
-        // revoke all active refresh tokens for that user
-        authHelperService.RevokeAllActiveRefreshTokens(user);
-        await userManager.UpdateAsync(user);
+        var failures = new List<KeyValuePair<string, string[]>>();
+        var passwordMismatchError = result.Errors.FirstOrDefault(error => error.Code == "PasswordMismatch");
+
+        if (passwordMismatchError is not null)
+        {
+            failures.Add(new KeyValuePair<string, string[]>(
+                "CurrentPassword",
+                ["كلمة المرور الحالية غير صحيحة."]));
+        }
+
+        var otherErrors = result.Errors
+            .Where(error => error.Code != "PasswordMismatch")
+            .Select(error => error.Description)
+            .ToArray();
+
+        if (otherErrors.Length > 0)
+        {
+            failures.Add(new KeyValuePair<string, string[]>("NewPassword", otherErrors));
+        }
+
+        throw new ValidationException(failures);
     }
 }

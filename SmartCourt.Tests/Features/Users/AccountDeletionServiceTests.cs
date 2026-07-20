@@ -146,7 +146,7 @@ public sealed class AccountDeletionServiceTests
             };
             user.RefreshTokens.Add(new RefreshToken
             {
-                Token = Guid.NewGuid().ToString("N"),
+                HashedToken = Guid.NewGuid().ToString("N"),
                 ExpiresOn = DateTime.UtcNow.AddDays(1)
             });
 
@@ -203,6 +203,11 @@ public sealed class AccountDeletionServiceTests
         }
 
         public string GenerateRefreshToken()
+        {
+            throw new NotSupportedException();
+        }
+
+        public string HashRefreshToken(string refreshToken)
         {
             throw new NotSupportedException();
         }
