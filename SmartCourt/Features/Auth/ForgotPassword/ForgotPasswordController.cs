@@ -21,6 +21,6 @@ public class ForgotPasswordController(
         accountKeyRateLimiter.CheckForgotPassword(request.Email);
         await forgotPasswordService.ForgotPasswordAsync(request.Email, cancellationToken);
 
-        return Ok(ApiResponse<string>.Ok("إذا كان البريد الإلكتروني مسجلاً، سيتم إرسال رابط إعادة تعيين كلمة المرور"));
+        return Ok(ApiResponse.Ok("إذا كان البريد الإلكتروني مسجلاً، سيتم إرسال رابط إعادة تعيين كلمة المرور"));
     }
 }
