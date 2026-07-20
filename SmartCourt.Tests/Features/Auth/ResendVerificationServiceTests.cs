@@ -94,12 +94,6 @@ public sealed class ResendVerificationServiceTests
             return Task.CompletedTask;
         }
 
-        public Task SendChangeEmailConfirmationAsync(
-            ApplicationUser user,
-            string newEmail,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
         public string GenerateRefreshToken()
             => throw new NotSupportedException();
 

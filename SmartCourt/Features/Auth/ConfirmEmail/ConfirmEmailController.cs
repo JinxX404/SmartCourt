@@ -24,11 +24,4 @@ public class ConfirmEmailController(
         return Ok(ApiResponse.Ok("تم تأكيد البريد الإلكتروني بنجاح."));
     }
 
-    [HttpGet("/api/auth/confirm-email-change")]
-    [AllowAnonymous]
-    public async Task<IActionResult> ConfirmChangeAsync([FromQuery] string userId, [FromQuery] string newEmail, [FromQuery] string token, CancellationToken cancellationToken)
-    {
-        await confirmEmailService.ConfirmEmailChangeAsync(userId, newEmail, token, cancellationToken);
-        return Ok(ApiResponse<bool>.Ok(true, "تم تأكيد وتغيير البريد الإلكتروني بنجاح."));
-    }
 }

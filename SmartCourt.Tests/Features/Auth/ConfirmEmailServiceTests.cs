@@ -201,6 +201,19 @@ public sealed class ConfirmEmailServiceTests
         Assert.False(string.IsNullOrWhiteSpace(response.Message));
     }
 
+    [Fact]
+    public void ConfirmEmailChangeRoute_IsNotExposed()
+    {
+        var routes = typeof(ConfirmEmailController)
+            .GetMethods()
+            .SelectMany(method => method
+                .GetCustomAttributes(typeof(HttpGetAttribute), inherit: true)
+                .Cast<HttpGetAttribute>())
+            .Select(attribute => attribute.Template);
+
+        Assert.DoesNotContain("/api/auth/confirm-email-change", routes);
+    }
+
     private static ConfirmEmailService CreateService(PasswordServiceTestContext testContext)
         => new(testContext.UserManager, testContext.DbContext);
 
@@ -209,8 +222,6 @@ public sealed class ConfirmEmailServiceTests
         public Task ConfirmEmailAsync(string? userId, string? token, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
-        public Task ConfirmEmailChangeAsync(string userId, string newEmail, string token, CancellationToken cancellationToken = default)
-            => Task.CompletedTask;
     }
 
     private sealed class NoOpAccountKeyRateLimiter : IAccountKeyRateLimiter
