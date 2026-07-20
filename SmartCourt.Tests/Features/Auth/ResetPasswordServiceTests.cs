@@ -1,5 +1,7 @@
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Features.Auth.Enums;
+using System.Security.Claims;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Auth;
@@ -17,6 +19,7 @@ public sealed class ResetPasswordServiceTests
         var user = await testContext.CreateUserAsync();
         var token = await testContext.GenerateEncodedResetTokenAsync(user);
         var originalSecurityStamp = user.SecurityStamp;
+        var originalPrincipal = CreatePrincipal(originalSecurityStamp!);
 
         await testContext.CreateResetPasswordService().ResetPasswordAsync(
             user.Email!.ToUpperInvariant(),
@@ -26,6 +29,7 @@ public sealed class ResetPasswordServiceTests
 
         var storedUser = await testContext.ReloadUserAsync(user.Id);
         Assert.NotEqual(originalSecurityStamp, storedUser.SecurityStamp);
+        Assert.False(storedUser.HasValidSecurityStamp(originalPrincipal));
         Assert.False(await testContext.UserManager.CheckPasswordAsync(
             storedUser,
             PasswordServiceTestContext.CurrentPassword));
@@ -184,5 +188,13 @@ public sealed class ResetPasswordServiceTests
             PasswordServiceTestContext.CurrentPassword));
         Assert.False(await testContext.UserManager.CheckPasswordAsync(storedUser, NewPassword));
         Assert.All(storedUser.RefreshTokens, refreshToken => Assert.True(refreshToken.IsActive));
+    }
+
+    private static ClaimsPrincipal CreatePrincipal(string securityStamp)
+    {
+        return new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ApplicationUserExtensions.SecurityStampClaimType, securityStamp)
+        ]));
     }
 }
