@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using SmartCourt.Common.Entities;
+using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Features.Auth.Shared;
 
 namespace SmartCourt.Features.Auth.ResendVerification;
@@ -13,12 +14,7 @@ public class ResendVerificationService(
     {
         var user = await userManager.FindByEmailAsync(email);
 
-        if (user == null)
-        {
-            return;
-        }
-
-        if (user.EmailConfirmed)
+        if (user is null || user.EmailConfirmed || user.Status != UserStatus.Unverified)
         {
             return;
         }
