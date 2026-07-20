@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Entities;
@@ -40,6 +42,8 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
 
     private ApplicationDbContext DbContext { get; }
     public TestUserManager UserManager { get; }
+    public RoleManager<IdentityRole<Guid>> RoleManager
+        => _serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
 
     public static async Task<PasswordServiceTestContext> CreateAsync(
         TimeSpan? passwordResetTokenLifespan = null)
@@ -96,16 +100,18 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
 
     public async Task<ApplicationUser> CreateUserAsync(
         UserStatus status = UserStatus.Active,
-        bool emailConfirmed = true)
+        bool emailConfirmed = true,
+        string? email = null,
+        string fullName = "Test User")
     {
         var userId = Guid.NewGuid();
-        var email = $"user-{userId}@example.com";
+        email ??= $"user-{userId}@example.com";
         var user = new ApplicationUser
         {
             Id = userId,
             UserName = email,
             Email = email,
-            FullName = "Test User",
+            FullName = fullName,
             NationalNumber = userId.ToString("N")[..14],
             Status = status,
             EmailConfirmed = emailConfirmed
@@ -224,5 +230,40 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
                 token.RevokedOn = DateTime.UtcNow;
             }
         }
+    }
+}
+
+internal sealed class TestWebHostEnvironment : IWebHostEnvironment
+{
+    public string ApplicationName { get; set; } = "SmartCourt.Tests";
+    public string EnvironmentName { get; set; } = "Development";
+    public string ContentRootPath { get; set; } = FindContentRoot();
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    public string WebRootPath { get; set; } = string.Empty;
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
+
+    private static string FindContentRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            var candidate = Path.Combine(
+                directory.FullName,
+                "SmartCourt",
+                "Features",
+                "Auth",
+                "Shared",
+                "Templates",
+                "ResetPasswordEmail.html");
+
+            if (File.Exists(candidate))
+            {
+                return Path.Combine(directory.FullName, "SmartCourt");
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("SmartCourt content root was not found.");
     }
 }

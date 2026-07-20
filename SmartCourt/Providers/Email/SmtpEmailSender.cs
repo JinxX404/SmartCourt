@@ -48,7 +48,7 @@ public class SmtpEmailSender : ISmtpEmailSender
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {To}", to);
-            return false;
+            throw;
         }
     }
 }

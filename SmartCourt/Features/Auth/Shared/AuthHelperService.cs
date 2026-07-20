@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Options;
 using SmartCourt.Interfaces.Providers;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Encodings.Web;
 
 namespace SmartCourt.Features.Auth.Shared;
 
@@ -11,20 +13,20 @@ public class AuthHelperService : IAuthHelperService
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IEmailProvider _emailProvider;
-    private readonly string _clientUrl;
+    private readonly string _publicBaseUrl;
     private readonly IWebHostEnvironment _env;
 
     public AuthHelperService(
         RoleManager<IdentityRole<Guid>> roleManager,
         UserManager<ApplicationUser> userManager,
         IEmailProvider emailProvider,
-        IConfiguration configuration,
+        IOptions<AuthEmailOptions> options,
         IWebHostEnvironment env)
     {
         _roleManager = roleManager;
         _userManager = userManager;
         _emailProvider = emailProvider;
-        _clientUrl = configuration["ClientUrl"]?.TrimEnd('/') ?? "http://localhost:3000";
+        _publicBaseUrl = options.Value.PublicBaseUrl.TrimEnd('/');
         _env = env;
     }
 
@@ -55,32 +57,51 @@ public class AuthHelperService : IAuthHelperService
     {
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = $"{_clientUrl}/verify-email?userId={user.Id}&token={encodedToken}";
+        var confirmationUrl = QueryHelpers.AddQueryString(
+            $"{_publicBaseUrl}/verify-email",
+            new Dictionary<string, string?>
+            {
+                ["userId"] = user.Id.ToString(),
+                ["token"] = encodedToken
+            });
 
         var subject = "تأكيد البريد الإلكتروني - المحكمة الذكية";
         var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html");
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
-        var body = template.Replace("{{FullName}}", user.FullName)
-                           .Replace("{{ConfirmationUrl}}", confirmationUrl)
+        var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
+                           .Replace("{{ConfirmationUrl}}", HtmlEncoder.Default.Encode(confirmationUrl))
                            .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
 
-        await _emailProvider.SendEmailAsync(user.Email!, subject, body, true, cancellationToken);
+        if (!await _emailProvider.SendEmailAsync(user.Email!, subject, body, true, cancellationToken))
+        {
+            throw new InvalidOperationException("Confirmation email could not be queued.");
+        }
     }
 
     public async Task SendChangeEmailConfirmationAsync(ApplicationUser user, string newEmail, CancellationToken cancellationToken = default)
     {
         var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = $"{_clientUrl}/verify-email-change?userId={user.Id}&newEmail={newEmail}&token={encodedToken}";
+        var confirmationUrl = QueryHelpers.AddQueryString(
+            $"{_publicBaseUrl}/verify-email-change",
+            new Dictionary<string, string?>
+            {
+                ["userId"] = user.Id.ToString(),
+                ["newEmail"] = newEmail,
+                ["token"] = encodedToken
+            });
 
         var subject = "تأكيد تغيير البريد الإلكتروني - المحكمة الذكية";
         var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html"); // using same template for now
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
-        var body = template.Replace("{{FullName}}", user.FullName)
-                           .Replace("{{ConfirmationUrl}}", confirmationUrl)
+        var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
+                           .Replace("{{ConfirmationUrl}}", HtmlEncoder.Default.Encode(confirmationUrl))
                            .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
 
-        await _emailProvider.SendEmailAsync(newEmail, subject, body, true, cancellationToken);
+        if (!await _emailProvider.SendEmailAsync(newEmail, subject, body, true, cancellationToken))
+        {
+            throw new InvalidOperationException("Email-change confirmation could not be queued.");
+        }
     }
 
     public string HashRefreshToken(string refreshToken)
