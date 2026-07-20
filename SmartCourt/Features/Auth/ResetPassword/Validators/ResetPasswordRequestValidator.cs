@@ -12,9 +12,6 @@ public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequ
             .NotEmpty().WithMessage("عنوان البريد الإلكتروني مطلوب")
             .EmailAddress().WithMessage("عنوان البريد الإلكتروني غير صالح");
 
-        RuleFor(x => x.Token)
-            .NotEmpty().WithMessage("رمز إعادة التعيين مطلوب");
-
         RuleFor(x => x.NewPassword)
             .Password();
 
