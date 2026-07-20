@@ -194,14 +194,6 @@ public sealed class AccountDeletionServiceTests
             throw new NotSupportedException();
         }
 
-        public Task SendChangeEmailConfirmationAsync(
-            ApplicationUser user,
-            string newEmail,
-            CancellationToken cancellationToken = default)
-        {
-            throw new NotSupportedException();
-        }
-
         public string GenerateRefreshToken()
         {
             throw new NotSupportedException();

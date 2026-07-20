@@ -78,32 +78,6 @@ public class AuthHelperService : IAuthHelperService
         }
     }
 
-    public async Task SendChangeEmailConfirmationAsync(ApplicationUser user, string newEmail, CancellationToken cancellationToken = default)
-    {
-        var token = await _userManager.GenerateChangeEmailTokenAsync(user, newEmail);
-        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var confirmationUrl = QueryHelpers.AddQueryString(
-            $"{_publicBaseUrl}/verify-email-change",
-            new Dictionary<string, string?>
-            {
-                ["userId"] = user.Id.ToString(),
-                ["newEmail"] = newEmail,
-                ["token"] = encodedToken
-            });
-
-        var subject = "تأكيد تغيير البريد الإلكتروني - المحكمة الذكية";
-        var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html"); // using same template for now
-        var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
-        var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
-                           .Replace("{{ConfirmationUrl}}", HtmlEncoder.Default.Encode(confirmationUrl))
-                           .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
-
-        if (!await _emailProvider.SendEmailAsync(newEmail, subject, body, true, cancellationToken))
-        {
-            throw new InvalidOperationException("Email-change confirmation could not be queued.");
-        }
-    }
-
     public string HashRefreshToken(string refreshToken)
     {
         using var sha256 = SHA256.Create();
