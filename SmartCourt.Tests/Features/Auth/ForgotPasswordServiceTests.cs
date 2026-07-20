@@ -1,13 +1,14 @@
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Features.Auth.ForgotPassword;
 using SmartCourt.Features.Auth.ForgotPassword.DTOs;
+using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Interfaces.Providers;
+using System.Net;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Auth;
@@ -51,6 +52,31 @@ public sealed class ForgotPasswordServiceTests
     }
 
     [Fact]
+    public async Task ResetLinkEncodesPlusAddressAndHtmlEncodesName()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var user = await testContext.CreateUserAsync(
+            email: "user+tag@example.com",
+            fullName: "<script>alert(1)</script>");
+        var emailProvider = new CapturingEmailProvider();
+        var service = CreateService(testContext, emailProvider);
+
+        await service.ForgotPasswordAsync(user.Email!, CancellationToken.None);
+
+        var message = Assert.Single(emailProvider.Messages);
+        Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", message.Body);
+        Assert.DoesNotContain("<script>alert(1)</script>", message.Body);
+
+        var hrefStart = message.Body.IndexOf("href='", StringComparison.Ordinal) + "href='".Length;
+        var hrefEnd = message.Body.IndexOf("'", hrefStart, StringComparison.Ordinal);
+        var url = WebUtility.HtmlDecode(message.Body[hrefStart..hrefEnd]);
+        var query = QueryHelpers.ParseQuery(new Uri(url).Query);
+
+        Assert.Equal(user.Email, query["email"].ToString());
+        Assert.False(string.IsNullOrWhiteSpace(query["token"].ToString()));
+    }
+
+    [Fact]
     public async Task MissingEmailDoesNotQueueOrThrow()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
@@ -86,18 +112,11 @@ public sealed class ForgotPasswordServiceTests
         PasswordServiceTestContext testContext,
         CapturingEmailProvider emailProvider)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["AppUrl"] = "https://app.example.com"
-            })
-            .Build();
-
         return new ForgotPasswordService(
             testContext.UserManager,
             emailProvider,
-            configuration,
-            new TestHostEnvironment());
+            Options.Create(new AuthEmailOptions { PublicBaseUrl = "https://app.example.com" }),
+            new TestWebHostEnvironment());
     }
 
     private sealed class CapturingEmailProvider : IEmailProvider
@@ -117,41 +136,6 @@ public sealed class ForgotPasswordServiceTests
     }
 
     private sealed record EmailMessage(string To, string Subject, string Body, bool IsHtml);
-
-    private sealed class TestHostEnvironment : IWebHostEnvironment
-    {
-        public string ApplicationName { get; set; } = "SmartCourt.Tests";
-        public string EnvironmentName { get; set; } = "Development";
-        public string ContentRootPath { get; set; } = FindContentRoot();
-        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-        public string WebRootPath { get; set; } = string.Empty;
-        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
-
-        private static string FindContentRoot()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory is not null)
-            {
-                var candidate = Path.Combine(
-                    directory.FullName,
-                    "SmartCourt",
-                    "Features",
-                    "Auth",
-                    "Shared",
-                    "Templates",
-                    "ResetPasswordEmail.html");
-
-                if (File.Exists(candidate))
-                {
-                    return Path.Combine(directory.FullName, "SmartCourt");
-                }
-
-                directory = directory.Parent;
-            }
-
-            throw new DirectoryNotFoundException("SmartCourt content root was not found.");
-        }
-    }
 
     private sealed class NoOpForgotPasswordService : IForgotPasswordService
     {

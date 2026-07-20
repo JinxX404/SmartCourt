@@ -39,6 +39,7 @@ using SmartCourt.Interfaces.Providers;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using SmartCourt.Persistence.DataSeeders;
+using SmartCourt.Providers.Email;
 using SmartCourt.Providers.FileStorage;
 using Twilio.Types;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
@@ -108,9 +109,26 @@ public static class DependencyInjection
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
             
-        services.Configure<SmartCourt.Providers.Email.MailKitOptions>(configuration.GetSection("SmtpSettings"));
-        services.AddScoped<SmartCourt.Providers.Email.ISmtpEmailSender, SmartCourt.Providers.Email.SmtpEmailSender>();
-        services.AddScoped<SmartCourt.Interfaces.Providers.IEmailProvider, SmartCourt.Providers.Email.BackgroundEmailProvider>();
+        services.AddOptions<MailKitOptions>()
+            .Bind(configuration.GetSection("SmtpSettings"))
+            .Validate(options =>
+                !string.IsNullOrWhiteSpace(options.Server)
+                && options.Port is > 0 and <= 65535
+                && !string.IsNullOrWhiteSpace(options.SenderName)
+                && !string.IsNullOrWhiteSpace(options.SenderEmail)
+                && !string.IsNullOrWhiteSpace(options.Username)
+                && !string.IsNullOrWhiteSpace(options.Password),
+                "SMTP settings are incomplete or invalid.")
+            .ValidateOnStart();
+        services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEmailProvider, BackgroundEmailProvider>();
+
+        services.AddOptions<AuthEmailOptions>()
+            .Bind(configuration.GetSection(AuthEmailOptions.SectionName))
+            .Validate(
+                options => IsValidPublicBaseUrl(options.PublicBaseUrl, isDevelopment),
+                "AuthEmail:PublicBaseUrl must be an absolute public HTTPS URL outside Development.")
+            .ValidateOnStart();
 
         services.Configure<SmartCourt.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
         if (isDevelopment)
@@ -313,5 +331,20 @@ public static class DependencyInjection
                 QueueLimit = 0,
                 AutoReplenishment = true
             });
+    }
+
+    private static bool IsValidPublicBaseUrl(string value, bool isDevelopment)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+            || string.IsNullOrWhiteSpace(uri.Host)
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return isDevelopment
+            || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                && !uri.IsLoopback;
     }
 }
