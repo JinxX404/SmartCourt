@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using SmartCourt.Common.Entities;
-using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Extensions;
 using SmartCourt.Interfaces.Providers;
 using System.Text;
 
@@ -19,12 +19,7 @@ public class ForgotPasswordService(
     {
         var user = await userManager.FindByEmailAsync(email);
 
-        if (user == null)
-        {
-            return;
-        }
-
-        if (!user.EmailConfirmed)
+        if (user is null || !user.IsAccessEligible())
         {
             return;
         }
