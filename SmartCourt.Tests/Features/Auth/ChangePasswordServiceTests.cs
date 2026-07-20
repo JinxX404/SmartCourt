@@ -1,4 +1,6 @@
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Extensions;
+using System.Security.Claims;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Auth;
@@ -57,6 +59,7 @@ public sealed class ChangePasswordServiceTests
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
         var user = await testContext.CreateUserAsync();
         var originalSecurityStamp = user.SecurityStamp;
+        var originalPrincipal = CreatePrincipal(originalSecurityStamp!);
 
         await testContext.CreateChangePasswordService().ChangePasswordAsync(
             CurrentPassword,
@@ -65,6 +68,7 @@ public sealed class ChangePasswordServiceTests
 
         var storedUser = await testContext.ReloadUserAsync(user.Id);
         Assert.NotEqual(originalSecurityStamp, storedUser.SecurityStamp);
+        Assert.False(storedUser.HasValidSecurityStamp(originalPrincipal));
         Assert.False(await testContext.UserManager.CheckPasswordAsync(storedUser, CurrentPassword));
         Assert.True(await testContext.UserManager.CheckPasswordAsync(storedUser, NewPassword));
         Assert.All(storedUser.RefreshTokens, token => Assert.False(token.IsActive));
@@ -89,5 +93,13 @@ public sealed class ChangePasswordServiceTests
         Assert.True(await testContext.UserManager.CheckPasswordAsync(storedUser, CurrentPassword));
         Assert.False(await testContext.UserManager.CheckPasswordAsync(storedUser, NewPassword));
         Assert.All(storedUser.RefreshTokens, token => Assert.True(token.IsActive));
+    }
+
+    private static ClaimsPrincipal CreatePrincipal(string securityStamp)
+    {
+        return new ClaimsPrincipal(new ClaimsIdentity(
+        [
+            new Claim(ApplicationUserExtensions.SecurityStampClaimType, securityStamp)
+        ]));
     }
 }
