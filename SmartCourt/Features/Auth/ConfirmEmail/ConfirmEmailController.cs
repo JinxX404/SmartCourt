@@ -14,11 +14,14 @@ public class ConfirmEmailController(
     [HttpGet]
     [AllowAnonymous]
     [SecurityRateLimit(RateLimitPolicyNames.ConfirmEmail)]
-    public async Task<IActionResult> Get([FromQuery] string userId, [FromQuery] string token, CancellationToken cancellationToken)
+    public async Task<IActionResult> Get(
+        [FromQuery] string? userId,
+        [FromQuery] string? token,
+        CancellationToken cancellationToken)
     {
-        accountKeyRateLimiter.CheckConfirmEmail(userId);
+        accountKeyRateLimiter.CheckConfirmEmail(userId ?? string.Empty);
         await confirmEmailService.ConfirmEmailAsync(userId, token, cancellationToken);
-        return Ok(ApiResponse<bool>.Ok(true, "تم تأكيد البريد الإلكتروني بنجاح."));
+        return Ok(ApiResponse.Ok("تم تأكيد البريد الإلكتروني بنجاح."));
     }
 
     [HttpGet("/api/auth/confirm-email-change")]

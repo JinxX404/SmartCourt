@@ -40,7 +40,7 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
         UserManager = userManager;
     }
 
-    private ApplicationDbContext DbContext { get; }
+    public ApplicationDbContext DbContext { get; }
     public TestUserManager UserManager { get; }
     public RoleManager<IdentityRole<Guid>> RoleManager
         => _serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
@@ -102,7 +102,8 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
         UserStatus status = UserStatus.Active,
         bool emailConfirmed = true,
         string? email = null,
-        string fullName = "Test User")
+        string fullName = "Test User",
+        string? role = null)
     {
         var userId = Guid.NewGuid();
         email ??= $"user-{userId}@example.com";
@@ -122,6 +123,18 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
             result.Succeeded,
             string.Join(" ", result.Errors.Select(error => error.Description)));
 
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            if (!await RoleManager.RoleExistsAsync(role))
+            {
+                var roleResult = await RoleManager.CreateAsync(new IdentityRole<Guid>(role));
+                Assert.True(roleResult.Succeeded);
+            }
+
+            var roleAssignmentResult = await UserManager.AddToRoleAsync(user, role);
+            Assert.True(roleAssignmentResult.Succeeded);
+        }
+
         var refreshToken = new RefreshToken
         {
             HashedToken = Guid.NewGuid().ToString("N"),
@@ -139,6 +152,12 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
     public async Task<string> GenerateEncodedResetTokenAsync(ApplicationUser user)
     {
         var token = await UserManager.GeneratePasswordResetTokenAsync(user);
+        return WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+    }
+
+    public async Task<string> GenerateEncodedEmailConfirmationTokenAsync(ApplicationUser user)
+    {
+        var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
         return WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
     }
 
