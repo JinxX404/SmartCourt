@@ -38,13 +38,13 @@ public class RefreshTokenService : IRefreshTokenService
 
         if (user is null || !user.IsAccessEligible())
         {
-            throw new AuthenticationException("Invalid or expired refresh token.");
+            throw new AuthenticationException("رمز التحديث غير صالح أو منتهي الصلاحية.");
         }
 
         var userRefreshToken = user.RefreshTokens.SingleOrDefault(rt => rt.HashedToken == hashedRefreshToken);
         if (userRefreshToken is null)
         {
-            throw new AuthenticationException("Invalid or expired refresh token.");
+            throw new AuthenticationException("رمز التحديث غير صالح أو منتهي الصلاحية.");
         }
 
         if (!userRefreshToken.IsActive)
@@ -56,7 +56,7 @@ public class RefreshTokenService : IRefreshTokenService
             }
             var revokeResult = await _userManager.UpdateAsync(user);
             EnsureSucceeded(revokeResult);
-            throw new AuthenticationException("Invalid or expired refresh token.");
+            throw new AuthenticationException("رمز التحديث غير صالح أو منتهي الصلاحية.");
         }
 
         var roles = await _userManager.GetRolesAsync(user);

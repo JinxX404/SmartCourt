@@ -10,10 +10,10 @@ public class RevokeRefreshTokenRequestValidator : AbstractValidator<RevokeRefres
     {
         RuleFor(x => x.Token)
             .NotEmpty()
-            .WithMessage("Access token is required.");
+            .WithMessage("رمز الوصول مطلوب.");
 
         RuleFor(x => x.RefreshToken)
             .NotEmpty()
-            .WithMessage("Refresh token is required.");
+            .WithMessage("رمز التحديث مطلوب.");
     }
 }

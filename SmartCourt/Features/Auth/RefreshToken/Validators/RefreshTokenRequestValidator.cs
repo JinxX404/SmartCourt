@@ -10,6 +10,6 @@ public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenReques
     {
         RuleFor(x => x.RefreshToken)
             .NotEmpty()
-            .WithMessage("Refresh token is required.");
+            .WithMessage("رمز التحديث مطلوب.");
     }
 }

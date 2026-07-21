@@ -28,7 +28,7 @@ public class RevokeRefreshTokenService : IRevokeRefreshTokenService
         var userIdString = _jwtProvider.ValidateToken(token, validateLifetime: false);
         if (userIdString is null || !Guid.TryParse(userIdString, out var userId))
         {
-            throw new BusinessException("Invalid access token.");
+            throw new BusinessException("رمز الوصول غير صالح.");
         }
 
         var user = await _userManager.Users
@@ -37,7 +37,7 @@ public class RevokeRefreshTokenService : IRevokeRefreshTokenService
 
         if (user is null)
         {
-            throw new BusinessException("Invalid refresh token.");
+            throw new BusinessException("رمز التحديث غير صالح.");
         }
 
         var userRefreshToken = user.RefreshTokens.SingleOrDefault(rt => rt.HashedToken == _authHelper.HashRefreshToken(refreshToken));
