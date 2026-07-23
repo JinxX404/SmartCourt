@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.RateLimiting;
 using Xunit;
@@ -80,6 +81,10 @@ public sealed class AccountKeyRateLimiterTests
 
     private static AccountKeyRateLimiter CreateLimiter()
     {
-        return new AccountKeyRateLimiter(new UpperInvariantLookupNormalizer());
+        var services = new ServiceCollection();
+        services.AddScoped<ILookupNormalizer, UpperInvariantLookupNormalizer>();
+        var serviceProvider = services.BuildServiceProvider();
+        var scopeFactory = serviceProvider.GetRequiredService<IServiceScopeFactory>();
+        return new AccountKeyRateLimiter(scopeFactory);
     }
 }
