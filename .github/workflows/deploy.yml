@@ -24,6 +24,45 @@ jobs:
       - name: Build
         run: dotnet build SmartCourt.sln --configuration Release --no-restore
 
+      - name: Create appsettings.Production.json
+        shell: pwsh
+        run: |
+          $json = @'
+          {
+            "ConnectionStrings": {
+              "DefaultConnection": "${{ secrets.PROD_DB_CONNECTION_STRING }}"
+            },
+            "Supabase": {
+              "Url": "${{ secrets.PROD_SUPABASE_URL }}",
+              "ApiKey": "${{ secrets.PROD_SUPABASE_API_KEY }}",
+              "Bucket": "${{ secrets.PROD_SUPABASE_BUCKET }}"
+            },
+            "Jwt": {
+              "Secret": "${{ secrets.PROD_JWT_SECRET }}",
+              "Issuer": "${{ secrets.PROD_JWT_ISSUER }}",
+              "Audience": "${{ secrets.PROD_JWT_AUDIENCE }}",
+              "ExpiresInMinutes": 15
+            },
+            "SmtpSettings": {
+              "Server": "${{ secrets.PROD_SMTP_SERVER }}",
+              "Port": 587,
+              "SenderName": "${{ secrets.PROD_SMTP_SENDER_NAME }}",
+              "SenderEmail": "${{ secrets.PROD_SMTP_SENDER_EMAIL }}",
+              "Username": "${{ secrets.PROD_SMTP_USERNAME }}",
+              "Password": "${{ secrets.PROD_SMTP_PASSWORD }}"
+            },
+            "AuthEmail": {
+              "PublicBaseUrl": "${{ secrets.PROD_PUBLIC_BASE_URL }}"
+            },
+            "Twilio": {
+              "AccountSid": "${{ secrets.PROD_TWILIO_SID }}",
+              "AuthToken": "${{ secrets.PROD_TWILIO_TOKEN }}",
+              "FromNumber": "${{ secrets.PROD_TWILIO_NUMBER }}"
+            }
+          }
+          '@
+          Set-Content -Path "SmartCourt/appsettings.Production.json" -Value $json -Encoding UTF8
+
       - name: Publish API
         run: dotnet publish SmartCourt/SmartCourt.csproj --configuration Release --no-build --output ./publish
 
