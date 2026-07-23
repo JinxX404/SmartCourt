@@ -11,46 +11,54 @@ namespace SmartCourt
     {
         public static async Task Main(string[] args)
         {
-            var builder = WebApplication.CreateBuilder(args);
-
-            // 1. Add API Services
-            builder.Services.AddApiServices();
-
-            // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
-            builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment.IsDevelopment());
-            
-
-            var app = builder.Build();
-
-            // 3. Configure HTTP Request Pipeline
-            app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-            if (app.Environment.IsDevelopment())
+            try
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-                app.UseHangfireDashboard();
+                var builder = WebApplication.CreateBuilder(args);
+
+                // 1. Add API Services
+                builder.Services.AddApiServices();
+
+                // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
+                builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment.IsDevelopment());
+                
+
+                var app = builder.Build();
+
+                // 3. Configure HTTP Request Pipeline
+                app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+                if (app.Environment.IsDevelopment())
+                {
+                    app.UseSwagger();
+                    app.UseSwaggerUI();
+                    app.UseHangfireDashboard();
+                }
+                else
+                {
+                    app.UseHttpsRedirection();
+                }
+
+                app.UseAuthentication();
+                app.UseRateLimiter();
+                app.UseAuthorization();
+                app.MapControllers();
+
+                // 4. Auto-Migrate Database on Startup
+                app.UseAutoMigration();
+
+                // 5. Seed Database
+                using (var scope = app.Services.CreateScope())
+                {
+                    SmartCourt.Persistence.DatabaseSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
+                }
+
+                app.Run();
             }
-            else
+            catch (Exception ex)
             {
-                app.UseHttpsRedirection();
+                System.IO.File.WriteAllText("startup-error.txt", ex.ToString());
+                throw;
             }
-
-            app.UseAuthentication();
-            app.UseRateLimiter();
-            app.UseAuthorization();
-            app.MapControllers();
-
-            // 4. Auto-Migrate Database on Startup
-            app.UseAutoMigration();
-
-            // 5. Seed Database
-            using (var scope = app.Services.CreateScope())
-            {
-                SmartCourt.Persistence.DatabaseSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
-            }
-
-            app.Run();
         }
     }
 }
