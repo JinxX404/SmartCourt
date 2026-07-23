@@ -127,7 +127,7 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(AuthEmailOptions.SectionName))
             .Validate(
                 options => IsValidPublicBaseUrl(options.PublicBaseUrl, isDevelopment),
-                "AuthEmail:PublicBaseUrl must be an absolute public HTTPS URL outside Development.")
+                "AuthEmail:PublicBaseUrl must be an absolute public URL outside Development.")
             .ValidateOnStart();
 
         services.Configure<SmartCourt.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
@@ -343,8 +343,7 @@ public static class DependencyInjection
             return false;
         }
 
-        return isDevelopment
-            || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
-                && !uri.IsLoopback;
+        // Temporarily allowing HTTP in production as requested by the user
+        return isDevelopment || !uri.IsLoopback;
     }
 }
