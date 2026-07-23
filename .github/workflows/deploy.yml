@@ -26,42 +26,33 @@ jobs:
 
       - name: Create appsettings.Production.json
         shell: pwsh
+        env:
+          PROD_DB_CONNECTION_STRING: ${{ secrets.PROD_DB_CONNECTION_STRING }}
+          PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          PROD_SUPABASE_API_KEY: ${{ secrets.PROD_SUPABASE_API_KEY }}
+          PROD_SUPABASE_BUCKET: ${{ secrets.PROD_SUPABASE_BUCKET }}
+          PROD_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+          PROD_JWT_ISSUER: ${{ secrets.PROD_JWT_ISSUER }}
+          PROD_JWT_AUDIENCE: ${{ secrets.PROD_JWT_AUDIENCE }}
+          PROD_SMTP_SERVER: ${{ secrets.PROD_SMTP_SERVER }}
+          PROD_SMTP_SENDER_NAME: ${{ secrets.PROD_SMTP_SENDER_NAME }}
+          PROD_SMTP_SENDER_EMAIL: ${{ secrets.PROD_SMTP_SENDER_EMAIL }}
+          PROD_SMTP_USERNAME: ${{ secrets.PROD_SMTP_USERNAME }}
+          PROD_SMTP_PASSWORD: ${{ secrets.PROD_SMTP_PASSWORD }}
+          PROD_PUBLIC_BASE_URL: ${{ secrets.PROD_PUBLIC_BASE_URL }}
+          PROD_TWILIO_SID: ${{ secrets.PROD_TWILIO_SID }}
+          PROD_TWILIO_TOKEN: ${{ secrets.PROD_TWILIO_TOKEN }}
+          PROD_TWILIO_NUMBER: ${{ secrets.PROD_TWILIO_NUMBER }}
         run: |
-          $json = @'
-          {
-            "ConnectionStrings": {
-              "DefaultConnection": "${{ secrets.PROD_DB_CONNECTION_STRING }}"
-            },
-            "Supabase": {
-              "Url": "${{ secrets.PROD_SUPABASE_URL }}",
-              "ApiKey": "${{ secrets.PROD_SUPABASE_API_KEY }}",
-              "Bucket": "${{ secrets.PROD_SUPABASE_BUCKET }}"
-            },
-            "Jwt": {
-              "Secret": "${{ secrets.PROD_JWT_SECRET }}",
-              "Issuer": "${{ secrets.PROD_JWT_ISSUER }}",
-              "Audience": "${{ secrets.PROD_JWT_AUDIENCE }}",
-              "ExpiresInMinutes": 15
-            },
-            "SmtpSettings": {
-              "Server": "${{ secrets.PROD_SMTP_SERVER }}",
-              "Port": 587,
-              "SenderName": "${{ secrets.PROD_SMTP_SENDER_NAME }}",
-              "SenderEmail": "${{ secrets.PROD_SMTP_SENDER_EMAIL }}",
-              "Username": "${{ secrets.PROD_SMTP_USERNAME }}",
-              "Password": "${{ secrets.PROD_SMTP_PASSWORD }}"
-            },
-            "AuthEmail": {
-              "PublicBaseUrl": "${{ secrets.PROD_PUBLIC_BASE_URL }}"
-            },
-            "Twilio": {
-              "AccountSid": "${{ secrets.PROD_TWILIO_SID }}",
-              "AuthToken": "${{ secrets.PROD_TWILIO_TOKEN }}",
-              "FromNumber": "${{ secrets.PROD_TWILIO_NUMBER }}"
-            }
+          $settings = @{
+            ConnectionStrings = @{ DefaultConnection = $env:PROD_DB_CONNECTION_STRING }
+            Supabase = @{ Url = $env:PROD_SUPABASE_URL; ApiKey = $env:PROD_SUPABASE_API_KEY; Bucket = $env:PROD_SUPABASE_BUCKET }
+            Jwt = @{ Secret = $env:PROD_JWT_SECRET; Issuer = $env:PROD_JWT_ISSUER; Audience = $env:PROD_JWT_AUDIENCE; ExpiresInMinutes = 15 }
+            SmtpSettings = @{ Server = $env:PROD_SMTP_SERVER; Port = 587; SenderName = $env:PROD_SMTP_SENDER_NAME; SenderEmail = $env:PROD_SMTP_SENDER_EMAIL; Username = $env:PROD_SMTP_USERNAME; Password = $env:PROD_SMTP_PASSWORD }
+            AuthEmail = @{ PublicBaseUrl = $env:PROD_PUBLIC_BASE_URL }
+            Twilio = @{ AccountSid = $env:PROD_TWILIO_SID; AuthToken = $env:PROD_TWILIO_TOKEN; FromNumber = $env:PROD_TWILIO_NUMBER }
           }
-          '@
-          Set-Content -Path "SmartCourt/appsettings.Production.json" -Value $json -Encoding UTF8
+          $settings | ConvertTo-Json -Depth 5 | Set-Content -Path "SmartCourt/appsettings.Production.json" -Encoding UTF8
 
       - name: Publish API
         run: dotnet publish SmartCourt/SmartCourt.csproj --configuration Release --no-build --output ./publish
