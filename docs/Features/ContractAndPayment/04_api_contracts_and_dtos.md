@@ -29,8 +29,10 @@ public sealed record ContractSummaryDto(
 public sealed record MilestoneDto(
     Guid Id, int OrderNumber, string Title, string? Description,
     decimal Amount, int? DurationDays, DateTime? DueDate,
-    MilestoneStatus Status, DateTime? FundedAt, DateTime? SubmittedAt,
-    DateTime? HoldExpiresAt, decimal? NetLawyerAmount);
+    MilestoneStatus Status, MilestoneFundingStatus FundingStatus,
+    Guid? EscrowHoldId, DateTime? FundedAt, DateTime? SubmittedAt,
+    DateTime? AutoAcceptEligibleAt, DateTime? HoldExpiresAt,
+    decimal? NetLawyerAmount);
 
 public sealed record PaymentDto(
     Guid Id, Guid MilestoneId, decimal GrossAmount, decimal PlatformFee,
@@ -75,7 +77,7 @@ public sealed record TerminateContractRequest(string Reason);
 
 public sealed record AddMilestoneRequest(
     string Title, string? Description, int OrderNumber, decimal Amount,
-    int? DurationDays, DateTime? DueDate, bool IsPriceRequired);
+    int? DurationDays, DateTime? DueDate);
 
 public sealed record UpdateMilestoneRequest(
     string Title, string? Description, int? DurationDays, DateTime? DueDate);
@@ -217,12 +219,11 @@ Request:
   "orderNumber": 1,
   "amount": 5000.00,
   "durationDays": 14,
-  "dueDate": null,
-  "isPriceRequired": true
+  "dueDate": null
 }
 ```
 
-Rules: participant can propose; order is unique; amount is non-negative; priced milestones require amount > 0; duration is 1–365; only the next sequential milestone may enter funding.
+Rules: participant can propose; order is unique; amount must be greater than zero; duration is 1–365; only the next sequential milestone may enter funding. Every milestone payment is independent; this endpoint never creates a contract-level payable total.
 
 ### `PUT /api/contracts/{contractId}/milestones/{milestoneId}`
 
@@ -247,11 +248,13 @@ Multipart or pre-uploaded file IDs:
 }
 ```
 
-Lawyer-only; milestone must be `InProgress`; creates an immutable submission version.
+Lawyer-only. The milestone must be exactly `FundedInProgress`. In the same transaction, the service must verify `FundedAt`, the matching `Funded` escrow hold, and its completed deposit transaction for this milestone, amount, and EGP currency. It then creates an immutable submission version bound to that `EscrowHoldId`, sets `AutoAcceptEligibleAt = SubmittedAt + 7 days`, and schedules the version-scoped auto-accept job.
+
+If any funding fact is absent or inconsistent, return `409` with code `milestone_not_funded`; do not store a submission or schedule a job.
 
 ### `POST /api/milestones/{milestoneId}/accept`
 
-Client-only; milestone must be `Submitted`. Sets the 14-day hold.
+Client-only; milestone must be `Submitted`. Before acceptance, the service repeats the same milestone-specific funding verification used by submission. It then sets the 14-day hold.
 
 ### `POST /api/milestones/{milestoneId}/request-changes`
 
@@ -261,7 +264,7 @@ Request:
 { "reason": "Please attach the stamped filing copy." }
 ```
 
-Returns milestone to `InProgress`.
+Returns milestone to `FundedInProgress`, clears `AutoAcceptEligibleAt`, and makes the old auto-accept job stale. The existing successful escrow deposit remains attached to the milestone.
 
 ### `POST /api/milestones/{milestoneId}/change-requests`
 
@@ -295,7 +298,9 @@ Request:
 { "paymentMethodReference": "mock-card-success" }
 ```
 
-Client-only. Creates provider attempt, escrow hold, deposit ledger entry, and moves the milestone to `InProgress`.
+Client-only. Charges only this milestone amount. The service moves `AwaitingFunding → FundingProcessing`, creates a provider attempt, and on success creates the milestone-specific escrow hold and deposit ledger entry before moving to `FundedInProgress`. A failure returns the milestone to `AwaitingFunding`; it does not make submission or auto-acceptance eligible.
+
+There is intentionally no “fund contract” endpoint.
 
 ### `GET /api/contracts/{contractId}/payments`
 
@@ -326,6 +331,8 @@ Requires sufficient available balance. Mock provider returns a deterministic res
 ### `POST /api/payments/webhook`
 
 Provider-only endpoint. Validates signature/configured mock secret, deduplicates event IDs, and updates the provider attempt.
+
+For deposit success, the handler verifies the callback’s milestone, amount, currency, provider transaction ID, and current `FundingProcessing` state before creating the hold and transitioning to `FundedInProgress`.
 
 ## 6. Dispute endpoints
 
@@ -387,9 +394,23 @@ Closes a resolved dispute after notifications and settlement reconciliation succ
 - All IDs must be non-empty.
 - Titles: 3–200 characters.
 - Descriptions/reasons: required where stated, max 2,000–20,000 according to DTO.
-- Amounts: EGP, scale two, greater than zero when priced.
+- Milestone amounts: EGP, scale two, and strictly greater than zero.
 - Duration: 1–365 days.
 - File IDs must belong to the current user or be explicitly authorized.
-- Accept/submit/fund commands validate current state and participant role.
+- Fund validates that the milestone is the next sequential `AwaitingFunding` milestone and that no other milestone has an unsettled funded hold.
+- Submit requires `FundedInProgress`, `FundedAt`, a matching `Funded` hold, and a completed deposit transaction for the exact milestone amount/currency.
+- Accept requires `Submitted` and revalidates the same funded hold and current submission version.
+- No request DTO accepts `FundingStatus`, `FundedAt`, `EscrowHoldId`, or `AutoAcceptEligibleAt`; these are server-owned values.
 - Partial resolution amounts cannot be negative and must reconcile with the escrow hold.
 - A request with a reused idempotency key must have the same request hash.
+
+## 8. Auto-accept job contract
+
+```csharp
+public sealed record AutoAcceptMilestoneJobArgs(
+    Guid MilestoneId,
+    Guid EscrowHoldId,
+    int SubmissionVersion);
+```
+
+`AutoAcceptMilestoneAsync` is an internal job method, not a public API. It performs the full eligibility checks documented in `03_state_machines.md`. On any mismatch it completes as an idempotent no-op. Only a valid current funded submission can transition to `AcceptedHold` and emit `MilestoneAutoAccepted`.

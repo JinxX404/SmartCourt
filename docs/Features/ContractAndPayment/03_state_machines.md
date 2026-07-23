@@ -16,23 +16,33 @@ public enum MilestoneStatus
 {
     Draft = 0,
     AwaitingFunding = 1,
-    InProgress = 2,
-    Submitted = 3,
-    AcceptedHold = 4,
-    Disputed = 5,
-    Released = 6,
-    Refunded = 7,
-    Cancelled = 8
+    FundingProcessing = 2,
+    FundedInProgress = 3,
+    Submitted = 4,
+    AcceptedHold = 5,
+    Disputed = 6,
+    Released = 7,
+    Refunded = 8,
+    Cancelled = 9
 }
 
 public enum EscrowHoldStatus
 {
-    PendingFunding = 0,
-    Funded = 1,
-    Frozen = 2,
-    Released = 3,
-    Refunded = 4
+    Funded = 0,
+    Frozen = 1,
+    Released = 2,
+    Refunded = 3
 }
+
+public enum MilestoneFundingStatus
+{
+    Unfunded = 0,
+    Processing = 1,
+    Funded = 2,
+    Settled = 3
+}
+
+public enum MilestoneAcceptanceSource { Manual = 0, Automatic = 1 }
 
 public enum DisputeStatus
 {
@@ -92,16 +102,17 @@ Contract state is derived from explicit service commands, not from client-provid
 Draft
   └─ mutual milestone approval ─> AwaitingFunding
 AwaitingFunding
-  ├─ deposit succeeds ─> InProgress
-  └─ deposit fails ─> AwaitingFunding
-InProgress
+  └─ client starts milestone payment ─> FundingProcessing
+FundingProcessing
+  ├─ deposit succeeds for this milestone ─> FundedInProgress
+  └─ deposit fails/times out ─> AwaitingFunding
+FundedInProgress
   ├─ lawyer submits ─> Submitted
-  ├─ approved extension ─> InProgress
+  ├─ approved extension ─> FundedInProgress
   └─ cancellation/refund ─> Cancelled or Refunded
 Submitted
-  ├─ client requests changes ─> InProgress
+  ├─ client requests changes ─> FundedInProgress
   ├─ client accepts / auto-accepts ─> AcceptedHold
-  └─ eligible dispute after acceptance ─> Disputed
 AcceptedHold
   ├─ dispute opened ─> Disputed
   └─ hold expires ─> Released
@@ -111,20 +122,22 @@ Disputed
   └─ partial settlement ─> Released
 ```
 
-`Draft`, `AwaitingFunding`, `InProgress`, and `Submitted` are mutable workflow states. `AcceptedHold`, `Released`, `Refunded`, and `Cancelled` become commercially immutable; corrections use compensating records.
+`Draft`, `AwaitingFunding`, `FundingProcessing`, `FundedInProgress`, and `Submitted` are mutable workflow states. `AcceptedHold`, `Released`, `Refunded`, and `Cancelled` become commercially immutable; corrections use compensating records.
 
 ### Milestone triggers
 
 | From | Trigger | To | Preconditions |
 |---|---|---|---|
 | none | Add milestone | `Draft` | Contract `Draft` or rolling active milestone proposal |
-| `Draft` | Client and lawyer approve milestone terms | `AwaitingFunding` | Title, deliverable, amount, ordering valid |
-| `AwaitingFunding` | Successful client funding | `InProgress` | Previous milestone settled; amount > 0 |
-| `AwaitingFunding` | Provider failure | `AwaitingFunding` | Failed attempt recorded |
-| `InProgress` | Lawyer submits deliverable | `Submitted` | Hold exists; attachment/notes valid |
-| `Submitted` | Client requests changes | `InProgress` | Reason required |
-| `Submitted` | Client accepts | `AcceptedHold` | Acceptance recorded; hold dates set |
-| `Submitted` | Seven-day auto-accept job | `AcceptedHold` | No client action; job records system actor |
+| `Draft` | Client and lawyer approve milestone terms | `AwaitingFunding` | Title, deliverable, positive amount, ordering valid |
+| `AwaitingFunding` | Client starts milestone payment | `FundingProcessing` | Previous milestone settled; this milestone amount > 0 |
+| `FundingProcessing` | Provider deposit succeeds | `FundedInProgress` | Completed deposit and funded `EscrowHold` reference this exact milestone, amount, and currency |
+| `FundingProcessing` | Provider confirms failure | `AwaitingFunding` | Failed attempt recorded; no funded hold exists |
+| `FundingProcessing` | Provider result unknown | `FundingProcessing` | Reconciliation/webhook must determine outcome before retry |
+| `FundedInProgress` | Lawyer submits deliverable | `Submitted` | `FundedAt` set; matching hold is `Funded`; deposit transaction completed; attachment/notes valid |
+| `Submitted` | Client requests changes | `FundedInProgress` | Reason required; auto-accept eligibility cleared |
+| `Submitted` | Client accepts | `AcceptedHold` | Current submission and its funded hold revalidated; hold dates set |
+| `Submitted` | Seven-day auto-accept job | `AcceptedHold` | Funding, hold, submission version, deadline, and current state all revalidated |
 | `AcceptedHold` | Open dispute | `Disputed` | Funded hold not expired |
 | `AcceptedHold` | Hold expiry job | `Released` | No open dispute; release idempotency check passes |
 | `Disputed` | Full/partial lawyer outcome | `Released` | Resolution approved and ledger settled |
@@ -139,28 +152,59 @@ Only the non-requesting participant approves. A request may change description, 
 
 ## 4. Escrow-hold states
 
-`PendingFunding → Funded → Frozen → Released` or `Refunded`.
+`Funded → Frozen → Released` or `Refunded`.
 
-- `PendingFunding`: hold record is being prepared.
-- `Funded`: provider deposit succeeded.
+- `Funded`: provider deposit succeeded for the hold’s exact milestone.
 - `Frozen`: dispute is open or administrator has placed a temporary financial freeze.
 - `Released`: net funds moved to lawyer available balance.
 - `Refunded`: client refund completed.
 
 Provider processing failures do not create a terminal state; the hold remains retryable and the failed `PaymentTransaction` is retained.
 
-## 5. Dispute states
+## 5. Auto-accept eligibility and job transition
+
+The auto-accept job is created only after `SubmitAsync` has successfully committed a funded submission. Its arguments are:
+
+```text
+MilestoneId + EscrowHoldId + SubmissionVersion
+```
+
+At execution, the job opens a transaction and requires every condition below:
+
+1. Milestone state is exactly `Submitted`.
+2. `FundedAt` is non-null.
+3. `AutoAcceptEligibleAt` is non-null and `UtcNow >= AutoAcceptEligibleAt`.
+4. The current submission version matches the job argument.
+5. The submission references the same `EscrowHoldId` supplied to the job.
+6. The hold belongs to the milestone and is exactly `Funded`.
+7. The hold’s completed deposit transaction matches milestone ID, EGP amount, and currency.
+8. No manual acceptance, change request, refund, release, cancellation, or dispute has superseded the submission.
+
+If any condition fails, the job performs no state transition, creates no release schedule, and emits no `MilestoneAutoAccepted` event. It records a safe no-op result for monitoring. A resubmission creates a new version and a new seven-day deadline; earlier jobs become stale.
+
+`MilestoneFundingStatus` is a read-model value derived from state plus the related hold:
+
+- `Unfunded`: no successful hold (`Draft`, `AwaitingFunding`, or a never-funded cancellation).
+- `Processing`: `FundingProcessing`.
+- `Funded`: a valid unsettled hold exists for `FundedInProgress`, `Submitted`, `AcceptedHold`, or `Disputed`.
+- `Settled`: the milestone-specific hold is `Released` or `Refunded`.
+
+## 6. Dispute states
 
 `Open → Assigned → UnderReview → Resolved → Closed`.
 
 Resolution is immutable. Reopening is not supported in v1; an appeal is a new administrative case linked to the original dispute if later required.
 
-## 6. Transition invariants
+## 7. Transition invariants
 
-- A milestone cannot be `InProgress` without a successful escrow deposit.
+- Each milestone is funded separately; funding one milestone never funds any other milestone or the contract as a whole.
+- A milestone cannot be `FundedInProgress` without a completed deposit and funded escrow hold for that exact milestone.
+- A milestone cannot be `Submitted` unless it is transitioning directly from `FundedInProgress` and the service revalidates the successful deposit and hold.
+- `AutoAcceptEligibleAt` can be populated only when a valid funded submission is created.
+- Auto-accept cannot run for `Draft`, `AwaitingFunding`, `FundingProcessing`, `FundedInProgress`, or any terminal milestone.
 - A contract cannot be `Completed` while a milestone is funded, disputed, or awaiting settlement.
 - A release/refund transition must create a matching immutable ledger entry.
 - A milestone cannot be edited after acceptance, release, refund, or cancellation.
-- A new milestone cannot be funded while another milestone is `InProgress`, `Submitted`, `AcceptedHold`, or `Disputed`.
+- A new milestone cannot be funded while another milestone is `FundingProcessing`, `FundedInProgress`, `Submitted`, `AcceptedHold`, or `Disputed`.
 - A dispute cannot be opened after `HoldExpiresAt`.
 - Every transition stores actor, trigger, reason, timestamp, and correlation ID.

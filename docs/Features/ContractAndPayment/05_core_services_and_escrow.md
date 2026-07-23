@@ -35,6 +35,12 @@ public interface IPaymentProvider
     Task<ProviderResult> RefundAsync(ProviderRefundRequest request, CancellationToken ct);
     Task<ProviderResult> WithdrawAsync(ProviderWithdrawalRequest request, CancellationToken ct);
 }
+
+public interface IContractJobService
+{
+    Task AutoAcceptMilestoneAsync(AutoAcceptMilestoneJobArgs args, CancellationToken ct);
+    Task ReleaseExpiredHoldAsync(Guid escrowHoldId, CancellationToken ct);
+}
 ```
 
 ## 2. Transaction boundaries
@@ -70,10 +76,28 @@ On successful funding:
 - Create one `EscrowHold` for the milestone.
 - Add a `Deposit` ledger entry for `G`.
 - Set hold to `Funded`.
-- Set milestone to `InProgress`.
+- Set `Milestone.FundedAt`.
+- Set milestone to `FundedInProgress`.
 - Set lawyer pending balance to `lawyerNet`.
 
 The pending balance is a projection; the escrow ledger remains authoritative.
+
+Funding applies only to the requested milestone. There is no contract-level charge and no deposit may be reused by another milestone. Before the provider call, the milestone transitions from `AwaitingFunding` to `FundingProcessing`. A confirmed provider failure records the attempt and returns it to `AwaitingFunding`; an unknown result remains `FundingProcessing` for webhook/reconciliation. Neither case creates submission eligibility or an auto-accept job.
+
+### Submission funding guard
+
+`MilestoneService.SubmitAsync` must execute the following query and validation inside the same transaction that creates the submission:
+
+1. Load the milestone and its current escrow hold with the completed deposit transaction.
+2. Require milestone state `FundedInProgress` and non-null `FundedAt`.
+3. Require exactly one hold whose `MilestoneId` matches and whose state is `Funded`.
+4. Require a completed deposit transaction whose milestone ID, amount, currency, and hold reference match.
+5. Create `MilestoneSubmission` with the verified `EscrowHoldId` and next version.
+6. Set state `Submitted`, `SubmittedAt`, and `AutoAcceptEligibleAt = SubmittedAt + 7 days`.
+7. Commit the submission, history, and `MilestoneSubmitted` outbox event.
+8. An idempotent outbox handler schedules the auto-accept job with milestone ID, hold ID, and submission version and stores `AutoAcceptJobId`. A reconciliation job can recover submitted rows whose job was not scheduled.
+
+If any condition fails, throw a conflict such as `milestone_not_funded`. No submission, timestamp, event, or background job may be created.
 
 ### Release
 
@@ -107,17 +131,29 @@ Failed provider calls retain a failed `PaymentTransaction` and leave the hold re
 
 Use Hangfire jobs for:
 
-- Auto-accept after seven days.
+- Auto-accept a verified funded submission after seven days.
 - Hold expiry after 14 days.
 - Provider retry with exponential backoff.
 - Outbox dispatch.
 - Reconciliation of pending wallet projections.
 
-Jobs must be idempotent and use a database lock/concurrency token. A stale job that finds a dispute, refund, or prior settlement exits successfully without mutation.
+Jobs must be idempotent and use a database lock/concurrency token.
+
+The auto-accept job must re-query and verify:
+
+- Its milestone is still exactly `Submitted`.
+- `FundedAt` and `AutoAcceptEligibleAt` exist and the deadline has passed.
+- Its `SubmissionVersion` is still current.
+- The current submission references the job’s `EscrowHoldId`.
+- The hold is still `Funded` for the same milestone.
+- The successful deposit still reconciles to the milestone amount and EGP currency.
+- No acceptance, change request, dispute, refund, release, or cancellation superseded it.
+
+Only then may it set automatic acceptance, start the 14-day hold, schedule release, and emit `MilestoneAutoAccepted`. A stale or ineligible job exits successfully without mutation or acceptance event and records a diagnostic no-op reason.
 
 ## 5. Time extensions
 
-An extension changes only `DurationDays`/`DueDate` and is represented by a `MilestoneChangeRequest`.
+An extension changes only `DurationDays`/`DueDate` on the already-funded milestone and is represented by a `MilestoneChangeRequest`. v1 does not create a standalone zero-price milestone.
 
 Rules:
 
@@ -133,8 +169,9 @@ Rules:
 Termination first settles the current state:
 
 - Future `Draft`/`AwaitingFunding` milestones become `Cancelled`.
+- A `FundingProcessing` milestone must finish or cancel its provider attempt before termination completes.
 - Funded but unstarted milestones are fully refunded.
-- An in-progress/submitted/held milestone requires mutual settlement or dispute resolution.
+- A `FundedInProgress`/`Submitted`/held milestone requires mutual settlement or dispute resolution.
 - Released milestones remain released.
 
 After all required settlement operations succeed, the contract becomes `Terminated` and emits `ContractTerminated`.
@@ -152,10 +189,16 @@ The mock wallet is not a bank account and does not represent actual Egyptian mon
 Unit tests must cover:
 
 - Funding before/after acceptance.
+- Funding one milestone never marks another milestone as funded.
+- Contract activation never charges the sum of all milestones.
 - Duplicate funding idempotency.
 - Provider success/failure/timeout.
 - Sequential milestone enforcement.
-- Seven-day auto-acceptance.
+- Submission rejection for `Draft`, `AwaitingFunding`, and `FundingProcessing`.
+- Submission rejection when `FundedAt`, hold, deposit status, amount, or currency does not reconcile.
+- Seven-day auto-acceptance only for a currently submitted, successfully funded milestone.
+- Stale auto-accept job after change request or resubmission.
+- Auto-accept no-op after refund, dispute, cancellation, or hold mismatch.
 - Exact 14-day boundary behavior in UTC.
 - Concurrent accept/fund/release commands.
 - Full and partial refunds.

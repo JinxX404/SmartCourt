@@ -17,7 +17,7 @@ Here is the fully exhaustive extraction, ensuring that absolutely no technical r
 ## 2. Database Constraints & EF Core Rules
 - **Money Fields**: Must use `.HasPrecision(18, 2)`.
 - **String Limits**: Configured explicitly. Titles: 3–200 chars. Terms: 20–20,000 chars. Description/Reasons: max 2,000–10,000 depending on the DTO.
-- **Check Constraints**: Enforce non-negative amounts, Currency = 'EGP', positive order numbers, and duration validity (1–365 days).
+- **Check Constraints**: Enforce positive milestone amounts, non-negative ledger/payment amounts, Currency = 'EGP', positive order numbers, and duration validity (1–365 days).
 - **Unique Indexes**: 
   - `Contract.ProposalId` (a proposal has at most one contract).
   - `Milestone(ContractId, OrderNumber)`
@@ -38,16 +38,22 @@ Here is the fully exhaustive extraction, ensuring that absolutely no technical r
 
 ## 4. Milestone Workflow & State Machine
 - **Sequential Execution**: Milestones are strictly sequential. Only one milestone may be funded and in-progress at a time.
-- **Milestone States**: `Draft` → `AwaitingFunding` → `InProgress` → `Submitted` → `AcceptedHold` → (`Released` | `Refunded` | `Cancelled` | `Disputed`).
-- **Funding Pre-condition**: A milestone must have an `Amount > 0` to be funded. Zero-price (time-only) milestones skip escrow holding entirely.
+- **Independent Payment Lifecycle**: Every milestone is charged and held separately. Funding milestone A does not fund milestone B, and the contract’s calculated total is never charged as one payment.
+- **Milestone States**: `Draft` → `AwaitingFunding` → `FundingProcessing` → `FundedInProgress` → `Submitted` → `AcceptedHold` → (`Released` | `Refunded` | `Cancelled` | `Disputed`).
+- **Funding Pre-condition**: A milestone must have `Amount > 0`. Successful funding requires a completed deposit and one `Funded` escrow hold linked to the exact milestone, amount, and EGP currency.
+- **Work/Submission Gate**: Work and submission are allowed only in `FundedInProgress`. `SubmitAsync` transactionally revalidates `FundedAt`, the hold, and the completed deposit before storing a submission.
+- **No Standalone Zero-Price Milestones**: v1 represents time-only extensions as change requests on the already-funded milestone.
 - **Change Requests**: Mutual change requests (`Pending`, `Approved`, `Rejected`, `Cancelled`) handle duration/due-date changes. Only the non-requesting participant can approve. A funded milestone's price cannot be altered.
-- **Versioned Submissions**: `MilestoneSubmission` is versioned starting at 1. `MilestoneSubmissionAttachment` holds file links.
-- **Client Auto-Acceptance**: If the client does not accept or request changes within 7 calendar days after submission, a Hangfire job auto-accepts it and starts the escrow hold.
+- **Versioned Submissions**: `MilestoneSubmission` is versioned starting at 1 and stores the verified `EscrowHoldId`. `MilestoneSubmissionAttachment` holds file links.
+- **Client Auto-Acceptance**: A successfully funded submission sets `AutoAcceptEligibleAt = SubmittedAt + 7 days`. The Hangfire job is scoped to milestone ID, escrow hold ID, and submission version.
+- **Reliable Scheduling**: The committed `MilestoneSubmitted` outbox event schedules the job and stores `AutoAcceptJobId`; reconciliation recovers any eligible submitted milestone whose scheduling step failed.
+- **Auto-Accept Revalidation**: The job must verify current `Submitted` state, deadline, version, `FundedAt`, matching `Funded` hold, and completed matching deposit. Any mismatch is a monitored no-op with no acceptance or release event.
 
 ## 5. Payments, Escrow & Fees
 - **Escrow Simulation**: A `MockPaymentProvider` is used. For testing, it branches on string prefixes: `mock-success` (deposit success), `mock-fail` (failure), `mock-timeout` (timeout).
 - **Platform Fee**: The platform takes a 5% fee from the milestone price, deducted from the lawyer’s eventual release (Lawyer Net = Gross - 5%).
 - **Escrow Architecture**: One `EscrowAccount` per contract. One `EscrowHold` per funded milestone.
+- **No Contract-Level Funding**: The escrow account aggregates ledger entries but does not make its total balance interchangeable across milestones. Every hold is reserved for one milestone.
 - **Immutable Ledgers**: `EscrowLedgerEntry` holds events (`Deposit`, `Release`, `Refund`, `PlatformFee`, `Adjustment`). `CurrentBalance` is calculated from entries (TotalDeposited - TotalReleased - TotalRefunded - TotalFees) and must never be negative.
 - **14-Day Hold**: Client acceptance (manual or auto) sets `HoldStartsAt = AcceptedAt` and `HoldExpiresAt = AcceptedAt + 14 days`.
 - **Release Math**: A Hangfire release job creates two ledger entries: `Release(lawyerNet)` and `PlatformFee(platformFee)`. Their sum must exactly equal the gross hold.
@@ -66,12 +72,28 @@ Here is the fully exhaustive extraction, ensuring that absolutely no technical r
 - **Manual Penalties**: Administrators can manually apply penalties: `Warning` (hidden flag), `Suspension12Months`, `Suspension24Months`, or `PermanentTermination`.
 
 ## 7. Failure Handling & Race Conditions
-- **Hangfire Jobs**: Relied upon for 7-day auto-accept, 14-day hold expiry, provider retries (with exponential backoff), outbox dispatch, and pending-wallet reconciliation.
-- **Processing States**: A provider failure during a refund/release/deposit leaves the state as `Processing` (retryable) and retains the failed `PaymentTransaction`. No balance is changed twice.
+- **Hangfire Jobs**: Relied upon for funded-submission 7-day auto-accept, 14-day hold expiry, provider retries (with exponential backoff), outbox dispatch, and pending-wallet reconciliation.
+- **Auto-Accept Job Arguments**: `(MilestoneId, EscrowHoldId, SubmissionVersion)`. The job re-queries authoritative database state and never trusts the scheduled timestamp alone.
+- **Stale Job Rule**: A change request, resubmission, dispute, refund, cancellation, hold mismatch, or funding mismatch makes the old job an idempotent no-op.
+- **Processing States**: Unknown provider outcomes remain `Processing` and retain their `PaymentTransaction`; confirmed failures are recorded and move to the documented retryable business state. No balance is changed twice.
+- **Deposit Outcome Rule**: A confirmed deposit failure returns the milestone to `AwaitingFunding`; an unknown/asynchronous outcome remains `FundingProcessing` until webhook/reconciliation determines success or failure.
 - **Concurrency Conflicts**: If a concurrency conflict occurs, the action fails and the caller/moderator must reload. No partial DB state is committed.
 - **Race Condition Prevention**: If a hold expiry job races with dispute creation, the database transaction that first locks and settles the hold wins. The loser returns a conflict and will not execute a duplicate financial movement.
 
 ## 8. Notifications & Privacy
 - **Privacy**: Internal penalties and other users' wallet data are never exposed in standard APIs.
 - **Notification Payloads**: Payloads include `RelatedEntityType` and `RelatedEntityId` (dispute/milestone IDs) but do NOT contain sensitive evidence content.
-- **Event Triggers**: System emits notifications for `ContractCreated`, `ContractAccepted`, `MilestoneReadyForFunding`, `MilestoneFunded`, `MilestoneSubmitted`, `MilestoneAutoAccepted`, `MilestoneAccepted`, `MilestoneChangesRequested`, `FundsReleased`, `FundsRefunded`, `DisputeOpened`, `DisputeAssigned`, `DisputeResolved`, and `ContractTerminated`.
+- **Event Triggers**: System emits notifications for `ContractCreated`, `ContractAccepted`, `MilestoneReadyForFunding`, `MilestoneFundingStarted`, `MilestoneFunded`, `MilestoneFundingFailed`, `MilestoneSubmitted`, `MilestoneAutoAccepted`, `MilestoneAccepted`, `MilestoneChangesRequested`, `FundsReleased`, `FundsRefunded`, `DisputeOpened`, `DisputeAssigned`, `DisputeResolved`, and `ContractTerminated`.
+- **Event Safety**: `MilestoneSubmitted` and `MilestoneAutoAccepted` include milestone ID, escrow hold ID, and submission version. `MilestoneAutoAccepted` is emitted only after successful execution-time funding verification.
+
+## 9. Implementation Revision Plan
+
+1. Update the milestone enum and all switch statements to add `FundingProcessing` and rename `InProgress` to `FundedInProgress`.
+2. Make milestone amounts positive and represent time-only changes through `MilestoneChangeRequest`.
+3. Add `AutoAcceptEligibleAt`, `AutoAcceptJobId`, and `AcceptanceSource` to `Milestone`; add required `EscrowHoldId` to `MilestoneSubmission`.
+4. Implement a single reusable funding-invariant query used by submit, manual accept, auto-accept, and dispute opening.
+5. Transition funding through `AwaitingFunding → FundingProcessing → FundedInProgress`; create the escrow hold only after provider success.
+6. Schedule auto-accept only after the funded submission transaction commits, passing milestone ID, hold ID, and submission version.
+7. Make stale/ineligible jobs safe no-ops and add structured monitoring reasons.
+8. Update DTOs to expose derived funding status while keeping all funding fields server-owned.
+9. Add unit/integration tests for unfunded submission, cross-milestone payment reuse, stale jobs, and all race conditions.

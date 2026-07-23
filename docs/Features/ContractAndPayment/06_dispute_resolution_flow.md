@@ -7,6 +7,7 @@ A dispute protects either participant when an accepted funded milestone is not d
 Eligibility:
 
 - The milestone is in `AcceptedHold` with a successful escrow hold.
+- The hold and its completed deposit transaction belong to that exact milestone and reconcile to its EGP amount.
 - The hold has not expired.
 - No other open dispute exists for the milestone.
 - The requester is the contract client or lawyer.
@@ -25,7 +26,7 @@ The request includes:
 - Optional stored-file evidence.
 - Requested outcome: refund, release, or review.
 
-The service creates the dispute, freezes the hold, changes the milestone to `Disputed`, and emits `DisputeOpened` in one transaction.
+The service revalidates the milestone-specific funding chain, creates the dispute, freezes the hold, changes the milestone to `Disputed`, and emits `DisputeOpened` in one transaction. A contract-level balance or another milestone’s deposit can never satisfy dispute eligibility.
 
 ## 3. Investigation workflow
 
@@ -110,6 +111,8 @@ The dispute closes only after all provider and ledger operations are successful 
 
 Opening a dispute changes the contract to `SuspendedByDispute` only for workflow purposes. No new milestone can be funded while the challenged milestone is unresolved. Unrelated already-settled milestones remain valid.
 
+Unfunded future milestones have no escrow balance to freeze or refund and cannot be disputed through this payment-dispute flow.
+
 After resolution:
 
 - Non-terminating outcomes return the contract to `Active`.
@@ -143,6 +146,7 @@ Each penalty records the dispute, reason, actor, start/end dates, and any appeal
 - Duplicate resolution requests return the original resolution using the idempotency key.
 - A concurrency conflict causes the moderator to reload; no partial database state is committed.
 - If a hold expiry job races with dispute creation, the database transaction that first settles the hold wins; the loser returns a conflict and does not create a second financial movement.
+- If an auto-accept job races with a manual action, it first revalidates the funded hold and current submission version. An unfunded or stale submission can never become `AcceptedHold` and therefore cannot enter this dispute flow.
 
 ## 9. Notifications
 

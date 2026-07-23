@@ -2,13 +2,14 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Exceptions;
 
 namespace SmartCourt.Common.RateLimiting;
 
 public sealed class AccountKeyRateLimiter : IAccountKeyRateLimiter, IDisposable
 {
-    private readonly ILookupNormalizer _lookupNormalizer;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly PartitionedRateLimiter<string> _forgotPasswordAccountLimiter =
         CreateLimiter(3, TimeSpan.FromHours(1));
     private readonly PartitionedRateLimiter<string> _resendVerificationMinuteLimiter =
@@ -22,9 +23,9 @@ public sealed class AccountKeyRateLimiter : IAccountKeyRateLimiter, IDisposable
     private readonly PartitionedRateLimiter<string> _confirmEmailUserIdLimiter =
         CreateLimiter(5, TimeSpan.FromHours(1));
 
-    public AccountKeyRateLimiter(ILookupNormalizer lookupNormalizer)
+    public AccountKeyRateLimiter(IServiceScopeFactory scopeFactory)
     {
-        _lookupNormalizer = lookupNormalizer;
+        _scopeFactory = scopeFactory;
     }
 
     public void CheckForgotPassword(string email)
@@ -62,7 +63,9 @@ public sealed class AccountKeyRateLimiter : IAccountKeyRateLimiter, IDisposable
 
     private string NormalizeEmail(string email)
     {
-        return _lookupNormalizer.NormalizeEmail(email ?? string.Empty) ?? string.Empty;
+        using var scope = _scopeFactory.CreateScope();
+        var lookupNormalizer = scope.ServiceProvider.GetRequiredService<ILookupNormalizer>();
+        return lookupNormalizer.NormalizeEmail(email ?? string.Empty) ?? string.Empty;
     }
 
     private static void EnsureAllowed(PartitionedRateLimiter<string> limiter, string value)

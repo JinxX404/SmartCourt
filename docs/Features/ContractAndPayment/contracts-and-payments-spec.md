@@ -10,21 +10,32 @@ The entire contract system revolves around **Milestones** as the fundamental bui
 - **Deliverable:** A milestone must represent a tangible, finished piece of work. If a contract is terminated, the client should be able to take this completed deliverable to another lawyer.
 - **Price:** The agreed-upon cost for completing the specific milestone.
 - **Time/Deadline:** The duration expected to complete the milestone.
-- **Can be "Time-Only":** A milestone can exist without a price. For example, if there is a court adjournment causing a delay, the milestone's time can be extended without increasing the financial cost.
+- **Time-Only Changes:** A court adjournment or similar delay can extend the active milestone without increasing its price. In v1 this is an approved change request on the already-funded milestone, not a separate zero-price deliverable milestone.
 
 ## 2. The Escrow Payment Flow
 
-The platform acts as an escrow agent to protect both the client and the lawyer. The client does not pay the total contract value upfront.
+The platform acts as an escrow agent to protect both the client and the lawyer. The client does not pay the total contract value upfront. Every milestone has an independent payment lifecycle; funding one milestone never funds any other milestone.
 
 ### Funding a Milestone
 1. **Initiation:** The lawyer signals they are ready to start the next milestone.
 2. **Client Approval & Payment:** The client agrees and pays the specific amount for that milestone to the platform.
 3. **Escrow Hold:** **Crucial Rule:** No milestone officially starts, and no work is expected, until the platform successfully holds the funds for that specific milestone.
+4. **Per-Milestone Proof:** Successful funding must be represented by a completed deposit transaction and an escrow hold linked to that exact milestone, amount, and EGP currency.
+
+There is no “pay entire contract” operation. In a three-milestone contract, milestone 2 remains unfunded even if milestone 1 was funded and completed.
 
 ### Milestone Completion & The 14-Day Rule
-1. **Submission:** The lawyer marks the milestone as completed/delivered.
+1. **Submission:** The lawyer may mark the milestone as completed/delivered only after the system verifies the successful deposit and funded escrow hold for that exact milestone. Unfunded milestones cannot be submitted.
 2. **Client Acceptance:** The client accepts the delivery.
 3. **Fund Release with Hold:** The funds are released to the lawyer's account on the platform, **but** there is a mandatory **14-day hold period**. The lawyer cannot withdraw the funds during these 14 days. This window is reserved for dispute resolution.
+
+### Seven-Day Auto-Acceptance
+
+- When a successfully funded milestone is submitted, the client has seven calendar days to accept or request changes.
+- The auto-accept job is created only for a submission linked to that milestone’s funded escrow hold.
+- At execution, the job must re-check that the milestone is still submitted, the same submission version is current, the hold is still funded, and the deposit transaction matches the milestone.
+- If the milestone is unfunded, funding is still processing/failed, the submission is stale, or the hold was refunded/frozen/released, the job performs no acceptance and schedules no release.
+- Manual or automatic acceptance starts the separate 14-day hold period.
 
 ## 3. Contract Adjustments & Flexibility
 
@@ -33,6 +44,7 @@ Adjustments to the contract are made at the milestone level, not by rewriting th
 - **Mutual Consent:** Any changes to price or time require mutual consent. 
 - **Extending Time:** If a delay occurs (e.g., waiting on court papers), it is preferred to edit the active milestone to increase its duration rather than creating a new milestone. The lawyer requests the edit, and the client must approve it on the platform.
 - **Immutability:** Once a milestone is finished and paid, it **cannot** be edited.
+- **Funding Immutability:** A funded milestone’s price cannot be edited. A price change requires settlement/cancellation and a replacement milestone.
 
 ## 4. Contract Termination & Handoff
 
@@ -67,3 +79,17 @@ The transcript provides great business logic, but it is missing strict technical
 
 ### D. API Contracts
 - The transcript says to "not agree on every single field as long as you understand the goal," so the exact API Endpoints and DTOs (Data Transfer Objects) are completely up to you to design based on the vertical slice architecture.
+
+---
+
+## 7. Mandatory Implementation Invariants
+
+The detailed design documents resolve the missing technical definitions. All implementations must enforce:
+
+1. Each milestone is funded separately.
+2. A successful payment for milestone A cannot authorize work, submission, acceptance, or release for milestone B.
+3. The only working state is `FundedInProgress`, reached after a successful milestone-specific deposit.
+4. Submission is allowed only from `FundedInProgress` after transactional verification of the funded hold and completed deposit.
+5. Auto-acceptance is allowed only for the current version of a funded submission.
+6. Auto-acceptance must revalidate funding at execution time; elapsed time alone is never sufficient.
+7. The 14-day withdrawal hold begins only after valid manual or automatic acceptance.

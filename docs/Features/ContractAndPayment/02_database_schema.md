@@ -47,8 +47,7 @@ The tables below are the minimum v1 model. Foreign keys to `ApplicationUser`, `L
 | `Title` | `string` | Yes | max 200 |
 | `Description` | `string?` | No | max 10,000 |
 | `OrderNumber` | `int` | Yes | positive; unique per contract |
-| `Amount` | `decimal` | Yes | `>= 0`, scale 2 |
-| `IsPriceRequired` | `bool` | Yes | v1 time-only changes may use `false` |
+| `Amount` | `decimal` | Yes | `> 0`, scale 2; funded independently |
 | `DurationDays` | `int?` | No | 1–365 when supplied |
 | `DueDate` | `DateTime?` | No | derived/validated in UTC |
 | `Status` | `MilestoneStatus` | Yes | enum |
@@ -57,7 +56,10 @@ The tables below are the minimum v1 model. Foreign keys to `ApplicationUser`, `L
 | `ReadyForFundingAt` | `DateTime?` | No | UTC |
 | `FundedAt` | `DateTime?` | No | UTC |
 | `SubmittedAt` | `DateTime?` | No | UTC |
+| `AutoAcceptEligibleAt` | `DateTime?` | No | UTC; set only by a verified funded submission |
+| `AutoAcceptJobId` | `string?` | No | max 100; operational correlation only |
 | `AcceptedAt` | `DateTime?` | No | UTC |
+| `AcceptanceSource` | `MilestoneAcceptanceSource?` | No | Manual/Automatic |
 | `HoldStartsAt`, `HoldExpiresAt` | `DateTime?` | No | UTC |
 | `ReleasedAt`, `RefundedAt` | `DateTime?` | No | UTC |
 | `RejectionReason` | `string?` | No | max 2,000 |
@@ -65,7 +67,16 @@ The tables below are the minimum v1 model. Foreign keys to `ApplicationUser`, `L
 | `RowVersion` | `byte[]` | Yes | rowversion |
 | `CreatedAt`, `UpdatedAt` | `DateTime` | Yes | UTC |
 
-`Amount = 0` is permitted only for a time-only milestone. A zero-price milestone cannot create an escrow hold or payment release.
+Every deliverable milestone has `Amount > 0` and is paid independently. v1 represents a time-only extension as a `MilestoneChangeRequest` on the already-funded active milestone, not as a standalone zero-price milestone. This keeps the submission rule absolute: every submitted milestone must have its own successful deposit and funded escrow hold.
+
+`FundingStatus` is not duplicated as a writable Boolean/column on `Milestone`. The authoritative funding facts are:
+
+1. `Milestone.FundedAt` is non-null.
+2. Exactly one related `EscrowHold` exists.
+3. For active work/review, the hold is `Funded` and the milestone is `FundedInProgress`, `Submitted`, or `AcceptedHold`; a dispute temporarily changes the hold to `Frozen`.
+4. The hold references a completed deposit `PaymentTransaction` for the same milestone, amount, and currency.
+
+API responses expose a derived `MilestoneFundingStatus`; clients cannot set it.
 
 ## 4. MilestoneChangeRequest
 
@@ -75,7 +86,6 @@ The tables below are the minimum v1 model. Foreign keys to `ApplicationUser`, `L
 | `ProposedDescription` | `string?` | No | max 10,000 |
 | `ProposedDurationDays` | `int?` | No | 1–365 |
 | `ProposedDueDate` | `DateTime?` | No | UTC |
-| `ProposedAmount` | `decimal?` | No | immutable funded price rule normally rejects changes |
 | `Reason` | `string` | Yes | max 2,000 |
 | `Status` | `ChangeRequestStatus` | Yes | Pending/Approved/Rejected/Cancelled |
 | `DecidedByUserId`, `DecidedAt` | nullable | No | approval audit |
@@ -89,12 +99,12 @@ Only one pending change request may exist for a milestone.
 
 | Field | Type | Required |
 |---|---|---:|
-| `Id`, `MilestoneId`, `SubmittedByUserId` | `Guid` | Yes |
+| `Id`, `MilestoneId`, `EscrowHoldId`, `SubmittedByUserId` | `Guid` | Yes |
 | `Version` | `int` | Yes |
 | `Notes` | `string` | Yes; max 10,000 |
 | `SubmittedAt` | `DateTime` | Yes |
 
-`MilestoneSubmissionAttachment` contains `Id`, `MilestoneSubmissionId`, `StoredFileId`, and `CreatedAt`. A submission is immutable.
+`EscrowHoldId` is required and must identify the successful funded hold for the same milestone. `MilestoneSubmissionAttachment` contains `Id`, `MilestoneSubmissionId`, `StoredFileId`, and `CreatedAt`. A submission is immutable.
 
 ## 6. Escrow and money
 
@@ -114,9 +124,11 @@ The service verifies the result is never negative.
 
 ### EscrowHold
 
-One per funded milestone:
+One per successfully funded milestone:
 
 `Id`, `EscrowAccountId`, `ContractId`, `MilestoneId` (unique), `GrossAmount`, `PlatformFeeAmount`, `NetAmount`, `Status`, `FundedAt`, `HoldStartsAt`, `HoldExpiresAt`, `FrozenAt`, `SettledAt`, `SettlementType`, `ProviderDepositTransactionId`, `ProviderReleaseTransactionId`, `ProviderRefundTransactionId`, `RowVersion`, `CreatedAt`, `UpdatedAt`.
+
+`ProviderDepositTransactionId`, `FundedAt`, and `Status = Funded` are mandatory before a submission can be created. `HoldStartsAt` and `HoldExpiresAt` remain null until manual or automatic acceptance.
 
 ### EscrowLedgerEntry
 
@@ -132,7 +144,7 @@ Each provider attempt is a separate row:
 
 `Id`, `ContractId`, `MilestoneId?`, `EscrowHoldId?`, `OperationType`, `ProviderName`, `ProviderTransactionId?`, `IdempotencyKey`, `Amount`, `Currency`, `Status`, `FailureReason?`, `ProcessedAt?`, `CreatedAt`, `UpdatedAt`.
 
-Unique indexes: `(ProviderName, ProviderTransactionId)` when non-null and `IdempotencyKey`.
+Every milestone deposit/release/refund attempt requires `MilestoneId`; withdrawals may leave it null. Failed deposit attempts may have a null `EscrowHoldId`, while a completed deposit must reference the resulting hold. Enforce this with operation-specific validation/check constraints. Unique indexes: `(ProviderName, ProviderTransactionId)` when non-null and `IdempotencyKey`.
 
 ### LawyerWallet and WithdrawalRequest
 
@@ -186,9 +198,10 @@ GrossHoldAmount = ClientRefundAmount + LawyerReleaseAmount + PlatformFeeAmount
 
 - Configure all money with `.HasPrecision(18, 2)`.
 - Configure Unicode strings explicitly with maximum lengths.
-- Add unique indexes for `Contract.ProposalId`, `Milestone(ContractId, OrderNumber)`, `EscrowHold.MilestoneId`, `LawyerWallet.LawyerUserId`, and open-dispute uniqueness.
+- Add unique indexes for `Contract.ProposalId`, `Milestone(ContractId, OrderNumber)`, `EscrowHold.MilestoneId`, `MilestoneSubmission(MilestoneId, Version)`, `LawyerWallet.LawyerUserId`, and open-dispute uniqueness.
 - Use `DeleteBehavior.Restrict` for contracts, milestones, escrow, payments, disputes, and users.
 - Use `DeleteBehavior.Cascade` only for owned attachment join rows where the parent is intentionally removed before financial activity.
-- Add check constraints for non-negative amounts, `Currency = 'EGP'`, positive order numbers, valid durations, and valid enum ranges.
+- Add check constraints for positive milestone amounts, non-negative ledger/payment amounts, `Currency = 'EGP'`, positive order numbers, valid durations, and valid enum ranges.
 - Use `.IsRowVersion()` for aggregate concurrency tokens.
-- Add indexes for `(ContractId, Status)`, `(MilestoneId, Status)`, `(HoldExpiresAt, Status)`, `(LawyerUserId, Status)`, `(Dispute.Status, CreatedAt)`, and outbox processing.
+- Add indexes for `(ContractId, Status)`, `(MilestoneId, Status)`, `(Status, AutoAcceptEligibleAt)`, `(HoldExpiresAt, Status)`, `(LawyerUserId, Status)`, `(Dispute.Status, CreatedAt)`, and outbox processing.
+- EF Core cannot express the cross-table funded-submission invariant as a simple check constraint. `MilestoneService.SubmitAsync` must enforce it transactionally, and integration tests must verify that direct invalid transitions are rejected.
