@@ -24,6 +24,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<UserVerificationDocument> UserVerificationDocuments { get; set; }
     public DbSet<LegalCategory> LegalCategories { get; set; }
     public DbSet<LegalSpecialization> LegalSpecializations { get; set; }
+    public DbSet<LawDocument> LawDocuments { get; set; }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {

@@ -43,6 +43,11 @@ using SmartCourt.Providers.Email;
 using SmartCourt.Providers.FileStorage;
 using Twilio.Types;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
+using SmartCourt.Providers.VectorStore;
+using SmartCourt.Providers.Embedding;
+using SmartCourt.Providers.PdfParser;
+using SmartCourt.Features.LawIngestion;
+using Qdrant.Client;
 
 namespace SmartCourt;
 
@@ -188,7 +193,7 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        services.AddSingleton<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
+        services.AddScoped<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>
         {
@@ -270,6 +275,27 @@ public static class DependencyInjection
 
         services.AddScoped<DeleteVerificationDocumentCommand>();
         services.AddScoped<IValidator<DeleteVerificationDocumentCommand>, DeleteVerificationDocumentCommandValidator>();
+
+        // --- RAG Pipeline: Vector Store ---
+        services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
+        services.AddSingleton<QdrantClient>(sp =>
+        {
+            var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
+            return new QdrantClient(opts.Host, opts.Port, apiKey: opts.ApiKey);
+        });
+        services.AddScoped<IVectorStoreProvider, QdrantVectorStoreProvider>();
+
+        // --- RAG Pipeline: Embedding ---
+        services.Configure<HuggingFaceEmbeddingOptions>(configuration.GetSection(HuggingFaceEmbeddingOptions.SectionName));
+        services.AddScoped<IEmbeddingProvider, MockEmbeddingProvider>();
+
+        // --- RAG Pipeline: PDF Parser ---
+        services.AddScoped<IPdfParserProvider, PdfPigParserProvider>();
+
+        // --- RAG Pipeline: Law Ingestion Feature ---
+        services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));
+        services.AddScoped<ILawIngestionService, LawIngestionService>();
+        services.AddScoped<LegalDocumentChunker>();
 
         return services;
     }
