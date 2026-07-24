@@ -193,7 +193,7 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        services.AddScoped<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
+        services.AddSingleton<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>
         {
