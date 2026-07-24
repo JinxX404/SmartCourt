@@ -1,0 +1,1068 @@
+openapi: 3.1.0
+info:
+  title: SmartCourt Frontend API
+  version: 1.0.0
+  description: API for SmartCourt application.
+servers:
+  - url: /
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          nullable: true
+        errors:
+          type: array
+          items:
+            type: string
+          nullable: true
+        statusCode:
+          type: integer
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+    LoginResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        accessToken:
+          type: string
+        expiresIn:
+          type: integer
+        refreshToken:
+          type: string
+        refreshTokenExpiration:
+          type: string
+          format: date-time
+    RegisterResponse:
+      type: object
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+        fullName:
+          type: string
+        role:
+          type: string
+    RefreshTokenResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    ClientProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        gender:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        status:
+          type: string
+    LawyerProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        nationalNumber:
+          type: string
+        gender:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+          nullable: true
+        specializationId:
+          type: string
+          format: uuid
+          nullable: true
+        specializationName:
+          type: string
+        categoryName:
+          type: string
+        yearsOfExperience:
+          type: integer
+        level:
+          type: integer
+          description: "1=GeneralRegistration, 2=PrimaryCourt, 3=AppealCourt, 4=CassationCourt"
+        bio:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        status:
+          type: string
+        isAvailable:
+          type: boolean
+        profilePictureUrl:
+          type: string
+          nullable: true
+    PublicLawyerProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        gender:
+          type: string
+        specializationId:
+          type: string
+          format: uuid
+          nullable: true
+        specializationName:
+          type: string
+        categoryName:
+          type: string
+        yearsOfExperience:
+          type: integer
+        level:
+          type: integer
+        bio:
+          type: string
+          nullable: true
+        isAvailable:
+          type: boolean
+        profilePictureUrl:
+          type: string
+          nullable: true
+    PendingVerificationListItemDto:
+      type: object
+      properties:
+        lawyerId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+          nullable: true
+        pendingDocumentCount:
+          type: integer
+        verifiedDocumentCount:
+          type: integer
+        rejectedDocumentCount:
+          type: integer
+    VerificationDocumentDetailsDto:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        documentType:
+          type: string
+        status:
+          type: string
+        fileName:
+          type: string
+        contentType:
+          type: string
+        expirationDate:
+          type: string
+          format: date
+        reviewedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rejectionReason:
+          type: string
+          nullable: true
+        contentUrl:
+          type: string
+    VerificationDetailsDto:
+      type: object
+      properties:
+        lawyerId:
+          type: string
+          format: uuid
+        fullName:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+          nullable: true
+        accountStatus:
+          type: string
+        isFullyVerified:
+          type: boolean
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/VerificationDocumentDetailsDto'
+    ReviewVerificationDocumentResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        documentStatus:
+          type: string
+        lawyerAccountStatus:
+          type: string
+        isFullyVerified:
+          type: boolean
+    UploadedDocumentDto:
+      type: object
+      properties:
+        fileName:
+          type: string
+        type:
+          type: integer
+    DocumentUploadErrorDto:
+      type: object
+      properties:
+        fileName:
+          type: string
+        type:
+          type: integer
+        error:
+          type: string
+    SubmitVerificationDocumentResponseDto:
+      type: object
+      properties:
+        uploadedDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadedDocumentDto'
+        failedDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentUploadErrorDto'
+    UserVerificationDocumentDto:
+      type: object
+      properties:
+        documentId:
+          type: string
+          format: uuid
+        documentType:
+          type: integer
+        status:
+          type: integer
+        expirationDate:
+          type: string
+          format: date
+        isCurrent:
+          type: boolean
+        fileName:
+          type: string
+    GetUserVerificationDocumentsResponseDto:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserVerificationDocumentDto'
+paths:
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+  /api/auth/register/client:
+    post:
+      tags:
+        - Auth
+      summary: Register client
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fullName
+                - email
+                - password
+                - confirmPassword
+              properties:
+                fullName:
+                  type: string
+                  minLength: 5
+                  maxLength: 150
+                email:
+                  type: string
+                password:
+                  type: string
+                  minLength: 8
+                confirmPassword:
+                  type: string
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RegisterResponse'
+  /api/auth/register/lawyer:
+    post:
+      tags:
+        - Auth
+      summary: Register lawyer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - fullName
+                - email
+                - password
+                - confirmPassword
+                - phone
+                - address
+                - government
+                - city
+                - gender
+                - nationalNumber
+              properties:
+                fullName:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                confirmPassword:
+                  type: string
+                phone:
+                  type: string
+                address:
+                  type: string
+                government:
+                  type: string
+                city:
+                  type: string
+                gender:
+                  type: string
+                nationalNumber:
+                  type: string
+                nationalIdFront:
+                  type: string
+                  format: binary
+                nationalIdBack:
+                  type: string
+                  format: binary
+                syndicateCard:
+                  type: string
+                  format: binary
+                personalPhoto:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RegisterResponse'
+  /api/auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/RefreshTokenResponse'
+  /api/auth/revoke:
+    post:
+      tags:
+        - Auth
+      summary: Revoke refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - refreshToken
+              properties:
+                token:
+                  type: string
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: boolean
+  /api/auth/change-password:
+    post:
+      tags:
+        - Auth
+      summary: Change password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+                - confirmNewPassword
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                confirmNewPassword:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/confirm-email:
+    get:
+      tags:
+        - Auth
+      summary: Confirm email
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: token
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Forgot password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Reset password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - newPassword
+                - confirmNewPassword
+              properties:
+                email:
+                  type: string
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                confirmNewPassword:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/auth/resend-verification:
+    post:
+      tags:
+        - Auth
+      summary: Resend verification email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/clients/profile:
+    get:
+      tags:
+        - Users
+      summary: Get client profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ClientProfileResponse'
+    put:
+      tags:
+        - Users
+      summary: Update client profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phoneNumber
+                - dateOfBirth
+              properties:
+                phoneNumber:
+                  type: string
+                dateOfBirth:
+                  type: string
+                  format: date
+                address:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags:
+        - Users
+      summary: Delete client profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+              properties:
+                currentPassword:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/lawyers/profile:
+    get:
+      tags:
+        - Users
+      summary: Get lawyer profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LawyerProfileResponse'
+    put:
+      tags:
+        - Users
+      summary: Update lawyer profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phoneNumber
+                - dateOfBirth
+                - specializationId
+                - yearsOfExperience
+                - level
+              properties:
+                phoneNumber:
+                  type: string
+                dateOfBirth:
+                  type: string
+                  format: date
+                specializationId:
+                  type: string
+                  format: uuid
+                yearsOfExperience:
+                  type: integer
+                level:
+                  type: integer
+                bio:
+                  type: string
+                  nullable: true
+                address:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    delete:
+      tags:
+        - Users
+      summary: Delete lawyer profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+              properties:
+                currentPassword:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/lawyers/public/{id}:
+    get:
+      tags:
+        - Users
+      summary: Get public lawyer profile
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/PublicLawyerProfileResponse'
+  /api/admin/verifications:
+    get:
+      tags:
+        - Admin verifications
+      summary: List pending verifications
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: pageNumber
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PendingVerificationListItemDto'
+                      pageNumber:
+                        type: integer
+                      pageSize:
+                        type: integer
+                      totalPages:
+                        type: integer
+                      totalRecords:
+                        type: integer
+                      hasNextPage:
+                        type: boolean
+                      hasPreviousPage:
+                        type: boolean
+  /api/admin/verifications/{lawyerId}:
+    get:
+      tags:
+        - Admin verifications
+      summary: Get lawyer verification details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: lawyerId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/VerificationDetailsDto'
+  /api/admin/verifications/documents/{documentId}/content:
+    get:
+      tags:
+        - Admin verifications
+      summary: Download verification document
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/admin/verifications/documents/{documentId}:
+    patch:
+      tags:
+        - Admin verifications
+      summary: Review verification document
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: documentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - decision
+              properties:
+                decision:
+                  type: integer
+                  description: "1=Approve, 2=Reject"
+                rejectionReason:
+                  type: string
+                  nullable: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/ReviewVerificationDocumentResponse'
+  /api/UserVerification/submit-verification-documents:
+    post:
+      tags:
+        - User verification documents
+      summary: Submit verification documents
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - userId
+                - documents
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                documents:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      file:
+                        type: string
+                        format: binary
+                      expirationDate:
+                        type: string
+                        format: date
+                      type:
+                        type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/SubmitVerificationDocumentResponseDto'
+  /api/UserVerification/{UserId}:
+    get:
+      tags:
+        - User verification documents
+      summary: Get user verification documents
+      parameters:
+        - in: path
+          name: UserId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/GetUserVerificationDocumentsResponseDto'
+  /api/UserVerification:
+    delete:
+      tags:
+        - User verification documents
+      summary: Delete verification document
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: documentId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /api/Health/ping:
+    get:
+      tags:
+        - Health
+      summary: Ping
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  serverTimeUtc:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
