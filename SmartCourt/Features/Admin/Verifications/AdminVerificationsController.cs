@@ -34,12 +34,7 @@ public sealed class AdminVerificationsController(IMediator mediator) : Controlle
     public async Task<IActionResult> GetDocumentContentAsync(Guid documentId, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetVerificationDocumentContentQuery(documentId), cancellationToken);
-        if (!result.Success || result.Data is null)
-        {
-            return StatusCode(result.StatusCode, result);
-        }
-
-        return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpPatch("documents/{documentId:guid}")]

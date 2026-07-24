@@ -64,6 +64,10 @@ public class ExceptionHandlingMiddleware
                 statusCode = (int)HttpStatusCode.NotFound;
                 message = e.Message;
                 break;
+            case ConflictException e:
+                statusCode = (int)HttpStatusCode.Conflict;
+                message = e.Message;
+                break;
             case ForbiddenAccessException e:
                 statusCode = (int)HttpStatusCode.Forbidden;
                 message = string.IsNullOrWhiteSpace(e.Message) ? "Forbidden access." : e.Message;

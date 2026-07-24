@@ -15,6 +15,15 @@ internal static class VerificationStatusEvaluator
         VerificationDocumentType.BarAssociationCardBack
     ];
 
+    public static bool IsFullyVerified(IEnumerable<UserVerificationDocument> documents, DateOnly today)
+    {
+        var currentDocuments = documents.Where(d => d.IsCurrent).ToList();
+        return RequiredDocumentTypes.All(requiredType => currentDocuments.Any(document =>
+            document.DocumentType == requiredType &&
+            document.Status == VerificationDocumentStatus.Verified &&
+            document.ExpirationDate > today));
+    }
+
     public static UserStatus ResolveAccountStatus(
         IEnumerable<UserVerificationDocument> documents,
         DateOnly today)

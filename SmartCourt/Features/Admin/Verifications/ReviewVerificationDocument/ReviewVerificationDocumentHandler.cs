@@ -1,22 +1,22 @@
 using FluentValidation;
 using MediatR;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
+using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Extensions;
 using SmartCourt.Features.Admin.Verifications.Shared;
 using SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument.DTOs;
-using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Entities;
+using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument;
 
 public sealed class ReviewVerificationDocumentHandler(
     ApplicationDbContext context,
-    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserService currentUserService,
     UserManager<ApplicationUser> userManager,
     IValidator<ReviewVerificationDocumentCommand> validator)
     : IRequestHandler<ReviewVerificationDocumentCommand, ApiResponse<ReviewVerificationDocumentResponse>>
@@ -37,28 +37,21 @@ public sealed class ReviewVerificationDocumentHandler(
             .ThenInclude(user => user.VerificationDocuments)
             .SingleOrDefaultAsync(verificationDocument => verificationDocument.Id == request.DocumentId, cancellationToken);
 
-        if (document is null)
+        // Use NotFoundException instead of ApiResponse.Fail so ExceptionHandlingMiddleware
+        // renders a consistent 404 ApiResponse<string> shape.
+        if (document is null || !await userManager.IsInRoleAsync(document.User, "Lawyer"))
         {
-            return ApiResponse<ReviewVerificationDocumentResponse>.Fail("Verification document was not found.", 404);
-        }
-
-        if (!await userManager.IsInRoleAsync(document.User, "Lawyer"))
-        {
-            return ApiResponse<ReviewVerificationDocumentResponse>.Fail("Verification document was not found.", 404);
+            throw new NotFoundException("Verification document was not found.");
         }
 
         if (!document.IsCurrent)
         {
-            return ApiResponse<ReviewVerificationDocumentResponse>.Fail(
-                "Only the current version of a document can be reviewed.",
-                StatusCodes.Status409Conflict);
+            throw new ConflictException("Only the current version of a document can be reviewed.");
         }
 
         if (document.Status != VerificationDocumentStatus.Pending)
         {
-            return ApiResponse<ReviewVerificationDocumentResponse>.Fail(
-                "Only pending documents can be reviewed.",
-                StatusCodes.Status409Conflict);
+            throw new ConflictException("Only pending documents can be reviewed.");
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -70,27 +63,29 @@ public sealed class ReviewVerificationDocumentHandler(
                 today);
             await context.SaveChangesAsync(cancellationToken);
 
-            return ApiResponse<ReviewVerificationDocumentResponse>.Fail(
-                "The document has expired and must be submitted again.",
-                StatusCodes.Status409Conflict);
+            throw new ConflictException("The document has expired and must be submitted again.");
         }
+
+        var adminId = currentUserService.UserId?.ToString()
+                      ?? throw new ConflictException("Admin identity could not be resolved.");
 
         if (request.Decision == VerificationReviewDecision.Approve)
         {
             document.Status = VerificationDocumentStatus.Verified;
             document.VerifiedAt = DateTime.UtcNow;
-            document.VerifiedByAdminId = httpContextAccessor.HttpContext!.User.GetUserId();
+            document.VerifiedByAdminId = adminId;
             document.RejectionReason = null;
         }
         else
         {
             document.Status = VerificationDocumentStatus.Rejected;
             document.VerifiedAt = null;
-            document.VerifiedByAdminId = httpContextAccessor.HttpContext!.User.GetUserId();
+            document.VerifiedByAdminId = adminId;
             document.RejectionReason = request.RejectionReason!.Trim();
         }
 
-        // Keep one current document per type once a replacement has been reviewed.
+        // Demote any other current document of the same type that was previously
+        // marked current (handles the replacement-document scenario).
         foreach (var previousVersion in document.User.VerificationDocuments.Where(candidate =>
                      candidate.Id != document.Id &&
                      candidate.DocumentType == document.DocumentType &&
@@ -103,14 +98,29 @@ public sealed class ReviewVerificationDocumentHandler(
             document.User.VerificationDocuments,
             today);
 
-        await context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Two admins reviewed the same document concurrently.
+            // The first writer wins; the second gets a 409 with a clear message.
+            throw new ConflictException(
+                "This document was already reviewed by another administrator. Please refresh and try again.");
+        }
+
+        // Fix: derive IsFullyVerified from actual document state, not account status.
+        // An Active seeded lawyer with zero documents would otherwise report as fully verified.
+        var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
+            document.User.VerificationDocuments, today);
 
         return ApiResponse<ReviewVerificationDocumentResponse>.Ok(new ReviewVerificationDocumentResponse
         {
             DocumentId = document.Id,
             DocumentStatus = document.Status.ToString(),
             LawyerAccountStatus = document.User.Status.ToString(),
-            IsFullyVerified = document.User.Status == UserStatus.Active
+            IsFullyVerified = isFullyVerified
         });
     }
 }

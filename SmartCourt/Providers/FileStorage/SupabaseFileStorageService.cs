@@ -49,6 +49,22 @@ namespace SmartCourt.Providers.FileStorage
                 file.Name.Equals(fileName, StringComparison.Ordinal));
         }
 
+        /// <summary>
+        /// Returns the public URL for the stored file.
+        /// When the Supabase bucket is switched to private, replace this
+        /// with <c>CreateSignedUrl</c> to return a short-lived signed URL.
+        /// </summary>
+        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+            var url = _client.Storage
+                .From(_options.Bucket)
+                .GetPublicUrl(filePath);
+
+            return Task.FromResult(url);
+        }
+
         public async Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(stream);
@@ -65,7 +81,7 @@ namespace SmartCourt.Providers.FileStorage
 
             byte[] bytes = memoryStream.ToArray();
 
-            await _client.Storage.From(_options.Bucket).Upload(bytes,filePath);
+            await _client.Storage.From(_options.Bucket).Upload(bytes, filePath);
 
             return new FileUploadResult
             {
