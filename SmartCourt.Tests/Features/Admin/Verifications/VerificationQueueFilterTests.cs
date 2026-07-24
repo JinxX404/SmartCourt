@@ -9,15 +9,21 @@ namespace SmartCourt.Tests.Features.Admin.Verifications;
 public sealed class VerificationQueueFilterTests
 {
     [Fact]
-    public void HasCurrentDocumentWithStatus_ReturnsAllLawyersWithCurrentDocuments_WhenStatusIsNotSpecified()
+    public void HasCurrentDocumentWithStatus_DefaultsToOnlyPendingLawyers_WhenStatusIsNotSpecified()
     {
-        var lawyerWithCurrentDocument = CreateLawyer(CreateDocument(VerificationDocumentStatus.Rejected, true));
-        var lawyerWithOnlyOldDocument = CreateLawyer(CreateDocument(VerificationDocumentStatus.Pending, false));
+        // Previously the null branch matched ANY lawyer with a current document
+        // (including fully verified ones). The fix: null defaults to Pending.
+        var lawyerWithPendingDocument  = CreateLawyer(CreateDocument(VerificationDocumentStatus.Pending, true));
+        var lawyerWithRejectedDocument = CreateLawyer(CreateDocument(VerificationDocumentStatus.Rejected, true));
+        var lawyerWithVerifiedDocument = CreateLawyer(CreateDocument(VerificationDocumentStatus.Verified, true));
+        var lawyerWithOnlyOldDocument  = CreateLawyer(CreateDocument(VerificationDocumentStatus.Pending, false));
 
         var filter = VerificationQueueFilter.HasCurrentDocumentWithStatus(null).Compile();
 
-        Assert.True(filter(lawyerWithCurrentDocument));
-        Assert.False(filter(lawyerWithOnlyOldDocument));
+        Assert.True(filter(lawyerWithPendingDocument),   "Pending lawyer must appear in default queue.");
+        Assert.False(filter(lawyerWithRejectedDocument), "Rejected lawyer must NOT appear in default Pending queue.");
+        Assert.False(filter(lawyerWithVerifiedDocument), "Verified lawyer must NOT appear in default Pending queue.");
+        Assert.False(filter(lawyerWithOnlyOldDocument),  "Lawyer with only non-current documents must NOT appear.");
     }
 
     [Fact]

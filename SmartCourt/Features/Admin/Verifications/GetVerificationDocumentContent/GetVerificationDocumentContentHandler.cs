@@ -17,11 +17,6 @@ public sealed class GetVerificationDocumentContentHandler(
         GetVerificationDocumentContentQuery request,
         CancellationToken cancellationToken)
     {
-        if (request.DocumentId == Guid.Empty)
-        {
-            return ApiResponse<VerificationDocumentContentDto>.Fail("Document id is required.");
-        }
-
         var document = await context.UserVerificationDocuments
             .AsNoTracking()
             .Include(verificationDocument => verificationDocument.StoredFile)
@@ -34,10 +29,15 @@ public sealed class GetVerificationDocumentContentHandler(
             throw new NotFoundException("Verification document was not found.");
         }
 
-        var content = await fileStorageService.DownloadAsync(document.StoredFile.FileUrl, cancellationToken);
+        // Return a URL instead of streaming raw bytes through the web server.
+        // Swap GetDownloadUrlAsync for CreateSignedUrlAsync when the Supabase
+        // bucket is switched to private — the handler stays unchanged.
+        var downloadUrl = await fileStorageService.GetDownloadUrlAsync(
+            document.StoredFile.FileUrl, cancellationToken);
+
         return ApiResponse<VerificationDocumentContentDto>.Ok(new VerificationDocumentContentDto
         {
-            Content = content,
+            DownloadUrl = downloadUrl,
             ContentType = document.StoredFile.ContentType,
             FileName = document.StoredFile.OriginalFileName
         });

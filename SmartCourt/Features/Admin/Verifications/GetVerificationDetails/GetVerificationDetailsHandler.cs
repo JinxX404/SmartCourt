@@ -1,4 +1,3 @@
-using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -6,27 +5,20 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
 using SmartCourt.Features.Admin.Verifications.GetVerificationDetails.DTOs;
+using SmartCourt.Features.Admin.Verifications.Shared;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Admin.Verifications.GetVerificationDetails;
 
 public sealed class GetVerificationDetailsHandler(
     ApplicationDbContext context,
-    UserManager<ApplicationUser> userManager,
-    IValidator<GetVerificationDetailsQuery> validator)
+    UserManager<ApplicationUser> userManager)
     : IRequestHandler<GetVerificationDetailsQuery, ApiResponse<VerificationDetailsDto>>
 {
     public async Task<ApiResponse<VerificationDetailsDto>> Handle(
         GetVerificationDetailsQuery request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            return ApiResponse<VerificationDetailsDto>.Fail(
-                validationResult.Errors.Select(error => error.ErrorMessage).ToList());
-        }
-
         var lawyer = await context.Users
             .Include(user => user.VerificationDocuments.Where(document => document.IsCurrent))
             .ThenInclude(document => document.StoredFile)
@@ -41,6 +33,8 @@ public sealed class GetVerificationDetailsHandler(
         {
             throw new NotFoundException("Lawyer was not found.");
         }
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var documents = lawyer.VerificationDocuments
             .OrderBy(document => document.DocumentType)
@@ -58,6 +52,12 @@ public sealed class GetVerificationDetailsHandler(
             })
             .ToList();
 
+        // Fix: compute IsFullyVerified from actual document state.
+        // Deriving this from UserStatus.Active is incorrect — an Active seeded
+        // lawyer with no documents would be reported as fully verified.
+        var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
+            lawyer.VerificationDocuments, today);
+
         return ApiResponse<VerificationDetailsDto>.Ok(new VerificationDetailsDto
         {
             LawyerId = lawyer.Id,
@@ -65,7 +65,7 @@ public sealed class GetVerificationDetailsHandler(
             Email = lawyer.Email ?? string.Empty,
             PhoneNumber = lawyer.PhoneNumber,
             AccountStatus = lawyer.Status.ToString(),
-            IsFullyVerified = lawyer.Status == Features.Auth.Enums.UserStatus.Active,
+            IsFullyVerified = isFullyVerified,
             Documents = documents
         });
     }

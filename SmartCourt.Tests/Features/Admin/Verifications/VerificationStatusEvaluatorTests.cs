@@ -10,6 +10,10 @@ public sealed class VerificationStatusEvaluatorTests
 {
     private static readonly DateOnly Today = new(2026, 7, 18);
 
+    // ──────────────────────────────────────────
+    // ResolveAccountStatus
+    // ──────────────────────────────────────────
+
     [Fact]
     public void ResolveAccountStatus_ReturnsActive_WhenEveryCurrentRequirementIsVerifiedAndUnexpired()
     {
@@ -54,6 +58,75 @@ public sealed class VerificationStatusEvaluatorTests
 
         Assert.Equal(UserStatus.Active, status);
     }
+
+    // ──────────────────────────────────────────
+    // IsFullyVerified
+    // ──────────────────────────────────────────
+
+    [Fact]
+    public void IsFullyVerified_ReturnsTrue_WhenAllRequiredDocumentsAreVerifiedAndUnexpired()
+    {
+        var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
+
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsFullyVerified_ReturnsFalse_WhenNoDocumentsExist()
+    {
+        // This covers the original bug: an Active seeded lawyer with zero documents
+        // was previously reported as IsFullyVerified = true because the code
+        // derived it from UserStatus.Active instead of evaluating documents.
+        var result = VerificationStatusEvaluator.IsFullyVerified([], Today);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsFullyVerified_ReturnsFalse_WhenARequiredDocumentIsExpired()
+    {
+        var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
+        // Make the first document expire before today
+        documents[0].ExpirationDate = Today.AddDays(-1);
+
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsFullyVerified_ReturnsFalse_WhenARequiredDocumentIsPending()
+    {
+        var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
+        documents[3].Status = VerificationDocumentStatus.Pending;
+
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsFullyVerified_ReturnsFalse_WhenARequiredDocumentTypeIsMissing()
+    {
+        // Only 3 of the 4 required document types present
+        var documents = new List<UserVerificationDocument>
+        {
+            CreateDocument(VerificationDocumentType.NationalIdFront, VerificationDocumentStatus.Verified),
+            CreateDocument(VerificationDocumentType.NationalIdBack, VerificationDocumentStatus.Verified),
+            CreateDocument(VerificationDocumentType.BarAssociationCardFront, VerificationDocumentStatus.Verified)
+            // BarAssociationCardBack is missing
+        };
+
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+
+        Assert.False(result);
+    }
+
+    // ──────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────
 
     private static List<UserVerificationDocument> RequiredDocuments(VerificationDocumentStatus status)
     {

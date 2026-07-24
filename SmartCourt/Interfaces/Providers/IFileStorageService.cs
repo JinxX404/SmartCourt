@@ -1,4 +1,4 @@
-﻿
+
 using SmartCourt.Common.Models;
 namespace SmartCourt.Interfaces.Providers
 {
@@ -19,6 +19,15 @@ namespace SmartCourt.Interfaces.Providers
             CancellationToken cancellationToken = default);
 
         Task<bool> ExistsAsync(
+            string filePath,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Returns a URL that can be used to access the stored file.
+        /// For providers that support signed URLs this should return a short-lived URL;
+        /// for providers that only expose public URLs this returns the stored file URL.
+        /// </summary>
+        Task<string> GetDownloadUrlAsync(
             string filePath,
             CancellationToken cancellationToken = default);
     }

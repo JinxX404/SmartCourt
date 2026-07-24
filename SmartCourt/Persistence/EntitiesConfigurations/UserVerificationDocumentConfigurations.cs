@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Entities;
 
@@ -17,6 +17,11 @@ namespace SmartCourt.Persistence.EntitiesConfigurations
                 .WithMany(u => u.VerificationDocuments)
                 .HasForeignKey(vd => vd.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Optimistic concurrency: the database auto-increments this column on every
+            // UPDATE. EF Core reads it back and uses it for conflict detection.
+            builder.Property(vd => vd.RowVersion)
+                .IsRowVersion();
         }
     }
 }
