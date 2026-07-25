@@ -5,8 +5,8 @@ public class GeminiEmbeddingOptions
     public const string SectionName = "GeminiEmbedding";
     public string ApiKey { get; set; } = string.Empty;
     
-    // Model identifier, e.g., "gemini-embedding-002"
-    public string Model { get; set; } = "gemini-embedding-002";
+    // Model identifier, e.g., "gemini-embedding-2"
+    public string Model { get; set; } = "gemini-embedding-2";
     
     // Configurable output dimensionality for Matryoshka Representation Learning (MRL)
     public int Dimensions { get; set; } = 768;
