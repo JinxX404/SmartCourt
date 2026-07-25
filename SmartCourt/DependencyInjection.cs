@@ -281,13 +281,14 @@ public static class DependencyInjection
         services.AddSingleton<QdrantClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
-            return new QdrantClient(opts.Host, opts.Port, apiKey: opts.ApiKey);
+            return new QdrantClient(opts.Host, opts.Port, https: opts.UseTls, apiKey: opts.ApiKey);
         });
         services.AddScoped<IVectorStoreProvider, QdrantVectorStoreProvider>();
 
         // --- RAG Pipeline: Embedding ---
-        services.Configure<HuggingFaceEmbeddingOptions>(configuration.GetSection(HuggingFaceEmbeddingOptions.SectionName));
-        services.AddScoped<IEmbeddingProvider, MockEmbeddingProvider>();
+        services.Configure<GeminiEmbeddingOptions>(configuration.GetSection(GeminiEmbeddingOptions.SectionName));
+        services.AddHttpClient<IEmbeddingProvider, GeminiEmbeddingProvider>();
+
 
         // --- RAG Pipeline: PDF Parser ---
         services.AddScoped<IPdfParserProvider, PdfPigParserProvider>();
