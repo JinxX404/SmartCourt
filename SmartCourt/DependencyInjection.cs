@@ -24,6 +24,8 @@ using SmartCourt.Features.Auth.ConfirmEmail;
 using SmartCourt.Features.Auth.ChangePassword;
 using SmartCourt.Features.Auth.ForgotPassword;
 using SmartCourt.Features.Auth.ResetPassword;
+using SmartCourt.Infrastructure.Providers.Payments;
+using SmartCourt.Providers.Payments;
 using SmartCourt.Features.Auth.ResendVerification;
 using SmartCourt.Features.Auth.Login;
 using SmartCourt.Features.Auth.RefreshToken;
@@ -114,6 +116,24 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
+        services.AddOptions<PaymentProviderOptions>()
+            .Bind(configuration.GetSection(PaymentProviderOptions.SectionName))
+            .Validate(
+                options => options.Warning.Contains(
+                    "not regulated escrow",
+                    StringComparison.OrdinalIgnoreCase),
+                "The mock payment provider warning must state that it is not regulated escrow.")
+            .Validate(
+                options => isDevelopment || !options.UseMockProvider,
+                "The mock payment provider cannot be enabled in production.")
+            .ValidateOnStart();
+
+        if (configuration.GetValue<bool>(
+                $"{PaymentProviderOptions.SectionName}:UseMockProvider"))
+        {
+            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
+        }
             
         services.AddOptions<MailKitOptions>()
             .Bind(configuration.GetSection("SmtpSettings"))
