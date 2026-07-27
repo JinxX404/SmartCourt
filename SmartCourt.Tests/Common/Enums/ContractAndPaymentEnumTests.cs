@@ -3,6 +3,7 @@ using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Infrastructure.Persistence.Enums;
 using Xunit;
 
 namespace SmartCourt.Tests.Common.Enums;
@@ -199,8 +200,14 @@ public sealed class ContractAndPaymentEnumTests
         { typeof(PenaltyType), "SmartCourt.Features.Disputes.Enums" },
         { typeof(DisputeCategory), "SmartCourt.Features.Disputes.Enums" },
         { typeof(DisputeRequestedOutcome), "SmartCourt.Features.Disputes.Enums" },
-        { typeof(IdempotencyStatus), "SmartCourt.Common.Enums" },
-        { typeof(OutboxStatus), "SmartCourt.Common.Enums" }
+        {
+            typeof(IdempotencyStatus),
+            "SmartCourt.Infrastructure.Persistence.Enums"
+        },
+        {
+            typeof(OutboxStatus),
+            "SmartCourt.Infrastructure.Persistence.Enums"
+        }
     };
 
     private static void AssertEnumDefinition(Type enumType, string[] expected)

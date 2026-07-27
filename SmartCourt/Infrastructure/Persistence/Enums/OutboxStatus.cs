@@ -1,4 +1,4 @@
-namespace SmartCourt.Common.Enums;
+namespace SmartCourt.Infrastructure.Persistence.Enums;
 
 public enum OutboxStatus : int
 {
