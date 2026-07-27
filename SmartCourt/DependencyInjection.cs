@@ -25,6 +25,7 @@ using SmartCourt.Features.Auth.ChangePassword;
 using SmartCourt.Features.Auth.ForgotPassword;
 using SmartCourt.Features.Auth.ResetPassword;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Providers.Payments;
 using SmartCourt.Features.Auth.ResendVerification;
@@ -119,6 +120,8 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
         services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
         services.AddScoped<IIdempotencyService, IdempotencyService>();
+        services.AddScoped<IOutboxWriter, OutboxWriter>();
+        services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
 
         services.AddOptions<PaymentProviderOptions>()
             .Bind(configuration.GetSection(PaymentProviderOptions.SectionName))
