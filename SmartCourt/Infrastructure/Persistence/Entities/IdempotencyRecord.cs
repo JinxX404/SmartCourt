@@ -47,4 +47,43 @@ public sealed class IdempotencyRecord
     public DateTime? CompletedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTime CreatedAt { get; internal set; }
+
+    internal void Complete(
+        int responseStatusCode,
+        string responseBody,
+        Guid? resultReferenceId,
+        DateTime completedAt)
+    {
+        ResponseStatusCode = responseStatusCode;
+        ResponseBody = EntityGuard.Required(
+            responseBody,
+            nameof(responseBody));
+        ResultReferenceId = EntityGuard.OptionalGuid(
+            resultReferenceId,
+            nameof(resultReferenceId));
+        Status = IdempotencyStatus.Completed;
+        CompletedAt = EntityGuard.Utc(completedAt, nameof(completedAt));
+    }
+
+    internal void Fail(
+        int responseStatusCode,
+        string responseBody,
+        Guid? resultReferenceId,
+        DateTime completedAt)
+    {
+        ResponseStatusCode = responseStatusCode;
+        ResponseBody = EntityGuard.Required(
+            responseBody,
+            nameof(responseBody));
+        ResultReferenceId = EntityGuard.OptionalGuid(
+            resultReferenceId,
+            nameof(resultReferenceId));
+        Status = IdempotencyStatus.Failed;
+        CompletedAt = EntityGuard.Utc(completedAt, nameof(completedAt));
+    }
+
+    internal void PurgeResponseBody()
+    {
+        ResponseBody = null;
+    }
 }
