@@ -27,4 +27,13 @@ public interface IContractJobScheduler
     Task<string> ScheduleSchedulingReconciliationAsync(
         DateTime runAtUtc,
         CancellationToken cancellationToken);
+
+    Task<string> SchedulePendingWalletProjectionReconciliationAsync(
+        DateTime runAtUtc,
+        CancellationToken cancellationToken);
+
+    Task<string> ScheduleOutboxDispatchAsync(
+        int batchSize,
+        DateTime runAtUtc,
+        CancellationToken cancellationToken);
 }

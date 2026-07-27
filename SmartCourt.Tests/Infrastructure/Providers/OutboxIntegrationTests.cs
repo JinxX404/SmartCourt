@@ -73,6 +73,31 @@ public sealed class OutboxIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task MultipleHandlers_ReceiveOneDeliveryEach()
+    {
+        var messageId = await EnqueueAsync();
+        var firstHandler = new RecordingHandler(
+            ContractPaymentEventTypes.ContractCreated);
+        var secondHandler = new RecordingHandler(
+            ContractPaymentEventTypes.ContractCreated);
+        await using var context = CreateContext(_initialUtc);
+        var dispatcher = new OutboxDispatcher(
+            context,
+            [firstHandler, secondHandler],
+            new FixedTimeProvider(_initialUtc));
+
+        await dispatcher.DispatchAsync(
+            messageId,
+            CancellationToken.None);
+        await dispatcher.DispatchAsync(
+            messageId,
+            CancellationToken.None);
+
+        Assert.Equal(1, firstHandler.CallCount);
+        Assert.Equal(1, secondHandler.CallCount);
+    }
+
+    [Fact]
     public async Task FailedDelivery_RemainsRetryableWithBackoff()
     {
         var messageId = await EnqueueAsync();

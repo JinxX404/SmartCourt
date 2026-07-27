@@ -79,21 +79,15 @@ public sealed class OutboxDispatcher : IOutboxDispatcher
                     lease.EventType,
                     StringComparer.Ordinal))
                 .ToArray();
-            if (handlers.Length > 1)
-            {
-                throw new InvalidOperationException(
-                    $"Multiple outbox handlers are registered for {lease.EventType}.");
-            }
-
             if (handlers.Length == 0)
             {
                 throw new InvalidOperationException(
                     $"No outbox handler is registered for {lease.EventType}.");
             }
 
-            if (handlers.Length == 1)
+            foreach (var handler in handlers)
             {
-                await handlers[0].HandleAsync(
+                await handler.HandleAsync(
                     lease.Message,
                     cancellationToken);
             }
