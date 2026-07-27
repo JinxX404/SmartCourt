@@ -221,7 +221,7 @@ public sealed class ApplicationDbContextPersistenceGuardTests
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(
-                "Server=(localdb)\\MSSQLLocalDB;Database=SmartCourtGuardTests;Trusted_Connection=True;TrustServerCertificate=True")
+                "Server=localhost;Database=SmartCourtGuardTests;Trusted_Connection=True;TrustServerCertificate=True")
             .Options;
 
         return new ApplicationDbContext(

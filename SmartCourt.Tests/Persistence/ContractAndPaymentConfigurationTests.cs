@@ -249,7 +249,7 @@ public sealed class ContractAndPaymentConfigurationTests
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseSqlServer(
-                "Server=(localdb)\\MSSQLLocalDB;Database=SmartCourtModelTests;Trusted_Connection=True;TrustServerCertificate=True")
+                "Server=localhost;Database=SmartCourtModelTests;Trusted_Connection=True;TrustServerCertificate=True")
             .Options;
 
         return new ApplicationDbContext(options);

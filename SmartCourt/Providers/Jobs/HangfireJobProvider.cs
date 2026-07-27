@@ -27,4 +27,23 @@ public class HangfireJobProvider : IBackgroundJobProvider
     {
         return _backgroundJobClient.Enqueue<T>(methodCall);
     }
+
+    public async Task<string> EnqueueAsync<T>(
+        Expression<Func<T, Task>> methodCall,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var jobId = _backgroundJobClient.Enqueue(methodCall);
+        return await Task.FromResult(jobId);
+    }
+
+    public async Task<string> ScheduleAsync<T>(
+        Expression<Func<T, Task>> methodCall,
+        DateTimeOffset runAt,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var jobId = _backgroundJobClient.Schedule(methodCall, runAt);
+        return await Task.FromResult(jobId);
+    }
 }

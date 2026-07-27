@@ -24,11 +24,20 @@ using SmartCourt.Features.Auth.ConfirmEmail;
 using SmartCourt.Features.Auth.ChangePassword;
 using SmartCourt.Features.Auth.ForgotPassword;
 using SmartCourt.Features.Auth.ResetPassword;
+using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
+using SmartCourt.Infrastructure.Providers.Payments;
+using SmartCourt.Features.Payments;
+using SmartCourt.Providers.Jobs;
+using SmartCourt.Providers.Payments;
 using SmartCourt.Features.Auth.ResendVerification;
 using SmartCourt.Features.Auth.Login;
 using SmartCourt.Features.Auth.RefreshToken;
 using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
+using SmartCourt.Features.Milestones.Events;
+using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Entities;
@@ -114,6 +123,36 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
+        services.AddScoped<IIdempotencyService, IdempotencyService>();
+        services.AddScoped<IOutboxWriter, OutboxWriter>();
+        services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
+        services.AddScoped<
+            IOutboxEventHandler,
+            MilestoneSchedulingOutboxHandler>();
+        services.AddScoped<
+            IMilestoneSchedulingReconciliationService,
+            MilestoneSchedulingReconciliationService>();
+        services.AddScoped<IContractJobService, ContractJobService>();
+        services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
+
+        services.AddOptions<PaymentProviderOptions>()
+            .Bind(configuration.GetSection(PaymentProviderOptions.SectionName))
+            .Validate(
+                options => options.Warning.Contains(
+                    "not regulated escrow",
+                    StringComparison.OrdinalIgnoreCase),
+                "The mock payment provider warning must state that it is not regulated escrow.")
+            .Validate(
+                options => isDevelopment || !options.UseMockProvider,
+                "The mock payment provider cannot be enabled in production.")
+            .ValidateOnStart();
+
+        if (configuration.GetValue<bool>(
+                $"{PaymentProviderOptions.SectionName}:UseMockProvider"))
+        {
+            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
+        }
             
         services.AddOptions<MailKitOptions>()
             .Bind(configuration.GetSection("SmtpSettings"))

@@ -58,6 +58,14 @@ public sealed class IdempotencyRecordConfiguration
             record.ExpiresAt
         })
         .HasDatabaseName("IX_IdempotencyRecords_Status_ExpiresAt");
+        builder.HasIndex(record => new
+        {
+            record.ResourceType,
+            record.ResourceId
+        })
+        .IsUnique()
+        .HasFilter("[ResourceType] = 'EscrowHoldSettlement'")
+        .HasDatabaseName("UX_IdempotencyRecords_HoldSettlement");
         builder.HasCheckConstraint(
             "CK_IdempotencyRecords_Status_Range",
             "[Status] BETWEEN 0 AND 2");

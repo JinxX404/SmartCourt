@@ -29,6 +29,7 @@ public sealed class OutboxMessageConfiguration
         builder.Property(message => message.LastError)
             .NullableUnicode(2_000);
         builder.Property(message => message.AvailableAt).Utc();
+        builder.Property(message => message.LeaseExpiresAt).NullableUtc();
         builder.Property(message => message.ProcessedAt).NullableUtc();
         builder.Property(message => message.CreatedAt).Utc();
         builder.Property(message => message.RowVersion)
