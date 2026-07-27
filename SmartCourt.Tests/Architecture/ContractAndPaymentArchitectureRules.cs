@@ -20,6 +20,7 @@ internal static partial class ContractAndPaymentArchitectureRules
         "SmartCourt/Infrastructure/Providers/Payments",
         "SmartCourt/Infrastructure/Providers/Jobs",
         "SmartCourt/Infrastructure/Providers/Events",
+        "SmartCourt/Infrastructure/Persistence/Entities",
         "SmartCourt/Providers/Payments",
         "SmartCourt/Providers/Jobs",
         "SmartCourt.Tests/Features/Contracts",
