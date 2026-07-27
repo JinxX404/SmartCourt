@@ -1,27 +1,35 @@
 @import "tailwindcss";
 
 @theme {
-  /* Injecting your premium palette */
+  /* Premium Palette */
   --color-navy: #1a1d23;
+  --color-navy-light: #1f2937; /* Used for headings and dark backgrounds */
   --color-surface: #f8f9fa;
+  
+  /* Gold Accents */
   --color-gold: #c5a059;
   --color-gold-hover: #b08d4b;
+  --color-gold-muted: #9a7b4f; /* CTA Button */
+  --color-gold-muted-hover: #86683f; /* CTA Button Hover */
 
-  --color-secondary-gray:#374151;
+  --color-secondary-gray: #374151;
 
+  /* Gradients */
   --color-gradient-start: #1f232b;
   --color-gradient-end: #1a1d23;
+
+  /* Premium Box Shadows */
+  --shadow-premium: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
   
-  /* You can easily add your custom font here too */
+  /* Setting Cairo as the default sans-serif font */
   --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Setting up the global body styles and RTL direction */
 @layer base {
   body {
     background-color: var(--color-surface);
     color: var(--color-navy);
     direction: rtl;
-    font-family: var(--font-sans);
+    font-family: var(--font-sans); 
   }
 }

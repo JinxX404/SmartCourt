@@ -1,17 +1,21 @@
 import { HiLogin } from "react-icons/hi";
+import { LuScale } from "react-icons/lu"
+import { LuUserPlus } from "react-icons/lu";
+
+
 
 export const Navbar = () => {
   return (
     <nav className="w-full h-17.75 bg-navy border-b border-[#1F2937] flex flex-col justify-end sticky top-0 z-50">
 
-      <div className="w-full max-w-7xl h-17.5 mx-auto px-6 flex items-center justify-between">
+      <div className="w-full h-17.5 mx-auto px-6 flex items-center justify-between">
         
         <div className="flex items-center gap-6">
 
           <div className="flex items-center gap-1 cursor-pointer">
-            <span className="font-bold text-2xl text-gold tracking-[-1.2px]">
-              ↀ
-            </span>
+            <div className="flex items-center justify-center w-10 h-10 border-[3.3px] border-gold rounded-md mx-2">
+              <LuScale className="w-6 h-6 text-gold" />
+            </div>
             <span className="font-bold text-2xl text-white tracking-[-1.2px]">
               مستشار
             </span>
@@ -38,7 +42,7 @@ export const Navbar = () => {
             <span className=" font-normal text-sm text-white">
               إنشاء حساب
             </span>
-
+            <LuUserPlus className="text-white" />
           </button>
 
           <button className="h-9.5 px-4 border border-gold rounded-sm flex items-center justify-center transition-colors hover:bg-gold hover:text-navy group">
