@@ -14,6 +14,12 @@ public static class ContractPaymentEventTypes
     public const string MilestoneAutoAccepted = "MilestoneAutoAccepted";
     public const string MilestoneAccepted = "MilestoneAccepted";
     public const string MilestoneChangesRequested = "MilestoneChangesRequested";
+    public const string MilestoneChangeRequestApproved =
+        "MilestoneChangeRequestApproved";
+    public const string MilestoneChangeRequestRejected =
+        "MilestoneChangeRequestRejected";
+    public const string MilestoneChangeRequestCancelled =
+        "MilestoneChangeRequestCancelled";
     public const string FundsReleased = "FundsReleased";
     public const string FundsRefunded = "FundsRefunded";
     public const string DisputeOpened = "DisputeOpened";

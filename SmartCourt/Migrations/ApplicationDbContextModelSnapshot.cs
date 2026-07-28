@@ -1088,6 +1088,11 @@ namespace SmartCourt.Migrations
                     b.Property<Guid?>("DecidedByUserId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("DecisionReason")
+                        .HasMaxLength(2000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<Guid>("MilestoneId")
                         .HasColumnType("uniqueidentifier");
 

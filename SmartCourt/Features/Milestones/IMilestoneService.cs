@@ -29,4 +29,26 @@ public interface IMilestoneService
         Guid milestoneId,
         string ifMatch,
         CancellationToken cancellationToken);
+
+    Task<MilestoneActionResultDto> CreateChangeRequestAsync(
+        Guid milestoneId,
+        CreateMilestoneChangeRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneActionResultDto> ApproveChangeRequestAsync(
+        Guid changeRequestId,
+        string ifMatch,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneActionResultDto> RejectChangeRequestAsync(
+        Guid changeRequestId,
+        RejectChangeRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneActionResultDto> CancelChangeRequestAsync(
+        Guid changeRequestId,
+        string ifMatch,
+        CancellationToken cancellationToken);
 }

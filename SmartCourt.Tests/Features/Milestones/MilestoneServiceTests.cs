@@ -259,6 +259,164 @@ public sealed class MilestoneServiceTests
                 CancellationToken.None));
     }
 
+    [Fact]
+    public async Task CreateChangeRequestAsync_PersistsPendingRequestAndOutboxEvent()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateFundedMilestone();
+        await AddMilestonesAsync(context, milestone);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await service.CreateChangeRequestAsync(
+            milestone.Id,
+            new CreateMilestoneChangeRequest(
+                "وصف محدث",
+                21,
+                _utcNow.AddDays(21),
+                "تحتاج المرحلة إلى مدة إضافية."),
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        var request = await context.MilestoneChangeRequests.SingleAsync();
+        Assert.Equal(request.Id, result.EntityId);
+        Assert.Equal(ChangeRequestStatus.Pending, request.Status);
+        Assert.Equal(_clientUserId, request.RequestedByUserId);
+        Assert.Equal(
+            ContractPaymentEventTypes.MilestoneChangesRequested,
+            (await context.OutboxMessages.SingleAsync()).EventType);
+    }
+
+    [Fact]
+    public async Task CreateChangeRequestAsync_RejectsNonExtensionChanges()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateFundedMilestone();
+        await AddMilestonesAsync(context, milestone);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.CreateChangeRequestAsync(
+                milestone.Id,
+                new CreateMilestoneChangeRequest(
+                    milestone.Description,
+                    null,
+                    null,
+                    "لا يوجد تغيير فعلي."),
+                ToETag(milestone.RowVersion),
+                CancellationToken.None));
+
+        Assert.Contains("تغييرًا فعليًا", exception.Message);
+    }
+
+    [Fact]
+    public async Task ApproveChangeRequestAsync_OnlyOtherParticipantCanApproveAndPreservesFundingFacts()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateFundedMilestone();
+        var originalAmount = milestone.Amount;
+        var originalFundedAt = milestone.FundedAt;
+        await AddMilestonesAsync(context, milestone);
+        var currentUser = new MutableCurrentUser(_clientUserId);
+        var service = CreateService(
+            context,
+            currentUser,
+            CreateContractStub(ContractStatus.Active));
+        var changeRequest = new MilestoneChangeRequest(
+            Guid.NewGuid(),
+            milestone.Id,
+            _clientUserId,
+            "وصف بعد التمديد",
+            28,
+            _utcNow.AddDays(28),
+            "تحتاج المرحلة إلى مدة إضافية.",
+            _utcNow)
+        {
+            RowVersion = [8, 8, 8, 8]
+        };
+        context.MilestoneChangeRequests.Add(changeRequest);
+        await context.SaveChangesAsync();
+
+        var requesterException = await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.ApproveChangeRequestAsync(
+                changeRequest.Id,
+                ToETag(changeRequest.RowVersion),
+                CancellationToken.None));
+        Assert.Contains("مقدم طلب", requesterException.Message);
+
+        currentUser.UserId = _lawyerUserId;
+        var result = await service.ApproveChangeRequestAsync(
+            changeRequest.Id,
+            ToETag(changeRequest.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(ChangeRequestStatus.Approved.ToString(), result.Status);
+        Assert.Equal(ChangeRequestStatus.Approved, changeRequest.Status);
+        Assert.Equal("وصف بعد التمديد", milestone.Description);
+        Assert.Equal(28, milestone.DurationDays);
+        Assert.Equal(_utcNow.AddDays(28), milestone.DueDate);
+        Assert.Equal(originalAmount, milestone.Amount);
+        Assert.Equal(originalFundedAt, milestone.FundedAt);
+        Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
+        Assert.Contains(
+            ContractPaymentEventTypes.MilestoneChangeRequestApproved,
+            (await context.OutboxMessages.ToListAsync()).Select(item => item.EventType));
+    }
+
+    [Fact]
+    public async Task RejectChangeRequestAsync_StoresArabicDecisionReasonAndOutboxEvent()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateFundedMilestone();
+        await AddMilestonesAsync(context, milestone);
+        var currentUser = new MutableCurrentUser(_clientUserId);
+        var service = CreateService(
+            context,
+            currentUser,
+            CreateContractStub(ContractStatus.Active));
+        var changeRequest = new MilestoneChangeRequest(
+            Guid.NewGuid(),
+            milestone.Id,
+            _clientUserId,
+            null,
+            21,
+            _utcNow.AddDays(21),
+            "تحتاج المرحلة إلى مدة إضافية.",
+            _utcNow)
+        {
+            RowVersion = [9, 9, 9, 9]
+        };
+        context.MilestoneChangeRequests.Add(changeRequest);
+        await context.SaveChangesAsync();
+
+        currentUser.UserId = _lawyerUserId;
+        await service.RejectChangeRequestAsync(
+            changeRequest.Id,
+            new RejectChangeRequest("لا توجد مستندات تبرر التمديد."),
+            ToETag(changeRequest.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(ChangeRequestStatus.Rejected, changeRequest.Status);
+        Assert.Equal(
+            "لا توجد مستندات تبرر التمديد.",
+            changeRequest.DecisionReason);
+        Assert.Contains(
+            ContractPaymentEventTypes.MilestoneChangeRequestRejected,
+            (await context.OutboxMessages.ToListAsync()).Select(item => item.EventType));
+    }
+
+    private Milestone CreateFundedMilestone()
+    {
+        var milestone = CreateMilestone(MilestoneStatus.FundedInProgress, 1);
+        milestone.FundedAt = _utcNow.AddHours(-1);
+        return milestone;
+    }
+
     private MilestoneService CreateService(
         ApplicationDbContext context,
         MutableCurrentUser currentUser,

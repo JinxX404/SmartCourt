@@ -316,6 +316,202 @@ public sealed class MilestoneService(
         return ToActionResult(milestone, now);
     }
 
+    public async Task<MilestoneActionResultDto> CreateChangeRequestAsync(
+        Guid milestoneId,
+        CreateMilestoneChangeRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        EnsureParticipant(contract, actorUserId);
+        EnsureFundedWorkCanBeChanged(milestone);
+        EnsureExpectedVersion(milestone, ifMatch);
+        EnsureActualExtension(milestone, request);
+
+        var hasPendingRequest =
+            await dbContext.MilestoneChangeRequests.AnyAsync(
+                item =>
+                    item.MilestoneId == milestone.Id
+                    && item.Status == ChangeRequestStatus.Pending,
+                cancellationToken);
+        if (hasPendingRequest)
+        {
+            throw new ConflictException(
+                "يوجد طلب تعديل معلق لهذه المرحلة بالفعل.");
+        }
+
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        var changeRequest = new MilestoneChangeRequest(
+            Guid.NewGuid(),
+            milestone.Id,
+            actorUserId,
+            request.ProposedDescription,
+            request.ProposedDurationDays,
+            request.ProposedDueDate,
+            request.Reason,
+            now);
+        dbContext.MilestoneChangeRequests.Add(changeRequest);
+        await EnqueueChangeRequestEventAsync(
+            ContractPaymentEventTypes.MilestoneChangesRequested,
+            changeRequest,
+            correlationId,
+            cancellationToken);
+        try
+        {
+            await SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicatePendingRequestConstraintViolation(exception))
+        {
+            throw new ConflictException(
+                "يوجد طلب تعديل معلق لهذه المرحلة بالفعل.");
+        }
+
+        return ToActionResult(changeRequest, now);
+    }
+
+    public async Task<MilestoneActionResultDto> ApproveChangeRequestAsync(
+        Guid changeRequestId,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var changeRequest = await GetChangeRequestForMutationAsync(
+            changeRequestId,
+            cancellationToken);
+        var milestone = await GetMilestoneForMutationAsync(
+            changeRequest.MilestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        EnsureDecisionActor(contract, changeRequest, actorUserId);
+        EnsurePending(changeRequest);
+        EnsureFundedWorkCanBeChanged(milestone);
+        EnsureExpectedVersion(changeRequest, ifMatch);
+        EnsureExtensionStillMovesForward(milestone, changeRequest);
+
+        if (changeRequest.ProposedDescription is not null)
+        {
+            milestone.Description =
+                changeRequest.ProposedDescription;
+        }
+
+        if (changeRequest.ProposedDurationDays.HasValue)
+        {
+            milestone.DurationDays =
+                changeRequest.ProposedDurationDays;
+        }
+
+        if (changeRequest.ProposedDueDate.HasValue)
+        {
+            milestone.DueDate = changeRequest.ProposedDueDate;
+        }
+
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        ChangeRequestTransitionGuard.EnsureCanTransition(
+            changeRequest.Status,
+            ChangeRequestStatus.Approved);
+        changeRequest.Status = ChangeRequestStatus.Approved;
+        changeRequest.DecidedByUserId = actorUserId;
+        changeRequest.DecidedAt = now;
+        changeRequest.DecisionReason =
+            "وافق الطرف الآخر على طلب تعديل المرحلة.";
+        milestone.UpdatedAt = now;
+        await EnqueueChangeRequestEventAsync(
+            ContractPaymentEventTypes.MilestoneChangeRequestApproved,
+            changeRequest,
+            correlationId,
+            cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+
+        return ToActionResult(changeRequest, now);
+    }
+
+    public async Task<MilestoneActionResultDto> RejectChangeRequestAsync(
+        Guid changeRequestId,
+        RejectChangeRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var changeRequest = await GetChangeRequestForMutationAsync(
+            changeRequestId,
+            cancellationToken);
+        var milestone = await GetMilestoneForMutationAsync(
+            changeRequest.MilestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        EnsureDecisionActor(contract, changeRequest, actorUserId);
+        EnsurePending(changeRequest);
+        EnsureExpectedVersion(changeRequest, ifMatch);
+
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        ChangeRequestTransitionGuard.EnsureCanTransition(
+            changeRequest.Status,
+            ChangeRequestStatus.Rejected);
+        changeRequest.Status = ChangeRequestStatus.Rejected;
+        changeRequest.DecidedByUserId = actorUserId;
+        changeRequest.DecidedAt = now;
+        changeRequest.DecisionReason = request.Reason;
+        await EnqueueChangeRequestEventAsync(
+            ContractPaymentEventTypes.MilestoneChangeRequestRejected,
+            changeRequest,
+            correlationId,
+            cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+
+        return ToActionResult(changeRequest, now);
+    }
+
+    public async Task<MilestoneActionResultDto> CancelChangeRequestAsync(
+        Guid changeRequestId,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var changeRequest = await GetChangeRequestForMutationAsync(
+            changeRequestId,
+            cancellationToken);
+        if (changeRequest.RequestedByUserId != actorUserId)
+        {
+            throw new ForbiddenAccessException(
+                "مقدم طلب التعديل فقط هو من يمكنه إلغاء الطلب.");
+        }
+
+        EnsurePending(changeRequest);
+        EnsureExpectedVersion(changeRequest, ifMatch);
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        ChangeRequestTransitionGuard.EnsureCanTransition(
+            changeRequest.Status,
+            ChangeRequestStatus.Cancelled);
+        changeRequest.Status = ChangeRequestStatus.Cancelled;
+        changeRequest.DecidedByUserId = actorUserId;
+        changeRequest.DecidedAt = now;
+        changeRequest.DecisionReason =
+            "ألغى مقدم الطلب طلب تعديل المرحلة.";
+        await EnqueueChangeRequestEventAsync(
+            ContractPaymentEventTypes.MilestoneChangeRequestCancelled,
+            changeRequest,
+            correlationId,
+            cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+
+        return ToActionResult(changeRequest, now);
+    }
+
     private async Task<ContractDetailDto> GetContractAsync(
         Guid contractId,
         CancellationToken cancellationToken)
@@ -343,6 +539,25 @@ public sealed class MilestoneService(
                 milestone => milestone.Id == milestoneId,
                 cancellationToken)
             ?? throw new NotFoundException("المرحلة غير موجودة.");
+    }
+
+    private async Task<MilestoneChangeRequest>
+        GetChangeRequestForMutationAsync(
+            Guid changeRequestId,
+            CancellationToken cancellationToken)
+    {
+        if (changeRequestId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف طلب تعديل المرحلة مطلوب.");
+        }
+
+        return await dbContext.MilestoneChangeRequests
+                .SingleOrDefaultAsync(
+                    request => request.Id == changeRequestId,
+                    cancellationToken)
+            ?? throw new NotFoundException(
+                "طلب تعديل المرحلة غير موجود.");
     }
 
     private async Task<bool> IsCurrentSequentialMilestoneAsync(
@@ -484,6 +699,97 @@ public sealed class MilestoneService(
         }
     }
 
+    private static void EnsureFundedWorkCanBeChanged(Milestone milestone)
+    {
+        if (milestone.Status != MilestoneStatus.FundedInProgress
+            || !milestone.FundedAt.HasValue)
+        {
+            throw new BusinessException(
+                "يمكن طلب تعديل المدة أو الوصف أثناء تنفيذ المرحلة الممولة فقط.");
+        }
+    }
+
+    private static void EnsureActualExtension(
+        Milestone milestone,
+        CreateMilestoneChangeRequest request)
+    {
+        if (request.ProposedDurationDays.HasValue
+            && milestone.DurationDays.HasValue
+            && request.ProposedDurationDays.Value
+                <= milestone.DurationDays.Value)
+        {
+            throw new BusinessException(
+                "يجب أن تزيد مدة المرحلة المقترحة عن مدتها الحالية.");
+        }
+
+        if (request.ProposedDueDate.HasValue
+            && milestone.DueDate.HasValue
+            && request.ProposedDueDate.Value <= milestone.DueDate.Value)
+        {
+            throw new BusinessException(
+                "يجب أن يكون الموعد النهائي المقترح بعد الموعد الحالي.");
+        }
+
+        var descriptionChanged = request.ProposedDescription is not null
+            && !string.Equals(
+                request.ProposedDescription,
+                milestone.Description,
+                StringComparison.Ordinal);
+        var durationChanged = request.ProposedDurationDays.HasValue
+            && request.ProposedDurationDays != milestone.DurationDays;
+        var dueDateChanged = request.ProposedDueDate.HasValue
+            && request.ProposedDueDate != milestone.DueDate;
+        if (!descriptionChanged && !durationChanged && !dueDateChanged)
+        {
+            throw new BusinessException(
+                "يجب أن يتضمن طلب التعديل تغييرًا فعليًا في وصف المرحلة أو مدتها أو موعدها النهائي.");
+        }
+    }
+
+    private static void EnsureExtensionStillMovesForward(
+        Milestone milestone,
+        MilestoneChangeRequest changeRequest)
+    {
+        if (changeRequest.ProposedDurationDays.HasValue
+            && milestone.DurationDays.HasValue
+            && changeRequest.ProposedDurationDays.Value
+                <= milestone.DurationDays.Value)
+        {
+            throw new BusinessException(
+                "لم تعد مدة المرحلة المقترحة تمدد المدة الحالية، لذلك لا يمكن اعتماد الطلب.");
+        }
+
+        if (changeRequest.ProposedDueDate.HasValue
+            && milestone.DueDate.HasValue
+            && changeRequest.ProposedDueDate.Value <= milestone.DueDate.Value)
+        {
+            throw new BusinessException(
+                "لم يعد الموعد النهائي المقترح لاحقًا للموعد الحالي، لذلك لا يمكن اعتماد الطلب.");
+        }
+    }
+
+    private static void EnsureDecisionActor(
+        ContractDetailDto contract,
+        MilestoneChangeRequest changeRequest,
+        Guid actorUserId)
+    {
+        EnsureParticipant(contract, actorUserId);
+        if (changeRequest.RequestedByUserId == actorUserId)
+        {
+            throw new ForbiddenAccessException(
+                "لا يمكن لمقدم طلب التعديل اعتماد الطلب أو رفضه.");
+        }
+    }
+
+    private static void EnsurePending(MilestoneChangeRequest changeRequest)
+    {
+        if (changeRequest.Status != ChangeRequestStatus.Pending)
+        {
+            throw new ConflictException(
+                "تم حسم طلب تعديل المرحلة مسبقًا ولا يمكن تغيير حالته.");
+        }
+    }
+
     private void EnsureExpectedVersion(
         Milestone milestone,
         string ifMatch)
@@ -502,6 +808,46 @@ public sealed class MilestoneService(
         dbContext.Entry(milestone)
             .Property(item => item.RowVersion)
             .OriginalValue = expectedVersion;
+    }
+
+    private void EnsureExpectedVersion(
+        MilestoneChangeRequest changeRequest,
+        string ifMatch)
+    {
+        var expectedVersion = ParseIfMatch(ifMatch);
+        if (changeRequest.RowVersion.Length == 0
+            || expectedVersion.Length != changeRequest.RowVersion.Length
+            || !CryptographicOperations.FixedTimeEquals(
+                expectedVersion,
+                changeRequest.RowVersion))
+        {
+            throw new ConflictException(
+                "تم تعديل طلب التعديل بواسطة عملية أخرى. يرجى إعادة تحميله والمحاولة مرة أخرى.");
+        }
+
+        dbContext.Entry(changeRequest)
+            .Property(item => item.RowVersion)
+            .OriginalValue = expectedVersion;
+    }
+
+    private async Task EnqueueChangeRequestEventAsync(
+        string eventType,
+        MilestoneChangeRequest changeRequest,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                eventType,
+                1,
+                new MilestoneChangeRequestEventPayload(
+                    changeRequest.MilestoneId,
+                    changeRequest.Id,
+                    changeRequest.Status.ToString()),
+                "MilestoneChangeRequest",
+                changeRequest.Id,
+                correlationId),
+            cancellationToken);
     }
 
     private static byte[] ParseIfMatch(string ifMatch)
@@ -546,6 +892,18 @@ public sealed class MilestoneService(
         }
     }
 
+    private static bool IsDuplicatePendingRequestConstraintViolation(
+        DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException
+            {
+                Number: 2601 or 2627
+            } sqlException
+            && sqlException.Message.Contains(
+                "UX_MilestoneChangeRequests_Pending",
+                StringComparison.Ordinal);
+    }
+
     private static bool IsDuplicateOrderConstraintViolation(
         DbUpdateException exception)
     {
@@ -583,6 +941,16 @@ public sealed class MilestoneService(
         return new MilestoneActionResultDto(
             milestone.Id,
             milestone.Status.ToString(),
+            occurredAt);
+    }
+
+    private static MilestoneActionResultDto ToActionResult(
+        MilestoneChangeRequest changeRequest,
+        DateTime occurredAt)
+    {
+        return new MilestoneActionResultDto(
+            changeRequest.Id,
+            changeRequest.Status.ToString(),
             occurredAt);
     }
 

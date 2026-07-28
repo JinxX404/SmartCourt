@@ -33,7 +33,10 @@ public sealed record MilestoneChangeRequestDto(
     ChangeRequestStatus Status,
     Guid? DecidedByUserId,
     DateTime? DecidedAt,
-    DateTime CreatedAt);
+    DateTime CreatedAt)
+{
+    public string? DecisionReason { get; init; }
+}
 
 public sealed record MilestoneActionResultDto(
     Guid EntityId,

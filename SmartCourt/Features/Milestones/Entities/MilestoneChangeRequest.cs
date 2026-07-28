@@ -60,6 +60,7 @@ public sealed class MilestoneChangeRequest
     public ChangeRequestStatus Status { get; internal set; }
     public Guid? DecidedByUserId { get; internal set; }
     public DateTime? DecidedAt { get; internal set; }
+    public string? DecisionReason { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTime CreatedAt { get; internal set; }
 }
