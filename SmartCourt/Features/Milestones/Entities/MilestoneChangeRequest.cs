@@ -25,7 +25,7 @@ public sealed class MilestoneChangeRequest
             && proposedDueDate is null)
         {
             throw new BusinessException(
-                "A change request must propose at least one change.");
+                "يجب أن يتضمن طلب التعديل تغييرًا واحدًا على الأقل.");
         }
 
         Id = EntityGuard.NotEmpty(id, nameof(id));

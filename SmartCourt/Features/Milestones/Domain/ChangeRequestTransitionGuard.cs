@@ -23,7 +23,7 @@ internal static class ChangeRequestTransitionGuard
             || !AllowedTransitions.Contains((current, next)))
         {
             throw new BusinessException(
-                $"Invalid change-request transition from '{current}' to '{next}'.");
+                $"لا يمكن تغيير حالة طلب تعديل المرحلة من '{current}' إلى '{next}'.");
         }
     }
 }
