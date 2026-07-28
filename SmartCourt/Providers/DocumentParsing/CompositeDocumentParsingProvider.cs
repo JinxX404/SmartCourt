@@ -70,6 +70,6 @@ public class CompositeDocumentParsingProvider : IDocumentParsingProvider
             sb.AppendLine(paragraph.InnerText);
         }
 
-        return sb.ToString().Trim();
+        return SmartCourt.Providers.PdfParser.ArabicTextNormalizer.Normalize(sb.ToString().Trim());
     }
 }

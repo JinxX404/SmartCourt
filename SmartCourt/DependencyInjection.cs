@@ -297,8 +297,8 @@ public static class DependencyInjection
         services.AddScoped<IDocumentParsingProvider, SmartCourt.Providers.DocumentParsing.CompositeDocumentParsingProvider>();
 
         // --- RAG Pipeline: Chat Model ---
-        services.Configure<SmartCourt.Providers.ChatModel.GeminiChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.GeminiChatModelOptions.SectionName));
-        services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.GeminiChatModelProvider>();
+        services.Configure<SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions.SectionName));
+        services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.DeepSeekChatModelProvider>();
 
         // --- Feature: Document Review ---
         services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();

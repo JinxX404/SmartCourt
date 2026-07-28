@@ -6,11 +6,11 @@ using SmartCourt.Features.DocumentReview.DTOs;
 
 namespace SmartCourt.Features.DocumentReview.Validators;
 
-public class AnalyzeDocumentRequestValidator : AbstractValidator<AnalyzeDocumentRequest>
+public class ReviewDocumentRequestValidator : AbstractValidator<ReviewDocumentRequest>
 {
     private readonly string[] _allowedExtensions = { ".pdf", ".doc", ".docx" };
 
-    public AnalyzeDocumentRequestValidator()
+    public ReviewDocumentRequestValidator()
     {
         RuleFor(x => x.File)
             .NotNull().WithMessage("File is required.")

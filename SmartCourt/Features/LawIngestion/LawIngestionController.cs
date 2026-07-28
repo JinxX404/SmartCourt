@@ -22,7 +22,7 @@ public class LawIngestionController : ControllerBase
     }
 
     [HttpPost("ingest")]
-    public async Task<ActionResult<ApiResponse<IngestLawDocumentResponse>>> Ingest([FromBody] IngestLawDocumentRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<IngestLawDocumentResponse>>> Ingest([FromForm] IngestLawDocumentRequest request, CancellationToken cancellationToken)
     {
         var result = await _service.StartIngestionAsync(request, cancellationToken);
         return Ok(ApiResponse<IngestLawDocumentResponse>.Ok(result, "Ingestion started successfully."));
