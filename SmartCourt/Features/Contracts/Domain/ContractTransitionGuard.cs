@@ -27,7 +27,7 @@ internal static class ContractTransitionGuard
             || !AllowedTransitions.Contains((current, next)))
         {
             throw new BusinessException(
-                $"Invalid contract transition from '{current}' to '{next}'.");
+                $"لا يمكن تغيير حالة العقد من '{current}' إلى '{next}'.");
         }
     }
 }

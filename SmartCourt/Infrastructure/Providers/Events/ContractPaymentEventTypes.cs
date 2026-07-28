@@ -5,6 +5,7 @@ public static class ContractPaymentEventTypes
     public const string ContractCreated = "ContractCreated";
     public const string ContractAccepted = "ContractAccepted";
     public const string ContractActivated = "ContractActivated";
+    public const string ContractCompleted = "ContractCompleted";
     public const string MilestoneReadyForFunding = "MilestoneReadyForFunding";
     public const string MilestoneFundingStarted = "MilestoneFundingStarted";
     public const string MilestoneFunded = "MilestoneFunded";

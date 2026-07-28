@@ -38,6 +38,8 @@ using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Contracts;
+using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Entities;
@@ -133,6 +135,10 @@ public static class DependencyInjection
         services.AddScoped<
             IMilestoneSchedulingReconciliationService,
             MilestoneSchedulingReconciliationService>();
+        services.AddScoped<
+            IContractCreationDependencyGate,
+            ContractCreationDependencyGate>();
+        services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
 
