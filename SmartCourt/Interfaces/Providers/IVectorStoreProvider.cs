@@ -21,6 +21,8 @@ public interface IVectorStoreProvider
         float[] queryVector, int topK,
         Dictionary<string, string>? filters = null,
         CancellationToken cancellationToken = default);
+
+    Task DeleteCollectionAsync(string collectionName, CancellationToken cancellationToken = default);
 }
 
 public record VectorPoint(
