@@ -139,6 +139,7 @@ public static class DependencyInjection
             IContractCreationDependencyGate,
             ContractCreationDependencyGate>();
         services.AddScoped<IContractService, ContractService>();
+        services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
 
