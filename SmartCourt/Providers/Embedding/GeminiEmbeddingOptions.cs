@@ -9,7 +9,7 @@ public class GeminiEmbeddingOptions
     public string Model { get; set; } = "gemini-embedding-2";
     
     // Configurable output dimensionality for Matryoshka Representation Learning (MRL)
-    public int Dimensions { get; set; } = 768;
+    public int Dimensions { get; set; } = 1536;
     
     // API endpoint, generally https://generativelanguage.googleapis.com/v1beta/
     public string BaseUrl { get; set; } = "https://generativelanguage.googleapis.com/v1beta/";

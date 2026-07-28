@@ -64,13 +64,35 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
 
         var requestUrl = $"models/{_options.Model}:batchEmbedContents?key={_options.ApiKey}";
 
-        var response = await _httpClient.PostAsJsonAsync(requestUrl, requestBody, cancellationToken);
+        HttpResponseMessage? response = null;
+        int maxRetries = 3;
+        int delayMs = 2000;
 
-        if (!response.IsSuccessStatusCode)
+        for (int i = 0; i < maxRetries; i++)
         {
+            response = await _httpClient.PostAsJsonAsync(requestUrl, requestBody, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                break;
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests && i < maxRetries - 1)
+            {
+                _logger.LogWarning("Gemini Embedding API rate limit hit. Retrying in {Delay}ms...", delayMs);
+                await Task.Delay(delayMs, cancellationToken);
+                delayMs *= 2; // Exponential backoff
+                continue;
+            }
+
             var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
             _logger.LogError("Gemini API failed with status {StatusCode}: {Error}", response.StatusCode, errorBody);
             throw new BusinessException($"Failed to generate embeddings via Gemini: {response.ReasonPhrase}");
+        }
+
+        if (response == null)
+        {
+            throw new BusinessException("Failed to generate embeddings via Gemini.");
         }
 
         var responseData = await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken: cancellationToken);
