@@ -7,7 +7,8 @@ using SmartCourt.Infrastructure.Providers.Payments;
 
 namespace SmartCourt.Providers.Payments;
 
-public sealed class MockPaymentProvider : IPaymentProvider
+public sealed class MockPaymentProvider
+    : IPaymentProvider, IPaymentReconciliationProvider
 {
     private readonly ConcurrentDictionary<string, ProviderResult> _results = new();
     private readonly ILogger<MockPaymentProvider> _logger;
@@ -67,6 +68,18 @@ public sealed class MockPaymentProvider : IPaymentProvider
             request,
             request.ProviderIdempotencyKey,
             cancellationToken);
+    }
+
+    public async Task<ProviderResult?> GetDepositStatusAsync(
+        ProviderDepositStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        cancellationToken.ThrowIfCancellationRequested();
+        _results.TryGetValue(
+            $"deposit:{request.ProviderIdempotencyKey}",
+            out var result);
+        return result;
     }
 
     private async Task<ProviderResult> ExecuteAsync(

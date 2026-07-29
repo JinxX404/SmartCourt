@@ -1,7 +1,10 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Enums;
@@ -15,9 +18,11 @@ using SmartCourt.Features.Payments.Settlement;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Providers.Payments;
 
 namespace SmartCourt.Features.Payments;
 
@@ -26,8 +31,11 @@ public sealed class PaymentEscrowService(
     ICurrentUserService currentUserService,
     IContractService contractService,
     IPaymentProvider paymentProvider,
+    IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
     IOutboxWriter outboxWriter,
+    IOptions<PaymentProviderOptions> paymentProviderOptions,
+    ILogger<PaymentEscrowService> logger,
     TimeProvider timeProvider) : IPaymentEscrowService
 {
     private const string FundOperation = "FundMilestone";
@@ -235,13 +243,304 @@ public sealed class PaymentEscrowService(
         };
     }
 
+    public async Task<PaymentActionResultDto> HandleWebhookAsync(
+        PaymentWebhookRequest request,
+        string? eventIdHeader,
+        string? timestampHeader,
+        string? signatureHeader,
+        string rawBody,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            ValidateWebhookAuthentication(
+                request,
+                eventIdHeader,
+                timestampHeader,
+                signatureHeader,
+                rawBody);
+        }
+        catch (BusinessException)
+        {
+            logger.LogWarning(
+                "Rejected payment webhook {EventId}: authentication failed.",
+                request.EventId);
+            throw;
+        }
+
+        var existingEvent = await dbContext.PaymentWebhookEvents
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.EventId == request.EventId,
+                cancellationToken);
+        if (existingEvent is not null)
+        {
+            if (existingEvent.PaymentTransactionId
+                != request.PaymentTransactionId)
+            {
+                throw new BusinessException(
+                    "تم استخدام معرّف حدث الدفع مسبقًا لمعاملة مختلفة.");
+            }
+
+            return new PaymentActionResultDto(
+                request.PaymentTransactionId,
+                "Duplicate",
+                UtcNow);
+        }
+
+        var paymentTransaction = await dbContext.PaymentTransactions
+            .SingleOrDefaultAsync(
+                item =>
+                    item.Id == request.PaymentTransactionId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "معاملة الدفع المرتبطة بإشعار المزود غير موجودة.");
+        try
+        {
+            EnsureWebhookMatchesTransaction(
+                paymentTransaction,
+                request);
+        }
+        catch (BusinessException)
+        {
+            logger.LogWarning(
+                "Rejected payment webhook {EventId}: payload mismatch for transaction {PaymentTransactionId}.",
+                request.EventId,
+                request.PaymentTransactionId);
+            throw;
+        }
+
+        if (paymentTransaction.Status
+            != PaymentTransactionStatus.Processing)
+        {
+            return await RecordTerminalWebhookAsync(
+                paymentTransaction,
+                request,
+                cancellationToken);
+        }
+
+        if (request.Status == PaymentTransactionStatus.Processing)
+        {
+            throw new BusinessException(
+                "إشعار مزود الدفع لا يحتوي على نتيجة نهائية للمعاملة.");
+        }
+
+        var milestone = await dbContext.Milestones
+            .SingleOrDefaultAsync(
+                item => item.Id == paymentTransaction.MilestoneId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "المرحلة المرتبطة بمعاملة الدفع غير موجودة.");
+        if (milestone.ContractId != paymentTransaction.ContractId
+            || milestone.Status
+                != MilestoneStatus.FundingProcessing)
+        {
+            logger.LogWarning(
+                "Rejected payment webhook {EventId}: milestone state or ownership mismatch for transaction {PaymentTransactionId}.",
+                request.EventId,
+                request.PaymentTransactionId);
+            throw new BusinessException(
+                "حالة المرحلة أو ارتباطها بمعاملة الدفع لا يسمحان بإكمال الإشعار.");
+        }
+
+        var contract = await dbContext.Contracts
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == paymentTransaction.ContractId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "العقد المرتبط بمعاملة الدفع غير موجود.");
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        var reservationId =
+            await FindProcessingFundingReservationIdAsync(
+                milestone.Id,
+                cancellationToken);
+        dbContext.PaymentWebhookEvents.Add(
+            new PaymentWebhookEvent(
+                Guid.NewGuid(),
+                request.EventId,
+                paymentTransaction.Id,
+                now));
+
+        if (request.Status == PaymentTransactionStatus.Completed)
+        {
+            var providerResult = new ProviderResult(
+                paymentTransaction.Amount,
+                paymentTransaction.Currency,
+                milestone.Id,
+                paymentTransaction.IdempotencyKey,
+                correlationId,
+                ProviderOperationOutcome.Succeeded,
+                request.ProviderTransactionId,
+                null);
+            try
+            {
+                await CompleteFundingAsync(
+                    milestone,
+                    contract.LawyerUserId,
+                    paymentTransaction,
+                    providerResult,
+                    reservationId,
+                    null,
+                    correlationId,
+                    cancellationToken);
+            }
+            catch (BusinessException)
+            {
+                if (await WebhookEventExistsAsync(
+                        request.EventId,
+                        cancellationToken))
+                {
+                    return new PaymentActionResultDto(
+                        paymentTransaction.Id,
+                        "Duplicate",
+                        UtcNow);
+                }
+
+                throw;
+            }
+
+            return new PaymentActionResultDto(
+                paymentTransaction.Id,
+                PaymentTransactionStatus.Completed.ToString(),
+                now);
+        }
+
+        return await FinalizeFailedExternalResultAsync(
+            milestone,
+            paymentTransaction,
+            request.ProviderTransactionId,
+            reservationId,
+            correlationId,
+            cancellationToken);
+    }
+
+    public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
+        Guid paymentTransactionId,
+        CancellationToken cancellationToken)
+    {
+        if (paymentTransactionId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف معاملة الدفع مطلوب لإجراء المطابقة.");
+        }
+
+        var paymentTransaction = await dbContext.PaymentTransactions
+            .SingleOrDefaultAsync(
+                item => item.Id == paymentTransactionId,
+                cancellationToken);
+        if (paymentTransaction is null)
+        {
+            return JobExecutionResult.NoOp(
+                "PaymentTransactionNotFound");
+        }
+
+        if (paymentTransaction.Status
+            != PaymentTransactionStatus.Processing)
+        {
+            return JobExecutionResult.NoOp(
+                "PaymentTransactionAlreadyFinal");
+        }
+
+        if (paymentTransaction.OperationType
+                != PaymentOperationType.Deposit
+            || !paymentTransaction.MilestoneId.HasValue)
+        {
+            return JobExecutionResult.NoOp(
+                "PaymentOperationNotSupported");
+        }
+
+        var milestone = await dbContext.Milestones
+            .SingleOrDefaultAsync(
+                item =>
+                    item.Id
+                        == paymentTransaction.MilestoneId.Value,
+                cancellationToken);
+        if (milestone is null
+            || milestone.Status
+                != MilestoneStatus.FundingProcessing)
+        {
+            return JobExecutionResult.NoOp(
+                "MilestoneNoLongerAwaitingReconciliation");
+        }
+
+        var correlationId = Guid.NewGuid();
+        var result =
+            await reconciliationProvider.GetDepositStatusAsync(
+                new ProviderDepositStatusRequest(
+                    paymentTransaction.Amount,
+                    paymentTransaction.Currency,
+                    milestone.Id,
+                    paymentTransaction.IdempotencyKey,
+                    correlationId),
+                cancellationToken);
+        if (result is null
+            || result.Outcome == ProviderOperationOutcome.Unknown)
+        {
+            return JobExecutionResult.NoOp(
+                "ProviderOutcomeStillUnknown");
+        }
+
+        if (!ReconciliationResultMatches(
+                result,
+                paymentTransaction,
+                milestone.Id))
+        {
+            logger.LogWarning(
+                "Rejected provider reconciliation result for transaction {PaymentTransactionId}: financial facts do not match.",
+                paymentTransaction.Id);
+            throw new BusinessException(
+                "نتيجة مطابقة مزود الدفع لا تطابق بيانات معاملة التمويل الأصلية.");
+        }
+
+        var contract = await dbContext.Contracts
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == paymentTransaction.ContractId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "العقد المرتبط بمعاملة الدفع غير موجود.");
+        var reservationId =
+            await FindProcessingFundingReservationIdAsync(
+                milestone.Id,
+                cancellationToken);
+
+        if (result.Outcome == ProviderOperationOutcome.Succeeded)
+        {
+            await CompleteFundingAsync(
+                milestone,
+                contract.LawyerUserId,
+                paymentTransaction,
+                result,
+                reservationId,
+                null,
+                correlationId,
+                cancellationToken);
+        }
+        else
+        {
+            await FinalizeFailedExternalResultAsync(
+                milestone,
+                paymentTransaction,
+                result.ProviderTransactionId
+                    ?? $"reconciled-failed-{paymentTransaction.Id:N}",
+                reservationId,
+                correlationId,
+                cancellationToken);
+        }
+
+        return JobExecutionResult.Completed(
+            "ProviderTransactionReconciled");
+    }
+
     private async Task<PaymentDto> CompleteFundingAsync(
         Milestone milestone,
         Guid lawyerUserId,
         PaymentTransaction paymentTransaction,
         ProviderResult providerResult,
-        Guid reservationId,
-        Guid actorUserId,
+        Guid? reservationId,
+        Guid? actorUserId,
         Guid correlationId,
         CancellationToken cancellationToken)
     {
@@ -369,12 +668,16 @@ public sealed class PaymentEscrowService(
                 exception);
         }
 
-        await idempotencyService.CompleteAsync(
-            reservationId,
-            200,
-            response,
-            hold.Id,
-            cancellationToken);
+        if (reservationId.HasValue)
+        {
+            await idempotencyService.CompleteAsync(
+                reservationId.Value,
+                200,
+                response,
+                hold.Id,
+                cancellationToken);
+        }
+
         return response;
     }
 
@@ -454,6 +757,267 @@ public sealed class PaymentEscrowService(
         {
             dbContext.ChangeTracker.Clear();
         }
+    }
+
+    private void ValidateWebhookAuthentication(
+        PaymentWebhookRequest request,
+        string? eventIdHeader,
+        string? timestampHeader,
+        string? signatureHeader,
+        string rawBody)
+    {
+        if (!string.Equals(
+                eventIdHeader,
+                request.EventId,
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "معرّف حدث الدفع في الترويسة لا يطابق محتوى الإشعار.");
+        }
+
+        if (!long.TryParse(
+                timestampHeader,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var timestamp))
+        {
+            throw new BusinessException(
+                "توقيت إشعار مزود الدفع غير صالح.");
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var sentAt = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+        if (Math.Abs((now - sentAt).TotalSeconds) > 300)
+        {
+            throw new BusinessException(
+                "انتهت صلاحية إشعار مزود الدفع أو أن توقيته خارج النطاق المسموح.");
+        }
+
+        var secret = paymentProviderOptions.Value.WebhookSecret;
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new BusinessException(
+                "سر التحقق من إشعارات مزود الدفع غير مهيأ.");
+        }
+
+        if (string.IsNullOrWhiteSpace(signatureHeader)
+            || !signatureHeader.StartsWith(
+                "v1=",
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "توقيع إشعار مزود الدفع مفقود أو غير صالح.");
+        }
+
+        byte[] suppliedSignature;
+        try
+        {
+            suppliedSignature = Convert.FromBase64String(
+                signatureHeader[3..]);
+        }
+        catch (FormatException exception)
+        {
+            throw new BusinessException(
+                "توقيع إشعار مزود الدفع غير صالح.",
+                exception);
+        }
+
+        var signedPayload = Encoding.UTF8.GetBytes(
+            $"{timestampHeader}.{rawBody}");
+        var expectedSignature = HMACSHA256.HashData(
+            Encoding.UTF8.GetBytes(secret),
+            signedPayload);
+        if (suppliedSignature.Length != expectedSignature.Length
+            || !CryptographicOperations.FixedTimeEquals(
+                suppliedSignature,
+                expectedSignature))
+        {
+            logger.LogWarning(
+                "Rejected payment webhook {EventId}: invalid signature.",
+                request.EventId);
+            throw new BusinessException(
+                "تعذر التحقق من توقيع إشعار مزود الدفع.");
+        }
+    }
+
+    private static void EnsureWebhookMatchesTransaction(
+        PaymentTransaction paymentTransaction,
+        PaymentWebhookRequest request)
+    {
+        if (paymentTransaction.OperationType
+                != PaymentOperationType.Deposit
+            || !paymentTransaction.MilestoneId.HasValue)
+        {
+            throw new BusinessException(
+                "إشعار التمويل لا يرتبط بمحاولة إيداع صالحة.");
+        }
+
+        if (request.Amount != paymentTransaction.Amount
+            || !string.Equals(
+                request.Currency,
+                paymentTransaction.Currency,
+                StringComparison.Ordinal)
+            || !string.Equals(
+                request.Currency,
+                "EGP",
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "قيمة أو عملة إشعار الدفع لا تطابق معاملة التمويل الأصلية.");
+        }
+
+        if (!Enum.IsDefined(request.Status))
+        {
+            throw new BusinessException(
+                "حالة إشعار مزود الدفع غير صالحة.");
+        }
+
+        if (string.IsNullOrWhiteSpace(
+                request.ProviderTransactionId)
+            || request.ProviderTransactionId.Length > 200)
+        {
+            throw new BusinessException(
+                "معرّف معاملة مزود الدفع في الإشعار غير صالح.");
+        }
+
+        if (paymentTransaction.ProviderTransactionId is not null
+            && !string.Equals(
+                paymentTransaction.ProviderTransactionId,
+                request.ProviderTransactionId,
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "معرّف معاملة مزود الدفع لا يطابق المحاولة الأصلية.");
+        }
+    }
+
+    private async Task<PaymentActionResultDto> RecordTerminalWebhookAsync(
+        PaymentTransaction paymentTransaction,
+        PaymentWebhookRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.Status != paymentTransaction.Status)
+        {
+            throw new BusinessException(
+                "يتعارض إشعار مزود الدفع مع النتيجة النهائية المسجلة للمعاملة.");
+        }
+
+        dbContext.PaymentWebhookEvents.Add(
+            new PaymentWebhookEvent(
+                Guid.NewGuid(),
+                request.EventId,
+                paymentTransaction.Id,
+                UtcNow));
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.ChangeTracker.Clear();
+            if (!await WebhookEventExistsAsync(
+                    request.EventId,
+                    cancellationToken))
+            {
+                throw new BusinessException(
+                    "تعذر تسجيل إشعار مزود الدفع المكرر.");
+            }
+        }
+
+        return new PaymentActionResultDto(
+            paymentTransaction.Id,
+            "Duplicate",
+            UtcNow);
+    }
+
+    private async Task<PaymentActionResultDto> FinalizeFailedExternalResultAsync(
+        Milestone milestone,
+        PaymentTransaction paymentTransaction,
+        string providerTransactionId,
+        Guid? reservationId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        var now = UtcNow;
+        paymentTransaction.ProviderTransactionId =
+            providerTransactionId;
+        paymentTransaction.Status = PaymentTransactionStatus.Failed;
+        paymentTransaction.FailureReason =
+            "أكد مزود الدفع فشل عملية تمويل المرحلة.";
+        paymentTransaction.ProcessedAt = now;
+        paymentTransaction.UpdatedAt = now;
+
+        MilestoneTransitionGuard.EnsureCanTransition(
+            milestone.Status,
+            MilestoneStatus.AwaitingFunding);
+        var previousStatus = milestone.Status;
+        milestone.Status = MilestoneStatus.AwaitingFunding;
+        milestone.UpdatedAt = now;
+        AddHistory(
+            milestone,
+            previousStatus,
+            MilestoneStatus.AwaitingFunding,
+            ContractPaymentEventTypes.MilestoneFundingFailed,
+            null,
+            "أكد إشعار مزود الدفع فشل عملية التمويل.",
+            correlationId,
+            now);
+        await EnqueueMilestoneEventAsync(
+            ContractPaymentEventTypes.MilestoneFundingFailed,
+            milestone.Id,
+            correlationId,
+            cancellationToken);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.ChangeTracker.Clear();
+            throw new BusinessException(
+                "تعذر توثيق نتيجة فشل التمويل الواردة من مزود الدفع.");
+        }
+
+        if (reservationId.HasValue)
+        {
+            await FailReservationAsync(
+                reservationId.Value,
+                paymentTransaction.Id,
+                "أكد مزود الدفع فشل عملية تمويل المرحلة.",
+                cancellationToken);
+        }
+
+        return new PaymentActionResultDto(
+            paymentTransaction.Id,
+            PaymentTransactionStatus.Failed.ToString(),
+            now);
+    }
+
+    private async Task<Guid?> FindProcessingFundingReservationIdAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.IdempotencyRecords
+            .AsNoTracking()
+            .Where(item =>
+                item.Operation == FundOperation
+                && item.ResourceType == MilestoneResource
+                && item.ResourceId == milestoneId
+                && item.Status == IdempotencyStatus.Processing)
+            .Select(item => (Guid?)item.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<bool> WebhookEventExistsAsync(
+        string eventId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.PaymentWebhookEvents
+            .AsNoTracking()
+            .AnyAsync(
+                item => item.EventId == eventId,
+                cancellationToken);
     }
 
     private async Task EnsureFundingAllowedAsync(
@@ -599,13 +1163,16 @@ public sealed class PaymentEscrowService(
         MilestoneStatus previousStatus,
         MilestoneStatus newStatus,
         string trigger,
-        Guid actorUserId,
+        Guid? actorUserId,
         string reason,
         Guid correlationId,
         DateTime occurredAt)
     {
+        MilestoneTransitionGuard.EnsureCanTransition(
+            previousStatus,
+            newStatus);
         dbContext.MilestoneStateHistories.Add(
-            MilestoneStateHistoryFactory.Create(
+            new MilestoneStateHistory(
                 Guid.NewGuid(),
                 milestone.Id,
                 previousStatus,
@@ -693,6 +1260,23 @@ public sealed class PaymentEscrowService(
                 request.ProviderIdempotencyKey,
                 StringComparison.Ordinal)
             && result.CorrelationId == request.CorrelationId;
+    }
+
+    private static bool ReconciliationResultMatches(
+        ProviderResult result,
+        PaymentTransaction paymentTransaction,
+        Guid milestoneId)
+    {
+        return result.Amount == paymentTransaction.Amount
+            && string.Equals(
+                result.Currency,
+                paymentTransaction.Currency,
+                StringComparison.Ordinal)
+            && result.BusinessId == milestoneId
+            && string.Equals(
+                result.ProviderIdempotencyKey,
+                paymentTransaction.IdempotencyKey,
+                StringComparison.Ordinal);
     }
 
     private static PaymentDto MapPayment(EscrowHold hold)

@@ -23,6 +23,7 @@ public class ApplicationDbContext
         typeof(MilestoneSubmission),
         typeof(MilestoneSubmissionAttachment),
         typeof(EscrowLedgerEntry),
+        typeof(PaymentWebhookEvent),
         typeof(DisputeResolution),
         typeof(DisputeEvidence),
         typeof(LawyerPenalty),
@@ -42,6 +43,7 @@ public class ApplicationDbContext
         typeof(EscrowHold),
         typeof(EscrowLedgerEntry),
         typeof(PaymentTransaction),
+        typeof(PaymentWebhookEvent),
         typeof(LawyerWallet),
         typeof(WithdrawalRequest),
         typeof(Dispute),
@@ -100,6 +102,8 @@ public class ApplicationDbContext
         Set<EscrowLedgerEntry>();
     public DbSet<PaymentTransaction> PaymentTransactions =>
         Set<PaymentTransaction>();
+    public DbSet<PaymentWebhookEvent> PaymentWebhookEvents =>
+        Set<PaymentWebhookEvent>();
     public DbSet<LawyerWallet> LawyerWallets => Set<LawyerWallet>();
     public DbSet<WithdrawalRequest> WithdrawalRequests =>
         Set<WithdrawalRequest>();

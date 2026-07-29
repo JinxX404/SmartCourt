@@ -1,8 +1,13 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
@@ -13,9 +18,11 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Providers.Payments;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Payments;
@@ -277,6 +284,270 @@ public sealed class PaymentEscrowServiceTests
         Assert.Single(await context.PaymentTransactions.ToListAsync());
     }
 
+    [Fact]
+    public async Task HandleWebhookAsync_ValidSuccessCompletesUnknownFundingOnce()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var request = CreateWebhookRequest(
+            transaction.Id,
+            PaymentTransactionStatus.Completed);
+        var rawBody = JsonSerializer.Serialize(request);
+
+        var first = await service.HandleWebhookAsync(
+            request,
+            request.EventId,
+            TimestampHeader(),
+            Signature(TimestampHeader(), rawBody),
+            rawBody,
+            CancellationToken.None);
+        var duplicate = await service.HandleWebhookAsync(
+            request,
+            request.EventId,
+            TimestampHeader(),
+            Signature(TimestampHeader(), rawBody),
+            rawBody,
+            CancellationToken.None);
+
+        Assert.Equal(
+            PaymentTransactionStatus.Completed.ToString(),
+            first.Status);
+        Assert.Equal("Duplicate", duplicate.Status);
+        Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
+        Assert.Single(await context.EscrowHolds.ToListAsync());
+        Assert.Single(await context.EscrowLedgerEntries.ToListAsync());
+        Assert.Single(await context.PaymentWebhookEvents.ToListAsync());
+    }
+
+    [Fact]
+    public async Task HandleWebhookAsync_ValidFailureReturnsMilestoneWithoutMoneyMovement()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var request = CreateWebhookRequest(
+            transaction.Id,
+            PaymentTransactionStatus.Failed);
+        var rawBody = JsonSerializer.Serialize(request);
+
+        var result = await service.HandleWebhookAsync(
+            request,
+            request.EventId,
+            TimestampHeader(),
+            Signature(TimestampHeader(), rawBody),
+            rawBody,
+            CancellationToken.None);
+
+        Assert.Equal(
+            PaymentTransactionStatus.Failed.ToString(),
+            result.Status);
+        Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+        Assert.Equal(PaymentTransactionStatus.Failed, transaction.Status);
+        Assert.Empty(await context.EscrowHolds.ToListAsync());
+        Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
+        Assert.Single(await context.PaymentWebhookEvents.ToListAsync());
+    }
+
+    [Fact]
+    public async Task HandleWebhookAsync_RejectsInvalidSignatureWithoutMutation()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var request = CreateWebhookRequest(
+            transaction.Id,
+            PaymentTransactionStatus.Completed);
+        var rawBody = JsonSerializer.Serialize(request);
+
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.HandleWebhookAsync(
+                request,
+                request.EventId,
+                TimestampHeader(),
+                "v1=AAAA",
+                rawBody,
+                CancellationToken.None));
+
+        Assert.Contains("توقيع", exception.Message);
+        Assert.Equal(MilestoneStatus.FundingProcessing, milestone.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Processing,
+            transaction.Status);
+        Assert.Empty(await context.PaymentWebhookEvents.ToListAsync());
+        Assert.Empty(await context.EscrowHolds.ToListAsync());
+    }
+
+    [Fact]
+    public async Task HandleWebhookAsync_RejectsAlteredAmountWithoutMutation()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var request = CreateWebhookRequest(
+            transaction.Id,
+            PaymentTransactionStatus.Completed) with
+        {
+            Amount = 999m
+        };
+        var rawBody = JsonSerializer.Serialize(request);
+
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.HandleWebhookAsync(
+                request,
+                request.EventId,
+                TimestampHeader(),
+                Signature(TimestampHeader(), rawBody),
+                rawBody,
+                CancellationToken.None));
+
+        Assert.Contains("قيمة", exception.Message);
+        Assert.Equal(MilestoneStatus.FundingProcessing, milestone.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Processing,
+            transaction.Status);
+        Assert.Empty(await context.PaymentWebhookEvents.ToListAsync());
+        Assert.Empty(await context.EscrowHolds.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ReconcileProviderTransactionAsync_FinalizesConfirmedSuccess()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Succeeded),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        var result = await service.ReconcileProviderTransactionAsync(
+            transaction.Id,
+            CancellationToken.None);
+
+        Assert.Equal(
+            JobExecutionOutcome.Completed,
+            result.Outcome);
+        Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Completed,
+            transaction.Status);
+        Assert.Single(await context.EscrowHolds.ToListAsync());
+        Assert.Single(await context.EscrowLedgerEntries.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ReconcileProviderTransactionAsync_LeavesUnknownOutcomeProcessing()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        var result = await service.ReconcileProviderTransactionAsync(
+            transaction.Id,
+            CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.NoOp, result.Outcome);
+        Assert.Equal(
+            "ProviderOutcomeStillUnknown",
+            result.Reason);
+        Assert.Equal(MilestoneStatus.FundingProcessing, milestone.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Processing,
+            transaction.Status);
+        Assert.Empty(await context.EscrowHolds.ToListAsync());
+    }
+
+    private async Task<(Milestone Milestone, PaymentTransaction Transaction)>
+        SeedProcessingFundingAsync(ApplicationDbContext context)
+    {
+        var contract = new Contract(
+            _contractId,
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            _clientUserId,
+            _lawyerUserId,
+            "عقد تمثيل قانوني",
+            "الشروط والأحكام المعتمدة.",
+            Now.AddDays(-2))
+        {
+            Status = ContractStatus.Active,
+            ActivatedAt = Now.AddDays(-1)
+        };
+        var milestone = CreateMilestone(
+            status: MilestoneStatus.FundingProcessing);
+        var transaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            _contractId,
+            milestone.Id,
+            PaymentOperationType.Deposit,
+            "TestPaymentProvider",
+            "provider-idempotency-key",
+            milestone.Amount,
+            Now.AddMinutes(-10));
+        context.Contracts.Add(contract);
+        context.Milestones.Add(milestone);
+        context.PaymentTransactions.Add(transaction);
+        await context.SaveChangesAsync();
+        return (milestone, transaction);
+    }
+
+    private static PaymentWebhookRequest CreateWebhookRequest(
+        Guid paymentTransactionId,
+        PaymentTransactionStatus status)
+        => new(
+            $"event-{Guid.NewGuid():N}",
+            paymentTransactionId,
+            $"provider-{Guid.NewGuid():N}",
+            status,
+            1_000m,
+            "EGP",
+            Now,
+            status == PaymentTransactionStatus.Failed
+                ? "declined"
+                : null);
+
+    private static string TimestampHeader()
+        => new DateTimeOffset(Now).ToUnixTimeSeconds().ToString();
+
+    private static string Signature(
+        string timestamp,
+        string rawBody)
+        => $"v1={Convert.ToBase64String(
+            HMACSHA256.HashData(
+                Encoding.UTF8.GetBytes(
+                    "local-mock-payment-webhook-secret"),
+                Encoding.UTF8.GetBytes(
+                    $"{timestamp}.{rawBody}")))}";
+
     private PaymentEscrowService CreateService(
         ApplicationDbContext context,
         TestPaymentProvider provider,
@@ -289,8 +560,11 @@ public sealed class PaymentEscrowServiceTests
             currentUser,
             new ContractServiceStub(CreateContract()),
             provider,
+            provider,
             idempotency,
             new OutboxWriter(context, timeProvider),
+            Options.Create(new PaymentProviderOptions()),
+            NullLogger<PaymentEscrowService>.Instance,
             timeProvider);
     }
 
@@ -351,7 +625,8 @@ public sealed class PaymentEscrowServiceTests
     }
 
     private sealed class TestPaymentProvider(
-        ProviderOperationOutcome outcome) : IPaymentProvider
+        ProviderOperationOutcome outcome)
+        : IPaymentProvider, IPaymentReconciliationProvider
     {
         public string Name => "TestPaymentProvider";
         public int DepositCalls { get; private set; }
@@ -398,6 +673,25 @@ public sealed class PaymentEscrowServiceTests
             ProviderWithdrawalRequest request,
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
+
+        public Task<ProviderResult?> GetDepositStatusAsync(
+            ProviderDepositStatusRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult<ProviderResult?>(
+                new ProviderResult(
+                    request.Amount,
+                    request.Currency,
+                    request.BusinessId,
+                    request.ProviderIdempotencyKey,
+                    request.CorrelationId,
+                    outcome,
+                    outcome == ProviderOperationOutcome.Succeeded
+                        ? "provider-reconciled-transaction"
+                        : null,
+                    null));
+        }
     }
 
     private sealed class TestIdempotencyService : IIdempotencyService

@@ -153,6 +153,9 @@ public static class DependencyInjection
         services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
+        services.AddScoped<
+            IContractJobOperations,
+            PaymentContractJobOperations>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
 
@@ -163,6 +166,11 @@ public static class DependencyInjection
                     "not regulated escrow",
                     StringComparison.OrdinalIgnoreCase),
                 "The mock payment provider warning must state that it is not regulated escrow.")
+            .Validate(
+                options => !options.UseMockProvider
+                    || !string.IsNullOrWhiteSpace(
+                        options.WebhookSecret),
+                "يجب إعداد سر التحقق من إشعارات مزود الدفع التجريبي.")
             //.Validate(
             //    options => isDevelopment || !options.UseMockProvider,
             //    "The mock payment provider cannot be enabled in production.")
@@ -171,7 +179,13 @@ public static class DependencyInjection
         if (configuration.GetValue<bool>(
                 $"{PaymentProviderOptions.SectionName}:UseMockProvider"))
         {
-            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
+            services.AddScoped<MockPaymentProvider>();
+            services.AddScoped<IPaymentProvider>(
+                provider => provider
+                    .GetRequiredService<MockPaymentProvider>());
+            services.AddScoped<IPaymentReconciliationProvider>(
+                provider => provider
+                    .GetRequiredService<MockPaymentProvider>());
         }
             
         services.AddOptions<MailKitOptions>()
