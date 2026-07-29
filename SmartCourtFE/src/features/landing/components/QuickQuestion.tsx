@@ -2,23 +2,24 @@ import { RiChatAi3Line } from "react-icons/ri";
 
 export const QuickQuestion = () => {
   return (
-    <section className="w-full bg-white py-12 px-6 flex justify-center">
+    <section className="w-full bg-bg-primary py-16 px-6 flex justify-center transition-colors duration-300">
       
-      <div className="w-full max-w-7xl bg-navy border border-secondary-gray rounded-2xl p-8 md:p-10 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-0">
+      <div className="w-full max-w-7xl bg-bg-secondary border border-border-primary rounded-[24px] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-card hover:shadow-premium transition-all duration-300">
         
-        <div className="flex flex-col items-start text-right gap-2 w-full md:w-auto">
-          <h3 className="text-white text-2xl font-bold">
+        <div className="flex flex-col items-start text-right gap-3 w-full md:w-auto">
+          <span className="text-gold font-bold text-xs uppercase tracking-widest">المساعد الذكي</span>
+          <h3 className="text-text-primary text-2xl md:text-3xl font-extrabold leading-tight">
             لديك سؤال قانوني سريع؟
           </h3>
-          <p className="text-gray-400 text-base">
-            احصل على مساعدة ذكية قانونية فورية وموثوقة وقتما تحتاجها
+          <p className="text-text-secondary text-sm md:text-base max-w-xl leading-relaxed">
+            تحدث مباشرة مع مستشارك القانوني الشخصي المجهز بالذكاء الاصطناعي، واحصل على إجابة موثوقة وفورية في ثوانٍ.
           </p>
         </div>
 
-        <div className="flex flex-row items-center gap-4 w-full md:w-auto justify-end">
-          <button className="flex gap-2 bg-gold-muted hover:bg-gold-muted-hover text-white font-bold text-base px-8 py-3 rounded-lg transition-colors duration-200 shrink-0">
-             <RiChatAi3Line className="w-6 h-6" />
-            جرب الآن
+        <div className="flex shrink-0 w-full md:w-auto justify-end">
+          <button className="flex items-center gap-2 px-8 py-3.5 bg-gold hover:bg-gold-hover text-white font-bold text-base rounded-xl transition-all duration-200 hover:scale-[1.02] shadow-xs cursor-pointer">
+            <RiChatAi3Line className="w-5 h-5" />
+            <span>جرب المستشار الذكي</span>
           </button>
         </div>
 

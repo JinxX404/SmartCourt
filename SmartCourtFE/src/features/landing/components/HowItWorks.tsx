@@ -1,66 +1,93 @@
-const WORKFLOW_STEPS = [
+import { LuMessageSquare, LuBrain, LuUsers, LuShieldCheck } from "react-icons/lu";
+
+const STEPS = [
   {
+    icon: LuMessageSquare,
     title: "اطرح استفسارك",
     description: "اكتب تفاصيل مشكلتك القانونية أو سؤالك عبر منصتنا بسهولة ووضوح.",
   },
   {
+    icon: LuBrain,
     title: "تحليل ذكي وفوري",
     description: "يقوم الذكاء الاصطناعي بتحليل حالتك وتقديم توجيه قانوني مبدئي في ثوانٍ.",
   },
   {
+    icon: LuUsers,
     title: "تواصل مع خبير",
     description: "اختر من بين نخبة المحامين المعتمدين لمتابعة قضيتك وتوكيلهم رسمياً.",
   },
   {
+    icon: LuShieldCheck,
     title: "ضمان حقوقك",
     description: "أنجز أعمالك القانونية بأمان تام مع تشفير كامل لبياناتك ومستنداتك.",
-  }
+  },
 ];
 
 export const HowItWorks = () => {
   return (
-    <section className="w-full bg-navy py-24 flex flex-col items-center relative z-10">
-      
-      {/* max-w-[1280px] is exactly max-w-7xl in Tailwind */}
-      <div className="w-full max-w-7xl px-6 flex flex-col items-center gap-16">
+    <section id="how-it-works" className="w-full bg-bg-primary py-24 transition-colors duration-300">
+      <div className="w-full max-w-4xl mx-auto px-6 flex flex-col gap-16">
         
-        <div className="flex flex-col items-center gap-4">
-          <h2 className="text-white text-3xl font-bold text-center">
+        {/* Header */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-gold font-bold text-sm tracking-widest uppercase">طريقة العمل</span>
+          <h2 className="text-text-primary text-3xl md:text-4xl font-extrabold tracking-tight">
             كيف يعمل مستشار؟
           </h2>
-          <div className="w-12 h-1 bg-gold rounded-full"></div>
+          <p className="text-text-secondary text-sm md:text-base max-w-xl leading-relaxed">
+            أربع خطوات بسيطة ومباشرة تفصلك عن الحصول على أفضل توجيه ودعم قانوني مدعوم بالذكاء الاصطناعي.
+          </p>
         </div>
 
-        {/* max-w-[1024px] is exactly max-w-5xl */}
-        <div className="relative w-full max-w-5xl">
+        {/* Vertical Timeline Design */}
+        <div className="relative flex flex-col gap-12 w-full mt-4">
           
-          <div className="hidden md:block absolute h-0.5 left-0 right-0 top-6 bg-gold/30 -z-10"></div>
+          {/* Vertical line indicator */}
+          <div className="absolute right-6 md:right-1/2 md:translate-x-1/2 top-4 bottom-4 w-[2px] bg-gold/20 -z-10"></div>
 
-          <div className="flex flex-col md:flex-row justify-between items-center md:items-start gap-12 md:gap-4 w-full">
-            
-            {WORKFLOW_STEPS.map((step, index) => (
+          {STEPS.map((step, index) => {
+            const Icon = step.icon;
+            const isEven = index % 2 === 0;
+
+            return (
               <div 
-                key={index} 
-                className="flex flex-col items-center flex-1 w-full md:max-w-58"
+                key={index}
+                className={`flex flex-col md:flex-row items-start justify-between w-full relative ${
+                  isEven ? "md:flex-row-reverse" : ""
+                }`}
               >
-                <div className="w-12 h-12 bg-navy border-4 border-gold rounded-full flex items-center justify-center mb-4">
-                  <span className="text-white font-bold text-lg">
-                    {index + 1}
-                  </span>
+                
+                {/* Timeline dot / icon wrapper */}
+                <div className="absolute right-0.5 md:right-1/2 md:translate-x-1/2 w-11 h-11 bg-bg-secondary border-2 border-gold rounded-full flex items-center justify-center text-gold z-10 shadow-xs shrink-0">
+                  <Icon className="w-5 h-5" />
                 </div>
 
-                <h4 className="text-white font-bold text-base mb-2 text-center">
-                  {step.title}
-                </h4>
-                {/* #9ca3af is gray-400 */}
-                <p className="text-gray-400 text-sm md:text-xs text-center leading-relaxed max-w-55">
-                  {step.description}
-                </p>
-              </div>
-            ))}
+                {/* Soft Card Content */}
+                <div 
+                  className={`w-full md:w-[45%] pr-14 md:pr-0 ${
+                    isEven ? "md:text-right" : "md:text-left"
+                  }`}
+                >
+                  <div className="p-6 bg-bg-secondary border border-border-primary rounded-[20px] shadow-card hover:shadow-sm transition-all duration-300">
+                    <span className="text-gold/60 font-bold text-xs block mb-1">الخطوة {index + 1}</span>
+                    <h3 className="text-text-primary font-bold text-lg leading-relaxed mb-2 text-right">
+                      {step.title}
+                    </h3>
+                    <p className="text-text-secondary text-sm leading-relaxed text-right">
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
 
-          </div>
+                {/* Empty spacer for desktop layout */}
+                <div className="hidden md:block w-[45%]"></div>
+
+              </div>
+            );
+          })}
+
         </div>
+
       </div>
     </section>
   );

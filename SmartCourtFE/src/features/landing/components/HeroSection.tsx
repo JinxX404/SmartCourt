@@ -1,76 +1,117 @@
-import { LuScale, LuFileText, LuCheck, LuShield } from "react-icons/lu";
+import { useOutletContext } from "react-router-dom";
+import { LuSearch, LuStar, LuShieldCheck, LuAward } from "react-icons/lu";
+
+const HERO_FEATURES = [
+  {
+    icon: LuStar,
+    title: "تصنيفات حقيقية وموثوقة",
+  },
+  {
+    icon: LuShieldCheck,
+    title: "دفع آمن بالضمان الكامل",
+  },
+  {
+    icon: LuAward,
+    title: "نخبة من المحامين المرخصين",
+  },
+];
 
 export const HeroSection = () => {
+  const { theme } = useOutletContext<{ theme: "light" | "dark" }>();
+
   return (
-    <section className="relative w-full bg-linear-to-b from-gradient-start to-navy pt-20 pb-40 flex flex-col items-center">
-      
-      <div className="flex flex-col items-center gap-6 w-full max-w-7xl px-6">
-        
-        <div className="relative flex flex-col items-center w-full max-w-308">
-          <h1 className="text-white text-5xl font-bold leading-tight text-center relative z-10">
-            مرحباً بك في المنصة القانونية
-            <br />
-            <span className="relative inline-block mt-2">
-              الذكية والأولى
-              <span className="absolute -bottom-3 left-0 right-0 h-0.75 bg-linear-to-r from-transparent via-gold to-transparent rounded-sm"></span>
-            </span>
-          </h1>
-          
-          {/* #9ca3af is gray-400, max-w-[672px] is max-w-2xl */}
-          <p className="text-gray-400 text-lg leading-relaxed text-center max-w-2xl mt-12">
-            نوفر لك استشارات قانونية دقيقة وسريعة مدعومة بأحدث تقنيات الذكاء الاصطناعي لضمان حقوقك وتسهيل إجراءاتك القانونية بكل موثوقية.
-          </p>
-        </div>
+    <section className="relative w-full overflow-hidden bg-bg-hero py-16 transition-colors duration-300 min-h-[calc(100vh-80px)] flex items-center">
 
-        {/* max-w-[896px] is max-w-4xl */}
-        <div className="flex flex-col md:flex-row justify-center items-start pt-10 gap-8 w-full max-w-4xl">
-          
-          {/* Replaced arbitrary shadow with shadow-premium */}
-          <div className="relative flex flex-row items-start p-8 bg-white rounded-xl shadow-premium w-full md:w-108 min-h-36.25">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-gold border-4 border-navy rounded-full flex items-center justify-center z-10">
-               <LuCheck className="text-white w-5 h-5 border border-white rounded-full p-0.5" />
+      {/* Background soft glowing circles for premium vibe */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-gold/5 blur-3xl -z-10 pointer-events-none"></div>
+      <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] rounded-full bg-gold/5 blur-3xl -z-10 pointer-events-none"></div>
+
+      <div className="w-full max-w-7xl mx-auto px-6 flex flex-col gap-16">
+
+        {/* Two-Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center w-full">
+
+          {/* Right side: Headlines, Buttons, and Search */}
+          <div className="lg:col-span-6 flex flex-col items-start text-right gap-8 z-10">
+            <div className="flex flex-col gap-4">
+
+
+              <h1 className="text-text-primary text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
+                مرحباً بك في المنصة القانونية
+                <br />
+                <span className="text-gold mt-2 block">
+                  الذكية والأولى
+                </span>
+              </h1>
+
+              <p className="text-text-secondary text-base md:text-lg leading-relaxed max-w-xl">
+                استشارات قانونية دقيقة وسريعة مدعومة بأحدث تقنيات الذكاء الاصطناعي لحماية مصالحك وصياغة أعمالك القانونية بكل أمان وموثوقية.
+              </p>
             </div>
 
-            <div className="flex flex-row items-start gap-4 w-full">
-              <div className="flex flex-col items-start gap-2 flex-1">
-                <h3 className="text-navy text-xl font-bold leading-relaxed text-start">
-                  استشارة فورية
-                </h3>
-                {/* #6b7280 is gray-500 */}
-                <p className="text-gray-500 text-sm leading-relaxed text-start">
-                  احصل على توجيه قانوني سريع ودقيق لمعاملاتك من خلال الذكاء الاصطناعي.
-                </p>
-              </div>
-
-              {/* #f3f4f6 is gray-100 */}
-              <div className="flex flex-col items-center justify-center w-14 h-14 bg-gray-100 rounded-lg border-[2.6px] border-navy shrink-0">
-                <LuScale className="w-8 h-8 text-navy" />
-              </div>
-            </div>
-          </div>
-
-          <div className="relative flex flex-row items-start p-8 bg-white rounded-xl shadow-premium w-full md:w-108 min-h-36.25">
-            <div className="absolute -top-4 -right-4 w-12 h-12 bg-gold border-4 border-navy rounded-full flex items-center justify-center z-10">
-               <LuShield className="text-white w-5 h-5 border border-white rounded-full p-0.5" />
+            <div className="flex flex-row gap-4">
+              <button className="px-8 py-3.5 bg-gold hover:bg-gold-hover text-white font-bold rounded-xl transition-all shadow-premium hover:shadow-none hover:translate-y-0.5 cursor-pointer">
+                ابدأ استشارتك الآن
+              </button>
+              <button className="px-8 py-3.5 bg-transparent border-2 border-gold/30 hover:border-gold text-text-primary font-bold rounded-xl transition-all cursor-pointer">
+                اعرف المزيد
+              </button>
             </div>
 
-            <div className="flex flex-row items-start gap-4 w-full">
-              <div className="flex flex-col items-start gap-2 flex-1">
-                <h3 className="text-navy text-xl font-bold leading-relaxed text-start">
-                  صياغة العقود
-                </h3>
-                <p className="text-gray-500 text-sm leading-relaxed text-start">
-                  أدوات احترافية لصياغة ومراجعة العقود القانونية بما يتوافق مع الأنظمة.
-                </p>
-              </div>
-
-              <div className="flex flex-col items-center justify-center w-14 h-14 bg-gray-100 rounded-lg border-[2.6px] border-navy shrink-0">
-                <LuFileText className="w-8 h-8 text-navy" />
+            {/* Smart Search Bar */}
+            <div className="w-full max-w-md relative mt-4 group">
+              <div className="absolute inset-0 bg-gold/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
+              <div className="relative flex items-center bg-bg-secondary border border-border-primary rounded-2xl p-2 shadow-card focus-within:border-gold/50 transition-colors">
+                <input
+                  type="text"
+                  placeholder="اكتب سؤالك القانوني هنا..."
+                  className="w-full bg-transparent border-none outline-none text-text-primary placeholder:text-text-secondary/50 px-4 font-medium text-sm"
+                />
+                <button className="h-11 px-5 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl flex items-center gap-2 transition-all shrink-0 cursor-pointer">
+                  <span>بحث</span>
+                  <LuSearch className="w-4 h-4" />
+                </button>
               </div>
             </div>
           </div>
 
+          {/* Left side: Premium Seamless Illustration */}
+          <div className="lg:col-span-6 flex items-center justify-center relative w-full h-full min-h-[350px] lg:min-h-[500px]">
+            <img
+              src={theme === "light" ? "/hero_final-nobg.png" : "/DarkModeimg2.png"}
+              alt="الميزان القانوني الذكي"
+              className="w-full max-h-[550px] scale-107 object-contain transition-all duration-500 ease-in-out hover:scale-[1.11] select-none"
+            />
+          </div>
+
         </div>
+
+        {/* 4 Premium Soft Cards at the Bottom */}
+        {/* 3 Trust Features at the Bottom */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full mt-4">
+          {HERO_FEATURES.map((feature, index) => {
+            const Icon = feature.icon;
+            return (
+              <div
+                key={index}
+                className="group flex items-center gap-4 p-5 bg-bg-secondary border border-border-primary rounded-[24px] shadow-card hover:shadow-premium hover:-translate-y-1 transition-all duration-300 text-right cursor-pointer animate-fade-in"
+              >
+                {/* Icon wrapper */}
+                <div className="w-12 h-12 bg-gold/10 border border-gold/20 rounded-xl flex items-center justify-center text-gold shrink-0 transition-all duration-300 group-hover:bg-gold group-hover:text-white">
+                  <Icon className="w-5.5 h-5.5" />
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col justify-center h-full">
+                  <h4 className="text-text-primary font-bold text-base leading-snug group-hover:text-gold transition-colors">
+                    {feature.title}
+                  </h4>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
       </div>
     </section>
   );
