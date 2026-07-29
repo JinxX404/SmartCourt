@@ -41,7 +41,9 @@ public sealed class ContractCreationDependencyGateTests
                 context.LawyerUserId,
                 CancellationToken.None));
 
-        Assert.Equal("The proposal does not exist or is not accepted.", exception.Message);
+        Assert.Equal(
+            "العرض غير موجود أو لم تتم الموافقة عليه.",
+            exception.Message);
         Assert.Equal(0, context.CaseService.CallCount);
         Assert.Equal(0, context.UserService.CallCount);
     }
@@ -58,7 +60,7 @@ public sealed class ContractCreationDependencyGateTests
                 CancellationToken.None));
 
         Assert.Equal(
-            "Only the accepted proposal's lawyer can create the contract.",
+            "محامي العرض المقبول فقط هو من يمكنه إنشاء العقد.",
             exception.Message);
         Assert.Equal(0, context.CaseService.CallCount);
     }
@@ -78,7 +80,7 @@ public sealed class ContractCreationDependencyGateTests
                 CancellationToken.None));
 
         Assert.Equal(
-            "The accepted proposal does not match the eligible case owner.",
+            "العرض المقبول لا يطابق مالك القضية المؤهلة.",
             exception.Message);
         Assert.Equal(0, context.UserService.CallCount);
     }
@@ -103,8 +105,8 @@ public sealed class ContractCreationDependencyGateTests
 
         Assert.Equal(
             rejectClient
-                ? "The proposal client is not eligible to enter a contract."
-                : "The proposal lawyer is not eligible to enter a contract.",
+                ? "صاحب العرض غير مؤهل لإبرام العقد بصفته عميلاً."
+                : "محامي العرض غير مؤهل لإبرام العقد.",
             exception.Message);
     }
 

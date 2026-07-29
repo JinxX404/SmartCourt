@@ -18,12 +18,13 @@ public sealed class ContractCreationDependencyGate(
     {
         if (proposalId == Guid.Empty)
         {
-            throw new BusinessException("A proposal is required to create a contract.");
+            throw new BusinessException("معرّف العرض مطلوب لإنشاء العقد.");
         }
 
         if (actorUserId == Guid.Empty)
         {
-            throw new BusinessException("An authenticated lawyer is required to create a contract.");
+            throw new BusinessException(
+                "يجب تسجيل الدخول كمحامٍ لإنشاء العقد.");
         }
 
         var proposal = await proposalService.FindAcceptedForContractAsync(
@@ -32,17 +33,20 @@ public sealed class ContractCreationDependencyGate(
 
         if (proposal is null)
         {
-            throw new BusinessException("The proposal does not exist or is not accepted.");
+            throw new BusinessException(
+                "العرض غير موجود أو لم تتم الموافقة عليه.");
         }
 
         if (proposal.ProposalId != proposalId)
         {
-            throw new BusinessException("The proposal service returned inconsistent contract facts.");
+            throw new BusinessException(
+                "بيانات العرض المسترجعة غير متطابقة مع العقد المطلوب.");
         }
 
         if (proposal.LawyerUserId != actorUserId)
         {
-            throw new BusinessException("Only the accepted proposal's lawyer can create the contract.");
+            throw new BusinessException(
+                "محامي العرض المقبول فقط هو من يمكنه إنشاء العقد.");
         }
 
         var legalCase = await caseService.FindEligibleForContractAsync(
@@ -51,13 +55,15 @@ public sealed class ContractCreationDependencyGate(
 
         if (legalCase is null)
         {
-            throw new BusinessException("The case is not eligible for contract creation.");
+            throw new BusinessException(
+                "القضية غير مؤهلة لإنشاء عقد.");
         }
 
         if (legalCase.LegalCaseId != proposal.LegalCaseId
             || legalCase.ClientUserId != proposal.ClientUserId)
         {
-            throw new BusinessException("The accepted proposal does not match the eligible case owner.");
+            throw new BusinessException(
+                "العرض المقبول لا يطابق مالك القضية المؤهلة.");
         }
 
         var clientEligibility = await userEligibilityService.FindEligibilityAsync(
@@ -68,7 +74,8 @@ public sealed class ContractCreationDependencyGate(
             || !clientEligibility.IsActive
             || !clientEligibility.CanActAsClient)
         {
-            throw new BusinessException("The proposal client is not eligible to enter a contract.");
+            throw new BusinessException(
+                "صاحب العرض غير مؤهل لإبرام العقد بصفته عميلاً.");
         }
 
         var lawyerEligibility = await userEligibilityService.FindEligibilityAsync(
@@ -79,7 +86,8 @@ public sealed class ContractCreationDependencyGate(
             || !lawyerEligibility.IsActive
             || !lawyerEligibility.CanActAsLawyer)
         {
-            throw new BusinessException("The proposal lawyer is not eligible to enter a contract.");
+            throw new BusinessException(
+                "محامي العرض غير مؤهل لإبرام العقد.");
         }
 
         return new ContractCreationFacts(

@@ -17,6 +17,8 @@ public sealed class MilestoneChangeRequestConfiguration
         builder.Property(request => request.Reason)
             .IsRequired()
             .Unicode(2_000);
+        builder.Property(request => request.DecisionReason)
+            .NullableUnicode(2_000);
         builder.Property(request => request.Status)
             .IsRequired()
             .HasConversion<int>();

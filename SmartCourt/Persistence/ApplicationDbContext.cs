@@ -5,9 +5,11 @@ using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.Entities;
+using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Payments.Entities;
+using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Interfaces;
 
@@ -79,6 +81,8 @@ public class ApplicationDbContext
     public DbSet<LegalSpecialization> LegalSpecializations =>
         Set<LegalSpecialization>();
     public DbSet<LawDocument> LawDocuments => Set<LawDocument>();
+    public DbSet<LegalCase> LegalCases => Set<LegalCase>();
+    public DbSet<Proposal> Proposals => Set<Proposal>();
 
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<Milestone> Milestones => Set<Milestone>();

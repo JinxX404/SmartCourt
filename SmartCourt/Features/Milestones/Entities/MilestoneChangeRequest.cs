@@ -25,7 +25,7 @@ public sealed class MilestoneChangeRequest
             && proposedDueDate is null)
         {
             throw new BusinessException(
-                "A change request must propose at least one change.");
+                "يجب أن يتضمن طلب التعديل تغييرًا واحدًا على الأقل.");
         }
 
         Id = EntityGuard.NotEmpty(id, nameof(id));
@@ -60,6 +60,7 @@ public sealed class MilestoneChangeRequest
     public ChangeRequestStatus Status { get; internal set; }
     public Guid? DecidedByUserId { get; internal set; }
     public DateTime? DecidedAt { get; internal set; }
+    public string? DecisionReason { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTime CreatedAt { get; internal set; }
 }

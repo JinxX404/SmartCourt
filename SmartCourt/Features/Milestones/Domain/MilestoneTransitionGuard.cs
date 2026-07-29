@@ -37,7 +37,7 @@ internal static class MilestoneTransitionGuard
             || !AllowedTransitions.Contains((current, next)))
         {
             throw new BusinessException(
-                $"Invalid milestone transition from '{current}' to '{next}'.");
+                $"لا يمكن تغيير حالة المرحلة من '{current}' إلى '{next}'.");
         }
     }
 }
