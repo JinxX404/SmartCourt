@@ -152,6 +152,7 @@ public static class DependencyInjection
             ContractUserEligibilityService>();
         services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+        services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
 
