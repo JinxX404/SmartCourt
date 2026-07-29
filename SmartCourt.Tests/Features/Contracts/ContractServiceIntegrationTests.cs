@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Features.Cases.Enums;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.DTOs;
@@ -8,6 +10,8 @@ using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Integration;
+using SmartCourt.Features.Proposals.Entities;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
@@ -57,6 +61,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     legalCaseId,
                     _clientUserId,
                     _lawyerUserId)));
+        await AddContractPrerequisitesAsync(
+            context,
+            proposalId,
+            legalCaseId);
 
         var result = await service.CreateAsync(
             new CreateContractRequest(
@@ -97,6 +105,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             context,
             new MutableCurrentUserService(_lawyerUserId),
             new StubCreationGate(facts));
+        await AddContractPrerequisitesAsync(
+            context,
+            facts.ProposalId,
+            facts.LegalCaseId);
         var request = new CreateContractRequest(
             proposalId,
             "العقد الأول",
@@ -119,6 +131,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var contract = CreateContract();
         contract.AcceptedByClientAt = _utcNow.AddMinutes(-5);
         contract.AcceptedByLawyerAt = _utcNow.AddMinutes(-4);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.Contracts.Add(contract);
         await context.SaveChangesAsync();
         var service = CreateService(
@@ -157,6 +173,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
     {
         await using var context = CreateContext();
         var contract = CreateContract();
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.Contracts.Add(contract);
         await context.SaveChangesAsync();
         var currentUser = new MutableCurrentUserService(_clientUserId);
@@ -238,6 +258,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         cancelled.AcceptedByClientAt = _utcNow;
         cancelled.AcceptedByLawyerAt = _utcNow;
         cancelled.Status = MilestoneStatus.Cancelled;
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.AddRange(contract, approved, oneSided, cancelled);
         await context.SaveChangesAsync();
         var service = CreateService(
@@ -257,6 +281,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
     {
         await using var context = CreateContext();
         var contract = CreateContract();
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.Contracts.Add(contract);
         await context.SaveChangesAsync();
         var outsiderId = Guid.NewGuid();
@@ -313,6 +341,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var milestone = CreateMilestone(contract.Id, 1, 750m);
         milestone.Status = MilestoneStatus.Released;
         milestone.ReleasedAt = _utcNow.AddMinutes(-10);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.AddRange(contract, milestone);
         await context.SaveChangesAsync();
         var service = CreateService(
@@ -354,6 +386,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var draftMilestone = CreateMilestone(contract.Id, 1, 900m);
         var awaitingFunding = CreateMilestone(contract.Id, 2, 400m);
         awaitingFunding.Status = MilestoneStatus.AwaitingFunding;
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
         context.AddRange(contract, draftMilestone, awaitingFunding);
         await context.SaveChangesAsync();
         var service = CreateService(
@@ -421,6 +457,35 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             "عقد تمثيل قانوني",
             "الشروط والأحكام.",
             _utcNow.AddHours(-1));
+    }
+
+    private async Task AddContractPrerequisitesAsync(
+        ApplicationDbContext context,
+        Guid proposalId,
+        Guid legalCaseId)
+    {
+        var legalCase = new LegalCase(
+            legalCaseId,
+            _clientUserId,
+            "قضية اختبار العقد",
+            "قضية مؤهلة لاختبار دورة حياة العقد.",
+            "القاهرة",
+            _utcNow.AddDays(-2))
+        {
+            Status = CaseStatus.Matched,
+            FinalSubmittedAt = _utcNow.AddDays(-2)
+        };
+        var proposal = new Proposal(
+            proposalId,
+            legalCaseId,
+            _clientUserId,
+            _lawyerUserId,
+            _utcNow.AddDays(-1))
+        {
+            Status = ProposalStatus.Accepted
+        };
+        context.AddRange(legalCase, proposal);
+        await context.SaveChangesAsync();
     }
 
     private Milestone CreateMilestone(
