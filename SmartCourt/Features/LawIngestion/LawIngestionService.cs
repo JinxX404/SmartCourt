@@ -22,6 +22,7 @@ public class LawIngestionService : ILawIngestionService
     private readonly LegalDocumentChunker _chunker;
     private readonly IEmbeddingProvider _embeddingProvider;
     private readonly IVectorStoreProvider _vectorStore;
+    private readonly IFileStorageService _fileStorage;
     private readonly ILogger<LawIngestionService> _logger;
     private const string CollectionName = "egyptian_law";
 
@@ -32,6 +33,7 @@ public class LawIngestionService : ILawIngestionService
         LegalDocumentChunker chunker,
         IEmbeddingProvider embeddingProvider,
         IVectorStoreProvider vectorStore,
+        IFileStorageService fileStorage,
         ILogger<LawIngestionService> logger)
     {
         _dbContext = dbContext;
@@ -40,6 +42,7 @@ public class LawIngestionService : ILawIngestionService
         _chunker = chunker;
         _embeddingProvider = embeddingProvider;
         _vectorStore = vectorStore;
+        _fileStorage = fileStorage;
         _logger = logger;
     }
 
@@ -47,11 +50,15 @@ public class LawIngestionService : ILawIngestionService
         IngestLawDocumentRequest request,
         CancellationToken cancellationToken)
     {
-        // Check if file exists locally (assuming it's a local path for now)
-        if (!File.Exists(request.FilePath))
+        if (request.File == null || request.File.Length == 0)
         {
-            throw new NotFoundException($"File not found at path: {request.FilePath}");
+            throw new BusinessException("File is required and cannot be empty.");
         }
+
+        // Upload file
+        using var stream = request.File.OpenReadStream();
+        var filePath = $"law_documents/{Guid.NewGuid()}_{request.File.FileName}";
+        var uploadResult = await _fileStorage.UploadAsync(stream, filePath, request.File.FileName, cancellationToken);
 
         // Check for existing document to increment version
         var existingDoc = await _dbContext.LawDocuments
@@ -59,11 +66,11 @@ public class LawIngestionService : ILawIngestionService
 
         var doc = new LawDocument
         {
-            FileName = Path.GetFileName(request.FilePath),
+            FileName = request.File.FileName,
             DocumentTitle = request.DocumentTitle,
             Language = request.Language,
             Description = request.Description,
-            FileStoragePath = request.FilePath,
+            FileStoragePath = uploadResult.StoragePath,
             Status = IngestionStatus.Pending,
             Version = existingDoc != null ? existingDoc.Version + 1 : 1
         };
@@ -97,6 +104,15 @@ public class LawIngestionService : ILawIngestionService
 
         await _vectorStore.DeleteByDocumentIdAsync(CollectionName, documentId, cancellationToken);
         
+        try
+        {
+            await _fileStorage.DeleteAsync(doc.FileStoragePath, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete physical file {FilePath}", doc.FileStoragePath);
+        }
+        
         _dbContext.LawDocuments.Remove(doc);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -125,12 +141,8 @@ public class LawIngestionService : ILawIngestionService
             await _vectorStore.EnsureCollectionExistsAsync(CollectionName, _embeddingProvider.Dimensions);
 
             // 2. Read PDF
-            if (!File.Exists(doc.FileStoragePath))
-            {
-                throw new FileNotFoundException($"PDF file missing: {doc.FileStoragePath}");
-            }
-
-            using var stream = File.OpenRead(doc.FileStoragePath);
+            var fileBytes = await _fileStorage.DownloadAsync(doc.FileStoragePath);
+            using var stream = new MemoryStream(fileBytes);
             
             // 3. Parse PDF
             var parseResult = await _pdfParser.ParseAsync(stream);

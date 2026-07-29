@@ -141,6 +141,19 @@ public class QdrantVectorStoreProvider : IVectorStoreProvider
         }
     }
 
+    public async Task DeleteCollectionAsync(string collectionName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await _client.DeleteCollectionAsync(collectionName, cancellationToken: cancellationToken);
+            _logger.LogInformation("Deleted Qdrant collection {CollectionName}", collectionName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to delete Qdrant collection {CollectionName}.", collectionName);
+        }
+    }
+
     private static Condition MatchKeyword(string key, string value)
     {
         return new Condition

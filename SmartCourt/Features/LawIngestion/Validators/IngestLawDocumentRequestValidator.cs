@@ -7,9 +7,9 @@ public class IngestLawDocumentRequestValidator : AbstractValidator<IngestLawDocu
 {
     public IngestLawDocumentRequestValidator()
     {
-        RuleFor(x => x.FilePath)
-            .NotEmpty()
-            .WithMessage("FilePath is required.");
+        RuleFor(x => x.File)
+            .NotNull()
+            .WithMessage("File is required.");
 
         RuleFor(x => x.DocumentTitle)
             .NotEmpty()

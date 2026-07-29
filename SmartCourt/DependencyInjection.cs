@@ -352,6 +352,16 @@ public static class DependencyInjection
         // --- RAG Pipeline: PDF Parser ---
         services.AddScoped<IPdfParserProvider, PdfPigParserProvider>();
 
+        // --- RAG Pipeline: Document Parsing (Composite) ---
+        services.AddScoped<IDocumentParsingProvider, SmartCourt.Providers.DocumentParsing.CompositeDocumentParsingProvider>();
+
+        // --- RAG Pipeline: Chat Model ---
+        services.Configure<SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions.SectionName));
+        services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.DeepSeekChatModelProvider>();
+
+        // --- Feature: Document Review ---
+        services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();
+
         // --- RAG Pipeline: Law Ingestion Feature ---
         services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));
         services.AddScoped<ILawIngestionService, LawIngestionService>();

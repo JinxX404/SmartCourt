@@ -38,8 +38,13 @@ public class LegalDocumentChunker
 
     public List<LawChunkDto> ChunkDocument(IReadOnlyList<PdfPageContent> pages, string language)
     {
-        var chunks = new List<LawChunkDto>();
         var fullText = string.Join("\n\n", pages.Select(p => p.Text));
+        return ChunkText(fullText, language);
+    }
+
+    public List<LawChunkDto> ChunkText(string fullText, string language)
+    {
+        var chunks = new List<LawChunkDto>();
 
         string currentPart = "";
         string currentChapter = "";
