@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts;
+using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.Domain;
 using SmartCourt.Features.Milestones.Entities;
@@ -15,6 +16,7 @@ using SmartCourt.Features.Payments.DTOs;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Settlement;
+using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
@@ -30,6 +32,7 @@ public sealed class PaymentEscrowService(
     ApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     IContractService contractService,
+    IContractUserEligibilityService userEligibilityService,
     IPaymentProvider paymentProvider,
     IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
@@ -39,7 +42,9 @@ public sealed class PaymentEscrowService(
     TimeProvider timeProvider) : IPaymentEscrowService
 {
     private const string FundOperation = "FundMilestone";
+    private const string RetryOperation = "RetryPayment";
     private const string MilestoneResource = "Milestone";
+    private const string PaymentTransactionResource = "PaymentTransaction";
     private static readonly JsonSerializerOptions SerializerOptions =
         new(JsonSerializerDefaults.Web);
 
@@ -240,6 +245,314 @@ public sealed class PaymentEscrowService(
                     cancellationToken),
             _ => throw new BusinessException(
                 "أعاد مزود الدفع نتيجة غير صالحة لعملية تمويل المرحلة.")
+        };
+    }
+
+    public async Task<PaymentHistoryDto> GetContractPaymentsAsync(
+        Guid contractId,
+        CancellationToken cancellationToken)
+    {
+        var contract = await GetAuthorizedPaymentContractAsync(
+            contractId,
+            cancellationToken);
+
+        var holds = await dbContext.EscrowHolds
+            .AsNoTracking()
+            .Where(hold => hold.ContractId == contract.Id)
+            .OrderBy(hold => hold.FundedAt)
+            .ThenBy(hold => hold.Id)
+            .ToListAsync(cancellationToken);
+        var attempts = await dbContext.PaymentTransactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.ContractId == contract.Id)
+            .OrderByDescending(transaction => transaction.CreatedAt)
+            .ThenBy(transaction => transaction.Id)
+            .Select(transaction => new PaymentAttemptDto(
+                transaction.Id,
+                transaction.MilestoneId,
+                transaction.OperationType,
+                transaction.Status,
+                transaction.Amount,
+                transaction.Currency,
+                transaction.ProviderName,
+                transaction.CreatedAt,
+                transaction.ProcessedAt))
+            .ToListAsync(cancellationToken);
+        var ledgerEntries = await dbContext.EscrowLedgerEntries
+            .AsNoTracking()
+            .Where(entry => dbContext.EscrowAccounts.Any(account =>
+                account.Id == entry.EscrowAccountId
+                && account.ContractId == contract.Id))
+            .OrderBy(entry => entry.CreatedAt)
+            .ThenBy(entry => entry.Id)
+            .Select(entry => new EscrowLedgerEntryDto(
+                entry.Id,
+                entry.EscrowHoldId,
+                entry.TransactionType,
+                entry.Amount,
+                entry.RunningBalance,
+                entry.Currency,
+                entry.Description,
+                entry.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        return new PaymentHistoryDto(
+            holds.Select(MapPayment).ToArray(),
+            attempts,
+            ledgerEntries);
+    }
+
+    public async Task<PaymentDto> GetMilestonePaymentAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken)
+    {
+        if (milestoneId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف المرحلة مطلوب لعرض بيانات الدفع.");
+        }
+
+        var milestone = await dbContext.Milestones
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == milestoneId,
+                cancellationToken)
+            ?? throw new NotFoundException(
+                "المرحلة المطلوبة غير موجودة.");
+        await GetAuthorizedPaymentContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+
+        var hold = await dbContext.EscrowHolds
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.MilestoneId == milestone.Id,
+                cancellationToken)
+            ?? throw new NotFoundException(
+                "لم يتم إنشاء حجز دفع لهذه المرحلة بعد.");
+        return MapPayment(hold);
+    }
+
+    public async Task<PaymentDto> RetryAsync(
+        Guid paymentTransactionId,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        await EnsureFinanceOperatorAsync(
+            actorUserId,
+            cancellationToken);
+        if (paymentTransactionId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف معاملة الدفع مطلوب لإعادة المحاولة.");
+        }
+
+        var normalizedIdempotencyKey =
+            RequireIdempotencyKey(idempotencyKey);
+        var originalTransaction =
+            await dbContext.PaymentTransactions
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.Id == paymentTransactionId,
+                    cancellationToken)
+            ?? throw new NotFoundException(
+                "معاملة الدفع المطلوب إعادة محاولتها غير موجودة.");
+        if (originalTransaction.Status
+            != PaymentTransactionStatus.Failed)
+        {
+            throw new BusinessException(
+                "يمكن إعادة محاولة معاملات الدفع التي أكد مزود الخدمة فشلها فقط.");
+        }
+
+        if (originalTransaction.OperationType
+                != PaymentOperationType.Deposit
+            || !originalTransaction.MilestoneId.HasValue)
+        {
+            throw new BusinessException(
+                "إعادة المحاولة متاحة حاليًا لمعاملات تمويل المراحل فقط.");
+        }
+
+        var milestone = await dbContext.Milestones
+            .SingleOrDefaultAsync(
+                item =>
+                    item.Id
+                        == originalTransaction.MilestoneId.Value,
+                cancellationToken)
+            ?? throw new NotFoundException(
+                "المرحلة المرتبطة بمعاملة الدفع غير موجودة.");
+        var contract = await dbContext.Contracts
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == originalTransaction.ContractId,
+                cancellationToken)
+            ?? throw new NotFoundException(
+                "العقد المرتبط بمعاملة الدفع غير موجود.");
+
+        var scope = new IdempotencyScope(
+            actorUserId,
+            RetryOperation,
+            PaymentTransactionResource,
+            originalTransaction.Id);
+        var retryRequest = new RetryPaymentRequest(
+            normalizedIdempotencyKey);
+        var reservation = await idempotencyService.ReserveAsync(
+            scope,
+            normalizedIdempotencyKey,
+            retryRequest,
+            cancellationToken);
+        if (reservation.IsReplay)
+        {
+            return await ReplayAsync(
+                reservation,
+                cancellationToken);
+        }
+
+        try
+        {
+            await EnsureFundingAllowedAsync(
+                milestone,
+                contract.Status,
+                cancellationToken);
+        }
+        catch (BusinessException exception)
+        {
+            await FailReservationAsync(
+                reservation.RecordId,
+                null,
+                exception.Message,
+                cancellationToken);
+            throw;
+        }
+        catch (ConflictException exception)
+        {
+            await FailReservationAsync(
+                reservation.RecordId,
+                null,
+                exception.Message,
+                cancellationToken);
+            throw;
+        }
+
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        var providerIdempotencyKey =
+            CreateRetryProviderIdempotencyKey(
+                originalTransaction.IdempotencyKey,
+                normalizedIdempotencyKey);
+        var retryTransaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            originalTransaction.ContractId,
+            milestone.Id,
+            PaymentOperationType.Deposit,
+            paymentProvider.GetType().Name,
+            providerIdempotencyKey,
+            originalTransaction.Amount,
+            now);
+
+        var previousStatus = milestone.Status;
+        MilestoneTransitionGuard.EnsureCanTransition(
+            previousStatus,
+            MilestoneStatus.FundingProcessing);
+        milestone.Status = MilestoneStatus.FundingProcessing;
+        milestone.UpdatedAt = now;
+        dbContext.PaymentTransactions.Add(retryTransaction);
+        AddHistory(
+            milestone,
+            previousStatus,
+            MilestoneStatus.FundingProcessing,
+            ContractPaymentEventTypes.MilestoneFundingStarted,
+            actorUserId,
+            "بدأ مسؤول العمليات المالية إعادة محاولة تمويل المرحلة.",
+            correlationId,
+            now);
+        await EnqueueMilestoneEventAsync(
+            ContractPaymentEventTypes.MilestoneFundingStarted,
+            milestone.Id,
+            correlationId,
+            cancellationToken);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            dbContext.ChangeTracker.Clear();
+            await FailReservationAsync(
+                reservation.RecordId,
+                null,
+                "تعذر حجز إعادة محاولة معاملة الدفع.",
+                cancellationToken);
+            throw new ConflictException(
+                "بدأت عملية أخرى إعادة محاولة معاملة الدفع نفسها. يرجى إعادة تحميل البيانات.");
+        }
+
+        var providerRequest = new ProviderDepositRetryRequest(
+            retryTransaction.Amount,
+            retryTransaction.Currency,
+            milestone.Id,
+            providerIdempotencyKey,
+            correlationId,
+            originalTransaction.IdempotencyKey,
+            originalTransaction.ProviderTransactionId);
+        ProviderResult providerResult;
+        try
+        {
+            providerResult = await paymentProvider.RetryDepositAsync(
+                providerRequest,
+                cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            await KeepProcessingForReconciliationAsync(
+                retryTransaction,
+                "تعذر التأكد من نتيجة إعادة محاولة الدفع لدى مزود الخدمة.",
+                CancellationToken.None);
+            throw new BusinessException(
+                "تعذر التأكد من نتيجة إعادة محاولة الدفع. لن تتكرر العملية تلقائيًا قبل المطابقة.",
+                exception);
+        }
+
+        if (!ProviderResultMatches(
+                providerResult,
+                providerRequest))
+        {
+            await KeepProcessingForReconciliationAsync(
+                retryTransaction,
+                "بيانات نتيجة مزود الدفع لا تطابق إعادة المحاولة.",
+                cancellationToken);
+            throw new BusinessException(
+                "تعذر التحقق من نتيجة إعادة محاولة الدفع. ستتم مراجعة العملية تلقائيًا.");
+        }
+
+        return providerResult.Outcome switch
+        {
+            ProviderOperationOutcome.Succeeded =>
+                await CompleteFundingAsync(
+                    milestone,
+                    contract.LawyerUserId,
+                    retryTransaction,
+                    providerResult,
+                    reservation.RecordId,
+                    actorUserId,
+                    correlationId,
+                    cancellationToken),
+            ProviderOperationOutcome.Failed =>
+                await FailFundingAsync(
+                    milestone,
+                    retryTransaction,
+                    reservation.RecordId,
+                    actorUserId,
+                    correlationId,
+                    cancellationToken),
+            ProviderOperationOutcome.Unknown =>
+                await KeepUnknownAndThrowAsync(
+                    retryTransaction,
+                    cancellationToken),
+            _ => throw new BusinessException(
+                "أعاد مزود الدفع نتيجة غير صالحة لإعادة محاولة التمويل.")
         };
     }
 
@@ -1158,6 +1471,66 @@ public sealed class PaymentEscrowService(
             cancellationToken);
     }
 
+    private async Task<Contract> GetAuthorizedPaymentContractAsync(
+        Guid contractId,
+        CancellationToken cancellationToken)
+    {
+        if (contractId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف العقد مطلوب لعرض بيانات الدفع.");
+        }
+
+        var actorUserId = GetActorUserId();
+        var contract = await dbContext.Contracts
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == contractId,
+                cancellationToken)
+            ?? throw new NotFoundException(
+                "العقد المطلوب غير موجود.");
+        if (contract.ClientUserId == actorUserId
+            || contract.LawyerUserId == actorUserId)
+        {
+            return contract;
+        }
+
+        var eligibility =
+            await userEligibilityService.FindEligibilityAsync(
+                actorUserId,
+                cancellationToken);
+        if (eligibility is null
+            || eligibility.UserId != actorUserId
+            || !eligibility.IsActive
+            || (!eligibility.CanActAsFinanceAdministrator
+                && !eligibility.CanActAsSuperAdministrator))
+        {
+            throw new ForbiddenAccessException(
+                "غير مصرح لك بالاطلاع على بيانات الدفع لهذا العقد.");
+        }
+
+        return contract;
+    }
+
+    private async Task EnsureFinanceOperatorAsync(
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var eligibility =
+            await userEligibilityService.FindEligibilityAsync(
+                actorUserId,
+                cancellationToken);
+        if (eligibility is null
+            || eligibility.UserId != actorUserId
+            || !eligibility.IsActive
+            || (!eligibility.CanActAsFinanceAdministrator
+                && !eligibility.CanActAsSuperAdministrator))
+        {
+            throw new ForbiddenAccessException(
+                "إعادة محاولة معاملات الدفع متاحة لمسؤولي العمليات المالية فقط.");
+        }
+    }
+
     private void AddHistory(
         Milestone milestone,
         MilestoneStatus previousStatus,
@@ -1209,7 +1582,7 @@ public sealed class PaymentEscrowService(
             || currentUserService.UserId.Value == Guid.Empty)
         {
             throw new AuthenticationException(
-                "يجب تسجيل الدخول لإتمام عملية التمويل.");
+                "يجب تسجيل الدخول للوصول إلى خدمات الدفع.");
         }
 
         return currentUserService.UserId.Value;
@@ -1245,9 +1618,19 @@ public sealed class PaymentEscrowService(
             SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     }
 
+    private static string CreateRetryProviderIdempotencyKey(
+        string originalProviderIdempotencyKey,
+        string retryIdempotencyKey)
+    {
+        var value =
+            $"{RetryOperation}:{originalProviderIdempotencyKey}:{retryIdempotencyKey}";
+        return Convert.ToHexString(
+            SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+    }
+
     private static bool ProviderResultMatches(
         ProviderResult result,
-        ProviderDepositRequest request)
+        PaymentProviderRequest request)
     {
         return result.Amount == request.Amount
             && string.Equals(

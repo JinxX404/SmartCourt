@@ -6,6 +6,10 @@ public interface IPaymentProvider
         ProviderDepositRequest request,
         CancellationToken cancellationToken);
 
+    Task<ProviderResult> RetryDepositAsync(
+        ProviderDepositRetryRequest request,
+        CancellationToken cancellationToken);
+
     Task<ProviderResult> ReleaseAsync(
         ProviderReleaseRequest request,
         CancellationToken cancellationToken);

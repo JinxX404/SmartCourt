@@ -11,6 +11,19 @@ public interface IPaymentEscrowService
         string? idempotencyKey,
         CancellationToken cancellationToken);
 
+    Task<PaymentHistoryDto> GetContractPaymentsAsync(
+        Guid contractId,
+        CancellationToken cancellationToken);
+
+    Task<PaymentDto> GetMilestonePaymentAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken);
+
+    Task<PaymentDto> RetryAsync(
+        Guid paymentTransactionId,
+        string? idempotencyKey,
+        CancellationToken cancellationToken);
+
     Task<PaymentActionResultDto> HandleWebhookAsync(
         PaymentWebhookRequest request,
         string? eventIdHeader,

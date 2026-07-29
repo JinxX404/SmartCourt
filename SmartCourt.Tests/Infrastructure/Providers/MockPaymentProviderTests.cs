@@ -90,6 +90,34 @@ public sealed class MockPaymentProviderTests
     }
 
     [Fact]
+    public async Task RetryDeposit_PreservesOriginalOutcomeAndUsesNewAttemptKey()
+    {
+        var provider = CreateProvider();
+        var original = await provider.DepositAsync(
+            DepositRequest("original-failure", "mock-fail-card"),
+            CancellationToken.None);
+        var retryRequest = new ProviderDepositRetryRequest(
+            original.Amount,
+            original.Currency,
+            original.BusinessId,
+            "retry-attempt",
+            CorrelationId,
+            original.ProviderIdempotencyKey,
+            original.ProviderTransactionId);
+
+        var first = await provider.RetryDepositAsync(
+            retryRequest,
+            CancellationToken.None);
+        var replay = await provider.RetryDepositAsync(
+            retryRequest,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Failed, first.Outcome);
+        Assert.Equal(first, replay);
+        Assert.Equal("retry-attempt", first.ProviderIdempotencyKey);
+    }
+
+    [Fact]
     public void Options_DefaultWarningIdentifiesTheProviderAsUnregulated()
     {
         var options = new PaymentProviderOptions();

@@ -1,0 +1,297 @@
+using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Models;
+using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.DTOs;
+using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Features.Payments.Validators;
+using SmartCourt.Infrastructure.Providers.Jobs;
+using Xunit;
+
+namespace SmartCourt.Tests.Features.Payments;
+
+public sealed class PaymentsControllerTests
+{
+    [Fact]
+    public async Task Endpoints_ReturnWrappedResponsesAndForwardInputs()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(service);
+        var milestoneId = Guid.NewGuid();
+        var contractId = Guid.NewGuid();
+        var transactionId = Guid.NewGuid();
+        var fundRequest =
+            new FundMilestoneRequest("mock-success-card");
+
+        var fund = await controller.FundAsync(
+            milestoneId,
+            fundRequest,
+            "fund-key",
+            CancellationToken.None);
+        var contractPayments =
+            await controller.GetContractPaymentsAsync(
+                contractId,
+                CancellationToken.None);
+        var milestonePayment =
+            await controller.GetMilestonePaymentAsync(
+                milestoneId,
+                CancellationToken.None);
+        var retry = await controller.RetryAsync(
+            transactionId,
+            "retry-key",
+            CancellationToken.None);
+
+        AssertWrappedOk(fund, service.Payment);
+        AssertWrappedOk(
+            contractPayments,
+            service.PaymentHistory);
+        AssertWrappedOk(milestonePayment, service.Payment);
+        AssertWrappedOk(retry, service.Payment);
+        Assert.Equal(milestoneId, service.FundMilestoneId);
+        Assert.Same(fundRequest, service.FundRequest);
+        Assert.Equal("fund-key", service.FundIdempotencyKey);
+        Assert.Equal(contractId, service.ContractPaymentsId);
+        Assert.Equal(
+            milestoneId,
+            service.MilestonePaymentId);
+        Assert.Equal(transactionId, service.RetryTransactionId);
+        Assert.Equal("retry-key", service.RetryIdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Retry_InvalidIdempotencyHeaderFailsBeforeServiceCall()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(service);
+
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            controller.RetryAsync(
+                Guid.NewGuid(),
+                null,
+                CancellationToken.None));
+
+        Assert.Contains("Idempotency-Key", exception.Message);
+        Assert.Null(service.RetryTransactionId);
+    }
+
+    [Fact]
+    public async Task Webhook_ReadsExactBodyValidatesAndReturnsWrappedResponse()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(service);
+        var request = new PaymentWebhookRequest(
+            "event-1",
+            Guid.NewGuid(),
+            "provider-transaction-1",
+            PaymentTransactionStatus.Completed,
+            100m,
+            "EGP",
+            new DateTime(
+                2026,
+                8,
+                15,
+                10,
+                0,
+                0,
+                DateTimeKind.Utc),
+            null);
+        var rawBody = JsonSerializer.Serialize(
+            request,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        controller.ControllerContext.HttpContext.Request.Body =
+            new MemoryStream(Encoding.UTF8.GetBytes(rawBody));
+
+        var action = await controller.HandleWebhookAsync(
+            request.EventId,
+            "1786788000",
+            "v1=signature",
+            CancellationToken.None);
+
+        AssertWrappedOk(action, service.WebhookResult);
+        Assert.Equal(rawBody, service.WebhookRawBody);
+        Assert.Equal(request.EventId, service.WebhookEventId);
+        Assert.Equal(request, service.WebhookRequest);
+    }
+
+    [Fact]
+    public void Endpoints_DefineExpectedRoutesAndRoleBoundaries()
+    {
+        AssertEndpoint(
+            nameof(PaymentsController.FundAsync),
+            "milestones/{milestoneId:guid}/fund",
+            "Client");
+        AssertEndpoint(
+            nameof(PaymentsController.GetContractPaymentsAsync),
+            "contracts/{contractId:guid}/payments",
+            "Client,Lawyer,FinanceAdministrator,SuperAdministrator");
+        AssertEndpoint(
+            nameof(PaymentsController.GetMilestonePaymentAsync),
+            "milestones/{milestoneId:guid}/payment",
+            "Client,Lawyer,FinanceAdministrator,SuperAdministrator");
+        AssertEndpoint(
+            nameof(PaymentsController.RetryAsync),
+            "payments/{paymentTransactionId:guid}/retry",
+            "FinanceAdministrator,SuperAdministrator");
+
+        var webhook = typeof(PaymentsController).GetMethod(
+            nameof(PaymentsController.HandleWebhookAsync));
+        Assert.NotNull(webhook);
+        var route = Assert.Single(
+            webhook.GetCustomAttributes<HttpPostAttribute>());
+        Assert.Equal("payments/webhook", route.Template);
+        Assert.Single(
+            webhook.GetCustomAttributes<AllowAnonymousAttribute>());
+    }
+
+    private static PaymentsController CreateController(
+        IPaymentEscrowService service)
+    {
+        var controller = new PaymentsController(
+            service,
+            new RetryPaymentRequestValidator(),
+            new PaymentWebhookRequestValidator());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        return controller;
+    }
+
+    private static void AssertEndpoint(
+        string methodName,
+        string route,
+        string roles)
+    {
+        var method = typeof(PaymentsController).GetMethod(methodName);
+        Assert.NotNull(method);
+        var httpAttribute = Assert.Single(
+            method.GetCustomAttributes<HttpMethodAttribute>());
+        Assert.Equal(route, httpAttribute.Template);
+        var authorize = Assert.Single(
+            method.GetCustomAttributes<AuthorizeAttribute>());
+        Assert.Equal(roles, authorize.Roles);
+    }
+
+    private static void AssertWrappedOk<T>(
+        ActionResult<ApiResponse<T>> action,
+        T expected)
+    {
+        var result = Assert.IsType<OkObjectResult>(
+            ((IConvertToActionResult)action).Convert());
+        var response = Assert.IsType<ApiResponse<T>>(result.Value);
+        Assert.True(response.Success);
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
+        Assert.Equal(expected, response.Data);
+    }
+
+    private sealed class RecordingPaymentApi
+        : IPaymentEscrowService
+    {
+        public PaymentDto Payment { get; } = new(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            100m,
+            5m,
+            95m,
+            "EGP",
+            EscrowHoldStatus.Funded,
+            null,
+            null);
+
+        public PaymentHistoryDto PaymentHistory { get; } = new(
+            [],
+            [],
+            []);
+
+        public PaymentActionResultDto WebhookResult { get; } = new(
+            Guid.NewGuid(),
+            "Completed",
+            new DateTime(
+                2026,
+                8,
+                15,
+                10,
+                0,
+                0,
+                DateTimeKind.Utc));
+
+        public Guid? FundMilestoneId { get; private set; }
+        public FundMilestoneRequest? FundRequest { get; private set; }
+        public string? FundIdempotencyKey { get; private set; }
+        public Guid? ContractPaymentsId { get; private set; }
+        public Guid? MilestonePaymentId { get; private set; }
+        public Guid? RetryTransactionId { get; private set; }
+        public string? RetryIdempotencyKey { get; private set; }
+        public PaymentWebhookRequest? WebhookRequest { get; private set; }
+        public string? WebhookEventId { get; private set; }
+        public string? WebhookRawBody { get; private set; }
+
+        public Task<PaymentDto> FundAsync(
+            Guid milestoneId,
+            FundMilestoneRequest request,
+            string? idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            FundMilestoneId = milestoneId;
+            FundRequest = request;
+            FundIdempotencyKey = idempotencyKey;
+            return Task.FromResult(Payment);
+        }
+
+        public Task<PaymentHistoryDto> GetContractPaymentsAsync(
+            Guid contractId,
+            CancellationToken cancellationToken)
+        {
+            ContractPaymentsId = contractId;
+            return Task.FromResult(PaymentHistory);
+        }
+
+        public Task<PaymentDto> GetMilestonePaymentAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+        {
+            MilestonePaymentId = milestoneId;
+            return Task.FromResult(Payment);
+        }
+
+        public Task<PaymentDto> RetryAsync(
+            Guid paymentTransactionId,
+            string? idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            RetryTransactionId = paymentTransactionId;
+            RetryIdempotencyKey = idempotencyKey;
+            return Task.FromResult(Payment);
+        }
+
+        public Task<PaymentActionResultDto> HandleWebhookAsync(
+            PaymentWebhookRequest request,
+            string? eventIdHeader,
+            string? timestampHeader,
+            string? signatureHeader,
+            string rawBody,
+            CancellationToken cancellationToken)
+        {
+            WebhookRequest = request;
+            WebhookEventId = eventIdHeader;
+            WebhookRawBody = rawBody;
+            return Task.FromResult(WebhookResult);
+        }
+
+        public Task<JobExecutionResult>
+            ReconcileProviderTransactionAsync(
+                Guid paymentTransactionId,
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult(
+                JobExecutionResult.NoOp("NotUsed"));
+        }
+    }
+}

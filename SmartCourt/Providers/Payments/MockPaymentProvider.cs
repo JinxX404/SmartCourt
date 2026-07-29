@@ -37,6 +37,37 @@ public sealed class MockPaymentProvider
             cancellationToken);
     }
 
+    public async Task<ProviderResult> RetryDepositAsync(
+        ProviderDepositRetryRequest request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_results.TryGetValue(
+                $"deposit:{request.OriginalProviderIdempotencyKey}",
+                out var originalResult))
+        {
+            return await ExecuteAsync(
+                "deposit-retry",
+                request,
+                originalResult.Outcome switch
+                {
+                    ProviderOperationOutcome.Succeeded =>
+                        "mock-success-retry",
+                    ProviderOperationOutcome.Failed =>
+                        "mock-fail-retry",
+                    _ => "mock-timeout-retry"
+                },
+                cancellationToken);
+        }
+
+        return await ExecuteAsync(
+            "deposit-retry",
+            request,
+            "mock-timeout-retry",
+            cancellationToken);
+    }
+
     public async Task<ProviderResult> ReleaseAsync(
         ProviderReleaseRequest request,
         CancellationToken cancellationToken)

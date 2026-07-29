@@ -15,6 +15,7 @@ using SmartCourt.Features.Payments;
 using SmartCourt.Features.Payments.DTOs;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
@@ -486,6 +487,131 @@ public sealed class PaymentEscrowServiceTests
         Assert.Empty(await context.EscrowHolds.ToListAsync());
     }
 
+    [Fact]
+    public async Task GetContractPaymentsAsync_ParticipantSeesOnlyOwnContractHistory()
+    {
+        await using var context = CreateContext();
+        var (_, transaction) =
+            await SeedProcessingFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        var history = await service.GetContractPaymentsAsync(
+            _contractId,
+            CancellationToken.None);
+
+        var attempt = Assert.Single(history.Attempts);
+        Assert.Equal(transaction.Id, attempt.Id);
+        Assert.Empty(history.Payments);
+        Assert.Empty(history.LedgerEntries);
+
+        var outsiderService = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(Guid.NewGuid()));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            outsiderService.GetContractPaymentsAsync(
+                _contractId,
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetContractPaymentsAsync_FinanceOperatorCanInspectContract()
+    {
+        await using var context = CreateContext();
+        await SeedProcessingFundingAsync(context);
+        var financeUserId = Guid.NewGuid();
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Unknown),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(financeUserId),
+            financeAccess: true);
+
+        var history = await service.GetContractPaymentsAsync(
+            _contractId,
+            CancellationToken.None);
+
+        Assert.Single(history.Attempts);
+    }
+
+    [Fact]
+    public async Task RetryAsync_SuccessCreatesNewAttemptAndPreservesFailedAttempt()
+    {
+        await using var context = CreateContext();
+        var (milestone, originalTransaction) =
+            await SeedFailedFundingAsync(context);
+        var financeUserId = Guid.NewGuid();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded);
+        var service = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(financeUserId),
+            financeAccess: true);
+
+        var result = await service.RetryAsync(
+            originalTransaction.Id,
+            "retry-payment-1",
+            CancellationToken.None);
+
+        Assert.Equal(EscrowHoldStatus.Funded, result.Status);
+        Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
+        Assert.Equal(1, provider.DepositCalls);
+        var attempts = await context.PaymentTransactions
+            .OrderBy(transaction => transaction.CreatedAt)
+            .ToListAsync();
+        Assert.Equal(2, attempts.Count);
+        Assert.Equal(originalTransaction.Id, attempts[0].Id);
+        Assert.Equal(
+            PaymentTransactionStatus.Failed,
+            attempts[0].Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Completed,
+            attempts[1].Status);
+        Assert.NotEqual(
+            attempts[0].IdempotencyKey,
+            attempts[1].IdempotencyKey);
+
+        var milestonePayment =
+            await service.GetMilestonePaymentAsync(
+                milestone.Id,
+                CancellationToken.None);
+        Assert.Equal(result, milestonePayment);
+    }
+
+    [Fact]
+    public async Task RetryAsync_NonFinanceUserIsRejectedWithoutNewAttempt()
+    {
+        await using var context = CreateContext();
+        var (_, originalTransaction) =
+            await SeedFailedFundingAsync(context);
+        var service = CreateService(
+            context,
+            new TestPaymentProvider(
+                ProviderOperationOutcome.Succeeded),
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.RetryAsync(
+                originalTransaction.Id,
+                "retry-payment-unauthorized",
+                CancellationToken.None));
+
+        Assert.Single(
+            await context.PaymentTransactions.ToListAsync());
+        Assert.Empty(await context.EscrowHolds.ToListAsync());
+    }
+
     private async Task<(Milestone Milestone, PaymentTransaction Transaction)>
         SeedProcessingFundingAsync(ApplicationDbContext context)
     {
@@ -516,6 +642,20 @@ public sealed class PaymentEscrowServiceTests
         context.Contracts.Add(contract);
         context.Milestones.Add(milestone);
         context.PaymentTransactions.Add(transaction);
+        await context.SaveChangesAsync();
+        return (milestone, transaction);
+    }
+
+    private async Task<(Milestone Milestone, PaymentTransaction Transaction)>
+        SeedFailedFundingAsync(ApplicationDbContext context)
+    {
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(context);
+        milestone.Status = MilestoneStatus.AwaitingFunding;
+        transaction.Status = PaymentTransactionStatus.Failed;
+        transaction.FailureReason = "declined";
+        transaction.ProcessedAt = Now.AddMinutes(-5);
+        transaction.UpdatedAt = transaction.ProcessedAt.Value;
         await context.SaveChangesAsync();
         return (milestone, transaction);
     }
@@ -552,13 +692,17 @@ public sealed class PaymentEscrowServiceTests
         ApplicationDbContext context,
         TestPaymentProvider provider,
         TestIdempotencyService idempotency,
-        MutableCurrentUser currentUser)
+        MutableCurrentUser currentUser,
+        bool financeAccess = false)
     {
         var timeProvider = new FixedTimeProvider(Now);
         return new PaymentEscrowService(
             context,
             currentUser,
             new ContractServiceStub(CreateContract()),
+            new TestUserEligibilityService(
+                currentUser.UserId,
+                financeAccess),
             provider,
             provider,
             idempotency,
@@ -659,6 +803,28 @@ public sealed class PaymentEscrowServiceTests
                         : null));
         }
 
+        public Task<ProviderResult> RetryDepositAsync(
+            ProviderDepositRetryRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            DepositCalls++;
+            return Task.FromResult(
+                new ProviderResult(
+                    request.Amount,
+                    request.Currency,
+                    request.BusinessId,
+                    request.ProviderIdempotencyKey,
+                    request.CorrelationId,
+                    outcome,
+                    outcome == ProviderOperationOutcome.Succeeded
+                        ? "provider-retry-transaction-1"
+                        : null,
+                    outcome == ProviderOperationOutcome.Failed
+                        ? "declined"
+                        : null));
+        }
+
         public Task<ProviderResult> ReleaseAsync(
             ProviderReleaseRequest request,
             CancellationToken cancellationToken)
@@ -691,6 +857,35 @@ public sealed class PaymentEscrowServiceTests
                         ? "provider-reconciled-transaction"
                         : null,
                     null));
+        }
+    }
+
+    private sealed class TestUserEligibilityService(
+        Guid? userId,
+        bool financeAccess)
+        : IContractUserEligibilityService
+    {
+        public Task<ContractUserEligibilityFacts?> FindEligibilityAsync(
+            Guid requestedUserId,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!userId.HasValue
+                || requestedUserId != userId.Value)
+            {
+                return Task.FromResult<
+                    ContractUserEligibilityFacts?>(null);
+            }
+
+            return Task.FromResult<ContractUserEligibilityFacts?>(
+                new ContractUserEligibilityFacts(
+                    requestedUserId,
+                    true,
+                    false,
+                    false,
+                    false,
+                    financeAccess,
+                    false));
         }
     }
 
