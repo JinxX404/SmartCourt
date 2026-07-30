@@ -5,12 +5,14 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Files.Integration;
 using SmartCourt.Features.Milestones.Domain;
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -21,6 +23,8 @@ public sealed class MilestoneService(
     ApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     IContractService contractService,
+    IMilestoneFundingVerifier fundingVerifier,
+    IContractFileAccessService fileAccessService,
     IOutboxWriter outboxWriter,
     TimeProvider timeProvider) : IMilestoneService
 {
@@ -314,6 +318,165 @@ public sealed class MilestoneService(
         await SaveChangesAsync(cancellationToken);
 
         return ToActionResult(milestone, now);
+    }
+
+    public async Task<MilestoneDto> SubmitAsync(
+        Guid milestoneId,
+        SubmitMilestoneRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        if (actorUserId != contract.LawyerUserId)
+        {
+            throw new ForbiddenAccessException(
+                "محامي العقد فقط هو من يمكنه تسليم أعمال المرحلة.");
+        }
+
+        if (contract.Status != ContractStatus.Active)
+        {
+            throw new BusinessException(
+                "يجب أن يكون العقد نشطًا قبل تسليم أعمال المرحلة.");
+        }
+
+        if (milestone.Status != MilestoneStatus.FundedInProgress)
+        {
+            throw new BusinessException(
+                "يمكن تسليم أعمال المرحلة عندما تكون ممولة وقيد التنفيذ فقط.");
+        }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(
+                cancellationToken)
+            : null;
+        var verifiedFunding = await fundingVerifier.VerifyAsync(
+            milestone.Id,
+            FundingVerificationOperation.Submission,
+            cancellationToken);
+        if (verifiedFunding.ContractId != milestone.ContractId
+            || verifiedFunding.GrossAmount != milestone.Amount
+            || !string.Equals(
+                verifiedFunding.Currency,
+                "EGP",
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "بيانات تمويل المرحلة لا تطابق العقد أو المبلغ أو العملة المطلوبة للتسليم.");
+        }
+
+        var authorizedFiles =
+            await fileAccessService.AuthorizeForUseAsync(
+                actorUserId,
+                request.StoredFileIds,
+                ContractFilePurpose.MilestoneSubmission,
+                milestone.Id,
+                cancellationToken);
+        var authorizedFileIds = authorizedFiles
+            .Where(file => file.OwnerUserId == actorUserId)
+            .Select(file => file.StoredFileId)
+            .ToHashSet();
+        if (authorizedFileIds.Count != request.StoredFileIds.Count
+            || request.StoredFileIds.Any(
+                fileId => !authorizedFileIds.Contains(fileId)))
+        {
+            throw new ForbiddenAccessException(
+                "تعذر التحقق من ملكية جميع ملفات تسليم المرحلة للمحامي الحالي.");
+        }
+
+        var latestVersion = await dbContext.MilestoneSubmissions
+            .Where(submission =>
+                submission.MilestoneId == milestone.Id)
+            .Select(submission => (int?)submission.Version)
+            .MaxAsync(cancellationToken) ?? 0;
+        var nextVersion = latestVersion + 1;
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        var submission = new MilestoneSubmission(
+            Guid.NewGuid(),
+            milestone.Id,
+            verifiedFunding.EscrowHoldId,
+            actorUserId,
+            nextVersion,
+            request.Notes,
+            now);
+        dbContext.MilestoneSubmissions.Add(submission);
+        dbContext.MilestoneSubmissionAttachments.AddRange(
+            request.StoredFileIds.Select(fileId =>
+                new MilestoneSubmissionAttachment(
+                    Guid.NewGuid(),
+                    submission.Id,
+                    fileId,
+                    now)));
+
+        var previousStatus = milestone.Status;
+        MilestoneTransitionGuard.EnsureCanTransition(
+            previousStatus,
+            MilestoneStatus.Submitted);
+        milestone.Status = MilestoneStatus.Submitted;
+        milestone.SubmittedAt = now;
+        milestone.AutoAcceptEligibleAt = now.AddDays(7);
+        milestone.AutoAcceptJobId = null;
+        milestone.SubmissionVersion = nextVersion;
+        milestone.UpdatedAt = now;
+        dbContext.MilestoneStateHistories.Add(
+            MilestoneStateHistoryFactory.Create(
+                Guid.NewGuid(),
+                milestone.Id,
+                previousStatus,
+                MilestoneStatus.Submitted,
+                ContractPaymentEventTypes.MilestoneSubmitted,
+                actorUserId,
+                $"سلّم المحامي النسخة رقم {nextVersion} من أعمال المرحلة.",
+                correlationId,
+                now));
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.MilestoneSubmitted,
+                1,
+                new MilestoneSubmissionEventPayload(
+                    milestone.Id,
+                    verifiedFunding.EscrowHoldId,
+                    nextVersion),
+                "Milestone",
+                milestone.Id,
+                correlationId),
+            cancellationToken);
+
+        try
+        {
+            await SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception)
+            when (IsDuplicateSubmissionVersionConstraintViolation(
+                exception))
+        {
+            throw new ConflictException(
+                "تم تسجيل تسليم آخر لهذه المرحلة بالتزامن. يرجى إعادة تحميل المرحلة والمحاولة مرة أخرى.");
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        var hold = await dbContext.EscrowHolds
+            .AsNoTracking()
+            .SingleAsync(
+                item => item.Id == verifiedFunding.EscrowHoldId,
+                cancellationToken);
+        return MapMilestone(
+            milestone,
+            hold,
+            contract,
+            await IsCurrentSequentialMilestoneAsync(
+                milestone,
+                cancellationToken),
+            actorUserId);
     }
 
     public async Task<MilestoneActionResultDto> CreateChangeRequestAsync(
@@ -653,6 +816,12 @@ public sealed class MilestoneService(
             actions.Add("ReadyForFunding");
         }
 
+        if (milestone.Status == MilestoneStatus.FundedInProgress
+            && isLawyer)
+        {
+            actions.Add("Submit");
+        }
+
         return actions;
     }
 
@@ -901,6 +1070,18 @@ public sealed class MilestoneService(
             } sqlException
             && sqlException.Message.Contains(
                 "UX_MilestoneChangeRequests_Pending",
+                StringComparison.Ordinal);
+    }
+
+    private static bool IsDuplicateSubmissionVersionConstraintViolation(
+        DbUpdateException exception)
+    {
+        return exception.InnerException is SqlException
+            {
+                Number: 2601 or 2627
+            } sqlException
+            && sqlException.Message.Contains(
+                "UX_MilestoneSubmissions_MilestoneId_Version",
                 StringComparison.Ordinal);
     }
 

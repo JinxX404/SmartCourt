@@ -1,6 +1,6 @@
 namespace SmartCourt.Features.Payments.FundingVerification;
 
-internal interface IMilestoneFundingVerifier
+public interface IMilestoneFundingVerifier
 {
     Task<VerifiedMilestoneFunding> VerifyAsync(
         Guid milestoneId,

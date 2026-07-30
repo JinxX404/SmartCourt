@@ -1,13 +1,17 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Files.Integration;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Entities;
+using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -410,6 +414,185 @@ public sealed class MilestoneServiceTests
             (await context.OutboxMessages.ToListAsync()).Select(item => item.EventType));
     }
 
+    [Fact]
+    public async Task SubmitAsync_ValidFundingCreatesImmutableVersionAndSchedulingEvent()
+    {
+        await using var context = CreateContext();
+        var (milestone, hold, _) =
+            await AddFundedChainAsync(context);
+        var fileIds = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await service.SubmitAsync(
+            milestone.Id,
+            new SubmitMilestoneRequest(
+                "تم إيداع مذكرة الدفاع والمرفقات.",
+                fileIds),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.Submitted, result.Status);
+        Assert.Equal(MilestoneStatus.Submitted, milestone.Status);
+        Assert.Equal(_utcNow, milestone.SubmittedAt);
+        Assert.Equal(
+            _utcNow.AddDays(7),
+            milestone.AutoAcceptEligibleAt);
+        Assert.Equal(1, milestone.SubmissionVersion);
+        var submission =
+            await context.MilestoneSubmissions.SingleAsync();
+        Assert.Equal(hold.Id, submission.EscrowHoldId);
+        Assert.Equal(_lawyerUserId, submission.SubmittedByUserId);
+        Assert.Equal(1, submission.Version);
+        Assert.Equal(
+            fileIds.OrderBy(id => id),
+            (await context.MilestoneSubmissionAttachments
+                .Select(attachment => attachment.StoredFileId)
+                .ToListAsync())
+            .OrderBy(id => id));
+        var history =
+            await context.MilestoneStateHistories.SingleAsync();
+        Assert.Equal(
+            MilestoneStatus.FundedInProgress,
+            history.PreviousStatus);
+        Assert.Equal(MilestoneStatus.Submitted, history.NewStatus);
+
+        var message = await context.OutboxMessages.SingleAsync(
+            item =>
+                item.EventType
+                    == ContractPaymentEventTypes.MilestoneSubmitted);
+        var payload =
+            JsonSerializer.Deserialize<MilestoneSubmissionEventPayload>(
+                message.Payload,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+        Assert.NotNull(payload);
+        Assert.Equal(milestone.Id, payload.MilestoneId);
+        Assert.Equal(hold.Id, payload.EscrowHoldId);
+        Assert.Equal(1, payload.SubmissionVersion);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_InvalidFundingChainCreatesNoSubmissionOrEvent()
+    {
+        await using var context = CreateContext();
+        var (milestone, _, paymentTransaction) =
+            await AddFundedChainAsync(context);
+        paymentTransaction.Amount = milestone.Amount + 1m;
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.SubmitAsync(
+                milestone.Id,
+                new SubmitMilestoneRequest(
+                    "تم إيداع مستندات المرحلة.",
+                    [Guid.NewGuid()]),
+                CancellationToken.None));
+
+        Assert.Contains("تمويل", exception.Message);
+        Assert.Equal(
+            MilestoneStatus.FundedInProgress,
+            milestone.Status);
+        Assert.Null(milestone.SubmittedAt);
+        Assert.Null(milestone.AutoAcceptEligibleAt);
+        Assert.Empty(await context.MilestoneSubmissions.ToListAsync());
+        Assert.Empty(
+            await context.MilestoneSubmissionAttachments.ToListAsync());
+        Assert.DoesNotContain(
+            await context.OutboxMessages.ToListAsync(),
+            message =>
+                message.EventType
+                    == ContractPaymentEventTypes.MilestoneSubmitted);
+    }
+
+    [Fact]
+    public async Task SubmitAsync_RejectsClientAndUnauthorizedFilesWithoutMutation()
+    {
+        await using var context = CreateContext();
+        var (milestone, _, _) =
+            await AddFundedChainAsync(context);
+        var request = new SubmitMilestoneRequest(
+            "تم إيداع مستندات المرحلة.",
+            [Guid.NewGuid()]);
+        var clientService = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            clientService.SubmitAsync(
+                milestone.Id,
+                request,
+                CancellationToken.None));
+
+        var deniedFileService = new TestFileAccessService
+        {
+            DenyUse = true
+        };
+        var lawyerService = CreateService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active),
+            deniedFileService);
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            lawyerService.SubmitAsync(
+                milestone.Id,
+                request,
+                CancellationToken.None));
+
+        Assert.Equal(
+            MilestoneStatus.FundedInProgress,
+            milestone.Status);
+        Assert.Empty(await context.MilestoneSubmissions.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SubmitAsync_ResubmissionUsesNextImmutableVersionAndNewDeadline()
+    {
+        await using var context = CreateContext();
+        var (milestone, hold, _) =
+            await AddFundedChainAsync(context);
+        milestone.SubmissionVersion = 1;
+        context.MilestoneSubmissions.Add(
+            new MilestoneSubmission(
+                Guid.NewGuid(),
+                milestone.Id,
+                hold.Id,
+                _lawyerUserId,
+                1,
+                "التسليم الأول.",
+                _utcNow.AddDays(-2)));
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        await service.SubmitAsync(
+            milestone.Id,
+            new SubmitMilestoneRequest(
+                "التسليم الثاني بعد تنفيذ التعديلات.",
+                [Guid.NewGuid()]),
+            CancellationToken.None);
+
+        var submissions = await context.MilestoneSubmissions
+            .OrderBy(submission => submission.Version)
+            .ToListAsync();
+        Assert.Equal([1, 2], submissions.Select(
+            submission => submission.Version));
+        Assert.Equal(2, milestone.SubmissionVersion);
+        Assert.Equal(
+            _utcNow.AddDays(7),
+            milestone.AutoAcceptEligibleAt);
+    }
+
     private Milestone CreateFundedMilestone()
     {
         var milestone = CreateMilestone(MilestoneStatus.FundedInProgress, 1);
@@ -417,16 +600,67 @@ public sealed class MilestoneServiceTests
         return milestone;
     }
 
+    private async Task<(
+        Milestone Milestone,
+        EscrowHold Hold,
+        PaymentTransaction PaymentTransaction)> AddFundedChainAsync(
+            ApplicationDbContext context)
+    {
+        var milestone = CreateFundedMilestone();
+        var account = new EscrowAccount(
+            Guid.NewGuid(),
+            _contractId,
+            _utcNow.AddHours(-1));
+        var transactionId = Guid.NewGuid();
+        var hold = new EscrowHold(
+            Guid.NewGuid(),
+            account.Id,
+            _contractId,
+            milestone.Id,
+            milestone.Amount,
+            50m,
+            950m,
+            transactionId,
+            milestone.FundedAt!.Value,
+            milestone.FundedAt.Value);
+        var paymentTransaction = new PaymentTransaction(
+            transactionId,
+            _contractId,
+            milestone.Id,
+            PaymentOperationType.Deposit,
+            "MockPaymentProvider",
+            $"funding-{Guid.NewGuid():N}",
+            milestone.Amount,
+            milestone.FundedAt.Value)
+        {
+            EscrowHoldId = hold.Id,
+            ProviderTransactionId =
+                $"provider-{Guid.NewGuid():N}",
+            Status = PaymentTransactionStatus.Completed,
+            ProcessedAt = milestone.FundedAt.Value,
+            UpdatedAt = milestone.FundedAt.Value
+        };
+        context.Milestones.Add(milestone);
+        context.EscrowAccounts.Add(account);
+        context.EscrowHolds.Add(hold);
+        context.PaymentTransactions.Add(paymentTransaction);
+        await context.SaveChangesAsync();
+        return (milestone, hold, paymentTransaction);
+    }
+
     private MilestoneService CreateService(
         ApplicationDbContext context,
         MutableCurrentUser currentUser,
-        ContractServiceStub contracts)
+        ContractServiceStub contracts,
+        IContractFileAccessService? fileAccessService = null)
     {
         var timeProvider = new FixedTimeProvider(_utcNow);
         return new MilestoneService(
             context,
             currentUser,
             contracts,
+            new MilestoneFundingVerifier(context),
+            fileAccessService ?? new TestFileAccessService(),
             new OutboxWriter(context, timeProvider),
             timeProvider);
     }
@@ -522,6 +756,42 @@ public sealed class MilestoneServiceTests
     {
         public Guid? UserId { get; set; } = userId;
         public bool IsAuthenticated => UserId.HasValue;
+    }
+
+    private sealed class TestFileAccessService
+        : IContractFileAccessService
+    {
+        public bool DenyUse { get; set; }
+
+        public Task<IReadOnlyList<AuthorizedContractFile>>
+            AuthorizeForUseAsync(
+                Guid actorUserId,
+                IReadOnlyCollection<Guid> storedFileIds,
+                ContractFilePurpose purpose,
+                Guid relatedEntityId,
+                CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<AuthorizedContractFile> result = DenyUse
+                ? []
+                : storedFileIds
+                    .Select(fileId => new AuthorizedContractFile(
+                        fileId,
+                        actorUserId))
+                    .ToArray();
+            return Task.FromResult(result);
+        }
+
+        public Task<ContractFileReadAccess?>
+            GetAuthorizedReadAccessAsync(
+                Guid actorUserId,
+                Guid storedFileId,
+                ContractFilePurpose purpose,
+                Guid relatedEntityId,
+                CancellationToken cancellationToken)
+        {
+            return Task.FromResult<ContractFileReadAccess?>(null);
+        }
     }
 
     private sealed class ContractServiceStub(

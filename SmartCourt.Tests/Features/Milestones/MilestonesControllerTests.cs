@@ -92,6 +92,12 @@ public sealed class MilestonesControllerTests
             milestoneId,
             ValidIfMatch,
             CancellationToken.None);
+        var submit = await controller.SubmitAsync(
+            milestoneId,
+            new SubmitMilestoneRequest(
+                "تم إيداع المستندات المطلوبة.",
+                [Guid.NewGuid()]),
+            CancellationToken.None);
         var approveRequest = await controller.ApproveChangeRequestAsync(
             changeRequestId,
             ValidIfMatch,
@@ -109,6 +115,7 @@ public sealed class MilestonesControllerTests
         AssertWrappedOk(update, service.Milestone);
         AssertWrappedOk(approve, service.ActionResult);
         AssertWrappedOk(ready, service.ActionResult);
+        AssertWrappedOk(submit, service.Milestone);
         AssertWrappedOk(approveRequest, service.ActionResult);
         AssertWrappedOk(rejectRequest, service.ActionResult);
         AssertWrappedOk(cancelRequest, service.ActionResult);
@@ -158,6 +165,11 @@ public sealed class MilestonesControllerTests
             nameof(MilestonesController.MarkReadyForFundingAsync),
             typeof(HttpPostAttribute),
             "milestones/{milestoneId:guid}/ready-for-funding",
+            "Lawyer");
+        AssertEndpoint(
+            nameof(MilestonesController.SubmitAsync),
+            typeof(HttpPostAttribute),
+            "milestones/{milestoneId:guid}/submit",
             "Lawyer");
         AssertEndpoint(
             nameof(MilestonesController.RejectChangeRequestAsync),
@@ -289,6 +301,14 @@ public sealed class MilestonesControllerTests
         {
             RecordIfMatch(ifMatch);
             return Task.FromResult(ActionResult);
+        }
+
+        public Task<MilestoneDto> SubmitAsync(
+            Guid milestoneId,
+            SubmitMilestoneRequest request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Milestone);
         }
 
         public Task<MilestoneActionResultDto> CreateChangeRequestAsync(

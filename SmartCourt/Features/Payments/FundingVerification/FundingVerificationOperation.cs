@@ -1,6 +1,6 @@
 namespace SmartCourt.Features.Payments.FundingVerification;
 
-internal enum FundingVerificationOperation : int
+public enum FundingVerificationOperation : int
 {
     Submission = 0,
     ManualAcceptance = 1,

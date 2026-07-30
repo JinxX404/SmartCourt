@@ -18,7 +18,8 @@ internal static class VerifiedMilestoneFundingQuery
     {
         if (milestoneId == Guid.Empty)
         {
-            throw new BusinessException("Milestone is required.");
+            throw new BusinessException(
+                "معرّف المرحلة مطلوب للتحقق من التمويل.");
         }
 
         var requiredHoldStatus = operation switch
@@ -32,7 +33,7 @@ internal static class VerifiedMilestoneFundingQuery
             FundingVerificationOperation.DisputeOpening
                 => EscrowHoldStatus.Funded,
             _ => throw new BusinessException(
-                "Funding verification operation is invalid.")
+                "نوع عملية التحقق من تمويل المرحلة غير صالح.")
         };
 
         return

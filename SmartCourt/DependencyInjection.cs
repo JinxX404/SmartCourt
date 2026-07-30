@@ -43,6 +43,8 @@ using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
+using SmartCourt.Features.Files.Integration;
+using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Entities;
@@ -150,7 +152,13 @@ public static class DependencyInjection
         services.AddScoped<
             IContractUserEligibilityService,
             ContractUserEligibilityService>();
+        services.AddScoped<
+            IContractFileAccessService,
+            ContractFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
+        services.AddScoped<
+            IMilestoneFundingVerifier,
+            MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
         services.AddScoped<
