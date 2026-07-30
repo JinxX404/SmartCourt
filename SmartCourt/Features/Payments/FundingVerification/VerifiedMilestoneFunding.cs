@@ -1,6 +1,6 @@
 namespace SmartCourt.Features.Payments.FundingVerification;
 
-internal sealed record VerifiedMilestoneFunding(
+public sealed record VerifiedMilestoneFunding(
     Guid MilestoneId,
     Guid ContractId,
     Guid EscrowAccountId,

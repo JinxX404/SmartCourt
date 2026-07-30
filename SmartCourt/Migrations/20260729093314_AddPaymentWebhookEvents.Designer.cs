@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
@@ -11,9 +12,11 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729093314_AddPaymentWebhookEvents")]
+    partial class AddPaymentWebhookEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1820,25 +1823,11 @@ namespace SmartCourt.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DecisionReason")
-                        .HasMaxLength(1000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("LegalCaseId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1848,19 +1837,11 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientUserId");
-
                     b.HasIndex("LawyerUserId");
 
-                    b.HasIndex("LegalCaseId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 1");
-
-                    b.HasIndex("LegalCaseId", "LawyerUserId")
-                        .IsUnique()
-                        .HasFilter("[Status] IN (0, 1)");
-
                     b.HasIndex("LegalCaseId", "Status");
+
+                    b.HasIndex("ClientUserId", "LawyerUserId", "Status");
 
                     b.ToTable("Proposals", null, t =>
                         {
@@ -2539,13 +2520,11 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", "LegalCase")
+                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", null)
                         .WithMany()
                         .HasForeignKey("LegalCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("LegalCase");
                 });
 
             modelBuilder.Entity("SmartCourt.Infrastructure.Persistence.Entities.IdempotencyRecord", b =>

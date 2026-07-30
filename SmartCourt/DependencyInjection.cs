@@ -29,6 +29,7 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Providers.Jobs;
 using SmartCourt.Providers.Payments;
 using SmartCourt.Features.Auth.ResendVerification;
@@ -43,6 +44,8 @@ using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
+using SmartCourt.Features.Files.Integration;
+using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Entities;
@@ -150,8 +153,26 @@ public static class DependencyInjection
         services.AddScoped<
             IContractUserEligibilityService,
             ContractUserEligibilityService>();
+        services.AddScoped<
+            IContractFileAccessService,
+            ContractFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
+        services.AddScoped<
+            IMilestoneFundingVerifier,
+            MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+        services.AddScoped<
+            IMilestoneAutoAcceptanceService,
+            MilestoneAutoAcceptanceService>();
+        services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
+        services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
+        services.AddScoped<
+            IContractTerminationSettlementService,
+            ContractTerminationSettlementService>();
+        services.AddScoped<
+            IContractJobOperations,
+            PaymentContractJobOperations>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
 
@@ -162,12 +183,23 @@ public static class DependencyInjection
                     "not regulated escrow",
                     StringComparison.OrdinalIgnoreCase),
                 "The mock payment provider warning must state that it is not regulated escrow.")
+            .Validate(
+                options => !options.UseMockProvider
+                    || !string.IsNullOrWhiteSpace(
+                        options.WebhookSecret),
+                "يجب إعداد سر التحقق من إشعارات مزود الدفع التجريبي.")
             .ValidateOnStart();
 
         if (configuration.GetValue<bool>(
                 $"{PaymentProviderOptions.SectionName}:UseMockProvider"))
         {
-            services.AddScoped<IPaymentProvider, MockPaymentProvider>();
+            services.AddScoped<MockPaymentProvider>();
+            services.AddScoped<IPaymentProvider>(
+                provider => provider
+                    .GetRequiredService<MockPaymentProvider>());
+            services.AddScoped<IPaymentReconciliationProvider>(
+                provider => provider
+                    .GetRequiredService<MockPaymentProvider>());
         }
             
         services.AddOptions<MailKitOptions>()

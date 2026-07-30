@@ -14,7 +14,14 @@ public sealed class ProviderContractTests
         var methods = typeof(IPaymentProvider).GetMethods();
 
         Assert.Equal(
-            new[] { "DepositAsync", "RefundAsync", "ReleaseAsync", "WithdrawAsync" },
+            new[]
+            {
+                "DepositAsync",
+                "RefundAsync",
+                "ReleaseAsync",
+                "RetryDepositAsync",
+                "WithdrawAsync"
+            },
             methods.Select(method => method.Name).OrderBy(name => name));
 
         Assert.All(

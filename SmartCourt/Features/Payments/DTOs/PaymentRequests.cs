@@ -5,6 +5,9 @@ namespace SmartCourt.Features.Payments.DTOs;
 public sealed record FundMilestoneRequest(
     string PaymentMethodReference);
 
+public sealed record RetryPaymentRequest(
+    string IdempotencyKey);
+
 public sealed record PaymentWebhookRequest(
     string EventId,
     Guid PaymentTransactionId,
