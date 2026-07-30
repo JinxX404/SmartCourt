@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
+using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Disputes.Entities;
@@ -23,6 +24,7 @@ public class ApplicationDbContext
         typeof(MilestoneSubmission),
         typeof(MilestoneSubmissionAttachment),
         typeof(EscrowLedgerEntry),
+        typeof(ChatMessage),
         typeof(DisputeResolution),
         typeof(DisputeEvidence),
         typeof(LawyerPenalty),
@@ -83,6 +85,9 @@ public class ApplicationDbContext
     public DbSet<LawDocument> LawDocuments => Set<LawDocument>();
     public DbSet<LegalCase> LegalCases => Set<LegalCase>();
     public DbSet<Proposal> Proposals => Set<Proposal>();
+    public DbSet<ChatConversation> ChatConversations =>
+        Set<ChatConversation>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<Milestone> Milestones => Set<Milestone>();

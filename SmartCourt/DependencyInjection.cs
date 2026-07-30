@@ -41,6 +41,10 @@ using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Chat.Events;
+using SmartCourt.Features.Chat.Integration;
+using SmartCourt.Features.Chat.Realtime;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
@@ -86,6 +90,7 @@ public static class DependencyInjection
         });
 
         services.AddControllers();
+        services.AddSignalR();
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();
         services.AddEndpointsApiExplorer();
@@ -135,6 +140,14 @@ public static class DependencyInjection
         services.AddScoped<
             IOutboxEventHandler,
             MilestoneSchedulingOutboxHandler>();
+        services.AddScoped<
+            IOutboxEventHandler,
+            ContractConversationOutboxHandler>();
+        services.AddScoped<IChatConversationService, ChatConversationService>();
+        services.AddScoped<
+            IContractConversationService,
+            ContractConversationService>();
+        services.AddScoped<IChatRealtimeNotifier, SignalRChatRealtimeNotifier>();
         services.AddScoped<
             IMilestoneSchedulingReconciliationService,
             MilestoneSchedulingReconciliationService>();
@@ -279,6 +292,18 @@ public static class DependencyInjection
             };
             options.Events = new JwtBearerEvents
             {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrWhiteSpace(accessToken)
+                        && path.StartsWithSegments("/hubs/chat"))
+                    {
+                        context.Token = accessToken;
+                    }
+
+                    return Task.CompletedTask;
+                },
                 OnTokenValidated = async context =>
                 {
                     var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);

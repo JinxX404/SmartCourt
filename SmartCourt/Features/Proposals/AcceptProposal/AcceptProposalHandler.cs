@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Cases.Enums;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.Entities;
@@ -15,7 +16,8 @@ public sealed class AcceptProposalHandler(
     ApplicationDbContext context,
     ICurrentUserService currentUserService,
     TimeProvider timeProvider,
-    IOutboxWriter outboxWriter)
+    IOutboxWriter outboxWriter,
+    IChatConversationService chatConversationService)
     : IRequestHandler<AcceptProposalCommand, ApiResponse<ProposalDetailDto>>
 {
     public async Task<ApiResponse<ProposalDetailDto>> Handle(
@@ -56,6 +58,9 @@ public sealed class AcceptProposalHandler(
         proposal.Accept(now);
         proposal.LegalCase.Status = CaseStatus.Matched;
         proposal.LegalCase.UpdatedAt = now;
+        await chatConversationService.EnsureForAcceptedProposalAsync(
+            proposal,
+            cancellationToken);
 
         await outboxWriter.EnqueueAsync(
             new OutboxEvent(

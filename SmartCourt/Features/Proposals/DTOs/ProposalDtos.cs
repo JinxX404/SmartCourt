@@ -12,7 +12,8 @@ public sealed record ProposalListItemDto(
     string LawyerName,
     string Status,
     DateTime CreatedAt,
-    DateTime? RespondedAt);
+    DateTime? RespondedAt,
+    Guid? ConversationId = null);
 
 public sealed record ProposalDetailDto(
     Guid Id,

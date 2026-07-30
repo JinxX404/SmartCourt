@@ -20,6 +20,9 @@ internal static class ProposalReadModel
                 on proposal.ClientUserId equals client.Id
             join lawyer in context.Users
                 on proposal.LawyerUserId equals lawyer.Id
+            join conversation in context.ChatConversations
+                on proposal.Id equals conversation.ProposalId into conversationJoin
+            from conversation in conversationJoin.DefaultIfEmpty()
             where proposal.Id == proposalId
                 && (proposal.ClientUserId == actorUserId
                     || proposal.LawyerUserId == actorUserId)
@@ -37,7 +40,10 @@ internal static class ProposalReadModel
                 proposal.DecisionReason,
                 proposal.CreatedAt,
                 proposal.RespondedAt,
-                proposal.UpdatedAt
+                proposal.UpdatedAt,
+                ConversationId = conversation == null
+                    ? null
+                    : (Guid?)conversation.Id
             })
             .SingleOrDefaultAsync(cancellationToken);
 
@@ -56,6 +62,7 @@ internal static class ProposalReadModel
                 row.DecisionReason,
                 row.CreatedAt,
                 row.RespondedAt,
-                row.UpdatedAt);
+                row.UpdatedAt,
+                row.ConversationId);
     }
 }
