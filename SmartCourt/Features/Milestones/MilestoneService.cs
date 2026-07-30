@@ -421,6 +421,7 @@ public sealed class MilestoneService(
         milestone.SubmittedAt = now;
         milestone.AutoAcceptEligibleAt = now.AddDays(7);
         milestone.AutoAcceptJobId = null;
+        milestone.RejectionReason = null;
         milestone.SubmissionVersion = nextVersion;
         milestone.UpdatedAt = now;
         dbContext.MilestoneStateHistories.Add(
@@ -469,6 +470,194 @@ public sealed class MilestoneService(
             .SingleAsync(
                 item => item.Id == verifiedFunding.EscrowHoldId,
                 cancellationToken);
+        return MapMilestone(
+            milestone,
+            hold,
+            contract,
+            await IsCurrentSequentialMilestoneAsync(
+                milestone,
+                cancellationToken),
+            actorUserId);
+    }
+
+    public async Task<MilestoneDto> AcceptAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        if (actorUserId != contract.ClientUserId)
+        {
+            throw new ForbiddenAccessException(
+                "عميل العقد فقط هو من يمكنه قبول تسليم المرحلة.");
+        }
+
+        if (contract.Status != ContractStatus.Active)
+        {
+            throw new BusinessException(
+                "يجب أن يكون العقد نشطًا قبل قبول تسليم المرحلة.");
+        }
+
+        if (milestone.Status != MilestoneStatus.Submitted)
+        {
+            throw new BusinessException(
+                "يمكن قبول تسليم المرحلة عندما تكون في حالة المراجعة فقط.");
+        }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(
+                cancellationToken)
+            : null;
+        var verifiedFunding = await VerifyCurrentSubmissionFundingAsync(
+            milestone,
+            cancellationToken);
+        var hold = await dbContext.EscrowHolds.SingleOrDefaultAsync(
+                item => item.Id == verifiedFunding.EscrowHoldId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "تعذر العثور على حجز الضمان الممول المرتبط بالمرحلة.");
+        var now = UtcNow;
+        var holdExpiresAt = now.AddDays(14);
+        var correlationId = Guid.NewGuid();
+        MilestoneTransitionGuard.EnsureCanTransition(
+            milestone.Status,
+            MilestoneStatus.AcceptedHold);
+        milestone.Status = MilestoneStatus.AcceptedHold;
+        milestone.AcceptedAt = now;
+        milestone.AcceptanceSource = MilestoneAcceptanceSource.Manual;
+        milestone.HoldStartsAt = now;
+        milestone.HoldExpiresAt = holdExpiresAt;
+        milestone.AutoAcceptEligibleAt = null;
+        milestone.AutoAcceptJobId = null;
+        milestone.UpdatedAt = now;
+        hold.HoldStartsAt = now;
+        hold.HoldExpiresAt = holdExpiresAt;
+        hold.UpdatedAt = now;
+        dbContext.MilestoneStateHistories.Add(
+            MilestoneStateHistoryFactory.Create(
+                Guid.NewGuid(),
+                milestone.Id,
+                MilestoneStatus.Submitted,
+                MilestoneStatus.AcceptedHold,
+                ContractPaymentEventTypes.MilestoneAccepted,
+                actorUserId,
+                "قبل العميل تسليم المرحلة وبدأت مدة حجز الضمان.",
+                correlationId,
+                now));
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.MilestoneAccepted,
+                1,
+                new MilestoneAcceptanceEventPayload(
+                    milestone.Id,
+                    verifiedFunding.EscrowHoldId),
+                "Milestone",
+                milestone.Id,
+                correlationId),
+            cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        return MapMilestone(
+            milestone,
+            hold,
+            contract,
+            await IsCurrentSequentialMilestoneAsync(
+                milestone,
+                cancellationToken),
+            actorUserId);
+    }
+
+    public async Task<MilestoneDto> RequestChangesAsync(
+        Guid milestoneId,
+        RequestMilestoneChangesRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        if (actorUserId != contract.ClientUserId)
+        {
+            throw new ForbiddenAccessException(
+                "عميل العقد فقط هو من يمكنه طلب تعديلات على تسليم المرحلة.");
+        }
+
+        if (contract.Status != ContractStatus.Active)
+        {
+            throw new BusinessException(
+                "يجب أن يكون العقد نشطًا قبل طلب تعديلات على المرحلة.");
+        }
+
+        if (milestone.Status != MilestoneStatus.Submitted)
+        {
+            throw new BusinessException(
+                "يمكن طلب تعديلات عندما تكون المرحلة في حالة المراجعة فقط.");
+        }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(
+                cancellationToken)
+            : null;
+        var verifiedFunding = await VerifyCurrentSubmissionFundingAsync(
+            milestone,
+            cancellationToken);
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        MilestoneTransitionGuard.EnsureCanTransition(
+            milestone.Status,
+            MilestoneStatus.FundedInProgress);
+        milestone.Status = MilestoneStatus.FundedInProgress;
+        milestone.SubmittedAt = null;
+        milestone.AutoAcceptEligibleAt = null;
+        milestone.AutoAcceptJobId = null;
+        milestone.RejectionReason = request.Reason;
+        milestone.UpdatedAt = now;
+        dbContext.MilestoneStateHistories.Add(
+            MilestoneStateHistoryFactory.Create(
+                Guid.NewGuid(),
+                milestone.Id,
+                MilestoneStatus.Submitted,
+                MilestoneStatus.FundedInProgress,
+                ContractPaymentEventTypes.MilestoneChangesRequested,
+                actorUserId,
+                $"طلب العميل تعديلات على تسليم المرحلة: {request.Reason}",
+                correlationId,
+                now));
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.MilestoneChangesRequested,
+                1,
+                new ContractPaymentAggregateEventPayload(
+                    milestone.Id),
+                "Milestone",
+                milestone.Id,
+                correlationId),
+            cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
+
+        var hold = await dbContext.EscrowHolds
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == verifiedFunding.EscrowHoldId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "تعذر العثور على حجز الضمان الممول المرتبط بالمرحلة.");
         return MapMilestone(
             milestone,
             hold,
@@ -689,6 +878,49 @@ public sealed class MilestoneService(
             cancellationToken);
     }
 
+    private async Task<VerifiedMilestoneFunding>
+        VerifyCurrentSubmissionFundingAsync(
+            Milestone milestone,
+            CancellationToken cancellationToken)
+    {
+        if (milestone.SubmissionVersion <= 0)
+        {
+            throw new BusinessException(
+                "لا يوجد إصدار تسليم حالي صالح للمراجعة.");
+        }
+
+        var verifiedFunding = await fundingVerifier.VerifyAsync(
+            milestone.Id,
+            FundingVerificationOperation.ManualAcceptance,
+            cancellationToken);
+        if (verifiedFunding.ContractId != milestone.ContractId
+            || verifiedFunding.GrossAmount != milestone.Amount
+            || !string.Equals(
+                verifiedFunding.Currency,
+                "EGP",
+                StringComparison.Ordinal))
+        {
+            throw new BusinessException(
+                "بيانات تمويل المرحلة لا تطابق العقد أو المبلغ أو العملة المطلوبة للمراجعة.");
+        }
+
+        var currentSubmission = await dbContext.MilestoneSubmissions
+            .AsNoTracking()
+            .OrderByDescending(submission => submission.Version)
+            .FirstOrDefaultAsync(
+                submission => submission.MilestoneId == milestone.Id,
+                cancellationToken);
+        if (currentSubmission is null
+            || currentSubmission.Version != milestone.SubmissionVersion
+            || currentSubmission.EscrowHoldId != verifiedFunding.EscrowHoldId)
+        {
+            throw new BusinessException(
+                "إصدار تسليم المرحلة الحالي لا يطابق حجز الضمان الممول.");
+        }
+
+        return verifiedFunding;
+    }
+
     private async Task<Milestone> GetMilestoneForMutationAsync(
         Guid milestoneId,
         CancellationToken cancellationToken)
@@ -820,6 +1052,13 @@ public sealed class MilestoneService(
             && isLawyer)
         {
             actions.Add("Submit");
+        }
+
+        if (milestone.Status == MilestoneStatus.Submitted
+            && isClient)
+        {
+            actions.Add("Accept");
+            actions.Add("RequestChanges");
         }
 
         return actions;

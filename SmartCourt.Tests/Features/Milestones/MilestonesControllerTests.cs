@@ -98,6 +98,13 @@ public sealed class MilestonesControllerTests
                 "تم إيداع المستندات المطلوبة.",
                 [Guid.NewGuid()]),
             CancellationToken.None);
+        var accept = await controller.AcceptAsync(
+            milestoneId,
+            CancellationToken.None);
+        var requestChanges = await controller.RequestChangesAsync(
+            milestoneId,
+            new RequestMilestoneChangesRequest("يرجى استكمال المستندات."),
+            CancellationToken.None);
         var approveRequest = await controller.ApproveChangeRequestAsync(
             changeRequestId,
             ValidIfMatch,
@@ -116,6 +123,8 @@ public sealed class MilestonesControllerTests
         AssertWrappedOk(approve, service.ActionResult);
         AssertWrappedOk(ready, service.ActionResult);
         AssertWrappedOk(submit, service.Milestone);
+        AssertWrappedOk(accept, service.Milestone);
+        AssertWrappedOk(requestChanges, service.Milestone);
         AssertWrappedOk(approveRequest, service.ActionResult);
         AssertWrappedOk(rejectRequest, service.ActionResult);
         AssertWrappedOk(cancelRequest, service.ActionResult);
@@ -171,6 +180,16 @@ public sealed class MilestonesControllerTests
             typeof(HttpPostAttribute),
             "milestones/{milestoneId:guid}/submit",
             "Lawyer");
+        AssertEndpoint(
+            nameof(MilestonesController.AcceptAsync),
+            typeof(HttpPostAttribute),
+            "milestones/{milestoneId:guid}/accept",
+            "Client");
+        AssertEndpoint(
+            nameof(MilestonesController.RequestChangesAsync),
+            typeof(HttpPostAttribute),
+            "milestones/{milestoneId:guid}/request-changes",
+            "Client");
         AssertEndpoint(
             nameof(MilestonesController.RejectChangeRequestAsync),
             typeof(HttpPostAttribute),
@@ -310,6 +329,17 @@ public sealed class MilestonesControllerTests
         {
             return Task.FromResult(Milestone);
         }
+
+        public Task<MilestoneDto> AcceptAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+            => Task.FromResult(Milestone);
+
+        public Task<MilestoneDto> RequestChangesAsync(
+            Guid milestoneId,
+            RequestMilestoneChangesRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult(Milestone);
 
         public Task<MilestoneActionResultDto> CreateChangeRequestAsync(
             Guid milestoneId,

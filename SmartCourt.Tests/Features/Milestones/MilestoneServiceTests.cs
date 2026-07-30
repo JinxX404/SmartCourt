@@ -593,6 +593,166 @@ public sealed class MilestoneServiceTests
             milestone.AutoAcceptEligibleAt);
     }
 
+    [Fact]
+    public async Task AcceptAsync_ValidCurrentSubmissionStartsFourteenDayHold()
+    {
+        await using var context = CreateContext();
+        var (milestone, hold, _) =
+            await AddSubmittedChainAsync(context);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await service.AcceptAsync(
+            milestone.Id,
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.AcceptedHold, result.Status);
+        Assert.Equal(MilestoneStatus.AcceptedHold, milestone.Status);
+        Assert.Equal(MilestoneAcceptanceSource.Manual, milestone.AcceptanceSource);
+        Assert.Equal(_utcNow, milestone.AcceptedAt);
+        Assert.Equal(_utcNow, milestone.HoldStartsAt);
+        Assert.Equal(_utcNow.AddDays(14), milestone.HoldExpiresAt);
+        Assert.Null(milestone.AutoAcceptEligibleAt);
+        Assert.Null(milestone.AutoAcceptJobId);
+        Assert.Equal(EscrowHoldStatus.Funded, hold.Status);
+        Assert.Equal(_utcNow, hold.HoldStartsAt);
+        Assert.Equal(_utcNow.AddDays(14), hold.HoldExpiresAt);
+        var history = await context.MilestoneStateHistories.SingleAsync();
+        Assert.Equal(MilestoneStatus.Submitted, history.PreviousStatus);
+        Assert.Equal(MilestoneStatus.AcceptedHold, history.NewStatus);
+
+        var message = await context.OutboxMessages.SingleAsync(
+            item =>
+                item.EventType
+                    == ContractPaymentEventTypes.MilestoneAccepted);
+        var payload =
+            JsonSerializer.Deserialize<MilestoneAcceptanceEventPayload>(
+                message.Payload,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+        Assert.NotNull(payload);
+        Assert.Equal(milestone.Id, payload.MilestoneId);
+        Assert.Equal(hold.Id, payload.EscrowHoldId);
+    }
+
+    [Fact]
+    public async Task AcceptAsync_InvalidFundingOrSubmissionVersionDoesNotMutate()
+    {
+        await using var context = CreateContext();
+        var (milestone, hold, paymentTransaction) =
+            await AddSubmittedChainAsync(context);
+        paymentTransaction.Amount = milestone.Amount + 1m;
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            service.AcceptAsync(
+                milestone.Id,
+                CancellationToken.None));
+
+        Assert.Equal(MilestoneStatus.Submitted, milestone.Status);
+        Assert.Null(milestone.AcceptedAt);
+        Assert.Null(milestone.HoldStartsAt);
+        Assert.Null(milestone.HoldExpiresAt);
+        Assert.Null(hold.HoldStartsAt);
+        Assert.Null(hold.HoldExpiresAt);
+        Assert.DoesNotContain(
+            await context.OutboxMessages.ToListAsync(),
+            item =>
+                item.EventType
+                    == ContractPaymentEventTypes.MilestoneAccepted);
+    }
+
+    [Fact]
+    public async Task RequestChangesAsync_PreservesFundingAndImmutableSubmission()
+    {
+        await using var context = CreateContext();
+        var (milestone, hold, paymentTransaction) =
+            await AddSubmittedChainAsync(context);
+        milestone.AutoAcceptJobId = "old-auto-accept-job";
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+        const string reason =
+            "يرجى استكمال المستندات وتصحيح بيانات الطلب.";
+
+        var result = await service.RequestChangesAsync(
+            milestone.Id,
+            new RequestMilestoneChangesRequest(reason),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.FundedInProgress, result.Status);
+        Assert.Equal(
+            MilestoneStatus.FundedInProgress,
+            milestone.Status);
+        Assert.Null(milestone.SubmittedAt);
+        Assert.Null(milestone.AutoAcceptEligibleAt);
+        Assert.Null(milestone.AutoAcceptJobId);
+        Assert.Equal(reason, milestone.RejectionReason);
+        Assert.Equal(1, milestone.SubmissionVersion);
+        Assert.Single(await context.MilestoneSubmissions.ToListAsync());
+        Assert.Single(await context.EscrowHolds.ToListAsync());
+        Assert.Single(await context.PaymentTransactions.ToListAsync());
+        Assert.Equal(EscrowHoldStatus.Funded, hold.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Completed,
+            paymentTransaction.Status);
+        var history = await context.MilestoneStateHistories.SingleAsync();
+        Assert.Equal(MilestoneStatus.Submitted, history.PreviousStatus);
+        Assert.Equal(
+            MilestoneStatus.FundedInProgress,
+            history.NewStatus);
+        Assert.Contains(reason, history.Reason);
+        Assert.Contains(
+            ContractPaymentEventTypes.MilestoneChangesRequested,
+            (await context.OutboxMessages.ToListAsync())
+            .Select(item => item.EventType));
+    }
+
+    [Fact]
+    public async Task ReviewCommands_RequireClientAndCurrentSubmissionVersion()
+    {
+        await using var context = CreateContext();
+        var (milestone, _, _) =
+            await AddSubmittedChainAsync(context);
+        var lawyerService = CreateService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            lawyerService.AcceptAsync(
+                milestone.Id,
+                CancellationToken.None));
+
+        milestone.SubmissionVersion = 2;
+        await context.SaveChangesAsync();
+        var clientService = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            clientService.RequestChangesAsync(
+                milestone.Id,
+                new RequestMilestoneChangesRequest(
+                    "يرجى تعديل التسليم الحالي."),
+                CancellationToken.None));
+
+        Assert.Equal(MilestoneStatus.Submitted, milestone.Status);
+        Assert.NotNull(milestone.SubmittedAt);
+        Assert.NotNull(milestone.AutoAcceptEligibleAt);
+        Assert.Empty(await context.MilestoneStateHistories.ToListAsync());
+    }
+
     private Milestone CreateFundedMilestone()
     {
         var milestone = CreateMilestone(MilestoneStatus.FundedInProgress, 1);
@@ -644,6 +804,31 @@ public sealed class MilestoneServiceTests
         context.EscrowAccounts.Add(account);
         context.EscrowHolds.Add(hold);
         context.PaymentTransactions.Add(paymentTransaction);
+        await context.SaveChangesAsync();
+        return (milestone, hold, paymentTransaction);
+    }
+
+    private async Task<(
+        Milestone Milestone,
+        EscrowHold Hold,
+        PaymentTransaction PaymentTransaction)> AddSubmittedChainAsync(
+            ApplicationDbContext context)
+    {
+        var (milestone, hold, paymentTransaction) =
+            await AddFundedChainAsync(context);
+        milestone.Status = MilestoneStatus.Submitted;
+        milestone.SubmittedAt = _utcNow.AddHours(-1);
+        milestone.AutoAcceptEligibleAt = _utcNow.AddDays(7);
+        milestone.SubmissionVersion = 1;
+        context.MilestoneSubmissions.Add(
+            new MilestoneSubmission(
+                Guid.NewGuid(),
+                milestone.Id,
+                hold.Id,
+                _lawyerUserId,
+                1,
+                "تم تسليم أعمال المرحلة للمراجعة.",
+                milestone.SubmittedAt.Value));
         await context.SaveChangesAsync();
         return (milestone, hold, paymentTransaction);
     }
