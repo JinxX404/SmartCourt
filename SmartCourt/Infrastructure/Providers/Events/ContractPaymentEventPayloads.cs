@@ -1,5 +1,11 @@
 namespace SmartCourt.Infrastructure.Providers.Events;
 
+public sealed record ProposalEventPayload(
+    Guid ProposalId,
+    Guid LegalCaseId,
+    Guid ClientUserId,
+    Guid LawyerUserId);
+
 public sealed record MilestoneSubmissionEventPayload(
     Guid MilestoneId,
     Guid EscrowHoldId,

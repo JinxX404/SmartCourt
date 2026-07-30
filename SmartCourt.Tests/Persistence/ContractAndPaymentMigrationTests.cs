@@ -9,6 +9,9 @@ public sealed class ContractAndPaymentMigrationTests
     private const string ContractAndPaymentMigrationId =
         "20260727160911_ContractAndPaymentV1";
 
+    private const string ProposalWorkflowMigrationId =
+        "20260730121329_AddProposalWorkflowFields";
+
     [Fact]
     public void ContractAndPaymentMigration_IsDiscoverableByApplicationDbContext()
     {
@@ -17,6 +20,7 @@ public sealed class ContractAndPaymentMigrationTests
         var migrations = context.Database.GetMigrations().ToArray();
 
         Assert.Contains(ContractAndPaymentMigrationId, migrations);
+        Assert.Contains(ProposalWorkflowMigrationId, migrations);
     }
 
     [Fact]
@@ -31,9 +35,13 @@ public sealed class ContractAndPaymentMigrationTests
         var featureIndex = Array.IndexOf(
             migrations,
             ContractAndPaymentMigrationId);
+        var proposalWorkflowIndex = Array.IndexOf(
+            migrations,
+            ProposalWorkflowMigrationId);
 
         Assert.True(baselineIndex >= 0);
         Assert.True(featureIndex > baselineIndex);
+        Assert.True(proposalWorkflowIndex > featureIndex);
     }
 
     private static ApplicationDbContext CreateContext()
