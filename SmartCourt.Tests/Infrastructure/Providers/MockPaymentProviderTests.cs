@@ -137,6 +137,26 @@ public sealed class MockPaymentProviderTests
     }
 
     [Fact]
+    public async Task Refund_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderRefundRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"termination-refund-{Guid.NewGuid():N}",
+            CorrelationId,
+            "إنهاء العقد.");
+
+        var result = await provider.RefundAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
     public void Options_DefaultWarningIdentifiesTheProviderAsUnregulated()
     {
         var options = new PaymentProviderOptions();

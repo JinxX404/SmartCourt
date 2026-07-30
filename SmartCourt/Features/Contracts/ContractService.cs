@@ -416,11 +416,21 @@ public sealed class ContractService : IContractService
                 "لا يمكن إنهاء عقد مكتمل أو منتهٍ.");
         }
 
-        var hasProcessingPayment = await _dbContext.Milestones.AnyAsync(
-            milestone =>
-                milestone.ContractId == contract.Id
-                && milestone.Status == MilestoneStatus.FundingProcessing,
-            cancellationToken);
+        var hasProcessingPayment =
+            await _dbContext.Milestones.AnyAsync(
+                milestone =>
+                    milestone.ContractId == contract.Id
+                    && milestone.Status
+                        == MilestoneStatus.FundingProcessing,
+                cancellationToken)
+            || await _dbContext.PaymentTransactions.AnyAsync(
+                payment =>
+                    payment.ContractId == contract.Id
+                    && payment.OperationType
+                        == PaymentOperationType.Deposit
+                    && payment.Status
+                        == PaymentTransactionStatus.Processing,
+                cancellationToken);
         if (hasProcessingPayment)
         {
             throw new ConflictException(
@@ -506,9 +516,9 @@ public sealed class ContractService : IContractService
             request.Reason,
             correlationId,
             now);
-        await EnqueueContractEventAsync(
-            ContractPaymentEventTypes.ContractTerminated,
-            contract.Id,
+        await EnqueueContractTerminatedEventAsync(
+            contract,
+            actorUserId,
             correlationId,
             cancellationToken);
         await SaveChangesAsync(cancellationToken);
@@ -857,6 +867,26 @@ public sealed class ContractService : IContractService
                 new ContractPaymentAggregateEventPayload(contractId),
                 "Contract",
                 contractId,
+                correlationId),
+            cancellationToken);
+    }
+
+    private async Task EnqueueContractTerminatedEventAsync(
+        Contract contract,
+        Guid actorUserId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.ContractTerminated,
+                1,
+                new ContractTerminatedEventPayload(
+                    contract.Id,
+                    contract.LegalCaseId,
+                    actorUserId),
+                "Contract",
+                contract.Id,
                 correlationId),
             cancellationToken);
     }

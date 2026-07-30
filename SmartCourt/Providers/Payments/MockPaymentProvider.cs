@@ -87,10 +87,14 @@ public sealed class MockPaymentProvider
         ProviderRefundRequest request,
         CancellationToken cancellationToken)
     {
+        var behaviorReference = request.ProviderIdempotencyKey
+            .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+            ? request.ProviderIdempotencyKey
+            : "mock-success-refund";
         return await ExecuteAsync(
             "refund",
             request,
-            request.ProviderIdempotencyKey,
+            behaviorReference,
             cancellationToken);
     }
 

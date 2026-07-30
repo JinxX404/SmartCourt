@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Providers.Payments;
 using Xunit;
@@ -34,6 +36,9 @@ public sealed class PaymentProviderRegistrationTests
         Assert.True(options.UseMockProvider);
         Assert.IsType<MockPaymentProvider>(
             provider.GetRequiredService<IPaymentProvider>());
+        Assert.IsType<ContractTerminationSettlementService>(
+            provider.GetRequiredService<
+                IContractTerminationSettlementService>());
         Assert.Contains(
             "not regulated escrow",
             options.Warning,

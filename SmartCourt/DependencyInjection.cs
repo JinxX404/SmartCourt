@@ -29,6 +29,7 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Providers.Jobs;
 using SmartCourt.Providers.Payments;
 using SmartCourt.Features.Auth.ResendVerification;
@@ -165,6 +166,9 @@ public static class DependencyInjection
             MilestoneAutoAcceptanceService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
+        services.AddScoped<
+            IContractTerminationSettlementService,
+            ContractTerminationSettlementService>();
         services.AddScoped<
             IContractJobOperations,
             PaymentContractJobOperations>();
