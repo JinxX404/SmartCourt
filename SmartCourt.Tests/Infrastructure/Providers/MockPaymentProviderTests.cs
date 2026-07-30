@@ -118,6 +118,25 @@ public sealed class MockPaymentProviderTests
     }
 
     [Fact]
+    public async Task Release_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderReleaseRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"release-{Guid.NewGuid():N}",
+            CorrelationId);
+
+        var result = await provider.ReleaseAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
     public void Options_DefaultWarningIdentifiesTheProviderAsUnregulated()
     {
         var options = new PaymentProviderOptions();

@@ -6,7 +6,8 @@ namespace SmartCourt.Features.Payments;
 
 public sealed class PaymentContractJobOperations(
     IPaymentEscrowService paymentEscrowService,
-    IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService)
+    IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService,
+    IEscrowReleaseService escrowReleaseService)
     : IContractJobOperations
 {
     public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
@@ -32,10 +33,14 @@ public sealed class PaymentContractJobOperations(
             cancellationToken);
     }
 
-    public Task<JobExecutionResult> ReleaseExpiredHoldAsync(
+    public async Task<JobExecutionResult> ReleaseExpiredHoldAsync(
         Guid escrowHoldId,
         CancellationToken cancellationToken)
-        => throw NotAvailable();
+    {
+        return await escrowReleaseService.ReleaseExpiredHoldAsync(
+            escrowHoldId,
+            cancellationToken);
+    }
 
     public Task<JobExecutionResult> RetryProviderTransactionAsync(
         Guid paymentTransactionId,

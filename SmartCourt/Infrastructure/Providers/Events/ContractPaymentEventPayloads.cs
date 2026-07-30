@@ -20,6 +20,13 @@ public sealed record MilestoneAcceptanceEventPayload(
     Guid MilestoneId,
     Guid EscrowHoldId);
 
+public sealed record FundsReleasedEventPayload(
+    Guid MilestoneId,
+    Guid EscrowHoldId,
+    Guid PaymentTransactionId,
+    decimal LawyerNetAmount,
+    decimal PlatformFeeAmount);
+
 public sealed record MilestoneChangeRequestEventPayload(
     Guid MilestoneId,
     Guid ChangeRequestId,
