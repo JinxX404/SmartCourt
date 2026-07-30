@@ -13,7 +13,7 @@ export const LoginForm = () => {
 
   return (
     // Outer wrapper for the page background - responsive to dark mode
-    <div className="relative min-h-screen flex items-start justify-center pt-12 pb-32 overflow-hidden bg-surface dark:bg-navy dark:bg-[url('/LoginDarkModeimg.png')] dark:bg-cover dark:bg-center dark:bg-no-repeat w-full transition-colors duration-300">
+    <div className="relative min-h-screen flex items-start justify-center pt-12 pb-32 overflow-hidden bg-[url('/LoginLighteModeimg.png')] dark:bg-[url('/LoginDarkModeimg.png')] bg-cover bg-center bg-no-repeat w-full transition-colors duration-300">
       
       {/* Background Mesh Gradients (Only in light mode) */}
       <div className="fixed inset-0 z-0 pointer-events-none dark:hidden">
