@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
@@ -11,9 +12,11 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260729093314_AddPaymentWebhookEvents")]
+    partial class AddPaymentWebhookEvents
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -567,102 +570,6 @@ namespace SmartCourt.Migrations
                     b.ToTable("LegalCases", null, t =>
                         {
                             t.HasCheckConstraint("CK_LegalCases_Status_Range", "[Status] BETWEEN 0 AND 4");
-                        });
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsClosed")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTime?>("LastMessageAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("LawyerUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("LegalCaseId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ProposalId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LegalCaseId");
-
-                    b.HasIndex("ProposalId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ChatConversations_ProposalId");
-
-                    b.HasIndex("ClientUserId", "UpdatedAt")
-                        .HasDatabaseName("IX_ChatConversations_Client_UpdatedAt");
-
-                    b.HasIndex("LawyerUserId", "UpdatedAt")
-                        .HasDatabaseName("IX_ChatConversations_Lawyer_UpdatedAt");
-
-                    b.ToTable("ChatConversations", (string)null);
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("RelatedEntityId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("SenderUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("SystemCode")
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("SenderUserId");
-
-                    b.HasIndex("ConversationId", "CreatedAt")
-                        .HasDatabaseName("IX_ChatMessages_Conversation_CreatedAt");
-
-                    b.ToTable("ChatMessages", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ChatMessages_Type_Range", "[Type] BETWEEN 1 AND 2");
-
-                            t.HasCheckConstraint("CK_ChatMessages_UserOrSystem", "([Type] = 1 AND [SenderUserId] IS NOT NULL AND [SystemCode] IS NULL) OR ([Type] = 2 AND [SenderUserId] IS NULL AND [SystemCode] IS NOT NULL)");
                         });
                 });
 
@@ -1916,25 +1823,11 @@ namespace SmartCourt.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DecisionReason")
-                        .HasMaxLength(1000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(1000)");
-
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("LegalCaseId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -1944,19 +1837,11 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientUserId");
-
                     b.HasIndex("LawyerUserId");
 
-                    b.HasIndex("LegalCaseId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 1");
-
-                    b.HasIndex("LegalCaseId", "LawyerUserId")
-                        .IsUnique()
-                        .HasFilter("[Status] IN (0, 1)");
-
                     b.HasIndex("LegalCaseId", "Status");
+
+                    b.HasIndex("ClientUserId", "LawyerUserId", "Status");
 
                     b.ToTable("Proposals", null, t =>
                         {
@@ -2286,53 +2171,6 @@ namespace SmartCourt.Migrations
                         .HasForeignKey("ClientUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
-                {
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("LawyerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", "LegalCase")
-                        .WithMany()
-                        .HasForeignKey("LegalCaseId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartCourt.Features.Proposals.Entities.Proposal", "Proposal")
-                        .WithOne()
-                        .HasForeignKey("SmartCourt.Features.Chat.Entities.ChatConversation", "ProposalId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("LegalCase");
-
-                    b.Navigation("Proposal");
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatMessage", b =>
-                {
-                    b.HasOne("SmartCourt.Features.Chat.Entities.ChatConversation", "Conversation")
-                        .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("SenderUserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Conversation");
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.Contract", b =>
@@ -2682,13 +2520,11 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", "LegalCase")
+                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", null)
                         .WithMany()
                         .HasForeignKey("LegalCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("LegalCase");
                 });
 
             modelBuilder.Entity("SmartCourt.Infrastructure.Persistence.Entities.IdempotencyRecord", b =>
@@ -2712,11 +2548,6 @@ namespace SmartCourt.Migrations
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalCategory", b =>
                 {
                     b.Navigation("Specializations");
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
-                {
-                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

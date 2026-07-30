@@ -7,7 +7,8 @@ using SmartCourt.Infrastructure.Providers.Payments;
 
 namespace SmartCourt.Providers.Payments;
 
-public sealed class MockPaymentProvider : IPaymentProvider
+public sealed class MockPaymentProvider
+    : IPaymentProvider, IPaymentReconciliationProvider
 {
     private readonly ConcurrentDictionary<string, ProviderResult> _results = new();
     private readonly ILogger<MockPaymentProvider> _logger;
@@ -36,14 +37,49 @@ public sealed class MockPaymentProvider : IPaymentProvider
             cancellationToken);
     }
 
+    public async Task<ProviderResult> RetryDepositAsync(
+        ProviderDepositRetryRequest request,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (_results.TryGetValue(
+                $"deposit:{request.OriginalProviderIdempotencyKey}",
+                out var originalResult))
+        {
+            return await ExecuteAsync(
+                "deposit-retry",
+                request,
+                originalResult.Outcome switch
+                {
+                    ProviderOperationOutcome.Succeeded =>
+                        "mock-success-retry",
+                    ProviderOperationOutcome.Failed =>
+                        "mock-fail-retry",
+                    _ => "mock-timeout-retry"
+                },
+                cancellationToken);
+        }
+
+        return await ExecuteAsync(
+            "deposit-retry",
+            request,
+            "mock-timeout-retry",
+            cancellationToken);
+    }
+
     public async Task<ProviderResult> ReleaseAsync(
         ProviderReleaseRequest request,
         CancellationToken cancellationToken)
     {
+        var behaviorReference = request.ProviderIdempotencyKey
+            .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+            ? request.ProviderIdempotencyKey
+            : "mock-success-release";
         return await ExecuteAsync(
             "release",
             request,
-            request.ProviderIdempotencyKey,
+            behaviorReference,
             cancellationToken);
     }
 
@@ -51,10 +87,14 @@ public sealed class MockPaymentProvider : IPaymentProvider
         ProviderRefundRequest request,
         CancellationToken cancellationToken)
     {
+        var behaviorReference = request.ProviderIdempotencyKey
+            .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+            ? request.ProviderIdempotencyKey
+            : "mock-success-refund";
         return await ExecuteAsync(
             "refund",
             request,
-            request.ProviderIdempotencyKey,
+            behaviorReference,
             cancellationToken);
     }
 
@@ -62,11 +102,27 @@ public sealed class MockPaymentProvider : IPaymentProvider
         ProviderWithdrawalRequest request,
         CancellationToken cancellationToken)
     {
+        var behaviorReference = request.ProviderIdempotencyKey
+            .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+            ? request.ProviderIdempotencyKey
+            : "mock-success-withdrawal";
         return await ExecuteAsync(
             "withdrawal",
             request,
-            request.ProviderIdempotencyKey,
+            behaviorReference,
             cancellationToken);
+    }
+
+    public async Task<ProviderResult?> GetDepositStatusAsync(
+        ProviderDepositStatusRequest request,
+        CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        cancellationToken.ThrowIfCancellationRequested();
+        _results.TryGetValue(
+            $"deposit:{request.ProviderIdempotencyKey}",
+            out var result);
+        return result;
     }
 
     private async Task<ProviderResult> ExecuteAsync(

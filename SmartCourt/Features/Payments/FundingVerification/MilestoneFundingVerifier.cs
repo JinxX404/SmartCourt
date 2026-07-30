@@ -6,7 +6,7 @@ using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Payments.FundingVerification;
 
-internal sealed class MilestoneFundingVerifier(
+public sealed class MilestoneFundingVerifier(
     ApplicationDbContext dbContext) : IMilestoneFundingVerifier
 {
     public async Task<VerifiedMilestoneFunding> VerifyAsync(
@@ -26,6 +26,6 @@ internal sealed class MilestoneFundingVerifier(
 
         return verifiedFunding
             ?? throw new BusinessException(
-                "Milestone funding could not be verified.");
+                "تعذر التحقق من اكتمال تمويل المرحلة وربطه بحجز الضمان ومعاملة الإيداع الصحيحة.");
     }
 }

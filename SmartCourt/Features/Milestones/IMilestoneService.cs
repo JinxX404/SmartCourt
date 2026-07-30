@@ -30,6 +30,20 @@ public interface IMilestoneService
         string ifMatch,
         CancellationToken cancellationToken);
 
+    Task<MilestoneDto> SubmitAsync(
+        Guid milestoneId,
+        SubmitMilestoneRequest request,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneDto> AcceptAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneDto> RequestChangesAsync(
+        Guid milestoneId,
+        RequestMilestoneChangesRequest request,
+        CancellationToken cancellationToken);
+
     Task<MilestoneActionResultDto> CreateChangeRequestAsync(
         Guid milestoneId,
         CreateMilestoneChangeRequest request,

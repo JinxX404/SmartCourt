@@ -127,6 +127,56 @@ public sealed class MilestonesController(
         return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
     }
 
+    [HttpPost("milestones/{milestoneId:guid}/submit")]
+    [Authorize(Roles = "Lawyer")]
+    [ProducesResponseType(
+        typeof(ApiResponse<MilestoneDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<MilestoneDto>>> SubmitAsync(
+        Guid milestoneId,
+        [FromBody] SubmitMilestoneRequest request,
+        CancellationToken cancellationToken)
+    {
+        var milestone = await milestoneService.SubmitAsync(
+            milestoneId,
+            request,
+            cancellationToken);
+        return Ok(ApiResponse<MilestoneDto>.Ok(milestone));
+    }
+
+    [HttpPost("milestones/{milestoneId:guid}/accept")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<MilestoneDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<MilestoneDto>>> AcceptAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken)
+    {
+        var milestone = await milestoneService.AcceptAsync(
+            milestoneId,
+            cancellationToken);
+        return Ok(ApiResponse<MilestoneDto>.Ok(milestone));
+    }
+
+    [HttpPost("milestones/{milestoneId:guid}/request-changes")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<MilestoneDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<MilestoneDto>>>
+        RequestChangesAsync(
+            Guid milestoneId,
+            [FromBody] RequestMilestoneChangesRequest request,
+            CancellationToken cancellationToken)
+    {
+        var milestone = await milestoneService.RequestChangesAsync(
+            milestoneId,
+            request,
+            cancellationToken);
+        return Ok(ApiResponse<MilestoneDto>.Ok(milestone));
+    }
+
     [HttpPost("milestones/{milestoneId:guid}/change-requests")]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(

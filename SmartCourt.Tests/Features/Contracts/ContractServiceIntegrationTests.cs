@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Cases.Enums;
@@ -9,11 +10,15 @@ using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
+using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Entities;
+using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using Xunit;
@@ -341,6 +346,8 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var milestone = CreateMilestone(contract.Id, 1, 750m);
         milestone.Status = MilestoneStatus.Released;
         milestone.ReleasedAt = _utcNow.AddMinutes(-10);
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
         await AddContractPrerequisitesAsync(
             context,
             contract.ProposalId,
@@ -376,6 +383,131 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     item.EventType
                     == ContractPaymentEventTypes.ContractCompleted)
                 .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_DoesNotCompleteWithPendingProviderAttempt()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var milestone = CreateMilestone(contract.Id, 1, 750m);
+        milestone.Status = MilestoneStatus.Released;
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var paymentTransaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            contract.Id,
+            milestone.Id,
+            PaymentOperationType.Release,
+            "TestProvider",
+            $"release-{Guid.NewGuid():N}",
+            750m,
+            _utcNow.AddMinutes(-5));
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, paymentTransaction);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Active.ToString(), result.Status);
+        Assert.Empty(
+            await context.ContractStateHistories
+                .Where(item =>
+                    item.Trigger
+                    == ContractPaymentEventTypes.ContractCompleted)
+                .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_DoesNotCompleteWithUnsettledHold()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var milestone = CreateMilestone(contract.Id, 1, 750m);
+        milestone.Status = MilestoneStatus.Released;
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var account = new EscrowAccount(
+            Guid.NewGuid(),
+            contract.Id,
+            _utcNow.AddDays(-2))
+        {
+            TotalDeposited = 750m
+        };
+        var hold = new EscrowHold(
+            Guid.NewGuid(),
+            account.Id,
+            contract.Id,
+            milestone.Id,
+            750m,
+            37.5m,
+            712.5m,
+            Guid.NewGuid(),
+            _utcNow.AddDays(-1),
+            _utcNow.AddDays(-1));
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, account, hold);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Active.ToString(), result.Status);
+        Assert.Empty(
+            await context.ContractStateHistories
+                .Where(item =>
+                    item.Trigger
+                    == ContractPaymentEventTypes.ContractCompleted)
+                .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_IgnoresUnapprovedFutureMilestones()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var approvedMilestone = CreateMilestone(contract.Id, 1, 750m);
+        approvedMilestone.Status = MilestoneStatus.Released;
+        approvedMilestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        approvedMilestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var futureMilestone = CreateMilestone(contract.Id, 2, 500m);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(
+            contract,
+            approvedMilestone,
+            futureMilestone);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Completed.ToString(), result.Status);
+        Assert.NotNull(contract.CompletedAt);
     }
 
     [Fact]
@@ -416,19 +548,151 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     item.Trigger
                     == ContractPaymentEventTypes.ContractTerminated)
                 .ToListAsync());
-        Assert.Single(
+        var terminationEvent = Assert.Single(
             await context.OutboxMessages
                 .Where(item =>
                     item.EventType
                     == ContractPaymentEventTypes.ContractTerminated)
                 .ToListAsync());
+        Assert.Contains(
+            contract.LegalCaseId.ToString(),
+            terminationEvent.Payload,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TerminateAsync_BlocksUnreconciledProviderDeposit()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        var milestone = CreateMilestone(contract.Id, 1, 900m);
+        milestone.Status = MilestoneStatus.AwaitingFunding;
+        var paymentTransaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            contract.Id,
+            milestone.Id,
+            PaymentOperationType.Deposit,
+            "TestProvider",
+            $"deposit-{Guid.NewGuid():N}",
+            milestone.Amount,
+            _utcNow.AddMinutes(-10));
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, paymentTransaction);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.TerminateAsync(
+                contract.Id,
+                new TerminateContractRequest(
+                    "طلب إنهاء العقد بعد حسم عملية الدفع."),
+                ToETag(contract.RowVersion),
+                CancellationToken.None));
+
+        Assert.Equal(
+            "لا يمكن إنهاء العقد قبل حسم عملية الدفع قيد المعالجة.",
+            exception.Message);
+        Assert.NotEqual(ContractStatus.Terminated, contract.Status);
+        Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+    }
+
+    [Fact]
+    public async Task TerminateAsync_RefundsEligibleHoldBeforeTerminating()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        contract.ActivatedAt = _utcNow.AddDays(-1);
+        var milestone = CreateMilestone(contract.Id, 1, 1_000m);
+        milestone.Status = MilestoneStatus.FundedInProgress;
+        milestone.FundedAt = _utcNow.AddHours(-1);
+        var account = new EscrowAccount(
+            Guid.NewGuid(),
+            contract.Id,
+            _utcNow.AddHours(-1))
+        {
+            TotalDeposited = 1_000m
+        };
+        var hold = new EscrowHold(
+            Guid.NewGuid(),
+            account.Id,
+            contract.Id,
+            milestone.Id,
+            1_000m,
+            50m,
+            950m,
+            Guid.NewGuid(),
+            _utcNow.AddHours(-1),
+            _utcNow.AddHours(-1));
+        var wallet = new LawyerWallet(
+            Guid.NewGuid(),
+            _lawyerUserId,
+            _utcNow.AddHours(-1))
+        {
+            PendingBalance = 950m
+        };
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, account, hold, wallet);
+        await context.SaveChangesAsync();
+        var timeProvider = new FixedTimeProvider(_utcNow);
+        var outboxWriter = new OutboxWriter(context, timeProvider);
+        var settlementService =
+            new ContractTerminationSettlementService(
+                context,
+                new SuccessfulRefundProvider(),
+                outboxWriter,
+                timeProvider,
+                NullLogger<
+                    ContractTerminationSettlementService>.Instance);
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            terminationSettlementServices: [settlementService]);
+
+        var result = await service.TerminateAsync(
+            contract.Id,
+            new TerminateContractRequest(
+                "اتفق الطرفان على إنهاء العقد ورد تمويل المرحلة غير المنفذة."),
+            ToETag(contract.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Terminated, result.Status);
+        Assert.Equal(
+            MilestoneStatus.Refunded,
+            (await context.Milestones.SingleAsync()).Status);
+        Assert.Equal(
+            EscrowHoldStatus.Refunded,
+            (await context.EscrowHolds.SingleAsync()).Status);
+        Assert.Equal(
+            1_000m,
+            (await context.EscrowAccounts.SingleAsync()).TotalRefunded);
+        Assert.Equal(
+            0m,
+            (await context.LawyerWallets.SingleAsync()).PendingBalance);
+        Assert.Equal(
+            2,
+            await context.OutboxMessages.CountAsync(item =>
+                item.EventType
+                    == ContractPaymentEventTypes.FundsRefunded
+                || item.EventType
+                    == ContractPaymentEventTypes.ContractTerminated));
     }
 
     private ContractService CreateService(
         ApplicationDbContext context,
         MutableCurrentUserService currentUser,
         IContractCreationDependencyGate? creationGate = null,
-        IContractUserEligibilityService? eligibilityService = null)
+        IContractUserEligibilityService? eligibilityService = null,
+        IEnumerable<IContractTerminationSettlementService>?
+            terminationSettlementServices = null)
     {
         var timeProvider = new FixedTimeProvider(_utcNow);
         return new ContractService(
@@ -442,7 +706,8 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     _lawyerUserId)),
             eligibilityService ?? new StubEligibilityService(),
             new OutboxWriter(context, timeProvider),
-            Array.Empty<IContractTerminationSettlementService>(),
+            terminationSettlementServices
+                ?? Array.Empty<IContractTerminationSettlementService>(),
             timeProvider);
     }
 
@@ -574,6 +839,46 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             Results.TryGetValue(userId, out var result);
             return Task.FromResult(result);
         }
+    }
+
+    private sealed class SuccessfulRefundProvider : IPaymentProvider
+    {
+        public Task<ProviderResult> RefundAsync(
+            ProviderRefundRequest request,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(
+                new ProviderResult(
+                    request.Amount,
+                    request.Currency,
+                    request.BusinessId,
+                    request.ProviderIdempotencyKey,
+                    request.CorrelationId,
+                    ProviderOperationOutcome.Succeeded,
+                    $"refund-{Guid.NewGuid():N}",
+                    null));
+        }
+
+        public Task<ProviderResult> DepositAsync(
+            ProviderDepositRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> RetryDepositAsync(
+            ProviderDepositRetryRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> ReleaseAsync(
+            ProviderReleaseRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> WithdrawAsync(
+            ProviderWithdrawalRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow)

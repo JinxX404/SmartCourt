@@ -90,6 +90,93 @@ public sealed class MockPaymentProviderTests
     }
 
     [Fact]
+    public async Task RetryDeposit_PreservesOriginalOutcomeAndUsesNewAttemptKey()
+    {
+        var provider = CreateProvider();
+        var original = await provider.DepositAsync(
+            DepositRequest("original-failure", "mock-fail-card"),
+            CancellationToken.None);
+        var retryRequest = new ProviderDepositRetryRequest(
+            original.Amount,
+            original.Currency,
+            original.BusinessId,
+            "retry-attempt",
+            CorrelationId,
+            original.ProviderIdempotencyKey,
+            original.ProviderTransactionId);
+
+        var first = await provider.RetryDepositAsync(
+            retryRequest,
+            CancellationToken.None);
+        var replay = await provider.RetryDepositAsync(
+            retryRequest,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Failed, first.Outcome);
+        Assert.Equal(first, replay);
+        Assert.Equal("retry-attempt", first.ProviderIdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Release_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderReleaseRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"release-{Guid.NewGuid():N}",
+            CorrelationId);
+
+        var result = await provider.ReleaseAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
+    public async Task Refund_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderRefundRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"termination-refund-{Guid.NewGuid():N}",
+            CorrelationId,
+            "إنهاء العقد.");
+
+        var result = await provider.RefundAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
+    public async Task Withdrawal_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderWithdrawalRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"withdrawal-{Guid.NewGuid():N}",
+            CorrelationId,
+            "bank-account-token");
+
+        var result = await provider.WithdrawAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
     public void Options_DefaultWarningIdentifiesTheProviderAsUnregulated()
     {
         var options = new PaymentProviderOptions();

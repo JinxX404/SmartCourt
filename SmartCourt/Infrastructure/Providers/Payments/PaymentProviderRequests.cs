@@ -21,6 +21,21 @@ public sealed record ProviderDepositRequest(
         ProviderIdempotencyKey,
         CorrelationId);
 
+public sealed record ProviderDepositRetryRequest(
+    decimal Amount,
+    string Currency,
+    Guid BusinessId,
+    string ProviderIdempotencyKey,
+    Guid CorrelationId,
+    string OriginalProviderIdempotencyKey,
+    string? OriginalProviderTransactionId)
+    : PaymentProviderRequest(
+        Amount,
+        Currency,
+        BusinessId,
+        ProviderIdempotencyKey,
+        CorrelationId);
+
 public sealed record ProviderReleaseRequest(
     decimal Amount,
     string Currency,
@@ -53,7 +68,8 @@ public sealed record ProviderWithdrawalRequest(
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId)
+    Guid CorrelationId,
+    string DestinationReference = "")
     : PaymentProviderRequest(
         Amount,
         Currency,

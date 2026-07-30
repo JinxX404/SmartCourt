@@ -15,6 +15,123 @@ This plan turns the v1 Contracts and Payments design into an ordered implementat
 
 The implementation is complete only when the full lifecycle works: accepted proposal → contract draft → mutual acceptance → active contract → sequential milestone approval → milestone-specific funding → escrow hold → funded submission → manual approval or seven-day auto-acceptance → fourteen-day hold → release, refund, or dispute settlement → wallet availability/withdrawal → contract completion or termination.
 
+## 1.1 Current implementation status and remaining work
+
+Status recorded after Phase 9 was merged into `main` on 2026-07-30.
+The last completed verification before the merge was a clean build and 517
+passing tests. This does **not** mean the feature is end-to-end complete.
+
+### Phase tracker
+
+- [x] Phase 0.1 and 0.3: baseline decisions and architecture enforcement.
+- [ ] Phase 0.2: dependency gates are only partially complete. Proposals,
+  Cases, Users, and basic Files implementations now exist, but Chat and
+  Notifications still have interfaces only. Refresh
+  `phase_0_dependency_gates.md`, which still describes older repository state.
+- [x] Phase 1: domain entities, enums, transition guards, funding verifier,
+  settlement calculator, and history foundations.
+- [ ] Phase 2: schema, Fluent API, DbContext, and migrations exist, but the
+  complete migration chain still needs disposable SQL Server apply/rollback
+  verification and database-metadata inspection in a repeatable container or
+  CI environment.
+- [ ] Phase 3: provider contracts, mock provider, idempotency, outbox storage,
+  dispatcher, and Hangfire adapters exist. Runtime worker wiring and generic
+  provider retry/reconciliation remain incomplete.
+- [x] Phase 4: Contracts slice and public contract endpoints.
+- [x] Phase 5: milestone negotiation, approval, sequencing, change requests,
+  and public milestone endpoints.
+- [ ] Phase 6: funding, webhook, payment queries, and manual retry are
+  implemented, but automatic processing/retry/reconciliation is not fully
+  operational at runtime.
+- [ ] Phase 7: submission, review, auto-acceptance, and hold-release business
+  services exist, but they depend on outbox/job execution that is not started
+  automatically by the application.
+- [ ] Phase 8: intentionally skipped. Only dispute persistence entities,
+  enums, configurations, and transition foundations exist; the complete
+  Disputes vertical slice is missing.
+- [ ] Phase 9: termination, completion evaluation, wallet, and withdrawal
+  code exists, but the integration gaps below must be completed.
+- [ ] Phase 10: integration consumers, notifications, chat messages, and full
+  privacy/file authorization are not complete.
+- [ ] Phase 11: DI is partially registered; error/OpenAPI completion remains.
+- [ ] Phase 12: focused tests exist, but the required relational, race, and
+  end-to-end API matrix is incomplete.
+- [ ] Phase 13: observability, security review, deployment, and rollback work
+  has not been completed.
+
+### Functional blockers before the feature is fully usable
+
+- [ ] Implement Phase 8 completely: dispute DTOs, separate validators,
+  `IDisputeService`/`DisputeService`, participant and moderator controllers,
+  evidence authorization, assignment/investigation, immutable full
+  refund/full release/partial split settlement, closing, penalties, tests,
+  DI, and jobs.
+- [ ] Start and supervise the runtime background pipeline. Register recurring
+  or self-rescheduling Hangfire work for outbox dispatch, missing-schedule
+  reconciliation, provider reconciliation, expired-hold release, and pending
+  withdrawal reconciliation. At present the scheduler methods exist, but
+  application startup does not start these workers.
+- [ ] Replace the placeholder
+  `PaymentContractJobOperations.RetryProviderTransactionAsync`, which
+  currently throws a `BusinessException`, with real idempotent retry logic.
+- [ ] Extend provider reconciliation beyond deposits. Unknown release,
+  termination refund, and withdrawal outcomes need explicit safe status
+  reconciliation/retry paths. Withdrawal reconciliation currently replays
+  `WithdrawAsync` without the original destination reference, so it is only
+  reliable with the deterministic mock behavior.
+- [ ] Wire contract completion evaluation into every terminal
+  release/refund/cancellation/dispute-resolution path. The evaluation method
+  exists, but no settlement service calls it, so a normal contract does not
+  automatically become `Completed`. Make the internal completion evaluator
+  usable by jobs without requiring a participant from the current HTTP user.
+- [ ] Finish termination recovery. Unknown/failed termination refunds must be
+  automatically reconciled or retried and then resume termination without
+  requiring the participant to repeatedly call the endpoint.
+- [ ] Add the real production payment provider. DI currently registers
+  `IPaymentProvider` only when `PaymentProvider:UseMockProvider` is enabled;
+  disabling the mock leaves payment-dependent services unresolved. Add the
+  real provider, its configuration validation, webhook verification, and a
+  production policy that cannot silently treat the mock as regulated escrow.
+- [ ] Implement and register Chat and Notification owning-slice services plus
+  deduplicating outbox consumers for all Phase 10 events. Also add the Case
+  consumer for termination/completion lifecycle updates.
+- [ ] Complete file privacy authorization. The current file integration
+  checks ownership through verification-document storage, but does not use
+  `ContractFilePurpose` and `relatedEntityId` to prove contract participant or
+  moderator access to contract attachments, submissions, and dispute
+  evidence.
+- [ ] Implement audited compensating wallet/ledger adjustments for authorized
+  administrators. Phase 9.3 currently covers normal wallet projection and
+  withdrawal only.
+- [ ] Add handlers for every required event. Domain services write many
+  outbox records, but the only registered feature event consumer currently
+  schedules milestone auto-acceptance and hold release.
+
+### Release, verification, and documentation checklist
+
+- [ ] Complete Phase 11 error mapping, including wrapped concurrency conflicts
+  and exceptional provider `502` behavior without local controller catches.
+- [ ] Verify and publish OpenAPI for every implemented route, wrapper, role,
+  `Idempotency-Key`, `If-Match`, webhook header, pagination shape, and error
+  code. Reconcile the state-history response shape with the documented public
+  contract.
+- [ ] Add repeatable SQL Server container/CI setup. Several core service tests
+  still use EF InMemory even where transaction, rowversion, filtered-index,
+  locking, or constraint behavior matters.
+- [ ] Complete the Phase 12 relational and race matrix, especially funding
+  races, accept-vs-change, manual-vs-auto acceptance, release-vs-dispute,
+  duplicate dispute resolution, termination-vs-callback, and settlement
+  retries.
+- [ ] Add authenticated end-to-end API journeys covering the complete
+  proposal-to-withdrawal lifecycle and every dispute outcome. Current
+  controller tests call controllers directly and are not full hosted API
+  journeys.
+- [ ] Complete Phase 13 structured logs/metrics/alerts, privacy and IDOR
+  review, role matrix, mock-provider production guard, feature flags,
+  deployment runbook, and forward-only financial rollback procedure.
+- [ ] Run the exact workflow trace in section 5 against the hosted application
+  and a disposable SQL Server before declaring the feature complete.
+
 ## 2. Non-negotiable implementation rules
 
 Every task in this plan must follow these rules:
@@ -1158,36 +1275,36 @@ The implementing agent must build and verify every route below. The response col
 
 ### Contracts
 
-- [ ] `POST /api/contracts` → `ContractDetailDto` (201 Created)
-- [ ] `GET /api/contracts` → `PagedResult<ContractSummaryDto>`
-- [ ] `GET /api/contracts/{contractId}` → `ContractDetailDto`
-- [ ] `PUT /api/contracts/{contractId}` → `ContractDetailDto`
-- [ ] `POST /api/contracts/{contractId}/accept` → `ActionResultDto`
-- [ ] `POST /api/contracts/{contractId}/terminate` → `ContractDetailDto`
-- [ ] `GET /api/contracts/{contractId}/state-history` → `IReadOnlyList<ContractStateHistoryDto>`
+- [x] `POST /api/contracts` → `ContractDetailDto` (201 Created)
+- [x] `GET /api/contracts` → `PagedResult<ContractSummaryDto>`
+- [x] `GET /api/contracts/{contractId}` → `ContractDetailDto`
+- [x] `PUT /api/contracts/{contractId}` → `ContractDetailDto`
+- [x] `POST /api/contracts/{contractId}/accept` → `ActionResultDto`
+- [x] `POST /api/contracts/{contractId}/terminate` → `ContractDetailDto`
+- [ ] `GET /api/contracts/{contractId}/state-history` → `IReadOnlyList<ContractStateHistoryDto>` — route exists, but currently returns `PagedResult<ContractStateHistoryDto>`; reconcile the documented contract.
 
 ### Milestones and change requests
 
-- [ ] `POST /api/contracts/{contractId}/milestones` → `MilestoneDto`
-- [ ] `PUT /api/contracts/{contractId}/milestones/{milestoneId}` → `MilestoneDto`
-- [ ] `POST /api/milestones/{milestoneId}/approve` → `ActionResultDto`
-- [ ] `POST /api/milestones/{milestoneId}/ready-for-funding` → `ActionResultDto`
-- [ ] `POST /api/milestones/{milestoneId}/submit` → `MilestoneDto`
-- [ ] `POST /api/milestones/{milestoneId}/accept` → `MilestoneDto`
-- [ ] `POST /api/milestones/{milestoneId}/request-changes` → `MilestoneDto`
-- [ ] `POST /api/milestones/{milestoneId}/change-requests` → `ActionResultDto`
-- [ ] `POST /api/change-requests/{changeRequestId}/approve` → `ActionResultDto`
-- [ ] `POST /api/change-requests/{changeRequestId}/reject` → `ActionResultDto`
+- [x] `POST /api/contracts/{contractId}/milestones` → `MilestoneDto`
+- [x] `PUT /api/contracts/{contractId}/milestones/{milestoneId}` → `MilestoneDto`
+- [x] `POST /api/milestones/{milestoneId}/approve` → `ActionResultDto`
+- [x] `POST /api/milestones/{milestoneId}/ready-for-funding` → `ActionResultDto`
+- [x] `POST /api/milestones/{milestoneId}/submit` → `MilestoneDto`
+- [x] `POST /api/milestones/{milestoneId}/accept` → `MilestoneDto`
+- [x] `POST /api/milestones/{milestoneId}/request-changes` → `MilestoneDto`
+- [x] `POST /api/milestones/{milestoneId}/change-requests` → `ActionResultDto`
+- [x] `POST /api/change-requests/{changeRequestId}/approve` → `ActionResultDto`
+- [x] `POST /api/change-requests/{changeRequestId}/reject` → `ActionResultDto`
 
 ### Payments, escrow, and wallet
 
-- [ ] `POST /api/milestones/{milestoneId}/fund` → `PaymentDto`
-- [ ] `GET /api/contracts/{contractId}/payments` → `IReadOnlyList<PaymentDto>` or the documented richer payment-history DTO
-- [ ] `GET /api/milestones/{milestoneId}/payment` → `PaymentDto`
-- [ ] `POST /api/payments/{paymentTransactionId}/retry` → `PaymentDto`
-- [ ] `GET /api/wallet` → `WalletDto`
-- [ ] `POST /api/wallet/withdrawals` → `ActionResultDto`
-- [ ] `POST /api/payments/webhook` → `ActionResultDto`
+- [x] `POST /api/milestones/{milestoneId}/fund` → `PaymentDto`
+- [x] `GET /api/contracts/{contractId}/payments` → `IReadOnlyList<PaymentDto>` or the documented richer payment-history DTO
+- [x] `GET /api/milestones/{milestoneId}/payment` → `PaymentDto`
+- [x] `POST /api/payments/{paymentTransactionId}/retry` → `PaymentDto`
+- [x] `GET /api/wallet` → `WalletDto`
+- [x] `POST /api/wallet/withdrawals` → `ActionResultDto`
+- [x] `POST /api/payments/webhook` → `ActionResultDto`
 
 There is deliberately no contract-level funding route.
 

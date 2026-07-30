@@ -12,7 +12,7 @@ internal static class MilestoneStateHistoryFactory
         MilestoneStatus previousStatus,
         MilestoneStatus newStatus,
         string trigger,
-        Guid actorUserId,
+        Guid? actorUserId,
         string reason,
         Guid correlationId,
         DateTime occurredAt)
@@ -27,7 +27,7 @@ internal static class MilestoneStateHistoryFactory
             previousStatus,
             newStatus,
             EntityGuard.Required(trigger, nameof(trigger)),
-            EntityGuard.NotEmpty(actorUserId, nameof(actorUserId)),
+            EntityGuard.OptionalGuid(actorUserId, nameof(actorUserId)),
             EntityGuard.Required(reason, nameof(reason)),
             EntityGuard.NotEmpty(correlationId, nameof(correlationId)),
             EntityGuard.Utc(occurredAt, nameof(occurredAt)));
