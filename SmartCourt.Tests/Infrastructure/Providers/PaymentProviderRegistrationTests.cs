@@ -39,6 +39,8 @@ public sealed class PaymentProviderRegistrationTests
         Assert.IsType<ContractTerminationSettlementService>(
             provider.GetRequiredService<
                 IContractTerminationSettlementService>());
+        Assert.IsType<WalletService>(
+            provider.GetRequiredService<IWalletService>());
         Assert.Contains(
             "not regulated escrow",
             options.Warning,

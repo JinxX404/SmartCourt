@@ -102,10 +102,14 @@ public sealed class MockPaymentProvider
         ProviderWithdrawalRequest request,
         CancellationToken cancellationToken)
     {
+        var behaviorReference = request.ProviderIdempotencyKey
+            .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+            ? request.ProviderIdempotencyKey
+            : "mock-success-withdrawal";
         return await ExecuteAsync(
             "withdrawal",
             request,
-            request.ProviderIdempotencyKey,
+            behaviorReference,
             cancellationToken);
     }
 

@@ -157,6 +157,26 @@ public sealed class MockPaymentProviderTests
     }
 
     [Fact]
+    public async Task Withdrawal_OpaqueProductionKeyDefaultsToSuccess()
+    {
+        var provider = CreateProvider();
+        var request = new ProviderWithdrawalRequest(
+            100m,
+            "EGP",
+            BusinessId,
+            $"withdrawal-{Guid.NewGuid():N}",
+            CorrelationId,
+            "bank-account-token");
+
+        var result = await provider.WithdrawAsync(
+            request,
+            CancellationToken.None);
+
+        Assert.Equal(ProviderOperationOutcome.Succeeded, result.Outcome);
+        Assert.NotNull(result.ProviderTransactionId);
+    }
+
+    [Fact]
     public void Options_DefaultWarningIdentifiesTheProviderAsUnregulated()
     {
         var options = new PaymentProviderOptions();

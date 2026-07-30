@@ -7,7 +7,8 @@ namespace SmartCourt.Features.Payments;
 public sealed class PaymentContractJobOperations(
     IPaymentEscrowService paymentEscrowService,
     IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService,
-    IEscrowReleaseService escrowReleaseService)
+    IEscrowReleaseService escrowReleaseService,
+    IWalletService walletService)
     : IContractJobOperations
 {
     public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
@@ -47,9 +48,13 @@ public sealed class PaymentContractJobOperations(
         CancellationToken cancellationToken)
         => throw NotAvailable();
 
-    public Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
+    public async Task<JobExecutionResult>
+        ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken)
-        => throw NotAvailable();
+    {
+        return await walletService.ReconcilePendingWithdrawalsAsync(
+            cancellationToken);
+    }
 
     private static BusinessException NotAvailable()
         => new(

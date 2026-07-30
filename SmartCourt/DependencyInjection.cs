@@ -165,6 +165,7 @@ public static class DependencyInjection
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
+        services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
         services.AddScoped<
             IContractTerminationSettlementService,

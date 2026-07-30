@@ -68,7 +68,8 @@ public sealed record ProviderWithdrawalRequest(
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId)
+    Guid CorrelationId,
+    string DestinationReference = "")
     : PaymentProviderRequest(
         Amount,
         Currency,
