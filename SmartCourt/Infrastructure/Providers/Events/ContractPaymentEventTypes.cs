@@ -2,6 +2,9 @@ namespace SmartCourt.Infrastructure.Providers.Events;
 
 public static class ContractPaymentEventTypes
 {
+    public const string ProposalCreated = "ProposalCreated";
+    public const string ProposalAccepted = "ProposalAccepted";
+    public const string ProposalRejected = "ProposalRejected";
     public const string ContractCreated = "ContractCreated";
     public const string ContractAccepted = "ContractAccepted";
     public const string ContractActivated = "ContractActivated";

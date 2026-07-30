@@ -182,9 +182,6 @@ public static class DependencyInjection
                     || !string.IsNullOrWhiteSpace(
                         options.WebhookSecret),
                 "يجب إعداد سر التحقق من إشعارات مزود الدفع التجريبي.")
-            //.Validate(
-            //    options => isDevelopment || !options.UseMockProvider,
-            //    "The mock payment provider cannot be enabled in production.")
             .ValidateOnStart();
 
         if (configuration.GetValue<bool>(

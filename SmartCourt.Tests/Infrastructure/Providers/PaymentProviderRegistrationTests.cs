@@ -21,20 +21,22 @@ public sealed class PaymentProviderRegistrationTests
     }
 
     [Fact]
-    public void ProductionConfiguration_AllowsEnabledMockProviderWhenWarningConfigured()
+    public void ProductionConfiguration_RegistersExplicitlyEnabledMockProvider()
     {
         using var provider = BuildProvider(
             useMockProvider: true,
             isDevelopment: false);
 
+        var options = provider
+            .GetRequiredService<IOptions<PaymentProviderOptions>>()
+            .Value;
+
+        Assert.True(options.UseMockProvider);
         Assert.IsType<MockPaymentProvider>(
             provider.GetRequiredService<IPaymentProvider>());
         Assert.Contains(
             "not regulated escrow",
-            provider
-                .GetRequiredService<IOptions<PaymentProviderOptions>>()
-                .Value
-                .Warning,
+            options.Warning,
             StringComparison.OrdinalIgnoreCase);
     }
 
