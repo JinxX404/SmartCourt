@@ -352,21 +352,51 @@ public sealed class ContractService : IContractService
             return ToActionResult(contract, now);
         }
 
-        var milestoneStatuses = await _dbContext.Milestones
+        var milestones = await _dbContext.Milestones
             .Where(milestone => milestone.ContractId == contract.Id)
-            .Select(milestone => milestone.Status)
+            .Select(
+                milestone => new
+                {
+                    milestone.Amount,
+                    milestone.AcceptedByClientAt,
+                    milestone.AcceptedByLawyerAt,
+                    milestone.Status
+                })
             .ToListAsync(cancellationToken);
+        var approvedMilestones = milestones
+            .Where(milestone =>
+                milestone.Amount > 0m
+                && milestone.AcceptedByClientAt.HasValue
+                && milestone.AcceptedByLawyerAt.HasValue)
+            .ToArray();
         var hasActiveDispute = await _dbContext.Disputes.AnyAsync(
             dispute =>
                 dispute.ContractId == contract.Id
                 && dispute.Status != DisputeStatus.Closed,
             cancellationToken);
-        var allFinished = milestoneStatuses.Count > 0
-            && milestoneStatuses.All(status =>
-                status is MilestoneStatus.Released
+        var hasPendingProviderAttempt =
+            await _dbContext.PaymentTransactions.AnyAsync(
+                payment =>
+                    payment.ContractId == contract.Id
+                    && payment.Status
+                        == PaymentTransactionStatus.Processing,
+                cancellationToken);
+        var hasUnsettledHold = await _dbContext.EscrowHolds.AnyAsync(
+            hold =>
+                hold.ContractId == contract.Id
+                && (hold.Status == EscrowHoldStatus.Funded
+                    || hold.Status == EscrowHoldStatus.Frozen),
+            cancellationToken);
+        var allApprovedMilestonesFinished =
+            approvedMilestones.Length > 0
+            && approvedMilestones.All(milestone =>
+                milestone.Status is MilestoneStatus.Released
                     or MilestoneStatus.Refunded
                     or MilestoneStatus.Cancelled);
-        if (allFinished && !hasActiveDispute)
+        if (allApprovedMilestonesFinished
+            && !hasActiveDispute
+            && !hasPendingProviderAttempt
+            && !hasUnsettledHold)
         {
             var previousStatus = contract.Status;
             ContractTransitionGuard.EnsureCanTransition(

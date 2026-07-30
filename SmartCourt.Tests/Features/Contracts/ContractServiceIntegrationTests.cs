@@ -346,6 +346,8 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var milestone = CreateMilestone(contract.Id, 1, 750m);
         milestone.Status = MilestoneStatus.Released;
         milestone.ReleasedAt = _utcNow.AddMinutes(-10);
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
         await AddContractPrerequisitesAsync(
             context,
             contract.ProposalId,
@@ -381,6 +383,131 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     item.EventType
                     == ContractPaymentEventTypes.ContractCompleted)
                 .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_DoesNotCompleteWithPendingProviderAttempt()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var milestone = CreateMilestone(contract.Id, 1, 750m);
+        milestone.Status = MilestoneStatus.Released;
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var paymentTransaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            contract.Id,
+            milestone.Id,
+            PaymentOperationType.Release,
+            "TestProvider",
+            $"release-{Guid.NewGuid():N}",
+            750m,
+            _utcNow.AddMinutes(-5));
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, paymentTransaction);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Active.ToString(), result.Status);
+        Assert.Empty(
+            await context.ContractStateHistories
+                .Where(item =>
+                    item.Trigger
+                    == ContractPaymentEventTypes.ContractCompleted)
+                .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_DoesNotCompleteWithUnsettledHold()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var milestone = CreateMilestone(contract.Id, 1, 750m);
+        milestone.Status = MilestoneStatus.Released;
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var account = new EscrowAccount(
+            Guid.NewGuid(),
+            contract.Id,
+            _utcNow.AddDays(-2))
+        {
+            TotalDeposited = 750m
+        };
+        var hold = new EscrowHold(
+            Guid.NewGuid(),
+            account.Id,
+            contract.Id,
+            milestone.Id,
+            750m,
+            37.5m,
+            712.5m,
+            Guid.NewGuid(),
+            _utcNow.AddDays(-1),
+            _utcNow.AddDays(-1));
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone, account, hold);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Active.ToString(), result.Status);
+        Assert.Empty(
+            await context.ContractStateHistories
+                .Where(item =>
+                    item.Trigger
+                    == ContractPaymentEventTypes.ContractCompleted)
+                .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateCompletionAsync_IgnoresUnapprovedFutureMilestones()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        var approvedMilestone = CreateMilestone(contract.Id, 1, 750m);
+        approvedMilestone.Status = MilestoneStatus.Released;
+        approvedMilestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        approvedMilestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        var futureMilestone = CreateMilestone(contract.Id, 2, 500m);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(
+            contract,
+            approvedMilestone,
+            futureMilestone);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Completed.ToString(), result.Status);
+        Assert.NotNull(contract.CompletedAt);
     }
 
     [Fact]
