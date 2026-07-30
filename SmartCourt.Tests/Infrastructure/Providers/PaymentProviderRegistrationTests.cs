@@ -21,16 +21,19 @@ public sealed class PaymentProviderRegistrationTests
     }
 
     [Fact]
-    public void ProductionConfiguration_RejectsEnabledMockProvider()
+    public void ProductionConfiguration_RegistersExplicitlyEnabledMockProvider()
     {
         using var provider = BuildProvider(
             useMockProvider: true,
             isDevelopment: false);
 
-        Assert.Throws<OptionsValidationException>(
-            () => provider
-                .GetRequiredService<IOptions<PaymentProviderOptions>>()
-                .Value);
+        var options = provider
+            .GetRequiredService<IOptions<PaymentProviderOptions>>()
+            .Value;
+
+        Assert.True(options.UseMockProvider);
+        Assert.IsType<MockPaymentProvider>(
+            provider.GetRequiredService<IPaymentProvider>());
     }
 
     [Fact]
