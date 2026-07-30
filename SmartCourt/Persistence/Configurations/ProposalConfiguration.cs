@@ -16,10 +16,16 @@ public sealed class ProposalConfiguration
         builder.Property(proposal => proposal.Status)
             .IsRequired()
             .HasConversion<int>();
+        builder.Property(proposal => proposal.Message)
+            .IsRequired()
+            .Unicode(2_000);
+        builder.Property(proposal => proposal.DecisionReason)
+            .NullableUnicode(1_000);
+        builder.Property(proposal => proposal.RespondedAt).NullableUtc();
         builder.Property(proposal => proposal.CreatedAt).Utc();
         builder.Property(proposal => proposal.UpdatedAt).Utc();
 
-        builder.HasOne<LegalCase>()
+        builder.HasOne(proposal => proposal.LegalCase)
             .WithMany()
             .HasForeignKey(proposal => proposal.LegalCaseId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -39,10 +45,12 @@ public sealed class ProposalConfiguration
         });
         builder.HasIndex(proposal => new
         {
-            proposal.ClientUserId,
-            proposal.LawyerUserId,
-            proposal.Status
-        });
+            proposal.LegalCaseId,
+            proposal.LawyerUserId
+        }).HasFilter("[Status] IN (0, 1)").IsUnique();
+        builder.HasIndex(proposal => proposal.LegalCaseId)
+            .HasFilter("[Status] = 1")
+            .IsUnique();
         builder.HasCheckConstraint(
             "CK_Proposals_Status_Range",
             "[Status] BETWEEN 0 AND 2");
