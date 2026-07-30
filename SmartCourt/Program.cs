@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.Extensions;
+using SmartCourt.Features.Chat.Hubs;
 using SmartCourt.Middleware;
 
 namespace SmartCourt
@@ -42,6 +43,7 @@ namespace SmartCourt
                 app.UseRateLimiter();
                 app.UseAuthorization();
                 app.MapControllers();
+                app.MapHub<ChatHub>("/hubs/chat").RequireAuthorization();
 
                 // 4. Auto-Migrate Database on Startup
                 app.UseAutoMigration();

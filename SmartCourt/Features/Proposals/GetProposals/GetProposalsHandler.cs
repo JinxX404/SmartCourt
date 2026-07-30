@@ -59,7 +59,10 @@ public sealed class GetProposalsHandler(
                 on proposal.ClientUserId equals client.Id
             join lawyer in context.Users
                 on proposal.LawyerUserId equals lawyer.Id
-            select new { proposal, legalCase, client, lawyer };
+            join conversation in context.ChatConversations
+                on proposal.Id equals conversation.ProposalId into conversationJoin
+            from conversation in conversationJoin.DefaultIfEmpty()
+            select new { proposal, legalCase, client, lawyer, conversation };
 
         query = direction == ProposalInboxDirection.Sent
             ? query.Where(item => item.proposal.ClientUserId == actorUserId)
@@ -96,7 +99,10 @@ public sealed class GetProposalsHandler(
                 LawyerName = item.lawyer.FullName,
                 item.proposal.Status,
                 item.proposal.CreatedAt,
-                item.proposal.RespondedAt
+                item.proposal.RespondedAt,
+                ConversationId = item.conversation == null
+                    ? null
+                    : (Guid?)item.conversation.Id
             })
             .ToListAsync(cancellationToken);
 
@@ -110,7 +116,8 @@ public sealed class GetProposalsHandler(
             item.LawyerName,
             item.Status.ToString(),
             item.CreatedAt,
-            item.RespondedAt)).ToList();
+            item.RespondedAt,
+            item.ConversationId)).ToList();
 
         var page = new ProposalPageDto(
             items,

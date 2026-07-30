@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
@@ -11,9 +12,11 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260730123843_AddChatConversations")]
+    partial class AddChatConversations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1804,35 +1807,6 @@ namespace SmartCourt.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.PaymentWebhookEvent", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EventId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<Guid>("PaymentTransactionId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("ReceivedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_PaymentWebhookEvents_EventId");
-
-                    b.HasIndex("PaymentTransactionId");
-
-                    b.ToTable("PaymentWebhookEvents", (string)null);
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WithdrawalRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2648,15 +2622,6 @@ namespace SmartCourt.Migrations
                         .WithMany()
                         .HasForeignKey("MilestoneId")
                         .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.PaymentWebhookEvent", b =>
-                {
-                    b.HasOne("SmartCourt.Features.Payments.Entities.PaymentTransaction", null)
-                        .WithMany()
-                        .HasForeignKey("PaymentTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WithdrawalRequest", b =>
