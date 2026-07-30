@@ -23,30 +23,5 @@ public class RegisterLawyerRequestValidator : AbstractValidator<RegisterLawyerRe
 
         RuleFor(x => x.ConfirmPassword)
             .Equal(x => x.Password).WithMessage("تأكيد كلمة المرور غير مطابق.");
-
-        RuleFor(x => x.Phone)
-            .NotEmpty().WithMessage("رقم الهاتف مطلوب.")
-            .Matches("^\\+20\\d{10}$").WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX.");
-
-        RuleFor(x => x.Address)
-            .NotEmpty().WithMessage("العنوان مطلوب.")
-            .MaximumLength(500).WithMessage("العنوان يجب أن لا يزيد عن 500 حرفًا.");
-
-        RuleFor(x => x.Government)
-            .NotEmpty().WithMessage("المحافظة مطلوبة.")
-            .MaximumLength(100).WithMessage("المحافظة يجب أن لا تزيد عن 100 حرف.");
-
-        RuleFor(x => x.City)
-            .NotEmpty().WithMessage("المدينة مطلوبة.")
-            .MaximumLength(100).WithMessage("المدينة يجب أن لا يزيد عن 100 حرف.");
-
-        RuleFor(x => x.Gender)
-            .NotEmpty().WithMessage("النوع مطلوب.")
-            .Must(g => g == "Male" || g == "Female").WithMessage("النوع يجب أن يكون Male أو Female فقط.");
-
-        RuleFor(x => x.NationalNumber)
-            .NotEmpty().WithMessage("الرقم القومي مطلوب.")
-            .Length(14).WithMessage("الرقم القومي يجب أن يكون 14 رقمًا.")
-            .Matches("^[0-9]{14}$").WithMessage("الرقم القومي غير صالح.");
     }
 }
