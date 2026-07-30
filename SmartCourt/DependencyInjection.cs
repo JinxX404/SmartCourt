@@ -160,6 +160,9 @@ public static class DependencyInjection
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+        services.AddScoped<
+            IMilestoneAutoAcceptanceService,
+            MilestoneAutoAcceptanceService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
         services.AddScoped<
             IContractJobOperations,

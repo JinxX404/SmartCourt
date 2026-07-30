@@ -1,10 +1,12 @@
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Milestones;
 using SmartCourt.Infrastructure.Providers.Jobs;
 
 namespace SmartCourt.Features.Payments;
 
 public sealed class PaymentContractJobOperations(
-    IPaymentEscrowService paymentEscrowService)
+    IPaymentEscrowService paymentEscrowService,
+    IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService)
     : IContractJobOperations
 {
     public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
@@ -17,12 +19,18 @@ public sealed class PaymentContractJobOperations(
                 cancellationToken);
     }
 
-    public Task<JobExecutionResult> AutoAcceptMilestoneAsync(
+    public async Task<JobExecutionResult> AutoAcceptMilestoneAsync(
         Guid milestoneId,
         Guid escrowHoldId,
         int submissionVersion,
         CancellationToken cancellationToken)
-        => throw NotAvailable();
+    {
+        return await milestoneAutoAcceptanceService.AutoAcceptAsync(
+            milestoneId,
+            escrowHoldId,
+            submissionVersion,
+            cancellationToken);
+    }
 
     public Task<JobExecutionResult> ReleaseExpiredHoldAsync(
         Guid escrowHoldId,
