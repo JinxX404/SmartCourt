@@ -33,7 +33,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Twilio" Version="7.14.9" />
     <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
-    <PackageReference Include="UglyToad.PdfPig.Core" Version="0.1.9-alpha001-patch1" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Features\Auth\Shared\Templates\*.html">
