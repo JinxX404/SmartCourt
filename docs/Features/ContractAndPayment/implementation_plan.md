@@ -66,11 +66,12 @@ passing tests. This does **not** mean the feature is end-to-end complete.
   evidence authorization, assignment/investigation, immutable full
   refund/full release/partial split settlement, closing, penalties, tests,
   DI, and jobs.
-- [ ] Start and supervise the runtime background pipeline. Register recurring
-  or self-rescheduling Hangfire work for outbox dispatch, missing-schedule
-  reconciliation, provider reconciliation, expired-hold release, and pending
-  withdrawal reconciliation. At present the scheduler methods exist, but
-  application startup does not start these workers.
+- [ ] Finish and supervise the runtime background pipeline.
+  - [x] Register recurring Hangfire work at startup for outbox dispatch,
+    missing-schedule reconciliation, and pending withdrawal reconciliation.
+  - [ ] Add provider-specific pending-transaction scanning/reconciliation and
+    automatic retry for deposit, release, refund, and termination operations.
+    The recurring registration does not claim this work is complete.
 - [ ] Replace the placeholder
   `PaymentContractJobOperations.RetryProviderTransactionAsync`, which
   currently throws a `BusinessException`, with real idempotent retry logic.
