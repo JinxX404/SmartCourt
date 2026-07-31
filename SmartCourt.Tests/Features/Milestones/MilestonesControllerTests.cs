@@ -202,6 +202,8 @@ public sealed class MilestonesControllerTests
     {
         return new MilestonesController(
             service,
+            service,
+            service,
             new IfMatchRequestValidator());
     }
 
@@ -248,7 +250,7 @@ public sealed class MilestonesControllerTests
         Assert.Equal(roles, authorize.Roles);
     }
 
-    private sealed class RecordingMilestoneStub : IMilestoneService
+    private sealed class RecordingMilestoneStub : IMilestoneService, IMilestoneDraftService, IMilestoneChangeRequestService
     {
         public MilestoneDto Milestone { get; } =
             new(

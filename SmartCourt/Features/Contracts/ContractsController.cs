@@ -14,6 +14,7 @@ namespace SmartCourt.Features.Contracts;
 [Produces("application/json")]
 public sealed class ContractsController(
     IContractService contractService,
+    IContractQueryService contractQueryService,
     IValidator<IfMatchRequest> ifMatchValidator) : ControllerBase
 {
     [HttpPost]
@@ -44,7 +45,7 @@ public sealed class ContractsController(
             [FromQuery] ContractListQuery query,
             CancellationToken cancellationToken)
     {
-        var contracts = await contractService.ListAsync(
+        var contracts = await contractQueryService.ListAsync(
             query,
             cancellationToken);
         return Ok(
@@ -61,7 +62,7 @@ public sealed class ContractsController(
         Guid contractId,
         CancellationToken cancellationToken)
     {
-        var contract = await contractService.GetAsync(
+        var contract = await contractQueryService.GetAsync(
             contractId,
             cancellationToken);
         return Ok(ApiResponse<ContractDetailDto>.Ok(contract));
@@ -147,7 +148,7 @@ public sealed class ContractsController(
             [FromQuery] ContractStateHistoryQuery query,
             CancellationToken cancellationToken)
     {
-        var history = await contractService.GetStateHistoryAsync(
+        var history = await contractQueryService.GetStateHistoryAsync(
             contractId,
             query,
             cancellationToken);

@@ -16,6 +16,8 @@ namespace SmartCourt.Features.Payments;
 [Produces("application/json")]
 public sealed class PaymentsController(
     IPaymentEscrowService paymentEscrowService,
+    IPaymentQueryService paymentQueryService,
+    IPaymentWebhookService paymentWebhookService,
     IValidator<RetryPaymentRequest> retryValidator,
     IValidator<PaymentWebhookRequest> webhookValidator) : ControllerBase
 {
@@ -54,7 +56,7 @@ public sealed class PaymentsController(
             CancellationToken cancellationToken)
     {
         var payments =
-            await paymentEscrowService.GetContractPaymentsAsync(
+            await paymentQueryService.GetContractPaymentsAsync(
                 contractId,
                 cancellationToken);
         return Ok(ApiResponse<PaymentHistoryDto>.Ok(payments));
@@ -73,7 +75,7 @@ public sealed class PaymentsController(
             CancellationToken cancellationToken)
     {
         var payment =
-            await paymentEscrowService.GetMilestonePaymentAsync(
+            await paymentQueryService.GetMilestonePaymentAsync(
                 milestoneId,
                 cancellationToken);
         return Ok(ApiResponse<PaymentDto>.Ok(payment));
@@ -150,7 +152,7 @@ public sealed class PaymentsController(
             webhookValidator,
             request,
             cancellationToken);
-        var result = await paymentEscrowService.HandleWebhookAsync(
+        var result = await paymentWebhookService.HandleWebhookAsync(
             request,
             eventId,
             timestamp,

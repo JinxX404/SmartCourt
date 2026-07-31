@@ -33,15 +33,15 @@ public sealed class MilestoneServiceTests
         await using var context = CreateContext();
         var currentUser = new MutableCurrentUser(_clientUserId);
         var contracts = CreateContractStub(ContractStatus.Draft);
-        var service = CreateService(context, currentUser, contracts);
+        var draftService = CreateDraftService(context, currentUser, contracts);
 
-        var created = await service.AddAsync(
+        var created = await draftService.AddAsync(
             _contractId,
             ValidAddRequest(1),
             CancellationToken.None);
 
         var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.AddAsync(
+            draftService.AddAsync(
                 _contractId,
                 ValidAddRequest(3),
                 CancellationToken.None));
@@ -58,12 +58,12 @@ public sealed class MilestoneServiceTests
         milestone.AcceptedByClientAt = _utcNow.AddMinutes(-2);
         milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
         await AddMilestonesAsync(context, milestone);
-        var service = CreateService(
+        var draftService = CreateDraftService(
             context,
             new MutableCurrentUser(_lawyerUserId),
             CreateContractStub(ContractStatus.Draft));
 
-        var result = await service.UpdateDraftAsync(
+        var result = await draftService.UpdateDraftAsync(
             _contractId,
             milestone.Id,
             new UpdateMilestoneRequest(
@@ -218,12 +218,12 @@ public sealed class MilestoneServiceTests
         await AddMilestonesAsync(context, draft, funded);
         context.EscrowHolds.Add(hold);
         await context.SaveChangesAsync();
-        var service = CreateService(
+        var draftService = CreateDraftService(
             context,
             new MutableCurrentUser(_clientUserId),
             CreateContractStub(ContractStatus.Active));
 
-        var result = await service.ListAsync(
+        var result = await draftService.ListAsync(
             _contractId,
             CancellationToken.None);
 
@@ -245,13 +245,13 @@ public sealed class MilestoneServiceTests
             MilestoneStatus.FundedInProgress,
             1);
         await AddMilestonesAsync(context, milestone);
-        var service = CreateService(
+        var draftService = CreateDraftService(
             context,
             new MutableCurrentUser(_lawyerUserId),
-            CreateContractStub(ContractStatus.Active));
+            CreateContractStub(ContractStatus.Draft));
 
         await Assert.ThrowsAsync<BusinessException>(() =>
-            service.UpdateDraftAsync(
+            draftService.UpdateDraftAsync(
                 _contractId,
                 milestone.Id,
                 new UpdateMilestoneRequest(
@@ -269,12 +269,12 @@ public sealed class MilestoneServiceTests
         await using var context = CreateContext();
         var milestone = CreateFundedMilestone();
         await AddMilestonesAsync(context, milestone);
-        var service = CreateService(
+        var changeRequestService = CreateChangeRequestService(
             context,
             new MutableCurrentUser(_clientUserId),
             CreateContractStub(ContractStatus.Active));
 
-        var result = await service.CreateChangeRequestAsync(
+        var result = await changeRequestService.CreateChangeRequestAsync(
             milestone.Id,
             new CreateMilestoneChangeRequest(
                 "وصف محدث",
@@ -299,13 +299,13 @@ public sealed class MilestoneServiceTests
         await using var context = CreateContext();
         var milestone = CreateFundedMilestone();
         await AddMilestonesAsync(context, milestone);
-        var service = CreateService(
+        var changeRequestService = CreateChangeRequestService(
             context,
             new MutableCurrentUser(_clientUserId),
             CreateContractStub(ContractStatus.Active));
 
         var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.CreateChangeRequestAsync(
+            changeRequestService.CreateChangeRequestAsync(
                 milestone.Id,
                 new CreateMilestoneChangeRequest(
                     milestone.Description,
@@ -327,10 +327,11 @@ public sealed class MilestoneServiceTests
         var originalFundedAt = milestone.FundedAt;
         await AddMilestonesAsync(context, milestone);
         var currentUser = new MutableCurrentUser(_clientUserId);
-        var service = CreateService(
+        var contractStub = CreateContractStub(ContractStatus.Active);
+        var changeRequestService = CreateChangeRequestService(
             context,
             currentUser,
-            CreateContractStub(ContractStatus.Active));
+            contractStub);
         var changeRequest = new MilestoneChangeRequest(
             Guid.NewGuid(),
             milestone.Id,
@@ -347,14 +348,14 @@ public sealed class MilestoneServiceTests
         await context.SaveChangesAsync();
 
         var requesterException = await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
-            service.ApproveChangeRequestAsync(
+            changeRequestService.ApproveChangeRequestAsync(
                 changeRequest.Id,
                 ToETag(changeRequest.RowVersion),
                 CancellationToken.None));
         Assert.Contains("مقدم طلب", requesterException.Message);
 
         currentUser.UserId = _lawyerUserId;
-        var result = await service.ApproveChangeRequestAsync(
+        var result = await changeRequestService.ApproveChangeRequestAsync(
             changeRequest.Id,
             ToETag(changeRequest.RowVersion),
             CancellationToken.None);
@@ -379,10 +380,11 @@ public sealed class MilestoneServiceTests
         var milestone = CreateFundedMilestone();
         await AddMilestonesAsync(context, milestone);
         var currentUser = new MutableCurrentUser(_clientUserId);
-        var service = CreateService(
+        var contractStub = CreateContractStub(ContractStatus.Active);
+        var changeRequestService = CreateChangeRequestService(
             context,
             currentUser,
-            CreateContractStub(ContractStatus.Active));
+            contractStub);
         var changeRequest = new MilestoneChangeRequest(
             Guid.NewGuid(),
             milestone.Id,
@@ -399,7 +401,7 @@ public sealed class MilestoneServiceTests
         await context.SaveChangesAsync();
 
         currentUser.UserId = _lawyerUserId;
-        await service.RejectChangeRequestAsync(
+        await changeRequestService.RejectChangeRequestAsync(
             changeRequest.Id,
             new RejectChangeRequest("لا توجد مستندات تبرر التمديد."),
             ToETag(changeRequest.RowVersion),
@@ -846,6 +848,33 @@ public sealed class MilestoneServiceTests
             contracts,
             new MilestoneFundingVerifier(context),
             fileAccessService ?? new TestFileAccessService(),
+            new OutboxWriter(context, timeProvider),
+            timeProvider);
+    }
+
+    private MilestoneDraftService CreateDraftService(
+        ApplicationDbContext context,
+        MutableCurrentUser currentUser,
+        ContractServiceStub contracts)
+    {
+        var timeProvider = new FixedTimeProvider(_utcNow);
+        return new MilestoneDraftService(
+            context,
+            currentUser,
+            contracts,
+            timeProvider);
+    }
+
+    private MilestoneChangeRequestService CreateChangeRequestService(
+        ApplicationDbContext context,
+        MutableCurrentUser currentUser,
+        ContractServiceStub contracts)
+    {
+        var timeProvider = new FixedTimeProvider(_utcNow);
+        return new MilestoneChangeRequestService(
+            context,
+            currentUser,
+            contracts,
             new OutboxWriter(context, timeProvider),
             timeProvider);
     }

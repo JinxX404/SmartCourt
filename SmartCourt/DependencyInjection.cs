@@ -170,15 +170,22 @@ public static class DependencyInjection
             IContractFileAccessService,
             ContractFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
+        services.AddScoped<IContractQueryService, ContractQueryService>();
         services.AddScoped<
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+        services.AddScoped<IMilestoneDraftService, MilestoneDraftService>();
+        services.AddScoped<IMilestoneChangeRequestService, MilestoneChangeRequestService>();
         services.AddScoped<
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
+        services.AddScoped<IPaymentQueryService, PaymentQueryService>();
+        services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
+        services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<IWalletReconciliationService, WalletReconciliationService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
         services.AddScoped<
             IContractTerminationSettlementService,

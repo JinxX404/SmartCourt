@@ -8,11 +8,15 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Payments;
 using SmartCourt.Features.Payments.DTOs;
+using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Validators;
 using SmartCourt.Infrastructure.Providers.Jobs;
+using SmartCourt.Infrastructure.Providers.Payments;
+using SmartCourt.Providers.Payments;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Payments;
@@ -151,9 +155,11 @@ public sealed class PaymentsControllerTests
     }
 
     private static PaymentsController CreateController(
-        IPaymentEscrowService service)
+        RecordingPaymentApi service)
     {
         var controller = new PaymentsController(
+            service,
+            service,
             service,
             new RetryPaymentRequestValidator(),
             new PaymentWebhookRequestValidator());
@@ -176,6 +182,7 @@ public sealed class PaymentsControllerTests
         Assert.Equal(route, httpAttribute.Template);
         var authorize = Assert.Single(
             method.GetCustomAttributes<AuthorizeAttribute>());
+        Assert.NotNull(authorize);
         Assert.Equal(roles, authorize.Roles);
     }
 
@@ -192,7 +199,7 @@ public sealed class PaymentsControllerTests
     }
 
     private sealed class RecordingPaymentApi
-        : IPaymentEscrowService
+        : IPaymentEscrowService, IPaymentQueryService, IPaymentWebhookService
     {
         public PaymentDto Payment { get; } = new(
             Guid.NewGuid(),
@@ -270,6 +277,31 @@ public sealed class PaymentsControllerTests
             RetryIdempotencyKey = idempotencyKey;
             return Task.FromResult(Payment);
         }
+
+        public Task<PaymentDto> CompleteFundingAsync(
+            Milestone milestone,
+            Guid lawyerUserId,
+            PaymentTransaction paymentTransaction,
+            ProviderResult providerResult,
+            Guid? reservationId,
+            Guid? actorUserId,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<PaymentActionResultDto> FinalizeFailedExternalResultAsync(
+            Milestone milestone,
+            PaymentTransaction paymentTransaction,
+            string? providerTransactionId,
+            Guid? reservationId,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<Guid?> FindProcessingFundingReservationIdAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+            => Task.FromResult<Guid?>(null);
 
         public Task<PaymentActionResultDto> HandleWebhookAsync(
             PaymentWebhookRequest request,

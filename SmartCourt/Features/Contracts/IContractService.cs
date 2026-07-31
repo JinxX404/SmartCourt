@@ -8,10 +8,6 @@ public interface IContractService
         CreateContractRequest request,
         CancellationToken cancellationToken);
 
-    Task<PagedResult<ContractSummaryDto>> ListAsync(
-        ContractListQuery query,
-        CancellationToken cancellationToken);
-
     Task<ContractDetailDto> GetAsync(
         Guid contractId,
         CancellationToken cancellationToken);
@@ -29,11 +25,6 @@ public interface IContractService
 
     Task<ContractActionResultDto> EvaluateActivationAsync(
         Guid contractId,
-        CancellationToken cancellationToken);
-
-    Task<PagedResult<ContractStateHistoryDto>> GetStateHistoryAsync(
-        Guid contractId,
-        ContractStateHistoryQuery query,
         CancellationToken cancellationToken);
 
     Task<ContractActionResultDto> EvaluateCompletionAsync(
