@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { 
-  LuScale, 
-  LuMail, 
-  LuLock, 
-  LuEye, 
-  LuEyeOff 
+import {
+  LuScale,
+  LuMail,
+  LuLock,
+  LuEye,
+  LuEyeOff
 } from "react-icons/lu";
 
 export const LoginForm = () => {
@@ -13,8 +13,8 @@ export const LoginForm = () => {
 
   return (
     // Outer wrapper for the page background - responsive to dark mode
-    <div className="relative min-h-screen flex items-start justify-center pt-12 pb-32 overflow-hidden bg-[url('/LoginLighteModeimg.png')] dark:bg-[url('/LoginDarkModeimg.png')] bg-cover bg-center bg-no-repeat w-full transition-colors duration-300">
-      
+    <div className="relative min-h-screen flex items-start justify-center pt-12 pb-32 overflow-hidden bg-surface dark:bg-navy dark:bg-[url('/LoginDarkModeimg.png')] dark:bg-cover dark:bg-center dark:bg-no-repeat w-full transition-colors duration-300">
+
       {/* Background Mesh Gradients (Only in light mode) */}
       <div className="fixed inset-0 z-0 pointer-events-none dark:hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-navy/5 blur-[100px]"></div>
@@ -22,10 +22,10 @@ export const LoginForm = () => {
       </div>
 
       <main className="w-full max-w-lg relative z-10 mx-4 sm:mx-0">
-        
+
         {/* Hanging Bookmark Container - dynamic themes & unrolling animation */}
         <div className="relative bg-white dark:bg-[#1a1d23]/95 backdrop-blur-xl shadow-premium dark:shadow-2xl pt-12 pb-12 px-8 sm:px-14 z-10 border-t-4 border-gold animate-unroll">
-          
+
           {/* Header */}
           <div className="flex flex-col items-center text-center mb-8">
             <div className="flex items-center justify-center gap-3 mb-2 border-b-2 border-gold/40 pb-2 w-fit mx-auto">
@@ -39,7 +39,7 @@ export const LoginForm = () => {
 
           {/* Form */}
           <form className="flex flex-col gap-5">
-            
+
             {/* Email / Phone */}
             <div>
               <label className="block text-sm font-bold text-navy dark:text-gray-200 mb-2" htmlFor="identifier">
@@ -49,12 +49,12 @@ export const LoginForm = () => {
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <LuMail className="text-gray-400 dark:text-gray-500" />
                 </div>
-                <input 
-                  id="identifier" 
-                  name="identifier" 
-                  type="text" 
+                <input
+                  id="identifier"
+                  name="identifier"
+                  type="text"
                   required
-                  placeholder="أدخل البريد الإلكتروني أو رقم الهاتف" 
+                  placeholder="أدخل البريد الإلكتروني أو رقم الهاتف"
                   className="block w-full pl-3 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-shadow"
                 />
               </div>
@@ -74,18 +74,18 @@ export const LoginForm = () => {
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <LuLock className="text-gray-400 dark:text-gray-500" />
                 </div>
-                <input 
-                  id="password" 
-                  name="password" 
-                  type={showPassword ? "text" : "password"} 
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? "text" : "password"}
                   dir="ltr"
                   required
-                  placeholder="••••••••" 
+                  placeholder="••••••••"
                   className="block w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow"
                 />
-                
+
                 {/* Password Visibility Toggle */}
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gold transition-colors focus:outline-none cursor-pointer"
@@ -96,7 +96,7 @@ export const LoginForm = () => {
             </div>
 
             {/* Submit Button */}
-            <button 
+            <button
               type="submit"
               className="w-full bg-gold hover:bg-gold-hover text-white font-bold py-4 px-6 rounded transition-colors duration-200 mt-2 flex items-center justify-center gap-2 cursor-pointer shadow-premium"
             >
@@ -112,7 +112,7 @@ export const LoginForm = () => {
           </div>
 
           {/* Google Button */}
-          <button 
+          <button
             type="button"
             className="w-full bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 text-navy dark:text-gray-200 font-bold text-sm py-3 px-6 rounded transition-colors duration-200 flex items-center justify-center gap-3 cursor-pointer"
           >
@@ -136,7 +136,7 @@ export const LoginForm = () => {
           <div className="absolute -bottom-12.5 left-0 right-0 flex h-12.5 -z-10">
             <div className="flex-1 relative bg-white dark:bg-[#1a1d23]/95 after:content-[''] after:absolute after:-bottom-5 after:left-0 after:w-full after:h-5 after:[clip-path:polygon(0_0,50%_100%,100%_0)] after:bg-white dark:after:bg-[#1a1d23]/95 transition-colors duration-300"></div>
           </div>
-          
+
         </div>
       </main>
     </div>

@@ -7,22 +7,29 @@ import { Login } from "./pages/Login";
 import { Loader } from "./components/Loader";
 
 function App() {
-  const [loading, setLoading] = useState(true);
+  const [showLoader, setShowLoader] = useState(true);
+  const [fadeLoader, setFadeLoader] = useState(false);
 
   useEffect(() => {
-    // Simulate initial platform load to display the loader
-    const timer = setTimeout(() => {
-      setLoading(false);
+    // Start fading out the loader
+    const fadeTimer = setTimeout(() => {
+      setFadeLoader(true);
     }, 1500);
-    return () => clearTimeout(timer);
-  }, []);
 
-  if (loading) {
-    return <Loader />;
-  }
+    // Completely remove the loader from DOM after transition completes
+    const removeTimer = setTimeout(() => {
+      setShowLoader(false);
+    }, 2200);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
   return (
     <BrowserRouter>
+      {showLoader && <Loader fadeOut={fadeLoader} />}
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
