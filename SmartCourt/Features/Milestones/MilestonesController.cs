@@ -16,6 +16,8 @@ namespace SmartCourt.Features.Milestones;
 [Produces("application/json")]
 public sealed class MilestonesController(
     IMilestoneService milestoneService,
+    IMilestoneDraftService milestoneDraftService,
+    IMilestoneChangeRequestService milestoneChangeRequestService,
     IValidator<IfMatchRequest> ifMatchValidator) : ControllerBase
 {
     [HttpPost("contracts/{contractId:guid}/milestones")]
@@ -28,7 +30,7 @@ public sealed class MilestonesController(
         [FromBody] AddMilestoneRequest request,
         CancellationToken cancellationToken)
     {
-        var milestone = await milestoneService.AddAsync(
+        var milestone = await milestoneDraftService.AddAsync(
             contractId,
             request,
             cancellationToken);
@@ -50,7 +52,7 @@ public sealed class MilestonesController(
             Guid contractId,
             CancellationToken cancellationToken)
     {
-        var milestones = await milestoneService.ListAsync(
+        var milestones = await milestoneDraftService.ListAsync(
             contractId,
             cancellationToken);
         return Ok(
@@ -74,7 +76,7 @@ public sealed class MilestonesController(
         var validatedIfMatch = await ValidateIfMatchAsync(
             ifMatch,
             cancellationToken);
-        var milestone = await milestoneService.UpdateDraftAsync(
+        var milestone = await milestoneDraftService.UpdateDraftAsync(
             contractId,
             milestoneId,
             request,
@@ -193,7 +195,7 @@ public sealed class MilestonesController(
         var validatedIfMatch = await ValidateIfMatchAsync(
             ifMatch,
             cancellationToken);
-        var result = await milestoneService.CreateChangeRequestAsync(
+        var result = await milestoneChangeRequestService.CreateChangeRequestAsync(
             milestoneId,
             request,
             validatedIfMatch,
@@ -218,7 +220,7 @@ public sealed class MilestonesController(
         var validatedIfMatch = await ValidateIfMatchAsync(
             ifMatch,
             cancellationToken);
-        var result = await milestoneService.ApproveChangeRequestAsync(
+        var result = await milestoneChangeRequestService.ApproveChangeRequestAsync(
             changeRequestId,
             validatedIfMatch,
             cancellationToken);
@@ -241,7 +243,7 @@ public sealed class MilestonesController(
         var validatedIfMatch = await ValidateIfMatchAsync(
             ifMatch,
             cancellationToken);
-        var result = await milestoneService.RejectChangeRequestAsync(
+        var result = await milestoneChangeRequestService.RejectChangeRequestAsync(
             changeRequestId,
             request,
             validatedIfMatch,
@@ -264,7 +266,7 @@ public sealed class MilestonesController(
         var validatedIfMatch = await ValidateIfMatchAsync(
             ifMatch,
             cancellationToken);
-        var result = await milestoneService.CancelChangeRequestAsync(
+        var result = await milestoneChangeRequestService.CancelChangeRequestAsync(
             changeRequestId,
             validatedIfMatch,
             cancellationToken);

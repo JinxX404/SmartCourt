@@ -155,6 +155,8 @@ public sealed class PaymentsControllerTests
     {
         var controller = new PaymentsController(
             service,
+            new PaymentQueryService(service),
+            new PaymentWebhookService(service),
             new RetryPaymentRequestValidator(),
             new PaymentWebhookRequestValidator());
         controller.ControllerContext = new ControllerContext

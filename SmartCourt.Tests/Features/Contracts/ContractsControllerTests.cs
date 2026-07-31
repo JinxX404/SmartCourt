@@ -193,8 +193,10 @@ public sealed class ContractsControllerTests
     private static ContractsController CreateController(
         IContractService service)
     {
+        var queryService = service as IContractQueryService ?? new ContractQueryService(service);
         return new ContractsController(
             service,
+            queryService,
             new IfMatchRequestValidator());
     }
 

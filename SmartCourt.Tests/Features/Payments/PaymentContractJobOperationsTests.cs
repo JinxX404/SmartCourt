@@ -15,10 +15,10 @@ public sealed class PaymentContractJobOperationsTests
             "ProviderTransactionReconciled");
         var payments = new RecordingPaymentEscrowBoundary(expected);
         var operations = new PaymentContractJobOperations(
-            payments,
+            new PaymentReconciliationService(payments),
             new UnusedAutoAcceptanceBoundary(),
             new UnusedEscrowReleaseBoundary(),
-            new UnusedWalletBoundary());
+            new WalletReconciliationService(new UnusedWalletBoundary()));
         var paymentTransactionId = Guid.NewGuid();
 
         var result = await operations.RetryProviderTransactionAsync(

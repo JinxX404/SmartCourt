@@ -202,6 +202,8 @@ public sealed class MilestonesControllerTests
     {
         return new MilestonesController(
             service,
+            new MilestoneDraftService(service),
+            new MilestoneChangeRequestService(service),
             new IfMatchRequestValidator());
     }
 

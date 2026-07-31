@@ -4,17 +4,17 @@ using SmartCourt.Infrastructure.Providers.Jobs;
 namespace SmartCourt.Features.Payments;
 
 public sealed class PaymentContractJobOperations(
-    IPaymentEscrowService paymentEscrowService,
+    IPaymentReconciliationService paymentReconciliationService,
     IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService,
     IEscrowReleaseService escrowReleaseService,
-    IWalletService walletService)
+    IWalletReconciliationService walletReconciliationService)
     : IContractJobOperations
 {
     public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
         Guid paymentTransactionId,
         CancellationToken cancellationToken)
     {
-        return await paymentEscrowService
+        return await paymentReconciliationService
             .ReconcileProviderTransactionAsync(
                 paymentTransactionId,
                 cancellationToken);
@@ -46,7 +46,7 @@ public sealed class PaymentContractJobOperations(
         Guid paymentTransactionId,
         CancellationToken cancellationToken)
     {
-        return await paymentEscrowService
+        return await paymentReconciliationService
             .ReconcileProviderTransactionAsync(
                 paymentTransactionId,
                 cancellationToken);
@@ -56,8 +56,7 @@ public sealed class PaymentContractJobOperations(
         ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken)
     {
-        return await walletService.ReconcilePendingWithdrawalsAsync(
+        return await walletReconciliationService.ReconcilePendingWithdrawalsAsync(
             cancellationToken);
     }
-
 }
