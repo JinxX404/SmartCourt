@@ -51,7 +51,13 @@ namespace SmartCourt
                 // 5. Seed Database
                 using (var scope = app.Services.CreateScope())
                 {
-                    SmartCourt.Persistence.DatabaseSeeder.SeedAsync(scope.ServiceProvider).GetAwaiter().GetResult();
+                    await SmartCourt.Persistence.DatabaseSeeder.SeedAsync(
+                        scope.ServiceProvider);
+                    await scope.ServiceProvider
+                        .GetRequiredService<
+                            SmartCourt.Infrastructure.Providers.Jobs
+                                .IContractRecurringJobRegistrar>()
+                        .RegisterAsync(app.Lifetime.ApplicationStopping);
                 }
 
                 app.Run();

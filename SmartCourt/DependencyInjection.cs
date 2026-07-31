@@ -262,6 +262,12 @@ public static class DependencyInjection
             }));
         services.AddHangfireServer();
         services.AddScoped<SmartCourt.Interfaces.Providers.IBackgroundJobProvider, SmartCourt.Providers.Jobs.HangfireJobProvider>();
+        services.AddSingleton<
+            SmartCourt.Interfaces.Providers.IRecurringBackgroundJobProvider,
+            SmartCourt.Providers.Jobs.HangfireRecurringBackgroundJobProvider>();
+        services.AddScoped<
+            IContractRecurringJobRegistrar,
+            ContractRecurringJobRegistrar>();
 
         services.Configure<SupabaseOptions>(configuration.GetSection("Supabase"));
         services.AddScoped<IFileStorageService, SupabaseFileStorageService>();
