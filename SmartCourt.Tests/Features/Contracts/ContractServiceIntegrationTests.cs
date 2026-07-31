@@ -297,6 +297,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         await context.SaveChangesAsync();
         var currentUser = new MutableCurrentUserService(outsiderId);
         var eligibility = new StubEligibilityService();
+        var queryService = CreateQueryService(
+            context,
+            currentUser,
+            eligibility);
         var service = CreateService(
             context,
             currentUser,
@@ -304,12 +308,12 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
 
         var exception =
             await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
-                service.GetAsync(contract.Id, CancellationToken.None));
+                queryService.GetAsync(contract.Id, CancellationToken.None));
 
         Assert.Equal(
             "غير مصرح لك بالاطلاع على هذا العقد.",
             exception.Message);
-        var outsiderList = await service.ListAsync(
+        var outsiderList = await queryService.ListAsync(
             new ContractListQuery(),
             CancellationToken.None);
         Assert.Empty(outsiderList.Items);
@@ -323,10 +327,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                 CanActAsFinanceAdministrator: false,
                 CanActAsSuperAdministrator: false);
 
-        var result = await service.GetAsync(
+        var result = await queryService.GetAsync(
             contract.Id,
             CancellationToken.None);
-        var moderatorList = await service.ListAsync(
+        var moderatorList = await queryService.ListAsync(
             new ContractListQuery(),
             CancellationToken.None);
 
@@ -695,6 +699,11 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             terminationSettlementServices = null)
     {
         var timeProvider = new FixedTimeProvider(_utcNow);
+        var eligibility = eligibilityService ?? new StubEligibilityService();
+        var queryService = new ContractQueryService(
+            context,
+            currentUser,
+            eligibility);
         return new ContractService(
             context,
             currentUser,
@@ -704,11 +713,23 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     Guid.NewGuid(),
                     _clientUserId,
                     _lawyerUserId)),
-            eligibilityService ?? new StubEligibilityService(),
+            eligibility,
+            queryService,
             new OutboxWriter(context, timeProvider),
             terminationSettlementServices
                 ?? Array.Empty<IContractTerminationSettlementService>(),
             timeProvider);
+    }
+
+    private ContractQueryService CreateQueryService(
+        ApplicationDbContext context,
+        MutableCurrentUserService currentUser,
+        IContractUserEligibilityService? eligibilityService = null)
+    {
+        return new ContractQueryService(
+            context,
+            currentUser,
+            eligibilityService ?? new StubEligibilityService());
     }
 
     private Contract CreateContract()

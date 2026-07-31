@@ -10,51 +10,27 @@ using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Payments;
 
-public sealed class PaymentQueryService : IPaymentQueryService
+public sealed class PaymentQueryService(
+    ApplicationDbContext dbContext,
+    ICurrentUserService currentUserService,
+    IContractUserEligibilityService userEligibilityService) : IPaymentQueryService
 {
-    private readonly ApplicationDbContext? _dbContext;
-    private readonly ICurrentUserService? _currentUserService;
-    private readonly IContractUserEligibilityService? _userEligibilityService;
-    private readonly IPaymentEscrowService? _fallbackEscrowService;
-
-    public PaymentQueryService(
-        ApplicationDbContext dbContext,
-        ICurrentUserService currentUserService,
-        IContractUserEligibilityService userEligibilityService)
-    {
-        _dbContext = dbContext;
-        _currentUserService = currentUserService;
-        _userEligibilityService = userEligibilityService;
-    }
-
-    public PaymentQueryService(IPaymentEscrowService fallbackEscrowService)
-    {
-        _fallbackEscrowService = fallbackEscrowService;
-    }
-
     public async Task<PaymentHistoryDto> GetContractPaymentsAsync(
         Guid contractId,
         CancellationToken cancellationToken)
     {
-        if (_fallbackEscrowService is not null)
-        {
-            return await _fallbackEscrowService.GetContractPaymentsAsync(
-                contractId,
-                cancellationToken);
-        }
-
         var contract = await GetAuthorizedPaymentContractAsync(
             contractId,
             cancellationToken);
 
-        var holds = await _dbContext!.EscrowHolds
+        var holds = await dbContext.EscrowHolds
             .AsNoTracking()
             .Where(hold => hold.ContractId == contract.Id)
             .OrderBy(hold => hold.FundedAt)
             .ThenBy(hold => hold.Id)
             .ToListAsync(cancellationToken);
 
-        var attempts = await _dbContext.PaymentTransactions
+        var attempts = await dbContext.PaymentTransactions
             .AsNoTracking()
             .Where(transaction =>
                 transaction.ContractId == contract.Id)
@@ -72,9 +48,9 @@ public sealed class PaymentQueryService : IPaymentQueryService
                 transaction.ProcessedAt))
             .ToListAsync(cancellationToken);
 
-        var ledgerEntries = await _dbContext.EscrowLedgerEntries
+        var ledgerEntries = await dbContext.EscrowLedgerEntries
             .AsNoTracking()
-            .Where(entry => _dbContext.EscrowAccounts.Any(account =>
+            .Where(entry => dbContext.EscrowAccounts.Any(account =>
                 account.Id == entry.EscrowAccountId
                 && account.ContractId == contract.Id))
             .OrderBy(entry => entry.CreatedAt)
@@ -100,20 +76,13 @@ public sealed class PaymentQueryService : IPaymentQueryService
         Guid milestoneId,
         CancellationToken cancellationToken)
     {
-        if (_fallbackEscrowService is not null)
-        {
-            return await _fallbackEscrowService.GetMilestonePaymentAsync(
-                milestoneId,
-                cancellationToken);
-        }
-
         if (milestoneId == Guid.Empty)
         {
             throw new BusinessException(
                 "معرّف المرحلة مطلوب لعرض بيانات الدفع.");
         }
 
-        var milestone = await _dbContext!.Milestones
+        var milestone = await dbContext.Milestones
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 item => item.Id == milestoneId,
@@ -125,7 +94,7 @@ public sealed class PaymentQueryService : IPaymentQueryService
             milestone.ContractId,
             cancellationToken);
 
-        var hold = await _dbContext.EscrowHolds
+        var hold = await dbContext.EscrowHolds
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 item => item.MilestoneId == milestone.Id,
@@ -146,10 +115,10 @@ public sealed class PaymentQueryService : IPaymentQueryService
                 "معرّف العقد مطلوب لعرض بيانات الدفع.");
         }
 
-        var actorUserId = _currentUserService!.RequireUserId(
+        var actorUserId = currentUserService.RequireUserId(
             "يجب تسجيل الدخول للوصول إلى خدمات الدفع.");
 
-        var contract = await _dbContext!.Contracts
+        var contract = await dbContext.Contracts
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 item => item.Id == contractId,
@@ -164,7 +133,7 @@ public sealed class PaymentQueryService : IPaymentQueryService
         }
 
         var eligibility =
-            await _userEligibilityService!.FindEligibilityAsync(
+            await userEligibilityService.FindEligibilityAsync(
                 actorUserId,
                 cancellationToken);
 

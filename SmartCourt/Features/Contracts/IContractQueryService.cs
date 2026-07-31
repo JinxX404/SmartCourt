@@ -1,4 +1,5 @@
 using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Features.Contracts.Entities;
 
 namespace SmartCourt.Features.Contracts;
 
@@ -15,5 +16,9 @@ public interface IContractQueryService
     Task<PagedResult<ContractStateHistoryDto>> GetStateHistoryAsync(
         Guid contractId,
         ContractStateHistoryQuery query,
+        CancellationToken cancellationToken);
+
+    Task<ContractDetailDto> MapDetailAsync(
+        Contract contract,
         CancellationToken cancellationToken);
 }

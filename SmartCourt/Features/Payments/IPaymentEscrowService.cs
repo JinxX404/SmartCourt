@@ -1,5 +1,8 @@
+using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Payments.DTOs;
-using SmartCourt.Infrastructure.Providers.Jobs;
+using SmartCourt.Features.Payments.Entities;
+using SmartCourt.Infrastructure.Providers.Payments;
+using SmartCourt.Providers.Payments;
 
 namespace SmartCourt.Features.Payments;
 
@@ -11,28 +14,30 @@ public interface IPaymentEscrowService
         string? idempotencyKey,
         CancellationToken cancellationToken);
 
-    Task<PaymentHistoryDto> GetContractPaymentsAsync(
-        Guid contractId,
-        CancellationToken cancellationToken);
-
-    Task<PaymentDto> GetMilestonePaymentAsync(
-        Guid milestoneId,
-        CancellationToken cancellationToken);
-
     Task<PaymentDto> RetryAsync(
         Guid paymentTransactionId,
         string? idempotencyKey,
         CancellationToken cancellationToken);
 
-    Task<PaymentActionResultDto> HandleWebhookAsync(
-        PaymentWebhookRequest request,
-        string? eventIdHeader,
-        string? timestampHeader,
-        string? signatureHeader,
-        string rawBody,
+    Task<PaymentDto> CompleteFundingAsync(
+        Milestone milestone,
+        Guid lawyerUserId,
+        PaymentTransaction paymentTransaction,
+        ProviderResult providerResult,
+        Guid? reservationId,
+        Guid? actorUserId,
+        Guid correlationId,
         CancellationToken cancellationToken);
 
-    Task<JobExecutionResult> ReconcileProviderTransactionAsync(
-        Guid paymentTransactionId,
+    Task<PaymentActionResultDto> FinalizeFailedExternalResultAsync(
+        Milestone milestone,
+        PaymentTransaction paymentTransaction,
+        string? providerTransactionId,
+        Guid? reservationId,
+        Guid correlationId,
+        CancellationToken cancellationToken);
+
+    Task<Guid?> FindProcessingFundingReservationIdAsync(
+        Guid milestoneId,
         CancellationToken cancellationToken);
 }

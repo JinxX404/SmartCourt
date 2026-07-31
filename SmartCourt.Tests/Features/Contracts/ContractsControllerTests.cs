@@ -9,6 +9,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Contracts.Validators;
 using Xunit;
@@ -191,12 +192,11 @@ public sealed class ContractsControllerTests
     }
 
     private static ContractsController CreateController(
-        IContractService service)
+        RecordingContractStub service)
     {
-        var queryService = service as IContractQueryService ?? new ContractQueryService(service);
         return new ContractsController(
             service,
-            queryService,
+            service,
             new IfMatchRequestValidator());
     }
 
@@ -236,7 +236,7 @@ public sealed class ContractsControllerTests
         return ((IConvertToActionResult)action).Convert();
     }
 
-    private sealed class RecordingContractStub : IContractService
+    private sealed class RecordingContractStub : IContractService, IContractQueryService
     {
         public ContractDetailDto ContractDetail { get; } =
             CreateContractDetail();
@@ -350,6 +350,11 @@ public sealed class ContractsControllerTests
             TerminateIfMatch = ifMatch;
             return Task.FromResult(ContractDetail);
         }
+
+        public Task<ContractDetailDto> MapDetailAsync(
+            Contract contract,
+            CancellationToken cancellationToken)
+            => Task.FromResult(ContractDetail);
 
         private static ContractDetailDto CreateContractDetail()
         {

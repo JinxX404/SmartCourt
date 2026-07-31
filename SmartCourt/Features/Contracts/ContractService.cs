@@ -27,6 +27,7 @@ public sealed class ContractService : IContractService
     private readonly IContractCreationDependencyGate _creationGate;
     private readonly IContractUserEligibilityService _userEligibilityService;
     private readonly IOutboxWriter _outboxWriter;
+    private readonly IContractQueryService _contractQueryService;
     private readonly IReadOnlyCollection<IContractTerminationSettlementService>
         _terminationSettlementServices;
     private readonly TimeProvider _timeProvider;
@@ -36,6 +37,7 @@ public sealed class ContractService : IContractService
         ICurrentUserService currentUserService,
         IContractCreationDependencyGate creationGate,
         IContractUserEligibilityService userEligibilityService,
+        IContractQueryService contractQueryService,
         IOutboxWriter outboxWriter,
         IEnumerable<IContractTerminationSettlementService>
             terminationSettlementServices,
@@ -45,6 +47,7 @@ public sealed class ContractService : IContractService
         _currentUserService = currentUserService;
         _creationGate = creationGate;
         _userEligibilityService = userEligibilityService;
+        _contractQueryService = contractQueryService;
         _outboxWriter = outboxWriter;
         _terminationSettlementServices =
             terminationSettlementServices.ToArray();
@@ -111,70 +114,16 @@ public sealed class ContractService : IContractService
         }
 
         await transaction.CommitAsync(cancellationToken);
-        return await MapDetailAsync(contract, cancellationToken);
+        return await _contractQueryService.MapDetailAsync(contract, cancellationToken);
     }
 
-    public async Task<PagedResult<ContractSummaryDto>> ListAsync(
-        ContractListQuery query,
-        CancellationToken cancellationToken)
-    {
-        var actorUserId = GetActorUserId();
-        var eligibility =
-            await _userEligibilityService.FindEligibilityAsync(
-                actorUserId,
-                cancellationToken);
-        var hasModeratorAccess = eligibility is not null
-            && eligibility.UserId == actorUserId
-            && (eligibility.CanActAsModerator
-                || eligibility.CanActAsSuperAdministrator);
-
-        var contracts = _dbContext.Contracts.AsNoTracking();
-        if (!hasModeratorAccess)
-        {
-            contracts = contracts.Where(contract =>
-                contract.ClientUserId == actorUserId
-                || contract.LawyerUserId == actorUserId);
-        }
-
-        if (query.Status.HasValue)
-        {
-            contracts = contracts.Where(
-                contract => contract.Status == query.Status.Value);
-        }
-
-        var totalCount = await contracts.CountAsync(cancellationToken);
-        var items = await contracts
-            .OrderByDescending(contract => contract.UpdatedAt)
-            .ThenBy(contract => contract.Id)
-            .Skip((query.Page - 1) * query.PageSize)
-            .Take(query.PageSize)
-            .Select(contract => new ContractSummaryDto(
-                contract.Id,
-                contract.LegalCaseId,
-                contract.ClientUserId,
-                contract.LawyerUserId,
-                contract.Title,
-                contract.Currency,
-                contract.Status,
-                contract.ActivatedAt,
-                contract.CompletedAt))
-            .ToListAsync(cancellationToken);
-        return new PagedResult<ContractSummaryDto>(
-            items,
-            query.Page,
-            query.PageSize,
-            totalCount,
-            query.Page * query.PageSize < totalCount);
-    }
-
-    public async Task<ContractDetailDto> GetAsync(
+    public Task<ContractDetailDto> GetAsync(
         Guid contractId,
         CancellationToken cancellationToken)
     {
-        var contract = await GetAuthorizedContractAsync(
+        return _contractQueryService.GetAsync(
             contractId,
             cancellationToken);
-        return await MapDetailAsync(contract, cancellationToken);
     }
 
     public async Task<ContractDetailDto> UpdateDraftAsync(
@@ -553,7 +502,7 @@ public sealed class ContractService : IContractService
             cancellationToken);
         await SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return await MapDetailAsync(contract, cancellationToken);
+        return await _contractQueryService.MapDetailAsync(contract, cancellationToken);
     }
 
     private async Task<bool> TryActivateAsync(

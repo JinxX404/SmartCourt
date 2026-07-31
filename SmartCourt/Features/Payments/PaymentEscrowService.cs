@@ -34,7 +34,6 @@ public sealed class PaymentEscrowService(
     IContractService contractService,
     IContractUserEligibilityService userEligibilityService,
     IPaymentProvider paymentProvider,
-    IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
     IOutboxWriter outboxWriter,
     IOptions<PaymentProviderOptions> paymentProviderOptions,
@@ -248,91 +247,7 @@ public sealed class PaymentEscrowService(
         };
     }
 
-    public async Task<PaymentHistoryDto> GetContractPaymentsAsync(
-        Guid contractId,
-        CancellationToken cancellationToken)
-    {
-        var contract = await GetAuthorizedPaymentContractAsync(
-            contractId,
-            cancellationToken);
 
-        var holds = await dbContext.EscrowHolds
-            .AsNoTracking()
-            .Where(hold => hold.ContractId == contract.Id)
-            .OrderBy(hold => hold.FundedAt)
-            .ThenBy(hold => hold.Id)
-            .ToListAsync(cancellationToken);
-        var attempts = await dbContext.PaymentTransactions
-            .AsNoTracking()
-            .Where(transaction =>
-                transaction.ContractId == contract.Id)
-            .OrderByDescending(transaction => transaction.CreatedAt)
-            .ThenBy(transaction => transaction.Id)
-            .Select(transaction => new PaymentAttemptDto(
-                transaction.Id,
-                transaction.MilestoneId,
-                transaction.OperationType,
-                transaction.Status,
-                transaction.Amount,
-                transaction.Currency,
-                transaction.ProviderName,
-                transaction.CreatedAt,
-                transaction.ProcessedAt))
-            .ToListAsync(cancellationToken);
-        var ledgerEntries = await dbContext.EscrowLedgerEntries
-            .AsNoTracking()
-            .Where(entry => dbContext.EscrowAccounts.Any(account =>
-                account.Id == entry.EscrowAccountId
-                && account.ContractId == contract.Id))
-            .OrderBy(entry => entry.CreatedAt)
-            .ThenBy(entry => entry.Id)
-            .Select(entry => new EscrowLedgerEntryDto(
-                entry.Id,
-                entry.EscrowHoldId,
-                entry.TransactionType,
-                entry.Amount,
-                entry.RunningBalance,
-                entry.Currency,
-                entry.Description,
-                entry.CreatedAt))
-            .ToListAsync(cancellationToken);
-
-        return new PaymentHistoryDto(
-            holds.Select(MapPayment).ToArray(),
-            attempts,
-            ledgerEntries);
-    }
-
-    public async Task<PaymentDto> GetMilestonePaymentAsync(
-        Guid milestoneId,
-        CancellationToken cancellationToken)
-    {
-        if (milestoneId == Guid.Empty)
-        {
-            throw new BusinessException(
-                "معرّف المرحلة مطلوب لعرض بيانات الدفع.");
-        }
-
-        var milestone = await dbContext.Milestones
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.Id == milestoneId,
-                cancellationToken)
-            ?? throw new NotFoundException(
-                "المرحلة المطلوبة غير موجودة.");
-        await GetAuthorizedPaymentContractAsync(
-            milestone.ContractId,
-            cancellationToken);
-
-        var hold = await dbContext.EscrowHolds
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.MilestoneId == milestone.Id,
-                cancellationToken)
-            ?? throw new NotFoundException(
-                "لم يتم إنشاء حجز دفع لهذه المرحلة بعد.");
-        return MapPayment(hold);
-    }
 
     public async Task<PaymentDto> RetryAsync(
         Guid paymentTransactionId,
@@ -556,298 +471,11 @@ public sealed class PaymentEscrowService(
         };
     }
 
-    public async Task<PaymentActionResultDto> HandleWebhookAsync(
-        PaymentWebhookRequest request,
-        string? eventIdHeader,
-        string? timestampHeader,
-        string? signatureHeader,
-        string rawBody,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            ValidateWebhookAuthentication(
-                request,
-                eventIdHeader,
-                timestampHeader,
-                signatureHeader,
-                rawBody);
-        }
-        catch (BusinessException)
-        {
-            logger.LogWarning(
-                "Rejected payment webhook {EventId}: authentication failed.",
-                request.EventId);
-            throw;
-        }
 
-        var existingEvent = await dbContext.PaymentWebhookEvents
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.EventId == request.EventId,
-                cancellationToken);
-        if (existingEvent is not null)
-        {
-            if (existingEvent.PaymentTransactionId
-                != request.PaymentTransactionId)
-            {
-                throw new BusinessException(
-                    "تم استخدام معرّف حدث الدفع مسبقًا لمعاملة مختلفة.");
-            }
 
-            return new PaymentActionResultDto(
-                request.PaymentTransactionId,
-                "Duplicate",
-                UtcNow);
-        }
 
-        var paymentTransaction = await dbContext.PaymentTransactions
-            .SingleOrDefaultAsync(
-                item =>
-                    item.Id == request.PaymentTransactionId,
-                cancellationToken)
-            ?? throw new BusinessException(
-                "معاملة الدفع المرتبطة بإشعار المزود غير موجودة.");
-        try
-        {
-            EnsureWebhookMatchesTransaction(
-                paymentTransaction,
-                request);
-        }
-        catch (BusinessException)
-        {
-            logger.LogWarning(
-                "Rejected payment webhook {EventId}: payload mismatch for transaction {PaymentTransactionId}.",
-                request.EventId,
-                request.PaymentTransactionId);
-            throw;
-        }
 
-        if (paymentTransaction.Status
-            != PaymentTransactionStatus.Processing)
-        {
-            return await RecordTerminalWebhookAsync(
-                paymentTransaction,
-                request,
-                cancellationToken);
-        }
-
-        if (request.Status == PaymentTransactionStatus.Processing)
-        {
-            throw new BusinessException(
-                "إشعار مزود الدفع لا يحتوي على نتيجة نهائية للمعاملة.");
-        }
-
-        var milestone = await dbContext.Milestones
-            .SingleOrDefaultAsync(
-                item => item.Id == paymentTransaction.MilestoneId,
-                cancellationToken)
-            ?? throw new BusinessException(
-                "المرحلة المرتبطة بمعاملة الدفع غير موجودة.");
-        if (milestone.ContractId != paymentTransaction.ContractId
-            || milestone.Status
-                != MilestoneStatus.FundingProcessing)
-        {
-            logger.LogWarning(
-                "Rejected payment webhook {EventId}: milestone state or ownership mismatch for transaction {PaymentTransactionId}.",
-                request.EventId,
-                request.PaymentTransactionId);
-            throw new BusinessException(
-                "حالة المرحلة أو ارتباطها بمعاملة الدفع لا يسمحان بإكمال الإشعار.");
-        }
-
-        var contract = await dbContext.Contracts
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.Id == paymentTransaction.ContractId,
-                cancellationToken)
-            ?? throw new BusinessException(
-                "العقد المرتبط بمعاملة الدفع غير موجود.");
-        var now = UtcNow;
-        var correlationId = Guid.NewGuid();
-        var reservationId =
-            await FindProcessingFundingReservationIdAsync(
-                milestone.Id,
-                cancellationToken);
-        dbContext.PaymentWebhookEvents.Add(
-            new PaymentWebhookEvent(
-                Guid.NewGuid(),
-                request.EventId,
-                paymentTransaction.Id,
-                now));
-
-        if (request.Status == PaymentTransactionStatus.Completed)
-        {
-            var providerResult = new ProviderResult(
-                paymentTransaction.Amount,
-                paymentTransaction.Currency,
-                milestone.Id,
-                paymentTransaction.IdempotencyKey,
-                correlationId,
-                ProviderOperationOutcome.Succeeded,
-                request.ProviderTransactionId,
-                null);
-            try
-            {
-                await CompleteFundingAsync(
-                    milestone,
-                    contract.LawyerUserId,
-                    paymentTransaction,
-                    providerResult,
-                    reservationId,
-                    null,
-                    correlationId,
-                    cancellationToken);
-            }
-            catch (BusinessException)
-            {
-                if (await WebhookEventExistsAsync(
-                        request.EventId,
-                        cancellationToken))
-                {
-                    return new PaymentActionResultDto(
-                        paymentTransaction.Id,
-                        "Duplicate",
-                        UtcNow);
-                }
-
-                throw;
-            }
-
-            return new PaymentActionResultDto(
-                paymentTransaction.Id,
-                PaymentTransactionStatus.Completed.ToString(),
-                now);
-        }
-
-        return await FinalizeFailedExternalResultAsync(
-            milestone,
-            paymentTransaction,
-            request.ProviderTransactionId,
-            reservationId,
-            correlationId,
-            cancellationToken);
-    }
-
-    public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
-        Guid paymentTransactionId,
-        CancellationToken cancellationToken)
-    {
-        if (paymentTransactionId == Guid.Empty)
-        {
-            throw new BusinessException(
-                "معرّف معاملة الدفع مطلوب لإجراء المطابقة.");
-        }
-
-        var paymentTransaction = await dbContext.PaymentTransactions
-            .SingleOrDefaultAsync(
-                item => item.Id == paymentTransactionId,
-                cancellationToken);
-        if (paymentTransaction is null)
-        {
-            return JobExecutionResult.NoOp(
-                "PaymentTransactionNotFound");
-        }
-
-        if (paymentTransaction.Status
-            != PaymentTransactionStatus.Processing)
-        {
-            return JobExecutionResult.NoOp(
-                "PaymentTransactionAlreadyFinal");
-        }
-
-        if (paymentTransaction.OperationType
-                != PaymentOperationType.Deposit
-            || !paymentTransaction.MilestoneId.HasValue)
-        {
-            return JobExecutionResult.NoOp(
-                "PaymentOperationNotSupported");
-        }
-
-        var milestone = await dbContext.Milestones
-            .SingleOrDefaultAsync(
-                item =>
-                    item.Id
-                        == paymentTransaction.MilestoneId.Value,
-                cancellationToken);
-        if (milestone is null
-            || milestone.Status
-                != MilestoneStatus.FundingProcessing)
-        {
-            return JobExecutionResult.NoOp(
-                "MilestoneNoLongerAwaitingReconciliation");
-        }
-
-        var correlationId = Guid.NewGuid();
-        var result =
-            await reconciliationProvider.GetDepositStatusAsync(
-                new ProviderDepositStatusRequest(
-                    paymentTransaction.Amount,
-                    paymentTransaction.Currency,
-                    milestone.Id,
-                    paymentTransaction.IdempotencyKey,
-                    correlationId),
-                cancellationToken);
-        if (result is null
-            || result.Outcome == ProviderOperationOutcome.Unknown)
-        {
-            return JobExecutionResult.NoOp(
-                "ProviderOutcomeStillUnknown");
-        }
-
-        if (!ReconciliationResultMatches(
-                result,
-                paymentTransaction,
-                milestone.Id))
-        {
-            logger.LogWarning(
-                "Rejected provider reconciliation result for transaction {PaymentTransactionId}: financial facts do not match.",
-                paymentTransaction.Id);
-            throw new BusinessException(
-                "نتيجة مطابقة مزود الدفع لا تطابق بيانات معاملة التمويل الأصلية.");
-        }
-
-        var contract = await dbContext.Contracts
-            .AsNoTracking()
-            .SingleOrDefaultAsync(
-                item => item.Id == paymentTransaction.ContractId,
-                cancellationToken)
-            ?? throw new BusinessException(
-                "العقد المرتبط بمعاملة الدفع غير موجود.");
-        var reservationId =
-            await FindProcessingFundingReservationIdAsync(
-                milestone.Id,
-                cancellationToken);
-
-        if (result.Outcome == ProviderOperationOutcome.Succeeded)
-        {
-            await CompleteFundingAsync(
-                milestone,
-                contract.LawyerUserId,
-                paymentTransaction,
-                result,
-                reservationId,
-                null,
-                correlationId,
-                cancellationToken);
-        }
-        else
-        {
-            await FinalizeFailedExternalResultAsync(
-                milestone,
-                paymentTransaction,
-                result.ProviderTransactionId
-                    ?? $"reconciled-failed-{paymentTransaction.Id:N}",
-                reservationId,
-                correlationId,
-                cancellationToken);
-        }
-
-        return JobExecutionResult.Completed(
-            "ProviderTransactionReconciled");
-    }
-
-    private async Task<PaymentDto> CompleteFundingAsync(
+    public async Task<PaymentDto> CompleteFundingAsync(
         Milestone milestone,
         Guid lawyerUserId,
         PaymentTransaction paymentTransaction,
@@ -1243,10 +871,10 @@ public sealed class PaymentEscrowService(
             UtcNow);
     }
 
-    private async Task<PaymentActionResultDto> FinalizeFailedExternalResultAsync(
+    public async Task<PaymentActionResultDto> FinalizeFailedExternalResultAsync(
         Milestone milestone,
         PaymentTransaction paymentTransaction,
-        string providerTransactionId,
+        string? providerTransactionId,
         Guid? reservationId,
         Guid correlationId,
         CancellationToken cancellationToken)
@@ -1307,7 +935,7 @@ public sealed class PaymentEscrowService(
             now);
     }
 
-    private async Task<Guid?> FindProcessingFundingReservationIdAsync(
+    public async Task<Guid?> FindProcessingFundingReservationIdAsync(
         Guid milestoneId,
         CancellationToken cancellationToken)
     {

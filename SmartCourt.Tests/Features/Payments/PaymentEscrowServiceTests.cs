@@ -301,14 +301,15 @@ public sealed class PaymentEscrowServiceTests
             PaymentTransactionStatus.Completed);
         var rawBody = JsonSerializer.Serialize(request);
 
-        var first = await service.HandleWebhookAsync(
+        var webhookService = CreateWebhookService(context, service);
+        var first = await webhookService.HandleWebhookAsync(
             request,
             request.EventId,
             TimestampHeader(),
             Signature(TimestampHeader(), rawBody),
             rawBody,
             CancellationToken.None);
-        var duplicate = await service.HandleWebhookAsync(
+        var duplicate = await webhookService.HandleWebhookAsync(
             request,
             request.EventId,
             TimestampHeader(),
@@ -337,12 +338,13 @@ public sealed class PaymentEscrowServiceTests
             new TestPaymentProvider(ProviderOperationOutcome.Unknown),
             new TestIdempotencyService(),
             new MutableCurrentUser(_clientUserId));
+        var webhookService = CreateWebhookService(context, service);
         var request = CreateWebhookRequest(
             transaction.Id,
             PaymentTransactionStatus.Failed);
         var rawBody = JsonSerializer.Serialize(request);
 
-        var result = await service.HandleWebhookAsync(
+        var result = await webhookService.HandleWebhookAsync(
             request,
             request.EventId,
             TimestampHeader(),
@@ -371,13 +373,14 @@ public sealed class PaymentEscrowServiceTests
             new TestPaymentProvider(ProviderOperationOutcome.Unknown),
             new TestIdempotencyService(),
             new MutableCurrentUser(_clientUserId));
+        var webhookService = CreateWebhookService(context, service);
         var request = CreateWebhookRequest(
             transaction.Id,
             PaymentTransactionStatus.Completed);
         var rawBody = JsonSerializer.Serialize(request);
 
         var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.HandleWebhookAsync(
+            webhookService.HandleWebhookAsync(
                 request,
                 request.EventId,
                 TimestampHeader(),
@@ -405,6 +408,7 @@ public sealed class PaymentEscrowServiceTests
             new TestPaymentProvider(ProviderOperationOutcome.Unknown),
             new TestIdempotencyService(),
             new MutableCurrentUser(_clientUserId));
+        var webhookService = CreateWebhookService(context, service);
         var request = CreateWebhookRequest(
             transaction.Id,
             PaymentTransactionStatus.Completed) with
@@ -414,7 +418,7 @@ public sealed class PaymentEscrowServiceTests
         var rawBody = JsonSerializer.Serialize(request);
 
         var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.HandleWebhookAsync(
+            webhookService.HandleWebhookAsync(
                 request,
                 request.EventId,
                 TimestampHeader(),
@@ -437,14 +441,19 @@ public sealed class PaymentEscrowServiceTests
         await using var context = CreateContext();
         var (milestone, transaction) =
             await SeedProcessingFundingAsync(context);
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded);
         var service = CreateService(
             context,
-            new TestPaymentProvider(
-                ProviderOperationOutcome.Succeeded),
+            provider,
             new TestIdempotencyService(),
             new MutableCurrentUser(_clientUserId));
+        var reconciliationService = CreateReconciliationService(
+            context,
+            service,
+            provider);
 
-        var result = await service.ReconcileProviderTransactionAsync(
+        var result = await reconciliationService.ReconcileProviderTransactionAsync(
             transaction.Id,
             CancellationToken.None);
 
@@ -465,14 +474,19 @@ public sealed class PaymentEscrowServiceTests
         await using var context = CreateContext();
         var (milestone, transaction) =
             await SeedProcessingFundingAsync(context);
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Unknown);
         var service = CreateService(
             context,
-            new TestPaymentProvider(
-                ProviderOperationOutcome.Unknown),
+            provider,
             new TestIdempotencyService(),
             new MutableCurrentUser(_clientUserId));
+        var reconciliationService = CreateReconciliationService(
+            context,
+            service,
+            provider);
 
-        var result = await service.ReconcileProviderTransactionAsync(
+        var result = await reconciliationService.ReconcileProviderTransactionAsync(
             transaction.Id,
             CancellationToken.None);
 
@@ -493,14 +507,16 @@ public sealed class PaymentEscrowServiceTests
         await using var context = CreateContext();
         var (_, transaction) =
             await SeedProcessingFundingAsync(context);
+        var currentUser = new MutableCurrentUser(_clientUserId);
         var service = CreateService(
             context,
             new TestPaymentProvider(
                 ProviderOperationOutcome.Unknown),
             new TestIdempotencyService(),
-            new MutableCurrentUser(_clientUserId));
+            currentUser);
+        var queryService = CreateQueryService(context, currentUser);
 
-        var history = await service.GetContractPaymentsAsync(
+        var history = await queryService.GetContractPaymentsAsync(
             _contractId,
             CancellationToken.None);
 
@@ -509,14 +525,10 @@ public sealed class PaymentEscrowServiceTests
         Assert.Empty(history.Payments);
         Assert.Empty(history.LedgerEntries);
 
-        var outsiderService = CreateService(
-            context,
-            new TestPaymentProvider(
-                ProviderOperationOutcome.Unknown),
-            new TestIdempotencyService(),
-            new MutableCurrentUser(Guid.NewGuid()));
+        var outsiderUser = new MutableCurrentUser(Guid.NewGuid());
+        var outsiderQueryService = CreateQueryService(context, outsiderUser);
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
-            outsiderService.GetContractPaymentsAsync(
+            outsiderQueryService.GetContractPaymentsAsync(
                 _contractId,
                 CancellationToken.None));
     }
@@ -527,15 +539,17 @@ public sealed class PaymentEscrowServiceTests
         await using var context = CreateContext();
         await SeedProcessingFundingAsync(context);
         var financeUserId = Guid.NewGuid();
+        var currentUser = new MutableCurrentUser(financeUserId);
         var service = CreateService(
             context,
             new TestPaymentProvider(
                 ProviderOperationOutcome.Unknown),
             new TestIdempotencyService(),
-            new MutableCurrentUser(financeUserId),
+            currentUser,
             financeAccess: true);
+        var queryService = CreateQueryService(context, currentUser, financeAccess: true);
 
-        var history = await service.GetContractPaymentsAsync(
+        var history = await queryService.GetContractPaymentsAsync(
             _contractId,
             CancellationToken.None);
 
@@ -551,12 +565,14 @@ public sealed class PaymentEscrowServiceTests
         var financeUserId = Guid.NewGuid();
         var provider = new TestPaymentProvider(
             ProviderOperationOutcome.Succeeded);
+        var currentUser = new MutableCurrentUser(financeUserId);
         var service = CreateService(
             context,
             provider,
             new TestIdempotencyService(),
-            new MutableCurrentUser(financeUserId),
+            currentUser,
             financeAccess: true);
+        var queryService = CreateQueryService(context, currentUser, financeAccess: true);
 
         var result = await service.RetryAsync(
             originalTransaction.Id,
@@ -582,7 +598,7 @@ public sealed class PaymentEscrowServiceTests
             attempts[1].IdempotencyKey);
 
         var milestonePayment =
-            await service.GetMilestonePaymentAsync(
+            await queryService.GetMilestonePaymentAsync(
                 milestone.Id,
                 CancellationToken.None);
         Assert.Equal(result, milestonePayment);
@@ -704,7 +720,6 @@ public sealed class PaymentEscrowServiceTests
                 currentUser.UserId,
                 financeAccess),
             provider,
-            provider,
             idempotency,
             new OutboxWriter(context, timeProvider),
             Options.Create(new PaymentProviderOptions()),
@@ -760,6 +775,38 @@ public sealed class PaymentEscrowServiceTests
                 .UseInMemoryDatabase($"payment-escrow-{Guid.NewGuid():N}")
                 .Options,
             new FixedTimeProvider(Now));
+
+    private static PaymentQueryService CreateQueryService(
+        ApplicationDbContext dbContext,
+        ICurrentUserService currentUser,
+        bool financeAccess = false)
+        => new(
+            dbContext,
+            currentUser,
+            new TestUserEligibilityService(currentUser.UserId, financeAccess));
+
+    private PaymentWebhookService CreateWebhookService(
+        ApplicationDbContext context,
+        PaymentEscrowService escrowService)
+        => new(
+            context,
+            escrowService,
+            Options.Create(new PaymentProviderOptions
+            {
+                WebhookSecret = "local-mock-payment-webhook-secret"
+            }),
+            NullLogger<PaymentWebhookService>.Instance,
+            new FixedTimeProvider(Now));
+
+    private PaymentReconciliationService CreateReconciliationService(
+        ApplicationDbContext context,
+        PaymentEscrowService escrowService,
+        TestPaymentProvider provider)
+        => new(
+            context,
+            escrowService,
+            provider,
+            NullLogger<PaymentReconciliationService>.Instance);
 
     private sealed class MutableCurrentUser(Guid userId)
         : ICurrentUserService
