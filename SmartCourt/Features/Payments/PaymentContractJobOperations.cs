@@ -1,4 +1,3 @@
-using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Infrastructure.Providers.Jobs;
 
@@ -43,10 +42,15 @@ public sealed class PaymentContractJobOperations(
             cancellationToken);
     }
 
-    public Task<JobExecutionResult> RetryProviderTransactionAsync(
+    public async Task<JobExecutionResult> RetryProviderTransactionAsync(
         Guid paymentTransactionId,
         CancellationToken cancellationToken)
-        => throw NotAvailable();
+    {
+        return await paymentEscrowService
+            .ReconcileProviderTransactionAsync(
+                paymentTransactionId,
+                cancellationToken);
+    }
 
     public async Task<JobExecutionResult>
         ReconcilePendingWalletProjectionsAsync(
@@ -56,7 +60,4 @@ public sealed class PaymentContractJobOperations(
             cancellationToken);
     }
 
-    private static BusinessException NotAvailable()
-        => new(
-            "عملية الخلفية المطلوبة لم تُنفذ بعد ضمن المرحلة الحالية.");
 }

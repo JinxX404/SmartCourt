@@ -72,9 +72,11 @@ passing tests. This does **not** mean the feature is end-to-end complete.
   - [ ] Add provider-specific pending-transaction scanning/reconciliation and
     automatic retry for deposit, release, refund, and termination operations.
     The recurring registration does not claim this work is complete.
-- [ ] Replace the placeholder
-  `PaymentContractJobOperations.RetryProviderTransactionAsync`, which
-  currently throws a `BusinessException`, with real idempotent retry logic.
+- [x] Replace the throwing
+  `PaymentContractJobOperations.RetryProviderTransactionAsync` placeholder.
+  Scheduled retries now use the existing idempotent provider reconciliation
+  path for processing deposit transactions; confirmed failures continue to
+  require the finance-authorized manual retry endpoint.
 - [ ] Extend provider reconciliation beyond deposits. Unknown release,
   termination refund, and withdrawal outcomes need explicit safe status
   reconciliation/retry paths. Withdrawal reconciliation currently replays
