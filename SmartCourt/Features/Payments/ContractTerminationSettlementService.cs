@@ -196,12 +196,18 @@ public sealed class ContractTerminationSettlementService(
             return false;
         }
 
-        var refundTransaction = await dbContext.PaymentTransactions
-            .SingleOrDefaultAsync(
+        var refundTransactions = await dbContext.PaymentTransactions
+            .Where(
                 item =>
                     item.EscrowHoldId == hold.Id
-                    && item.OperationType == PaymentOperationType.Refund,
-                cancellationToken);
+                    && item.OperationType == PaymentOperationType.Refund)
+            .OrderBy(item => item.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var refundTransaction = refundTransactions.FirstOrDefault(item =>
+                item.Status == PaymentTransactionStatus.Completed)
+            ?? refundTransactions.FirstOrDefault(item =>
+                item.Status == PaymentTransactionStatus.Processing)
+            ?? refundTransactions.LastOrDefault();
         if (settlement is null)
         {
             if (refundTransaction is not null)
@@ -239,6 +245,23 @@ public sealed class ContractTerminationSettlementService(
         else if (refundTransaction is null)
         {
             return false;
+        }
+        else if (refundTransaction.Status == PaymentTransactionStatus.Failed)
+        {
+            var attemptNumber = refundTransactions.Count + 1;
+            refundTransaction = new PaymentTransaction(
+                Guid.NewGuid(),
+                hold.ContractId,
+                hold.MilestoneId,
+                PaymentOperationType.Refund,
+                paymentProvider.GetType().Name,
+                $"termination-refund-{hold.Id:N}-{attemptNumber}",
+                hold.GrossAmount,
+                now)
+            {
+                EscrowHoldId = hold.Id
+            };
+            dbContext.PaymentTransactions.Add(refundTransaction);
         }
 
         ProviderResult? providerResult = null;
@@ -286,8 +309,17 @@ public sealed class ContractTerminationSettlementService(
                 return false;
             }
 
-            if (providerResult.Outcome
-                != ProviderOperationOutcome.Succeeded)
+            if (providerResult.Outcome == ProviderOperationOutcome.Failed)
+            {
+                refundTransaction.Status = PaymentTransactionStatus.Failed;
+                refundTransaction.FailureReason =
+                    providerResult.FailureReason
+                    ?? "رفض مزود الدفع عملية رد التمويل.";
+                refundTransaction.UpdatedAt = now;
+                return false;
+            }
+
+            if (providerResult.Outcome != ProviderOperationOutcome.Succeeded)
             {
                 refundTransaction.Status =
                     PaymentTransactionStatus.Processing;

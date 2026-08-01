@@ -43,5 +43,12 @@ public sealed class ContractRecurringJobRegistrar(
                 CancellationToken.None),
             EveryFiveMinutes,
             cancellationToken);
+
+        await recurringJobs.RegisterOrUpdateAsync<IContractJobService>(
+            "contract-termination-recovery",
+            service => service.RecoverPendingContractTerminationsAsync(
+                CancellationToken.None),
+            EveryFiveMinutes,
+            cancellationToken);
     }
 }

@@ -22,18 +22,26 @@ public sealed class ContractRecurringJobRegistrarTests
                 "contract-payment-outbox-dispatch",
                 "contract-payment-schedule-reconciliation",
                 "contract-payment-wallet-reconciliation",
-                "contract-payment-provider-reconciliation"
+                "contract-payment-provider-reconciliation",
+                "contract-termination-recovery"
             ],
             provider.JobIds);
         Assert.Equal(
-            ["*/1 * * * *", "*/5 * * * *", "*/5 * * * *", "*/5 * * * *"],
+            [
+                "*/1 * * * *",
+                "*/5 * * * *",
+                "*/5 * * * *",
+                "*/5 * * * *",
+                "*/5 * * * *"
+            ],
             provider.CronExpressions);
         Assert.Equal(
             [
                 nameof(IContractJobService.DispatchOutboxAsync),
                 nameof(IContractJobService.ReconcileMissingSchedulesAsync),
                 nameof(IContractJobService.ReconcilePendingWalletProjectionsAsync),
-                nameof(IContractJobService.ReconcilePendingProviderTransactionsAsync)
+                nameof(IContractJobService.ReconcilePendingProviderTransactionsAsync),
+                nameof(IContractJobService.RecoverPendingContractTerminationsAsync)
             ],
             provider.MethodNames);
     }

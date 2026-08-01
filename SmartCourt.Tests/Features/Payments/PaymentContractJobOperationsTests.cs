@@ -1,4 +1,5 @@
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Payments;
 using SmartCourt.Features.Payments.DTOs;
@@ -22,7 +23,8 @@ public sealed class PaymentContractJobOperationsTests
             payments,
             new UnusedAutoAcceptanceBoundary(),
             new UnusedEscrowReleaseBoundary(),
-            new WalletReconciliationService(new UnusedWalletBoundary()));
+            new WalletReconciliationService(new UnusedWalletBoundary()),
+            new UnusedTerminationRecoveryBoundary());
         var paymentTransactionId = Guid.NewGuid();
 
         var result = await operations.RetryProviderTransactionAsync(
@@ -138,6 +140,14 @@ public sealed class PaymentContractJobOperationsTests
             => throw new NotSupportedException();
 
         public Task<JobExecutionResult> ReconcilePendingWithdrawalsAsync(
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+    }
+
+    private sealed class UnusedTerminationRecoveryBoundary
+        : IContractTerminationRecoveryService
+    {
+        public Task<JobExecutionResult> RecoverPendingTerminationsAsync(
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
     }

@@ -1,4 +1,5 @@
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Infrastructure.Providers.Jobs;
 
 namespace SmartCourt.Features.Payments;
@@ -7,7 +8,8 @@ public sealed class PaymentContractJobOperations(
     IPaymentReconciliationService paymentReconciliationService,
     IMilestoneAutoAcceptanceService milestoneAutoAcceptanceService,
     IEscrowReleaseService escrowReleaseService,
-    IWalletReconciliationService walletReconciliationService)
+    IWalletReconciliationService walletReconciliationService,
+    IContractTerminationRecoveryService terminationRecoveryService)
     : IContractJobOperations
 {
     public async Task<JobExecutionResult> ReconcileProviderTransactionAsync(
@@ -58,6 +60,14 @@ public sealed class PaymentContractJobOperations(
     {
         return await paymentReconciliationService
             .ReconcilePendingProviderTransactionsAsync(cancellationToken);
+    }
+
+    public async Task<JobExecutionResult>
+        RecoverPendingContractTerminationsAsync(
+            CancellationToken cancellationToken)
+    {
+        return await terminationRecoveryService
+            .RecoverPendingTerminationsAsync(cancellationToken);
     }
 
     public async Task<JobExecutionResult>

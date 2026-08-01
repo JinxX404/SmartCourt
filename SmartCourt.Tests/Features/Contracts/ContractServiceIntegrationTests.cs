@@ -18,6 +18,7 @@ using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -622,7 +623,9 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         await context.SaveChangesAsync();
         var service = CreateService(
             context,
-            new MutableCurrentUserService(_clientUserId));
+            new MutableCurrentUserService(_clientUserId),
+            terminationSettlementServices:
+            [new PendingTerminationSettlementService()]);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.TerminateAsync(
@@ -633,10 +636,50 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                 CancellationToken.None));
 
         Assert.Equal(
-            "لا يمكن إنهاء العقد قبل حسم عملية الدفع قيد المعالجة.",
+            "تم تسجيل طلب إنهاء العقد، وتستمر محاولة إتمام التسوية المالية تلقائيًا.",
             exception.Message);
         Assert.NotEqual(ContractStatus.Terminated, contract.Status);
+        Assert.Equal(_clientUserId, contract.TerminatedByUserId);
+        Assert.NotNull(contract.TerminationReason);
         Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+    }
+
+    [Fact]
+    public async Task RecoverPendingTerminationsAsync_FinalizesPersistedIntent()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        contract.ActivatedAt = _utcNow.AddDays(-1);
+        contract.TerminationReason =
+            "طلب إنهاء محفوظ بانتظار الاسترداد التلقائي.";
+        contract.TerminatedByUserId = _clientUserId;
+        var milestone = CreateMilestone(contract.Id, 1, 900m);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(_clientUserId));
+
+        var result = await service.RecoverPendingTerminationsAsync(
+            CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal(1, result.AffectedCount);
+        var savedContract = await context.Contracts.SingleAsync();
+        var savedMilestone = await context.Milestones.SingleAsync();
+        Assert.Equal(ContractStatus.Terminated, savedContract.Status);
+        Assert.NotNull(savedContract.TerminatedAt);
+        Assert.Equal(MilestoneStatus.Cancelled, savedMilestone.Status);
+        Assert.Single(
+            await context.OutboxMessages.Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractTerminated)
+                .ToListAsync());
     }
 
     [Fact]
@@ -934,6 +977,28 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             ProviderWithdrawalRequest request,
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
+    }
+
+    private sealed class PendingTerminationSettlementService
+        : IContractTerminationSettlementService
+    {
+        public Task<ContractTerminationSettlement>
+            SettleForTerminationAsync(
+                Guid contractId,
+                Guid actorUserId,
+                string reason,
+                Guid correlationId,
+                CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(
+                new ContractTerminationSettlement(
+                    false,
+                    0m,
+                    0m,
+                    0m,
+                    0m));
+        }
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow)
