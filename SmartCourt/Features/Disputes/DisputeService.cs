@@ -97,16 +97,6 @@ public sealed class DisputeService(
                 "يوجد نزاع قائم بالفعل على هذه المرحلة ولا يمكن فتح نزاع آخر قبل إغلاقه.");
         }
 
-        if (fileIds.Count > 0)
-        {
-            await fileAccessService.AuthorizeForUseAsync(
-                actorUserId,
-                fileIds,
-                ContractFilePurpose.DisputeEvidence,
-                disputeId,
-                cancellationToken);
-        }
-
         var dispute = new Dispute(
             disputeId,
             contract.Id,
@@ -118,6 +108,16 @@ public sealed class DisputeService(
             request.RequestedOutcome,
             now);
         dbContext.Disputes.Add(dispute);
+        if (fileIds.Count > 0)
+        {
+            await fileAccessService.AuthorizeForUseAsync(
+                actorUserId,
+                fileIds,
+                ContractFilePurpose.DisputeEvidence,
+                dispute.Id,
+                cancellationToken);
+        }
+
         dbContext.DisputeEvidence.AddRange(fileIds.Select(fileId =>
             new DisputeEvidence(
                 Guid.NewGuid(),
