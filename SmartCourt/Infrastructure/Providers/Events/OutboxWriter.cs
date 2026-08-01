@@ -35,7 +35,7 @@ public sealed class OutboxWriter : IOutboxWriter
         if (payload.Length > MaximumPayloadLength)
         {
             throw new BusinessException(
-                "Outbox payload exceeds the maximum allowed size.");
+                "حجم بيانات حدث صندوق الصادر يتجاوز الحد المسموح.");
         }
 
         OutboxPayloadPolicy.Validate(payload);
@@ -59,20 +59,20 @@ public sealed class OutboxWriter : IOutboxWriter
     {
         if (@event.Payload is null)
         {
-            throw new BusinessException("Outbox payload is required.");
+            throw new BusinessException("بيانات حدث صندوق الصادر مطلوبة.");
         }
 
         if (@event.EventVersion <= 0)
         {
             throw new BusinessException(
-                "Outbox event version must be positive.");
+                "يجب أن يكون إصدار حدث صندوق الصادر أكبر من صفر.");
         }
 
         if (@event.AggregateId == Guid.Empty
             || @event.CorrelationId == Guid.Empty)
         {
             throw new BusinessException(
-                "Outbox aggregate and correlation IDs are required.");
+                "معرّفا السجل والارتباط لحدث صندوق الصادر مطلوبان.");
         }
     }
 }

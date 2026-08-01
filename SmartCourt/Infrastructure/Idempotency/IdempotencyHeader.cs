@@ -13,13 +13,13 @@ public static class IdempotencyHeader
         if (string.IsNullOrWhiteSpace(key))
         {
             throw new BusinessException(
-                "Idempotency-Key header is required.");
+                "ترويسة مفتاح الطلب Idempotency-Key مطلوبة.");
         }
 
         if (key.Length > MaximumLength)
         {
             throw new BusinessException(
-                $"Idempotency-Key header must not exceed {MaximumLength} characters.");
+                $"يجب ألا تتجاوز ترويسة مفتاح الطلب Idempotency-Key عدد {MaximumLength} حرفًا.");
         }
 
         return key;

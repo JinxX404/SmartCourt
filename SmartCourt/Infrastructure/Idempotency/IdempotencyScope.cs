@@ -16,25 +16,25 @@ public sealed record IdempotencyScope
         if (userId == Guid.Empty)
         {
             throw new BusinessException(
-                "An authenticated user is required for idempotency.");
+                "يجب تسجيل الدخول لاستخدام حماية تكرار الطلبات.");
         }
 
         if (string.IsNullOrWhiteSpace(operation))
         {
             throw new BusinessException(
-                "Idempotency operation is required.");
+                "اسم العملية مطلوب لحماية الطلب من التكرار.");
         }
 
         if (string.IsNullOrWhiteSpace(resourceType))
         {
             throw new BusinessException(
-                "Idempotency resource type is required.");
+                "نوع السجل المرتبط مطلوب لحماية الطلب من التكرار.");
         }
 
         if (resourceId == Guid.Empty)
         {
             throw new BusinessException(
-                "Idempotency resource is required.");
+                "معرّف السجل المرتبط مطلوب لحماية الطلب من التكرار.");
         }
 
         UserId = userId;

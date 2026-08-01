@@ -10,7 +10,7 @@ internal static class EntityGuard
     {
         if (value == Guid.Empty)
         {
-            throw new BusinessException($"{fieldName} is required.");
+            throw new BusinessException($"الحقل {fieldName} مطلوب.");
         }
 
         return value;
@@ -20,7 +20,8 @@ internal static class EntityGuard
     {
         if (value == Guid.Empty)
         {
-            throw new BusinessException($"{fieldName} must not be empty when supplied.");
+            throw new BusinessException(
+                $"يجب ألا تكون قيمة الحقل {fieldName} فارغة عند إدخالها.");
         }
 
         return value;
@@ -30,7 +31,7 @@ internal static class EntityGuard
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new BusinessException($"{fieldName} is required.");
+            throw new BusinessException($"الحقل {fieldName} مطلوب.");
         }
 
         return value;
@@ -40,7 +41,8 @@ internal static class EntityGuard
     {
         if (value.Kind != DateTimeKind.Utc)
         {
-            throw new BusinessException($"{fieldName} must be UTC.");
+            throw new BusinessException(
+                $"يجب أن تكون قيمة الحقل {fieldName} بالتوقيت العالمي المنسق.");
         }
 
         return value;
@@ -60,12 +62,14 @@ internal static class EntityGuard
     {
         if (value <= 0)
         {
-            throw new BusinessException($"{fieldName} must be greater than zero.");
+            throw new BusinessException(
+                $"يجب أن تكون قيمة الحقل {fieldName} أكبر من صفر.");
         }
 
         if (decimal.Round(value, 2) != value)
         {
-            throw new BusinessException($"{fieldName} must have no more than two decimal places.");
+            throw new BusinessException(
+                $"يجب ألا تتجاوز قيمة الحقل {fieldName} منزلتين عشريتين.");
         }
 
         return value;
@@ -75,12 +79,14 @@ internal static class EntityGuard
     {
         if (value < 0)
         {
-            throw new BusinessException($"{fieldName} must not be negative.");
+            throw new BusinessException(
+                $"يجب ألا تكون قيمة الحقل {fieldName} سالبة.");
         }
 
         if (decimal.Round(value, 2) != value)
         {
-            throw new BusinessException($"{fieldName} must have no more than two decimal places.");
+            throw new BusinessException(
+                $"يجب ألا تتجاوز قيمة الحقل {fieldName} منزلتين عشريتين.");
         }
 
         return value;
@@ -90,7 +96,8 @@ internal static class EntityGuard
     {
         if (value <= 0)
         {
-            throw new BusinessException($"{fieldName} must be greater than zero.");
+            throw new BusinessException(
+                $"يجب أن تكون قيمة الحقل {fieldName} أكبر من صفر.");
         }
 
         return value;

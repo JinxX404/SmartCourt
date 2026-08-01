@@ -62,7 +62,7 @@ public sealed class IdempotencyService : IIdempotencyService
             if (existingSettlement is not null)
             {
                 throw new BusinessException(
-                    "The escrow hold already has a settlement reservation.");
+                    "يوجد طلب تسوية محفوظ مسبقًا لحجز الضمان المحدد.");
             }
         }
 
@@ -110,7 +110,7 @@ public sealed class IdempotencyService : IIdempotencyService
                     cancellationToken) is not null)
             {
                 throw new BusinessException(
-                    "The escrow hold already has a settlement reservation.");
+                    "يوجد طلب تسوية محفوظ مسبقًا لحجز الضمان المحدد.");
             }
 
             throw;
@@ -184,13 +184,13 @@ public sealed class IdempotencyService : IIdempotencyService
         if (recordId == Guid.Empty)
         {
             throw new BusinessException(
-                "Idempotency reservation is required.");
+                "سجل حماية الطلب من التكرار مطلوب.");
         }
 
         if (responseStatusCode is < 100 or > 599)
         {
             throw new BusinessException(
-                "Idempotency response status code is invalid.");
+                "رمز استجابة الطلب المحمي من التكرار غير صالح.");
         }
 
         var responseBody = JsonSerializer.Serialize(
@@ -199,7 +199,7 @@ public sealed class IdempotencyService : IIdempotencyService
         if (responseBody.Length > MaximumResponseBodyLength)
         {
             throw new BusinessException(
-                "Idempotency response body exceeds the retention limit.");
+                "حجم استجابة الطلب المحمي من التكرار يتجاوز الحد المسموح بحفظه.");
         }
 
         var record = await _dbContext.IdempotencyRecords
@@ -207,7 +207,7 @@ public sealed class IdempotencyService : IIdempotencyService
                 item => item.Id == recordId,
                 cancellationToken)
             ?? throw new BusinessException(
-                "Idempotency reservation was not found.");
+                "سجل حماية الطلب من التكرار غير موجود.");
 
         if (record.Status != IdempotencyStatus.Processing)
         {
@@ -272,13 +272,13 @@ public sealed class IdempotencyService : IIdempotencyService
                 StringComparison.Ordinal))
         {
             throw new BusinessException(
-                "Idempotency key was already used with a different request.");
+                "استُخدم مفتاح الطلب نفسه مسبقًا مع بيانات مختلفة.");
         }
 
         if (record.Status == IdempotencyStatus.Processing)
         {
             throw new BusinessException(
-                "An identical request is already processing.");
+                "يوجد طلب مطابق قيد المعالجة حاليًا.");
         }
 
         return ToReservation(

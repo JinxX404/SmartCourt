@@ -39,6 +39,8 @@ public sealed class ApplicationDbContextPersistenceGuardTests
             typeof(DisputeResolution),
             typeof(DisputeEvidence),
             typeof(LawyerPenalty),
+            typeof(ContractFileAccessAudit),
+            typeof(WalletAdjustment),
             typeof(ContractStateHistory),
             typeof(MilestoneStateHistory),
             typeof(IdempotencyRecord),
@@ -83,7 +85,7 @@ public sealed class ApplicationDbContextPersistenceGuardTests
             var exception = Assert.Throws<BusinessException>(
                 context.PrepareTrackedEntriesForSave);
 
-            Assert.Contains("append-only", exception.Message);
+            Assert.Contains("للإضافة فقط", exception.Message);
         }
     }
 
@@ -101,7 +103,7 @@ public sealed class ApplicationDbContextPersistenceGuardTests
         var exception = await Assert.ThrowsAsync<BusinessException>(
             () => context.SaveChangesAsync());
 
-        Assert.Contains("append-only", exception.Message);
+        Assert.Contains("للإضافة فقط", exception.Message);
     }
 
     [Fact]
@@ -127,7 +129,7 @@ public sealed class ApplicationDbContextPersistenceGuardTests
         var exception = Assert.Throws<BusinessException>(
             context.PrepareTrackedEntriesForSave);
 
-        Assert.Contains("must be UTC", exception.Message);
+        Assert.Contains("بالتوقيت العالمي المنسق", exception.Message);
     }
 
     [Fact]
@@ -154,7 +156,7 @@ public sealed class ApplicationDbContextPersistenceGuardTests
         var exception = Assert.Throws<BusinessException>(
             context.PrepareTrackedEntriesForSave);
 
-        Assert.Contains("must be UTC", exception.Message);
+        Assert.Contains("بالتوقيت العالمي المنسق", exception.Message);
     }
 
     [Fact]
@@ -195,6 +197,8 @@ public sealed class ApplicationDbContextPersistenceGuardTests
             typeof(DisputeResolution),
             typeof(DisputeEvidence),
             typeof(LawyerPenalty),
+            typeof(ContractFileAccessAudit),
+            typeof(WalletAdjustment),
             typeof(ContractStateHistory),
             typeof(MilestoneStateHistory),
             typeof(IdempotencyRecord),

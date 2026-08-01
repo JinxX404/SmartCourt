@@ -35,7 +35,7 @@ internal static class OutboxPayloadPolicy
                         StringComparison.OrdinalIgnoreCase)))
                 {
                     throw new BusinessException(
-                        $"Outbox payload contains forbidden field '{property.Name}'.");
+                        $"تحتوي بيانات حدث صندوق الصادر على الحقل المحظور {property.Name}.");
                 }
 
                 Visit(property.Value);

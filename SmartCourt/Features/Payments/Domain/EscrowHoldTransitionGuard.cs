@@ -25,7 +25,7 @@ internal static class EscrowHoldTransitionGuard
             || !AllowedTransitions.Contains((current, next)))
         {
             throw new BusinessException(
-                $"Invalid escrow-hold transition from '{current}' to '{next}'.");
+                $"لا يمكن تغيير حالة حجز الضمان من {current} إلى {next}.");
         }
     }
 }
