@@ -36,7 +36,7 @@ public sealed class EscrowHold
         if (GrossAmount != PlatformFeeAmount + NetAmount)
         {
             throw new BusinessException(
-                "Escrow hold net amount and platform fee must reconcile to gross.");
+                "يجب أن يساوي مجموع صافي حجز الضمان ورسوم المنصة المبلغ الإجمالي.");
         }
 
         ProviderDepositTransactionId = EntityGuard.NotEmpty(

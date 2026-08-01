@@ -27,7 +27,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (submissionVersion <= 0)
         {
             throw new BusinessException(
-                "Submission version must be positive.");
+                "يجب أن يكون إصدار تسليم المرحلة أكبر من صفر.");
         }
 
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -112,7 +112,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (batchSize <= 0)
         {
             throw new BusinessException(
-                "Outbox dispatch batch size must be positive.");
+                "يجب أن يكون حجم دفعة إرسال أحداث صندوق الصادر أكبر من صفر.");
         }
 
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -128,7 +128,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (runAtUtc.Kind != DateTimeKind.Utc)
         {
             throw new BusinessException(
-                "Contract jobs must be scheduled with a UTC timestamp.");
+                "يجب جدولة مهام العقود باستخدام توقيت عالمي منسق.");
         }
 
         return new DateTimeOffset(runAtUtc);
@@ -139,7 +139,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (id == Guid.Empty)
         {
             throw new BusinessException(
-                $"{parameterName} must not be empty.");
+                $"يجب ألا يكون المعرّف {parameterName} فارغًا.");
         }
     }
 }

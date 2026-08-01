@@ -27,7 +27,7 @@ public sealed class PaymentTransaction
             && !MilestoneId.HasValue)
         {
             throw new BusinessException(
-                "Milestone payment operations require a milestone.");
+                "تتطلب عملية دفع المرحلة تحديد معرّف مرحلة صالح.");
         }
 
         OperationType = operationType;

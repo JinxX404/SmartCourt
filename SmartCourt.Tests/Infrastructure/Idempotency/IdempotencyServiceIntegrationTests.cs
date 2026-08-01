@@ -97,7 +97,7 @@ public sealed class IdempotencyServiceIntegrationTests : IAsyncLifetime
                 new { amount = 101m, currency = "EGP" },
                 CancellationToken.None));
 
-        Assert.Contains("different request", exception.Message);
+        Assert.Contains("بيانات مختلفة", exception.Message);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class IdempotencyServiceIntegrationTests : IAsyncLifetime
                 new { amount = 100m },
                 CancellationToken.None));
 
-        Assert.Contains("settlement reservation", exception.Message);
+        Assert.Contains("طلب تسوية محفوظ", exception.Message);
     }
 
     [Fact]

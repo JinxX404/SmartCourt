@@ -61,7 +61,7 @@ public sealed class OutboxMessage
         if (leaseDuration <= TimeSpan.Zero)
         {
             throw new BusinessException(
-                "Outbox lease duration must be positive.");
+                "يجب أن تكون مدة حجز رسالة صندوق الصادر أكبر من صفر.");
         }
 
         Status = OutboxStatus.Processing;
@@ -109,7 +109,7 @@ public sealed class OutboxMessage
             || LeaseId != leaseId)
         {
             throw new BusinessException(
-                "The outbox message lease is no longer valid.");
+                "انتهت صلاحية حجز رسالة صندوق الصادر أو لم يعد صالحًا.");
         }
     }
 }

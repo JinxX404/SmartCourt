@@ -167,7 +167,7 @@ public class ApplicationDbContext
             }
 
             throw new BusinessException(
-                $"{entry.Metadata.ClrType.Name} is append-only and cannot be modified or deleted.");
+                $"السجل المالي أو التدقيقي من النوع {entry.Metadata.ClrType.Name} للإضافة فقط ولا يمكن تعديله أو حذفه.");
         }
     }
 
@@ -217,7 +217,7 @@ public class ApplicationDbContext
                 if (value.Kind != DateTimeKind.Utc)
                 {
                     throw new BusinessException(
-                        $"{entry.Metadata.ClrType.Name}.{property.Metadata.Name} must be UTC.");
+                        $"يجب أن تكون قيمة {entry.Metadata.ClrType.Name}.{property.Metadata.Name} بالتوقيت العالمي المنسق.");
                 }
             }
         }
