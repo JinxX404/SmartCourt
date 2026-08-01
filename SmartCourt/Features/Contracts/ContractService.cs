@@ -20,7 +20,8 @@ using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Contracts;
 
-public sealed class ContractService : IContractService
+public sealed class ContractService
+    : IContractService, IContractCompletionEvaluator
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
@@ -284,7 +285,11 @@ public sealed class ContractService : IContractService
         Guid contractId,
         CancellationToken cancellationToken)
     {
-        var actorUserId = GetActorUserId();
+        var actorUserId = _currentUserService.IsAuthenticated
+            && _currentUserService.UserId.HasValue
+            && _currentUserService.UserId.Value != Guid.Empty
+                ? _currentUserService.UserId
+                : null;
         var now = UtcNow;
         var correlationId = Guid.NewGuid();
         await using var transaction =
@@ -293,7 +298,6 @@ public sealed class ContractService : IContractService
         var contract = await GetContractForMutationAsync(
             contractId,
             cancellationToken);
-        EnsureParticipant(contract, actorUserId);
         if (contract.Status is ContractStatus.Completed
             or ContractStatus.Terminated)
         {
@@ -507,7 +511,7 @@ public sealed class ContractService : IContractService
 
     private async Task<bool> TryActivateAsync(
         Contract contract,
-        Guid actorUserId,
+        Guid? actorUserId,
         Guid correlationId,
         DateTime now,
         CancellationToken cancellationToken)
@@ -815,7 +819,7 @@ public sealed class ContractService : IContractService
         ContractStatus previousStatus,
         ContractStatus newStatus,
         string trigger,
-        Guid actorUserId,
+        Guid? actorUserId,
         string reason,
         Guid correlationId,
         DateTime occurredAt)

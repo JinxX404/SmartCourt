@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Contracts;
+using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Disputes;
 using SmartCourt.Features.Disputes.DTOs;
 using SmartCourt.Features.Disputes.Enums;
@@ -130,6 +132,7 @@ public sealed class DisputeServiceTests
                 timeProvider),
             new SuccessfulProvider(),
             new UnusedScheduler(),
+            new RecordingCompletionEvaluator(),
             new OutboxWriter(context, timeProvider),
             timeProvider,
             NullLogger<DisputeService>.Instance);
@@ -319,5 +322,17 @@ public sealed class DisputeServiceTests
         public Task<string> ScheduleSchedulingReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
         public Task<string> SchedulePendingWalletProjectionReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
         public Task<string> ScheduleOutboxDispatchAsync(int batchSize, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+    }
+
+    private sealed class RecordingCompletionEvaluator
+        : IContractCompletionEvaluator
+    {
+        public Task<ContractActionResultDto> EvaluateCompletionAsync(
+            Guid contractId,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new ContractActionResultDto(
+                contractId,
+                ContractStatus.Active.ToString(),
+                Now));
     }
 }

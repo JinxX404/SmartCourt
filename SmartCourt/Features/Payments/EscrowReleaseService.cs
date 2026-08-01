@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.Domain;
 using SmartCourt.Features.Milestones.Enums;
@@ -24,6 +25,7 @@ public sealed class EscrowReleaseService(
     ApplicationDbContext dbContext,
     IPaymentProvider paymentProvider,
     IOutboxWriter outboxWriter,
+    IContractCompletionEvaluator completionEvaluator,
     TimeProvider timeProvider,
     ILogger<EscrowReleaseService> logger)
     : IEscrowReleaseService
@@ -434,6 +436,9 @@ public sealed class EscrowReleaseService(
             hold.Id,
             hold.NetAmount,
             hold.PlatformFeeAmount);
+        await completionEvaluator.EvaluateCompletionAsync(
+            contract.Id,
+            cancellationToken);
         return JobExecutionResult.Completed("EscrowHoldReleased");
     }
 

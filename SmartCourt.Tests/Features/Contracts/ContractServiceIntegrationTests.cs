@@ -390,6 +390,40 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task EvaluateCompletionAsync_AllowsUnauthenticatedBackgroundJob()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        contract.ActivatedAt = _utcNow.AddDays(-3);
+        var milestone = CreateMilestone(contract.Id, 1, 750m);
+        milestone.Status = MilestoneStatus.Released;
+        milestone.ReleasedAt = _utcNow.AddMinutes(-10);
+        milestone.AcceptedByClientAt = _utcNow.AddDays(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddDays(-2);
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.AddRange(contract, milestone);
+        await context.SaveChangesAsync();
+        var currentUser = new MutableCurrentUserService(_clientUserId)
+        {
+            UserId = null
+        };
+        var service = CreateService(context, currentUser);
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Completed.ToString(), result.Status);
+        var history = await context.ContractStateHistories.SingleAsync(
+            item => item.Trigger == ContractPaymentEventTypes.ContractCompleted);
+        Assert.Null(history.ActorUserId);
+    }
+
+    [Fact]
     public async Task EvaluateCompletionAsync_DoesNotCompleteWithPendingProviderAttempt()
     {
         await using var context = CreateContext();
