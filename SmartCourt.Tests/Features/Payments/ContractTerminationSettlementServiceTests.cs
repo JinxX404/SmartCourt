@@ -97,7 +97,7 @@ public sealed class ContractTerminationSettlementServiceTests
         Assert.Equal(MilestoneStatus.FundedInProgress, state.Milestone.Status);
         Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
         Assert.Equal(
-            PaymentTransactionStatus.Processing,
+            PaymentTransactionStatus.Failed,
             (await context.PaymentTransactions.SingleAsync()).Status);
 
         var second = await service.SettleForTerminationAsync(
@@ -110,7 +110,15 @@ public sealed class ContractTerminationSettlementServiceTests
         Assert.True(second.Completed);
         Assert.Equal(2, provider.RefundCalls);
         Assert.Equal(EscrowHoldStatus.Refunded, state.Hold.Status);
-        Assert.Single(await context.PaymentTransactions.ToListAsync());
+        var attempts = await context.PaymentTransactions
+            .OrderBy(item => item.CreatedAt)
+            .ToListAsync();
+        Assert.Equal(2, attempts.Count);
+        Assert.Equal(PaymentTransactionStatus.Failed, attempts[0].Status);
+        Assert.Equal(PaymentTransactionStatus.Completed, attempts[1].Status);
+        Assert.NotEqual(
+            attempts[0].IdempotencyKey,
+            attempts[1].IdempotencyKey);
         Assert.Single(await context.EscrowLedgerEntries.ToListAsync());
     }
 

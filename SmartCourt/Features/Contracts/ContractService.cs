@@ -15,13 +15,16 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Contracts;
 
 public sealed class ContractService
-    : IContractService, IContractCompletionEvaluator
+    : IContractService,
+        IContractCompletionEvaluator,
+        IContractTerminationRecoveryService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly ICurrentUserService _currentUserService;
@@ -347,6 +350,7 @@ public sealed class ContractService
                     or MilestoneStatus.Refunded
                     or MilestoneStatus.Cancelled);
         if (allApprovedMilestonesFinished
+            && !contract.TerminatedByUserId.HasValue
             && !hasActiveDispute
             && !hasPendingProviderAttempt
             && !hasUnsettledHold)
@@ -399,61 +403,174 @@ public sealed class ContractService
                 "لا يمكن إنهاء عقد مكتمل أو منتهٍ.");
         }
 
-        var hasProcessingPayment =
-            await _dbContext.Milestones.AnyAsync(
+        if (contract.TerminatedByUserId.HasValue
+            && (contract.TerminatedByUserId != actorUserId
+                || !string.Equals(
+                    contract.TerminationReason,
+                    request.Reason,
+                    StringComparison.Ordinal)))
+        {
+            throw new ConflictException(
+                "يوجد طلب سابق لإنهاء العقد قيد التسوية المالية.");
+        }
+
+        contract.TerminationReason = request.Reason;
+        contract.TerminatedByUserId = actorUserId;
+        contract.UpdatedAt = UtcNow;
+        await SaveChangesAsync(cancellationToken);
+
+        var settlement = await SettleTerminationIfRequiredAsync(
+            contract.Id,
+            actorUserId,
+            request.Reason,
+            correlationId,
+            cancellationToken);
+        if (!settlement.Completed)
+        {
+            throw new ConflictException(
+                "تم تسجيل طلب إنهاء العقد، وتستمر محاولة إتمام التسوية المالية تلقائيًا.");
+        }
+
+        _dbContext.ChangeTracker.Clear();
+        contract = await FinalizeTerminationAsync(
+            contractId,
+            actorUserId,
+            request.Reason,
+            correlationId,
+            cancellationToken);
+        return await _contractQueryService.MapDetailAsync(
+            contract,
+            cancellationToken);
+    }
+
+    public async Task<JobExecutionResult> RecoverPendingTerminationsAsync(
+        CancellationToken cancellationToken)
+    {
+        var pending = await _dbContext.Contracts
+            .AsNoTracking()
+            .Where(contract =>
+                contract.TerminatedAt == null
+                && contract.TerminatedByUserId != null
+                && contract.TerminationReason != null
+                && contract.Status != ContractStatus.Completed
+                && contract.Status != ContractStatus.Terminated)
+            .OrderBy(contract => contract.UpdatedAt)
+            .Select(contract => new
+            {
+                contract.Id,
+                ActorUserId = contract.TerminatedByUserId!.Value,
+                Reason = contract.TerminationReason!
+            })
+            .Take(100)
+            .ToListAsync(cancellationToken);
+        var completed = 0;
+        foreach (var item in pending)
+        {
+            var correlationId = Guid.NewGuid();
+            var settlement = await SettleTerminationIfRequiredAsync(
+                item.Id,
+                item.ActorUserId,
+                item.Reason,
+                correlationId,
+                cancellationToken);
+            if (!settlement.Completed)
+            {
+                _dbContext.ChangeTracker.Clear();
+                continue;
+            }
+
+            _dbContext.ChangeTracker.Clear();
+            await FinalizeTerminationAsync(
+                item.Id,
+                item.ActorUserId,
+                item.Reason,
+                correlationId,
+                cancellationToken);
+            _dbContext.ChangeTracker.Clear();
+            completed++;
+        }
+
+        return completed == 0
+            ? JobExecutionResult.NoOp("NoPendingContractTerminationCompleted")
+            : JobExecutionResult.Completed(
+                "PendingContractTerminationsCompleted",
+                completed);
+    }
+
+    private async Task<ContractTerminationSettlement>
+        SettleTerminationIfRequiredAsync(
+            Guid contractId,
+            Guid actorUserId,
+            string reason,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+    {
+        var requiresSettlement = await _dbContext.Milestones.AnyAsync(
                 milestone =>
-                    milestone.ContractId == contract.Id
+                    milestone.ContractId == contractId
                     && milestone.Status
                         == MilestoneStatus.FundingProcessing,
                 cancellationToken)
             || await _dbContext.PaymentTransactions.AnyAsync(
                 payment =>
-                    payment.ContractId == contract.Id
+                    payment.ContractId == contractId
                     && payment.OperationType
                         == PaymentOperationType.Deposit
                     && payment.Status
                         == PaymentTransactionStatus.Processing,
+                cancellationToken)
+            || await _dbContext.EscrowHolds.AnyAsync(
+                hold =>
+                    hold.ContractId == contractId
+                    && (hold.Status == EscrowHoldStatus.Funded
+                        || hold.Status == EscrowHoldStatus.Frozen),
                 cancellationToken);
-        if (hasProcessingPayment)
+        if (!requiresSettlement)
         {
-            throw new ConflictException(
-                "لا يمكن إنهاء العقد قبل حسم عملية الدفع قيد المعالجة.");
+            return new ContractTerminationSettlement(
+                true,
+                0m,
+                0m,
+                0m,
+                0m);
         }
 
-        var requiresSettlement = await _dbContext.EscrowHolds.AnyAsync(
-            hold =>
-                hold.ContractId == contract.Id
-                && (hold.Status == EscrowHoldStatus.Funded
-                    || hold.Status == EscrowHoldStatus.Frozen),
-            cancellationToken);
-        if (requiresSettlement)
-        {
-            var settlementService = GetTerminationSettlementService();
-            var settlement =
-                await settlementService.SettleForTerminationAsync(
-                    contract.Id,
-                    actorUserId,
-                    request.Reason,
-                    correlationId,
-                    cancellationToken);
-            if (!settlement.Completed)
-            {
-                throw new ConflictException(
-                    "لم تكتمل التسوية المالية المطلوبة لإنهاء العقد.");
-            }
+        return await GetTerminationSettlementService()
+            .SettleForTerminationAsync(
+                contractId,
+                actorUserId,
+                reason,
+                correlationId,
+                cancellationToken);
+    }
 
-            _dbContext.ChangeTracker.Clear();
-        }
+    private async Task<Contract> FinalizeTerminationAsync(
+        Guid contractId,
+        Guid actorUserId,
+        string reason,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
 
         var now = UtcNow;
         await using var transaction =
             await _dbContext.Database.BeginTransactionAsync(
                 cancellationToken);
-        contract = await GetContractForMutationAsync(
+        var contract = await GetContractForMutationAsync(
             contractId,
             cancellationToken);
-        EnsureParticipant(contract, actorUserId);
-        EnsureExpectedVersion(contract, ifMatch);
+        if (contract.Status == ContractStatus.Terminated)
+        {
+            await transaction.CommitAsync(cancellationToken);
+            return contract;
+        }
+
+        if (contract.Status == ContractStatus.Completed)
+        {
+            throw new BusinessException(
+                "لا يمكن إنهاء العقد بعد اكتماله.");
+        }
+
         var blockingMilestone = await _dbContext.Milestones.AnyAsync(
             milestone =>
                 milestone.ContractId == contract.Id
@@ -487,7 +604,7 @@ public sealed class ContractService
             ContractStatus.Terminated);
         contract.Status = ContractStatus.Terminated;
         contract.TerminatedAt = now;
-        contract.TerminationReason = request.Reason;
+        contract.TerminationReason = reason;
         contract.TerminatedByUserId = actorUserId;
         contract.UpdatedAt = now;
         AddHistory(
@@ -496,7 +613,7 @@ public sealed class ContractService
             ContractStatus.Terminated,
             ContractPaymentEventTypes.ContractTerminated,
             actorUserId,
-            request.Reason,
+            reason,
             correlationId,
             now);
         await EnqueueContractTerminatedEventAsync(
@@ -506,7 +623,7 @@ public sealed class ContractService
             cancellationToken);
         await SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return await _contractQueryService.MapDetailAsync(contract, cancellationToken);
+        return contract;
     }
 
     private async Task<bool> TryActivateAsync(

@@ -172,6 +172,9 @@ public static class DependencyInjection
             ContractFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IContractCompletionEvaluator, ContractService>();
+        services.AddScoped<
+            IContractTerminationRecoveryService,
+            ContractService>();
         services.AddScoped<IContractQueryService, ContractQueryService>();
         services.AddScoped<
             IMilestoneFundingVerifier,
