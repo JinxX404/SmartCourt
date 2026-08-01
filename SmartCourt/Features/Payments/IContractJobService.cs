@@ -25,6 +25,9 @@ public interface IContractJobService
     Task<JobExecutionResult> ReconcileMissingSchedulesAsync(
         CancellationToken cancellationToken);
 
+    Task<JobExecutionResult> ReconcilePendingProviderTransactionsAsync(
+        CancellationToken cancellationToken);
+
     Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken);
 

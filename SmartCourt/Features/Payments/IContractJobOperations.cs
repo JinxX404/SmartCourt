@@ -22,6 +22,11 @@ public interface IContractJobOperations
         Guid paymentTransactionId,
         CancellationToken cancellationToken);
 
+    Task<JobExecutionResult> ReconcilePendingProviderTransactionsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult(JobExecutionResult.NoOp(
+            "PendingProviderTransactionReconciliationNotConfigured"));
+
     Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken);
 }

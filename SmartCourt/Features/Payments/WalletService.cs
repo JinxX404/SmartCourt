@@ -18,6 +18,7 @@ public sealed class WalletService(
     ApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     IPaymentProvider paymentProvider,
+    IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
     TimeProvider timeProvider,
     ILogger<WalletService> logger) : IWalletService
@@ -226,17 +227,18 @@ public sealed class WalletService(
                 continue;
             }
 
-            var providerRequest = new ProviderWithdrawalRequest(
+            var statusRequest = new ProviderWithdrawalStatusRequest(
                 withdrawal.Amount,
                 withdrawal.Currency,
                 withdrawal.Id,
                 withdrawal.IdempotencyKey,
                 withdrawal.Id);
-            ProviderResult providerResult;
+            ProviderResult? providerResult;
             try
             {
-                providerResult = await paymentProvider.WithdrawAsync(
-                    providerRequest,
+                providerResult = await reconciliationProvider
+                    .GetWithdrawalStatusAsync(
+                    statusRequest,
                     cancellationToken);
             }
             catch (OperationCanceledException)
@@ -253,9 +255,15 @@ public sealed class WalletService(
                 continue;
             }
 
+            if (providerResult is null
+                || providerResult.Outcome == ProviderOperationOutcome.Unknown)
+            {
+                continue;
+            }
+
             if (!ProviderResultMatches(
                     providerResult,
-                    providerRequest))
+                    statusRequest))
             {
                 await KeepProcessingAsync(
                     withdrawal.Id,
@@ -611,6 +619,22 @@ public sealed class WalletService(
                 request.ProviderIdempotencyKey,
                 StringComparison.Ordinal)
             && result.CorrelationId == request.CorrelationId;
+    }
+
+    private static bool ProviderResultMatches(
+        ProviderResult result,
+        ProviderWithdrawalStatusRequest request)
+    {
+        return result.Amount == request.Amount
+            && string.Equals(
+                result.Currency,
+                request.Currency,
+                StringComparison.Ordinal)
+            && result.BusinessId == request.BusinessId
+            && string.Equals(
+                result.ProviderIdempotencyKey,
+                request.ProviderIdempotencyKey,
+                StringComparison.Ordinal);
     }
 
     private static PaymentActionResultDto MapAction(
