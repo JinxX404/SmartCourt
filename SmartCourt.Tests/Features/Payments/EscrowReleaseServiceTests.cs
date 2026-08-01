@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Contracts;
+using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments;
@@ -19,6 +21,7 @@ namespace SmartCourt.Tests.Features.Payments;
 
 public sealed class EscrowReleaseServiceTests
 {
+    private readonly RecordingCompletionEvaluator _completionEvaluator = new();
     private readonly DateTime _utcNow =
         new(2026, 9, 2, 10, 0, 0, DateTimeKind.Utc);
 
@@ -58,6 +61,7 @@ public sealed class EscrowReleaseServiceTests
         Assert.Equal(0m, CurrentBalance(state.Account));
         Assert.Equal(0m, state.Wallet.PendingBalance);
         Assert.Equal(950m, state.Wallet.AvailableBalance);
+        Assert.Equal(state.Hold.ContractId, _completionEvaluator.ContractId);
 
         var releaseTransaction =
             await context.PaymentTransactions.SingleAsync(
@@ -257,8 +261,26 @@ public sealed class EscrowReleaseServiceTests
             context,
             paymentProvider,
             new OutboxWriter(context, timeProvider),
+            _completionEvaluator,
             timeProvider,
             NullLogger<EscrowReleaseService>.Instance);
+    }
+
+    private sealed class RecordingCompletionEvaluator
+        : IContractCompletionEvaluator
+    {
+        public Guid? ContractId { get; private set; }
+
+        public Task<ContractActionResultDto> EvaluateCompletionAsync(
+            Guid contractId,
+            CancellationToken cancellationToken)
+        {
+            ContractId = contractId;
+            return Task.FromResult(new ContractActionResultDto(
+                contractId,
+                ContractStatus.Completed.ToString(),
+                DateTime.UtcNow));
+        }
     }
 
     private async Task<AcceptedHoldState> AddAcceptedHoldAsync(

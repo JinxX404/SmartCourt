@@ -4,6 +4,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts.Domain;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Disputes.Domain;
 using SmartCourt.Features.Disputes.DTOs;
 using SmartCourt.Features.Disputes.Entities;
@@ -36,6 +37,7 @@ public sealed class DisputeService(
     IIdempotencyService idempotencyService,
     IPaymentProvider paymentProvider,
     IContractJobScheduler jobScheduler,
+    IContractCompletionEvaluator completionEvaluator,
     IOutboxWriter outboxWriter,
     TimeProvider timeProvider,
     ILogger<DisputeService> logger) : IDisputeService
@@ -590,6 +592,13 @@ public sealed class DisputeService(
                 cancellationToken);
         }
 
+        if (pendingTransactionIds.Count == 0)
+        {
+            await completionEvaluator.EvaluateCompletionAsync(
+                contract.Id,
+                cancellationToken);
+        }
+
         return await MapAsync(dispute, actorUserId, cancellationToken);
     }
 
@@ -649,6 +658,9 @@ public sealed class DisputeService(
             Guid.NewGuid(),
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+        await completionEvaluator.EvaluateCompletionAsync(
+            dispute.ContractId,
+            cancellationToken);
         return new DisputeActionResultDto(
             dispute.Id,
             dispute.Status.ToString(),
