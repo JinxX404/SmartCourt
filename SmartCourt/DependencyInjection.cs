@@ -49,6 +49,7 @@ using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.Files.Integration;
+using SmartCourt.Features.Disputes;
 using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
@@ -187,6 +188,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IWalletReconciliationService, WalletReconciliationService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
+        services.AddScoped<IDisputeService, DisputeService>();
         services.AddScoped<
             IContractTerminationSettlementService,
             ContractTerminationSettlementService>();

@@ -23,7 +23,7 @@ internal static class DisputeTransitionGuard
             || !AllowedTransitions.Contains((current, next)))
         {
             throw new BusinessException(
-                $"Invalid dispute transition from '{current}' to '{next}'.");
+                $"لا يمكن تغيير حالة النزاع من '{current}' إلى '{next}'.");
         }
     }
 }
