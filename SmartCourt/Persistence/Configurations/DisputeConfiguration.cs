@@ -76,7 +76,7 @@ public sealed class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
         .HasDatabaseName("IX_Disputes_Status_CreatedAt");
         builder.HasCheckConstraint(
             "CK_Disputes_Category_Range",
-            "[Category] BETWEEN 0 AND 3");
+            "[Category] BETWEEN 0 AND 5");
         builder.HasCheckConstraint(
             "CK_Disputes_Status_Range",
             "[Status] BETWEEN 0 AND 4");

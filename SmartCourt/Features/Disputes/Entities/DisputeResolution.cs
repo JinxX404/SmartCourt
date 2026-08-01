@@ -42,7 +42,7 @@ public sealed class DisputeResolution
             != ClientRefundAmount + LawyerReleaseAmount + PlatformFeeAmount)
         {
             throw new BusinessException(
-                "Dispute resolution amounts must reconcile to the gross hold.");
+                "يجب أن يساوي مجموع مبلغ رد العميل وصافي مستحق المحامي ورسوم المنصة إجمالي مبلغ الحجز.");
         }
 
         Summary = EntityGuard.Required(summary, nameof(summary));

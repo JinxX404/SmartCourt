@@ -20,7 +20,7 @@ public sealed class DisputeEvidence
         if (!storedFileId.HasValue && string.IsNullOrWhiteSpace(content))
         {
             throw new BusinessException(
-                "Dispute evidence requires a stored file or content.");
+                "يجب إرفاق ملف أو كتابة محتوى لإضافة دليل إلى النزاع.");
         }
 
         Id = EntityGuard.NotEmpty(id, nameof(id));

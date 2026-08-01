@@ -21,7 +21,7 @@ internal static class SettlementCalculator
         if (refund > gross)
         {
             throw new BusinessException(
-                "Client refund cannot exceed the gross settlement amount.");
+                "لا يمكن أن يتجاوز مبلغ رد العميل إجمالي مبلغ التسوية.");
         }
 
         var lawyerGrossAllocation = gross - refund;
