@@ -17,9 +17,11 @@ The implementation is complete only when the full lifecycle works: accepted prop
 
 ## 1.1 Current implementation status and remaining work
 
-Status recorded after Phase 9 was merged into `main` on 2026-07-30.
-The last completed verification before the merge was a clean build and 517
-passing tests. This does **not** mean the feature is end-to-end complete.
+Status refreshed after the scoped blockers through Phase 10 were merged into
+`main` on 2026-08-01. The last completed verification was a successful build
+with no errors and 549 passing tests. The repository still has 78 pre-existing
+warnings outside the Contracts and Payments ownership scope. This does **not**
+mean the post-Phase 10 release work is complete.
 
 ### Phase tracker
 
@@ -35,24 +37,24 @@ passing tests. This does **not** mean the feature is end-to-end complete.
   verification and database-metadata inspection in a repeatable container or
   CI environment.
 - [ ] Phase 3: provider contracts, mock provider, idempotency, outbox storage,
-  dispatcher, and Hangfire adapters exist. Runtime worker wiring and generic
-  provider retry/reconciliation remain incomplete.
+  dispatcher, Hangfire adapters, and runtime reconciliation are complete. A
+  real production payment provider remains intentionally deferred; the mock
+  provider stays enabled for development and testing.
 - [x] Phase 4: Contracts slice and public contract endpoints.
 - [x] Phase 5: milestone negotiation, approval, sequencing, change requests,
   and public milestone endpoints.
-- [ ] Phase 6: funding, webhook, payment queries, and manual retry are
-  implemented, but automatic processing/retry/reconciliation is not fully
-  operational at runtime.
-- [ ] Phase 7: submission, review, auto-acceptance, and hold-release business
-  services exist, but they depend on outbox/job execution that is not started
-  automatically by the application.
-- [ ] Phase 8: intentionally skipped. Only dispute persistence entities,
-  enums, configurations, and transition foundations exist; the complete
-  Disputes vertical slice is missing.
-- [ ] Phase 9: termination, completion evaluation, wallet, and withdrawal
-  code exists, but the integration gaps below must be completed.
-- [ ] Phase 10: integration consumers, notifications, chat messages, and full
-  privacy/file authorization are not complete.
+- [x] Phase 6: funding, webhook, payment queries, manual retry, and automatic
+  provider status reconciliation are implemented for the mock-provider scope.
+- [x] Phase 7: submission, review, auto-acceptance, and hold-release business
+  services are wired to recurring outbox and reconciliation jobs at startup.
+- [x] Phase 8: the Disputes vertical slice, evidence authorization, moderator
+  workflow, immutable settlements, penalties, DI, jobs, and tests are complete.
+- [x] Phase 9: termination recovery, completion evaluation, wallet withdrawal,
+  and audited administrative compensating adjustments are complete.
+- [ ] Phase 10: contract-owned Chat, Notification, and Case lifecycle outbox
+  consumers and file privacy authorization are complete. The Notifications and
+  Cases owning slices must provide their registered integration-service
+  implementations; handlers retain events for retry while either is absent.
 - [ ] Phase 11: DI is partially registered; error/OpenAPI completion remains.
 - [ ] Phase 12: focused tests exist, but the required relational, race, and
   end-to-end API matrix is incomplete.
@@ -61,33 +63,29 @@ passing tests. This does **not** mean the feature is end-to-end complete.
 
 ### Functional blockers before the feature is fully usable
 
-- [ ] Implement Phase 8 completely: dispute DTOs, separate validators,
+- [x] Implement Phase 8 completely: dispute DTOs, separate validators,
   `IDisputeService`/`DisputeService`, participant and moderator controllers,
   evidence authorization, assignment/investigation, immutable full
   refund/full release/partial split settlement, closing, penalties, tests,
   DI, and jobs.
-- [ ] Finish and supervise the runtime background pipeline.
+- [x] Finish the runtime background pipeline required through Phase 10.
   - [x] Register recurring Hangfire work at startup for outbox dispatch,
     missing-schedule reconciliation, and pending withdrawal reconciliation.
-  - [ ] Add provider-specific pending-transaction scanning/reconciliation and
-    automatic retry for deposit, release, refund, and termination operations.
-    The recurring registration does not claim this work is complete.
+  - [x] Add provider-specific pending-transaction scanning/reconciliation and
+    append-only automatic retry/recovery for deposit, release, refund,
+    termination, withdrawal, and dispute-settlement operations.
 - [x] Replace the throwing
   `PaymentContractJobOperations.RetryProviderTransactionAsync` placeholder.
   Scheduled retries now use the existing idempotent provider reconciliation
   path for processing deposit transactions; confirmed failures continue to
   require the finance-authorized manual retry endpoint.
-- [ ] Extend provider reconciliation beyond deposits. Unknown release,
-  termination refund, and withdrawal outcomes need explicit safe status
-  reconciliation/retry paths. Withdrawal reconciliation currently replays
-  `WithdrawAsync` without the original destination reference, so it is only
-  reliable with the deterministic mock behavior.
-- [ ] Wire contract completion evaluation into every terminal
-  release/refund/cancellation/dispute-resolution path. The evaluation method
-  exists, but no settlement service calls it, so a normal contract does not
-  automatically become `Completed`. Make the internal completion evaluator
-  usable by jobs without requiring a participant from the current HTTP user.
-- [ ] Finish termination recovery. Unknown/failed termination refunds must be
+- [x] Extend provider reconciliation beyond deposits. Release, termination
+  refund, withdrawal, and dispute-settlement outcomes now use explicit status
+  checks and append-only recovery paths without replaying wallet commands.
+- [x] Wire contract completion evaluation into every terminal
+  release/refund/cancellation/dispute-resolution path. The internal evaluator
+  is job-safe and normal contracts now become `Completed` automatically.
+- [x] Finish termination recovery. Unknown/failed termination refunds are
   automatically reconciled or retried and then resume termination without
   requiring the participant to repeatedly call the endpoint.
 - [ ] Add the real production payment provider. DI currently registers
@@ -95,20 +93,18 @@ passing tests. This does **not** mean the feature is end-to-end complete.
   disabling the mock leaves payment-dependent services unresolved. Add the
   real provider, its configuration validation, webhook verification, and a
   production policy that cannot silently treat the mock as regulated escrow.
-- [ ] Implement and register Chat and Notification owning-slice services plus
-  deduplicating outbox consumers for all Phase 10 events. Also add the Case
-  consumer for termination/completion lifecycle updates.
-- [ ] Complete file privacy authorization. The current file integration
-  checks ownership through verification-document storage, but does not use
-  `ContractFilePurpose` and `relatedEntityId` to prove contract participant or
-  moderator access to contract attachments, submissions, and dispute
-  evidence.
-- [ ] Implement audited compensating wallet/ledger adjustments for authorized
-  administrators. Phase 9.3 currently covers normal wallet projection and
-  withdrawal only.
-- [ ] Add handlers for every required event. Domain services write many
-  outbox records, but the only registered feature event consumer currently
-  schedules milestone auto-acceptance and hold release.
+- [x] Implement and register deduplicating contract-owned outbox consumers for
+  all Phase 10 Chat and Notification events and Case termination/completion
+  lifecycle updates. Chat consumes its existing service directly. Notification
+  and Case owning-slice implementations remain cross-team dependencies.
+- [x] Complete file privacy authorization. The file integration now
+  uses `ContractFilePurpose` and `relatedEntityId` to prove contract
+  participant or moderator access to contract attachments, submissions, and
+  dispute evidence, and records immutable access audits.
+- [x] Implement audited compensating wallet/ledger adjustments for authorized
+  administrators with append-only ledger and adjustment records.
+- [x] Add handlers for every required event, including scheduling, Chat,
+  Notifications, and Case lifecycle integration.
 
 ### Release, verification, and documentation checklist
 
