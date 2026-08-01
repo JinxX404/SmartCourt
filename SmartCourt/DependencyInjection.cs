@@ -42,6 +42,7 @@ using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
+using SmartCourt.Features.Contracts.Files;
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
@@ -175,7 +176,7 @@ public static class DependencyInjection
             ContractUserEligibilityService>();
         services.AddScoped<
             IContractFileAccessService,
-            ContractFileAccessService>();
+            ContractScopedFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IContractCompletionEvaluator, ContractService>();
         services.AddScoped<

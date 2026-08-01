@@ -28,6 +28,7 @@ public class ApplicationDbContext
         typeof(PaymentWebhookEvent),
         typeof(DisputeResolution),
         typeof(DisputeEvidence),
+        typeof(ContractFileAccessAudit),
         typeof(LawyerPenalty),
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory)
@@ -51,6 +52,7 @@ public class ApplicationDbContext
         typeof(Dispute),
         typeof(DisputeResolution),
         typeof(DisputeEvidence),
+        typeof(ContractFileAccessAudit),
         typeof(LawyerPenalty),
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory),
@@ -116,6 +118,8 @@ public class ApplicationDbContext
     public DbSet<DisputeResolution> DisputeResolutions =>
         Set<DisputeResolution>();
     public DbSet<DisputeEvidence> DisputeEvidence => Set<DisputeEvidence>();
+    public DbSet<ContractFileAccessAudit> ContractFileAccessAudits =>
+        Set<ContractFileAccessAudit>();
     public DbSet<LawyerPenalty> LawyerPenalties => Set<LawyerPenalty>();
     public DbSet<ContractStateHistory> ContractStateHistories =>
         Set<ContractStateHistory>();
