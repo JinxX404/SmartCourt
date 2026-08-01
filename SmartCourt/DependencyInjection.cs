@@ -197,6 +197,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<
+            IAdminWalletAdjustmentService,
+            AdminWalletAdjustmentService>();
         services.AddScoped<IWalletReconciliationService, WalletReconciliationService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
         services.AddScoped<IDisputeService, DisputeService>();

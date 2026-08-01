@@ -30,6 +30,7 @@ public class ApplicationDbContext
         typeof(DisputeEvidence),
         typeof(ContractFileAccessAudit),
         typeof(LawyerPenalty),
+        typeof(WalletAdjustment),
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory)
     ];
@@ -54,6 +55,7 @@ public class ApplicationDbContext
         typeof(DisputeEvidence),
         typeof(ContractFileAccessAudit),
         typeof(LawyerPenalty),
+        typeof(WalletAdjustment),
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory),
         typeof(IdempotencyRecord),
@@ -121,6 +123,8 @@ public class ApplicationDbContext
     public DbSet<ContractFileAccessAudit> ContractFileAccessAudits =>
         Set<ContractFileAccessAudit>();
     public DbSet<LawyerPenalty> LawyerPenalties => Set<LawyerPenalty>();
+    public DbSet<WalletAdjustment> WalletAdjustments =>
+        Set<WalletAdjustment>();
     public DbSet<ContractStateHistory> ContractStateHistories =>
         Set<ContractStateHistory>();
     public DbSet<MilestoneStateHistory> MilestoneStateHistories =>
