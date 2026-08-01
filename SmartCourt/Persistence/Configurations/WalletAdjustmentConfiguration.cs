@@ -11,7 +11,18 @@ public sealed class WalletAdjustmentConfiguration
 {
     public void Configure(EntityTypeBuilder<WalletAdjustment> builder)
     {
-        builder.ToTable("WalletAdjustments");
+        builder.ToTable(
+            "WalletAdjustments",
+            table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_WalletAdjustments_Delta_NonZero",
+                    "[PendingBalanceDelta] <> 0 OR [AvailableBalanceDelta] <> 0");
+                table.HasCheckConstraint(
+                    "CK_WalletAdjustments_Balances_NonNegative",
+                    "[PendingBalanceBefore] >= 0 AND [PendingBalanceAfter] >= 0 "
+                    + "AND [AvailableBalanceBefore] >= 0 AND [AvailableBalanceAfter] >= 0");
+            });
         builder.HasKey(item => item.Id);
         builder.Property(item => item.PendingBalanceDelta).Money();
         builder.Property(item => item.AvailableBalanceDelta).Money();
@@ -51,12 +62,5 @@ public sealed class WalletAdjustmentConfiguration
                 item.CreatedAt
             })
             .HasDatabaseName("IX_WalletAdjustments_WalletId_CreatedAt");
-        builder.HasCheckConstraint(
-            "CK_WalletAdjustments_Delta_NonZero",
-            "[PendingBalanceDelta] <> 0 OR [AvailableBalanceDelta] <> 0");
-        builder.HasCheckConstraint(
-            "CK_WalletAdjustments_Balances_NonNegative",
-            "[PendingBalanceBefore] >= 0 AND [PendingBalanceAfter] >= 0 "
-            + "AND [AvailableBalanceBefore] >= 0 AND [AvailableBalanceAfter] >= 0");
     }
 }

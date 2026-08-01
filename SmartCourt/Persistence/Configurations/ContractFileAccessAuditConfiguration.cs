@@ -11,7 +11,11 @@ public sealed class ContractFileAccessAuditConfiguration
     public void Configure(
         EntityTypeBuilder<ContractFileAccessAudit> builder)
     {
-        builder.ToTable("ContractFileAccessAudits");
+        builder.ToTable(
+            "ContractFileAccessAudits",
+            table => table.HasCheckConstraint(
+                "CK_ContractFileAccessAudits_Purpose_Range",
+                "[Purpose] BETWEEN 1 AND 3"));
         builder.HasKey(item => item.Id);
         builder.Property(item => item.Purpose)
             .IsRequired()
@@ -30,8 +34,5 @@ public sealed class ContractFileAccessAuditConfiguration
                 item.AccessedAt
             })
             .HasDatabaseName("IX_ContractFileAccessAudits_File_Entity_Time");
-        builder.HasCheckConstraint(
-            "CK_ContractFileAccessAudits_Purpose_Range",
-            "[Purpose] BETWEEN 1 AND 3");
     }
 }
