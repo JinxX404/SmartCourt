@@ -501,6 +501,49 @@ public sealed class PaymentEscrowServiceTests
         Assert.Empty(await context.EscrowHolds.ToListAsync());
     }
 
+    [Theory]
+    [InlineData(PaymentOperationType.Release)]
+    [InlineData(PaymentOperationType.Refund)]
+    public async Task ReconcileProviderTransactionAsync_FinalizesSettlementStatus(
+        PaymentOperationType operationType)
+    {
+        await using var context = CreateContext();
+        var holdId = Guid.NewGuid();
+        var transaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            _contractId,
+            Guid.NewGuid(),
+            operationType,
+            "TestPaymentProvider",
+            $"settlement-{Guid.NewGuid():N}",
+            1_000m,
+            Now)
+        {
+            EscrowHoldId = holdId
+        };
+        context.PaymentTransactions.Add(transaction);
+        await context.SaveChangesAsync();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded);
+        var service = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var reconciliationService = CreateReconciliationService(
+            context,
+            service,
+            provider);
+
+        var result = await reconciliationService.ReconcileProviderTransactionAsync(
+            transaction.Id,
+            CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal(PaymentTransactionStatus.Completed, transaction.Status);
+        Assert.NotNull(transaction.ProviderTransactionId);
+    }
+
     [Fact]
     public async Task GetContractPaymentsAsync_ParticipantSeesOnlyOwnContractHistory()
     {
@@ -805,8 +848,18 @@ public sealed class PaymentEscrowServiceTests
         => new(
             context,
             escrowService,
+            new UnusedEscrowReleaseService(),
             provider,
+            new FixedTimeProvider(Now),
             NullLogger<PaymentReconciliationService>.Instance);
+
+    private sealed class UnusedEscrowReleaseService : IEscrowReleaseService
+    {
+        public Task<JobExecutionResult> ReleaseExpiredHoldAsync(
+            Guid escrowHoldId,
+            CancellationToken cancellationToken)
+            => Task.FromResult(JobExecutionResult.NoOp("Unused"));
+    }
 
     private sealed class MutableCurrentUser(Guid userId)
         : ICurrentUserService
@@ -905,6 +958,46 @@ public sealed class PaymentEscrowServiceTests
                         : null,
                     null));
         }
+
+        public Task<ProviderResult?> GetReleaseStatusAsync(
+            ProviderReleaseStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(StatusResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId));
+
+        public Task<ProviderResult?> GetRefundStatusAsync(
+            ProviderRefundStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(StatusResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId));
+
+        private ProviderResult StatusResult(
+            decimal amount,
+            string currency,
+            Guid businessId,
+            string providerIdempotencyKey,
+            Guid correlationId)
+            => new(
+                amount,
+                currency,
+                businessId,
+                providerIdempotencyKey,
+                correlationId,
+                outcome,
+                outcome == ProviderOperationOutcome.Succeeded
+                    ? $"provider-reconciled-{Guid.NewGuid():N}"
+                    : null,
+                outcome == ProviderOperationOutcome.Failed
+                    ? "رفض مزود الدفع عملية التسوية."
+                    : null);
     }
 
     private sealed class TestUserEligibilityService(

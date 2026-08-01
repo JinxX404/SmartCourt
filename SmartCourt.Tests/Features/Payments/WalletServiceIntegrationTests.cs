@@ -311,6 +311,7 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
             context,
             new CurrentUserStub(_lawyerUserId),
             paymentProvider,
+            (IPaymentReconciliationProvider)paymentProvider,
             new IdempotencyService(
                 context,
                 new CanonicalIdempotencyRequestHasher(),
@@ -356,7 +357,8 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
     }
 
     private sealed class TestPaymentProvider(
-        ProviderOperationOutcome outcome) : IPaymentProvider
+        ProviderOperationOutcome outcome)
+        : IPaymentProvider, IPaymentReconciliationProvider
     {
         public int WithdrawCalls { get; private set; }
         public ProviderWithdrawalRequest? LastRequest { get; private set; }
@@ -403,6 +405,28 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
             ProviderRefundRequest request,
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
+
+        public Task<ProviderResult?> GetDepositStatusAsync(
+            ProviderDepositStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(null);
+
+        public Task<ProviderResult?> GetWithdrawalStatusAsync(
+            ProviderWithdrawalStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(new ProviderResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId,
+                outcome,
+                outcome == ProviderOperationOutcome.Succeeded
+                    ? $"withdrawal-{Guid.NewGuid():N}"
+                    : null,
+                outcome == ProviderOperationOutcome.Succeeded
+                    ? null
+                    : "تعذر تنفيذ طلب السحب لدى مزود الدفع."));
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow)

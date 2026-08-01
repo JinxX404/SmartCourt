@@ -125,6 +125,43 @@ public sealed class MockPaymentProvider
         return result;
     }
 
+    public async Task<ProviderResult?> GetReleaseStatusAsync(
+        ProviderReleaseStatusRequest request,
+        CancellationToken cancellationToken)
+        => await GetStatusAsync(
+            "release",
+            request.ProviderIdempotencyKey,
+            cancellationToken);
+
+    public async Task<ProviderResult?> GetRefundStatusAsync(
+        ProviderRefundStatusRequest request,
+        CancellationToken cancellationToken)
+        => await GetStatusAsync(
+            "refund",
+            request.ProviderIdempotencyKey,
+            cancellationToken);
+
+    public async Task<ProviderResult?> GetWithdrawalStatusAsync(
+        ProviderWithdrawalStatusRequest request,
+        CancellationToken cancellationToken)
+        => await GetStatusAsync(
+            "withdrawal",
+            request.ProviderIdempotencyKey,
+            cancellationToken);
+
+    private async Task<ProviderResult?> GetStatusAsync(
+        string operation,
+        string providerIdempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        cancellationToken.ThrowIfCancellationRequested();
+        _results.TryGetValue(
+            $"{operation}:{providerIdempotencyKey}",
+            out var result);
+        return result;
+    }
+
     private async Task<ProviderResult> ExecuteAsync(
         string operation,
         PaymentProviderRequest request,

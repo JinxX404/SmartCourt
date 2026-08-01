@@ -53,6 +53,14 @@ public sealed class PaymentContractJobOperations(
     }
 
     public async Task<JobExecutionResult>
+        ReconcilePendingProviderTransactionsAsync(
+            CancellationToken cancellationToken)
+    {
+        return await paymentReconciliationService
+            .ReconcilePendingProviderTransactionsAsync(cancellationToken);
+    }
+
+    public async Task<JobExecutionResult>
         ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken)
     {
