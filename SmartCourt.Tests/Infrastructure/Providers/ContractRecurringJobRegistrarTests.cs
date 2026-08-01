@@ -23,12 +23,14 @@ public sealed class ContractRecurringJobRegistrarTests
                 "contract-payment-schedule-reconciliation",
                 "contract-payment-wallet-reconciliation",
                 "contract-payment-provider-reconciliation",
-                "contract-termination-recovery"
+                "contract-termination-recovery",
+                "contract-dispute-settlement-recovery"
             ],
             provider.JobIds);
         Assert.Equal(
             [
                 "*/1 * * * *",
+                "*/5 * * * *",
                 "*/5 * * * *",
                 "*/5 * * * *",
                 "*/5 * * * *",
@@ -41,7 +43,8 @@ public sealed class ContractRecurringJobRegistrarTests
                 nameof(IContractJobService.ReconcileMissingSchedulesAsync),
                 nameof(IContractJobService.ReconcilePendingWalletProjectionsAsync),
                 nameof(IContractJobService.ReconcilePendingProviderTransactionsAsync),
-                nameof(IContractJobService.RecoverPendingContractTerminationsAsync)
+                nameof(IContractJobService.RecoverPendingContractTerminationsAsync),
+                nameof(IContractJobService.RecoverPendingDisputeSettlementsAsync)
             ],
             provider.MethodNames);
     }

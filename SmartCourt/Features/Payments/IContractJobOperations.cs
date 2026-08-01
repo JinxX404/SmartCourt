@@ -32,6 +32,11 @@ public interface IContractJobOperations
         => Task.FromResult(JobExecutionResult.NoOp(
             "ContractTerminationRecoveryNotConfigured"));
 
+    Task<JobExecutionResult> RecoverPendingDisputeSettlementsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult(JobExecutionResult.NoOp(
+            "DisputeSettlementRecoveryNotConfigured"));
+
     Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken);
 }

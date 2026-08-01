@@ -114,10 +114,87 @@ public sealed class DisputeServiceTests
         Assert.Equal(2, await context.EscrowLedgerEntries.CountAsync());
     }
 
+    [Fact]
+    public async Task RecoverPendingSettlementsAsync_RetriesFailedAttemptAndFinalizesOnce()
+    {
+        var state = await CreateFundedStateAsync(MilestoneStatus.Disputed);
+        await using var context = state.Context;
+        state.Contract.Status = ContractStatus.SuspendedByDispute;
+        state.Hold.Status = EscrowHoldStatus.Frozen;
+        state.Hold.FrozenAt = Now;
+        var moderatorId = Guid.NewGuid();
+        var dispute = new SmartCourt.Features.Disputes.Entities.Dispute(
+            Guid.NewGuid(),
+            state.Contract.Id,
+            state.Milestone.Id,
+            state.ClientUserId,
+            DisputeCategory.DeliverableQuality,
+            "مستند التسليم غير صالح",
+            "المستند المسلم لا يحقق المتطلبات المتفق عليها.",
+            DisputeRequestedOutcome.Review,
+            Now)
+        {
+            AssignedModeratorUserId = moderatorId,
+            Status = DisputeStatus.UnderReview
+        };
+        context.Disputes.Add(dispute);
+        await context.SaveChangesAsync();
+
+        var eligibility = new TestEligibilityService();
+        eligibility.Results[moderatorId] = new ContractUserEligibilityFacts(
+            moderatorId,
+            true,
+            false,
+            false,
+            true,
+            false,
+            false);
+        var provider = new FailThenSucceedReleaseProvider();
+        var evaluator = new RecordingCompletionEvaluator();
+        var service = CreateService(
+            context,
+            moderatorId,
+            eligibility,
+            provider,
+            evaluator);
+
+        var resolved = await service.ResolveAsync(
+            dispute.Id,
+            new ResolveDisputeRequest(
+                DisputeResolutionType.FullRelease,
+                0m,
+                950m,
+                "ثبت سلامة التسليم واستحقاق المحامي للمبلغ."),
+            "resolution-recovery-key",
+            CancellationToken.None);
+
+        Assert.Equal("Failed", resolved.Settlement?.Status);
+        Assert.Equal(EscrowHoldStatus.Frozen, state.Hold.Status);
+
+        var recovered = await service.RecoverPendingSettlementsAsync(
+            CancellationToken.None);
+        var repeated = await service.RecoverPendingSettlementsAsync(
+            CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, recovered.Outcome);
+        Assert.Equal(JobExecutionOutcome.NoOp, repeated.Outcome);
+        Assert.Equal(EscrowHoldStatus.Released, state.Hold.Status);
+        Assert.Equal(MilestoneStatus.Released, state.Milestone.Status);
+        Assert.Equal(ContractStatus.Active, state.Contract.Status);
+        Assert.Equal(0m, state.Wallet.PendingBalance);
+        Assert.Equal(950m, state.Wallet.AvailableBalance);
+        Assert.Equal(2, await context.PaymentTransactions.CountAsync(item =>
+            item.OperationType == PaymentOperationType.Release));
+        Assert.Equal(2, await context.EscrowLedgerEntries.CountAsync());
+        Assert.Equal(1, evaluator.CallCount);
+    }
+
     private static DisputeService CreateService(
         ApplicationDbContext context,
         Guid actorUserId,
-        TestEligibilityService? eligibility = null)
+        TestEligibilityService? eligibility = null,
+        IPaymentProvider? paymentProvider = null,
+        RecordingCompletionEvaluator? completionEvaluator = null)
     {
         var timeProvider = new FixedTimeProvider(Now);
         return new DisputeService(
@@ -130,9 +207,9 @@ public sealed class DisputeServiceTests
                 context,
                 new CanonicalIdempotencyRequestHasher(),
                 timeProvider),
-            new SuccessfulProvider(),
+            paymentProvider ?? new SuccessfulProvider(),
             new UnusedScheduler(),
-            new RecordingCompletionEvaluator(),
+            completionEvaluator ?? new RecordingCompletionEvaluator(),
             new OutboxWriter(context, timeProvider),
             timeProvider,
             NullLogger<DisputeService>.Instance);
@@ -313,6 +390,39 @@ public sealed class DisputeServiceTests
                 null);
     }
 
+    private sealed class FailThenSucceedReleaseProvider : IPaymentProvider
+    {
+        private int _releaseCalls;
+
+        public Task<ProviderResult> DepositAsync(ProviderDepositRequest request, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> RetryDepositAsync(ProviderDepositRetryRequest request, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> ReleaseAsync(ProviderReleaseRequest request, CancellationToken cancellationToken)
+        {
+            _releaseCalls++;
+            return Task.FromResult(new ProviderResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId,
+                _releaseCalls == 1
+                    ? ProviderOperationOutcome.Failed
+                    : ProviderOperationOutcome.Succeeded,
+                _releaseCalls == 1 ? null : $"provider-release-{Guid.NewGuid():N}",
+                _releaseCalls == 1 ? "رفض مزود الدفع محاولة التحرير الأولى." : null));
+        }
+
+        public Task<ProviderResult> RefundAsync(ProviderRefundRequest request, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderResult> WithdrawAsync(ProviderWithdrawalRequest request, CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+    }
+
     private sealed class UnusedScheduler : IContractJobScheduler
     {
         public Task<string> ScheduleAutoAcceptAsync(Guid milestoneId, Guid escrowHoldId, int submissionVersion, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
@@ -327,12 +437,17 @@ public sealed class DisputeServiceTests
     private sealed class RecordingCompletionEvaluator
         : IContractCompletionEvaluator
     {
+        public int CallCount { get; private set; }
+
         public Task<ContractActionResultDto> EvaluateCompletionAsync(
             Guid contractId,
             CancellationToken cancellationToken)
-            => Task.FromResult(new ContractActionResultDto(
+        {
+            CallCount++;
+            return Task.FromResult(new ContractActionResultDto(
                 contractId,
                 ContractStatus.Active.ToString(),
                 Now));
+        }
     }
 }

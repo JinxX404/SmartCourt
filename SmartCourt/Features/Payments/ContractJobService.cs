@@ -84,6 +84,13 @@ public sealed class ContractJobService : IContractJobService
             .RecoverPendingContractTerminationsAsync(cancellationToken);
     }
 
+    public async Task<JobExecutionResult> RecoverPendingDisputeSettlementsAsync(
+        CancellationToken cancellationToken)
+    {
+        return await GetOperations()
+            .RecoverPendingDisputeSettlementsAsync(cancellationToken);
+    }
+
     public async Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken)
     {
