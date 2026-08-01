@@ -1,15 +1,74 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { useAuthStore } from "../store/useAuthStore";
+import { AuthApi } from "../api/authApi";
+import { setAccessToken } from "../../../api/apiClient";
 import {
   LuScale,
   LuMail,
   LuLock,
   LuEye,
-  LuEyeOff
+  LuEyeOff,
+  LuLoader
 } from "react-icons/lu";
 
 export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  
+  const navigate = useNavigate();
+  const loginStore = useAuthStore((state) => state.login);
+
+  // Mutation for Auth API Login
+  const { mutate, isPending } = useMutation({
+    mutationFn: AuthApi.login,
+    onSuccess: (response) => {
+      if (response.success && response.data) {
+        const { user, accessToken, token } = response.data as any;
+        const actualToken = accessToken || token;
+        setAccessToken(actualToken);
+        loginStore(user);
+        navigate("/"); // Redirect to home page upon successful login
+      } else {
+        setErrorMsg(response.message || "خطأ غير متوقع أثناء تسجيل الدخول");
+      }
+    },
+    onError: (error: any) => {
+      const apiError = error.response?.data;
+      if (apiError) {
+        if (apiError.message) {
+          setErrorMsg(apiError.message);
+        } else if (apiError.errors) {
+          if (Array.isArray(apiError.errors)) {
+            setErrorMsg(apiError.errors.join(" | "));
+          } else if (typeof apiError.errors === 'object') {
+            const messages = Object.entries(apiError.errors)
+              .map(([field, msgs]) => {
+                const fieldMsgs = Array.isArray(msgs) ? msgs.join(", ") : String(msgs);
+                return `${field}: ${fieldMsgs}`;
+              })
+              .join(" | ");
+            setErrorMsg(messages);
+          } else {
+            setErrorMsg(JSON.stringify(apiError.errors));
+          }
+        } else {
+          setErrorMsg("بيانات الدخول غير صحيحة. يرجى التحقق وإعادة المحاولة");
+        }
+      } else {
+        setErrorMsg("حدث خطأ في الاتصال بالخادم. يرجى المحاولة لاحقاً");
+      }
+    }
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+    mutate({ email, password });
+  };
 
   return (
     // Outer wrapper for the page background - responsive to dark mode
@@ -37,25 +96,35 @@ export const LoginForm = () => {
 
           <div className="w-full border-t border-gray-100 dark:border-gray-800 mb-8"></div>
 
+          {/* Error Message Box */}
+          {errorMsg && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 rounded text-red-600 dark:text-red-400 text-sm font-bold text-center animate-pulse">
+              {errorMsg}
+            </div>
+          )}
+
           {/* Form */}
-          <form className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
 
             {/* Email / Phone */}
             <div>
-              <label className="block text-sm font-bold text-navy dark:text-gray-200 mb-2" htmlFor="identifier">
-                البريد الإلكتروني أو رقم الهاتف
+              <label className="block text-sm font-bold text-navy dark:text-gray-200 mb-2" htmlFor="email">
+                البريد الإلكتروني
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                   <LuMail className="text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
-                  id="identifier"
-                  name="identifier"
-                  type="text"
+                  id="email"
+                  name="email"
+                  type="email"
                   required
-                  placeholder="أدخل البريد الإلكتروني أو رقم الهاتف"
-                  className="block w-full pl-3 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-shadow"
+                  placeholder="أدخل البريد الإلكتروني"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isPending}
+                  className="block w-full pl-3 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none transition-shadow disabled:opacity-50"
                 />
               </div>
             </div>
@@ -81,7 +150,10 @@ export const LoginForm = () => {
                   dir="ltr"
                   required
                   placeholder="••••••••"
-                  className="block w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isPending}
+                  className="block w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow disabled:opacity-50"
                 />
 
                 {/* Password Visibility Toggle */}
@@ -98,9 +170,17 @@ export const LoginForm = () => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gold hover:bg-gold-hover text-white font-bold py-4 px-6 rounded transition-colors duration-200 mt-2 flex items-center justify-center gap-2 cursor-pointer shadow-premium"
+              disabled={isPending}
+              className="w-full bg-gold hover:bg-gold-hover text-white font-bold py-4 px-6 rounded transition-colors duration-200 mt-2 flex items-center justify-center gap-2 cursor-pointer shadow-premium disabled:opacity-50"
             >
-              <span>تسجيل الدخول</span>
+              {isPending ? (
+                <>
+                  <LuLoader className="w-5 h-5 animate-spin" />
+                  <span>جاري تسجيل الدخول...</span>
+                </>
+              ) : (
+                <span>تسجيل الدخول</span>
+              )}
             </button>
           </form>
 

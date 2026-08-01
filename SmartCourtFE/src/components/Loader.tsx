@@ -30,14 +30,8 @@ export const Loader = ({ fadeOut = false, size = 180 }: LoaderProps) => {
         />
       </div>
 
-      {/* Glassmorphic Loader Card */}
-      <div className="relative z-10 flex flex-col items-center p-8 rounded-3xl transition-all duration-500
-        bg-white/40 dark:bg-[#1a1d23]/40 
-        backdrop-blur-xl 
-        border border-white/50 dark:border-gold/10
-        shadow-[0_8px_32px_0_rgba(0,0,0,0.03)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]
-        max-w-xs w-full mx-4
-      ">
+      {/* Loader Content Wrapper */}
+      <div className="relative z-10 flex flex-col items-center max-w-xs w-full mx-4 transition-all duration-500">
         {/* Lottie Animation Wrapper with mode-specific filter logic if needed */}
         <div 
           style={{ width: `${size}px`, height: `${size}px` }} 
