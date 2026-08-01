@@ -41,8 +41,8 @@ using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
+using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Cases.Integration;
-using SmartCourt.Features.Chat.Events;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
@@ -146,7 +146,13 @@ public static class DependencyInjection
             MilestoneSchedulingOutboxHandler>();
         services.AddScoped<
             IOutboxEventHandler,
-            ContractConversationOutboxHandler>();
+            ContractConversationIntegrationOutboxHandler>();
+        services.AddScoped<
+            IOutboxEventHandler,
+            ContractNotificationOutboxHandler>();
+        services.AddScoped<
+            IOutboxEventHandler,
+            ContractCaseLifecycleOutboxHandler>();
         services.AddScoped<IChatConversationService, ChatConversationService>();
         services.AddScoped<
             IContractConversationService,
