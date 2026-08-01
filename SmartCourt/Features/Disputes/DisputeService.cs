@@ -40,9 +40,11 @@ public sealed class DisputeService(
     IContractCompletionEvaluator completionEvaluator,
     IOutboxWriter outboxWriter,
     TimeProvider timeProvider,
-    ILogger<DisputeService> logger) : IDisputeService
+    ILogger<DisputeService> logger)
+    : IDisputeService, IDisputeSettlementRecoveryService
 {
     private const string ResolveOperation = "ResolveDispute";
+    private const int RecoveryBatchSize = 100;
 
     public async Task<DisputeDto> CreateAsync(
         CreateDisputeRequest request,
@@ -625,7 +627,7 @@ public sealed class DisputeService(
             || await dbContext.PaymentTransactions.AnyAsync(
                 item => item.EscrowHoldId == hold.Id
                     && item.OperationType != PaymentOperationType.Deposit
-                    && item.Status != PaymentTransactionStatus.Completed,
+                    && item.Status == PaymentTransactionStatus.Processing,
                 cancellationToken);
         if (hasPendingSettlement)
         {
@@ -665,6 +667,233 @@ public sealed class DisputeService(
             dispute.Id,
             dispute.Status.ToString(),
             now);
+    }
+
+    public async Task<JobExecutionResult> RecoverPendingSettlementsAsync(
+        CancellationToken cancellationToken)
+    {
+        var disputeIds = await (
+                from dispute in dbContext.Disputes.AsNoTracking()
+                join hold in dbContext.EscrowHolds.AsNoTracking()
+                    on dispute.MilestoneId equals hold.MilestoneId
+                where dispute.Status == DisputeStatus.Resolved
+                    && hold.Status == EscrowHoldStatus.Frozen
+                orderby dispute.UpdatedAt, dispute.Id
+                select dispute.Id)
+            .Take(RecoveryBatchSize)
+            .ToListAsync(cancellationToken);
+        var completed = 0;
+        foreach (var disputeId in disputeIds)
+        {
+            if (await RecoverPendingSettlementAsync(
+                    disputeId,
+                    cancellationToken))
+            {
+                completed++;
+            }
+
+            dbContext.ChangeTracker.Clear();
+        }
+
+        return completed == 0
+            ? JobExecutionResult.NoOp("NoPendingDisputeSettlementCompleted")
+            : JobExecutionResult.Completed(
+                "PendingDisputeSettlementsCompleted",
+                completed);
+    }
+
+    private async Task<bool> RecoverPendingSettlementAsync(
+        Guid disputeId,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await BeginSerializableAsync(
+            cancellationToken);
+        var dispute = await dbContext.Disputes.SingleOrDefaultAsync(
+            item => item.Id == disputeId,
+            cancellationToken);
+        if (dispute is null || dispute.Status != DisputeStatus.Resolved)
+        {
+            await CommitAsync(transaction, cancellationToken);
+            return false;
+        }
+
+        var resolution = await dbContext.DisputeResolutions.SingleOrDefaultAsync(
+            item => item.DisputeId == dispute.Id,
+            cancellationToken)
+            ?? throw new BusinessException(
+                "لا يمكن استرداد تسوية النزاع لعدم وجود القرار المالي النهائي.");
+        var milestone = await dbContext.Milestones.SingleAsync(
+            item => item.Id == dispute.MilestoneId,
+            cancellationToken);
+        var contract = await dbContext.Contracts.SingleAsync(
+            item => item.Id == dispute.ContractId,
+            cancellationToken);
+        var hold = await dbContext.EscrowHolds.SingleAsync(
+            item => item.MilestoneId == dispute.MilestoneId,
+            cancellationToken);
+        if (hold.Status != EscrowHoldStatus.Frozen
+            || milestone.Status != MilestoneStatus.Disputed)
+        {
+            await CommitAsync(transaction, cancellationToken);
+            return false;
+        }
+
+        var account = await dbContext.EscrowAccounts.SingleOrDefaultAsync(
+            item => item.Id == hold.EscrowAccountId,
+            cancellationToken)
+            ?? throw new BusinessException(
+                "حساب الضمان المطلوب لاسترداد تسوية النزاع غير موجود.");
+        var wallet = await dbContext.LawyerWallets.SingleOrDefaultAsync(
+            item => item.LawyerUserId == contract.LawyerUserId,
+            cancellationToken)
+            ?? throw new BusinessException(
+                "محفظة المحامي المطلوبة لاسترداد تسوية النزاع غير موجودة.");
+        var now = UtcNow;
+        var pendingTransactionIds = new List<Guid>();
+        var refundTransaction = await RecoverProviderSettlementAsync(
+            dispute,
+            resolution,
+            hold,
+            PaymentOperationType.Refund,
+            resolution.ClientRefundAmount,
+            now,
+            pendingTransactionIds,
+            cancellationToken);
+        var releaseGrossAmount = resolution.LawyerReleaseAmount
+            + resolution.PlatformFeeAmount;
+        var releaseTransaction = await RecoverProviderSettlementAsync(
+            dispute,
+            resolution,
+            hold,
+            PaymentOperationType.Release,
+            releaseGrossAmount,
+            now,
+            pendingTransactionIds,
+            cancellationToken);
+
+        if ((resolution.ClientRefundAmount > 0m && refundTransaction is null)
+            || (releaseGrossAmount > 0m && releaseTransaction is null))
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            foreach (var paymentTransactionId in pendingTransactionIds)
+            {
+                await TryScheduleRecoveryAsync(
+                    paymentTransactionId,
+                    cancellationToken);
+            }
+
+            return false;
+        }
+
+        var correlationId = Guid.NewGuid();
+        await FinalizeSettlementAsync(
+            dispute,
+            resolution,
+            milestone,
+            contract,
+            hold,
+            account,
+            wallet,
+            refundTransaction,
+            releaseTransaction,
+            resolution.ResolvedByUserId,
+            correlationId,
+            now,
+            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var reservationId = await dbContext.IdempotencyRecords
+            .Where(item => item.ResourceType
+                    == IdempotencyScope.HoldSettlementResourceType
+                && item.ResourceId == hold.Id
+                && item.Operation == ResolveOperation
+                && item.Status == IdempotencyStatus.Processing)
+            .Select(item => (Guid?)item.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (reservationId.HasValue)
+        {
+            await idempotencyService.CompleteAsync(
+                reservationId.Value,
+                200,
+                new { DisputeId = dispute.Id, Status = dispute.Status.ToString() },
+                dispute.Id,
+                cancellationToken);
+        }
+
+        await CommitAsync(transaction, cancellationToken);
+        await completionEvaluator.EvaluateCompletionAsync(
+            contract.Id,
+            cancellationToken);
+        return true;
+    }
+
+    private async Task<PaymentTransaction?> RecoverProviderSettlementAsync(
+        Dispute dispute,
+        DisputeResolution resolution,
+        EscrowHold hold,
+        PaymentOperationType operationType,
+        decimal amount,
+        DateTime now,
+        ICollection<Guid> pendingTransactionIds,
+        CancellationToken cancellationToken)
+    {
+        if (amount == 0m)
+        {
+            return null;
+        }
+
+        var keyPrefix = operationType == PaymentOperationType.Refund
+            ? $"dispute-refund-{dispute.Id:N}"
+            : $"dispute-release-{dispute.Id:N}";
+        var attempts = await dbContext.PaymentTransactions
+            .Where(item => item.EscrowHoldId == hold.Id
+                && item.OperationType == operationType
+                && item.IdempotencyKey.StartsWith(keyPrefix))
+            .OrderBy(item => item.CreatedAt)
+            .ThenBy(item => item.Id)
+            .ToListAsync(cancellationToken);
+        var completed = attempts.FirstOrDefault(item =>
+            item.Status == PaymentTransactionStatus.Completed
+            && item.Amount == amount);
+        if (completed is not null)
+        {
+            return completed;
+        }
+
+        var processing = attempts.FirstOrDefault(item =>
+            item.Status == PaymentTransactionStatus.Processing
+            && item.Amount == amount);
+        if (processing is not null)
+        {
+            pendingTransactionIds.Add(processing.Id);
+            return null;
+        }
+
+        var attemptNumber = attempts.Count + 1;
+        var retry = CreateProviderTransaction(
+            dispute,
+            hold,
+            operationType,
+            amount,
+            $"{keyPrefix}-{attemptNumber}",
+            now);
+        dbContext.PaymentTransactions.Add(retry);
+        var result = operationType == PaymentOperationType.Refund
+            ? await ExecuteRefundAsync(
+                retry,
+                hold,
+                resolution.Summary,
+                cancellationToken)
+            : await ExecuteReleaseAsync(retry, hold, cancellationToken);
+        ApplyProviderResult(retry, result, now);
+        if (retry.Status != PaymentTransactionStatus.Completed)
+        {
+            pendingTransactionIds.Add(retry.Id);
+            return null;
+        }
+
+        return retry;
     }
 
     private async Task FinalizeSettlementAsync(

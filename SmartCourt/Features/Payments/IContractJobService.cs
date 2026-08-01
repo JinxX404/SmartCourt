@@ -31,6 +31,9 @@ public interface IContractJobService
     Task<JobExecutionResult> RecoverPendingContractTerminationsAsync(
         CancellationToken cancellationToken);
 
+    Task<JobExecutionResult> RecoverPendingDisputeSettlementsAsync(
+        CancellationToken cancellationToken);
+
     Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
         CancellationToken cancellationToken);
 
