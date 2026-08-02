@@ -2,7 +2,9 @@ using System.Security.Cryptography;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Models;
 using SmartCourt.Features.Contracts.Dependencies;
+
 using SmartCourt.Features.Contracts.Domain;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Entities;

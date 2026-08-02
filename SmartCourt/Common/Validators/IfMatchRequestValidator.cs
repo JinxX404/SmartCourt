@@ -1,7 +1,7 @@
 using FluentValidation;
-using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Common.Models;
 
-namespace SmartCourt.Features.Contracts.Validators;
+namespace SmartCourt.Common.Validators;
 
 public sealed class IfMatchRequestValidator
     : AbstractValidator<IfMatchRequest>

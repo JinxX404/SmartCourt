@@ -1,10 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
-using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Common.Validation;
 using SmartCourt.Features.Disputes.DTOs;
 
 namespace SmartCourt.Features.Disputes;
@@ -27,7 +26,7 @@ public sealed class DisputesController(
         [FromBody] CreateDisputeRequest request,
         CancellationToken cancellationToken)
     {
-        await ValidateAsync(createValidator, request, cancellationToken);
+        await createValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
         var dispute = await disputeService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(
             nameof(GetAsync),
@@ -42,7 +41,7 @@ public sealed class DisputesController(
         [FromQuery] DisputeListQuery query,
         CancellationToken cancellationToken)
     {
-        await ValidateAsync(listValidator, query, cancellationToken);
+        await listValidator.ValidateAndThrowBusinessExceptionAsync(query, cancellationToken);
         var result = await disputeService.ListAsync(query, cancellationToken);
         return Ok(ApiResponse<PagedResult<DisputeDto>>.Ok(result));
     }
@@ -67,7 +66,7 @@ public sealed class DisputesController(
             [FromBody] AddDisputeEvidenceRequest request,
             CancellationToken cancellationToken)
     {
-        await ValidateAsync(evidenceValidator, request, cancellationToken);
+        await evidenceValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
         var result = await disputeService.AddEvidenceAsync(
             disputeId,
             request,
@@ -83,7 +82,7 @@ public sealed class DisputesController(
         [FromBody] AssignDisputeRequest request,
         CancellationToken cancellationToken)
     {
-        await ValidateAsync(assignValidator, request, cancellationToken);
+        await assignValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
         var dispute = await disputeService.AssignAsync(
             disputeId,
             request,
@@ -113,7 +112,7 @@ public sealed class DisputesController(
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        await ValidateAsync(resolveValidator, request, cancellationToken);
+        await resolveValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
         var dispute = await disputeService.ResolveAsync(
             disputeId,
             request,
@@ -132,21 +131,6 @@ public sealed class DisputesController(
         var result = await disputeService.CloseAsync(disputeId, cancellationToken);
         return Ok(ApiResponse<DisputeActionResultDto>.Ok(result));
     }
-
-    private static async Task ValidateAsync<T>(
-        IValidator<T> validator,
-        T request,
-        CancellationToken cancellationToken)
-    {
-        var result = await validator.ValidateAsync(request, cancellationToken);
-        if (!result.IsValid)
-        {
-            throw new BusinessException(string.Join(
-                " ",
-                result.Errors
-                    .Select(error => error.ErrorMessage)
-                    .Distinct(StringComparer.Ordinal)));
-        }
-    }
 }
+
 

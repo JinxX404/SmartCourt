@@ -11,4 +11,3 @@ public sealed record UpdateContractRequest(
 
 public sealed record TerminateContractRequest(string Reason);
 
-public sealed record IfMatchRequest(string IfMatch);

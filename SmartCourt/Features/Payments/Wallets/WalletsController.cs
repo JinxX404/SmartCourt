@@ -1,9 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Common.Validation;
 using SmartCourt.Features.Payments.DTOs;
 
 namespace SmartCourt.Features.Payments;
@@ -34,18 +34,9 @@ public sealed class WalletsController(
             string? idempotencyKey,
             CancellationToken cancellationToken)
     {
-        var validationResult = await withdrawalValidator.ValidateAsync(
+        await withdrawalValidator.ValidateAndThrowBusinessExceptionAsync(
             request,
             cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new BusinessException(
-                string.Join(
-                    " ",
-                    validationResult.Errors
-                        .Select(error => error.ErrorMessage)
-                        .Distinct(StringComparer.Ordinal)));
-        }
 
         var result = await walletService.WithdrawAsync(
             request,
@@ -54,4 +45,5 @@ public sealed class WalletsController(
         return Ok(ApiResponse<PaymentActionResultDto>.Ok(result));
     }
 }
+
 

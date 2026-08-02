@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using SmartCourt.Common.Models;
+using SmartCourt.Common.Validators;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Contracts.Validators;
 using Xunit;
+
 
 namespace SmartCourt.Tests.Features.Contracts;
 

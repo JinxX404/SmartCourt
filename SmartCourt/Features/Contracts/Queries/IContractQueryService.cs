@@ -1,3 +1,4 @@
+using SmartCourt.Common.Models;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Entities;
 

@@ -1,7 +1,9 @@
+using SmartCourt.Common.Models;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Disputes.Enums;
 
 namespace SmartCourt.Features.Disputes.DTOs;
+
 
 public sealed record DisputeEvidenceDto(
     Guid Id,

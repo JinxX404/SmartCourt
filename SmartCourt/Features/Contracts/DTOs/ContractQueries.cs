@@ -11,9 +11,3 @@ public sealed record ContractStateHistoryQuery(
     int Page = 1,
     int PageSize = 100);
 
-public sealed record PagedResult<T>(
-    IReadOnlyList<T> Items,
-    int Page,
-    int PageSize,
-    int TotalCount,
-    bool HasNextPage);

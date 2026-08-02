@@ -9,6 +9,7 @@ using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Common.Validation;
 using SmartCourt.Features.Payments.DTOs;
 using SmartCourt.Providers.Payments;
 
@@ -91,8 +92,7 @@ public sealed class PaymentsController(
     {
         var request = new RetryPaymentRequest(
             idempotencyKey ?? string.Empty);
-        await ValidateAsync(
-            retryValidator,
+        await retryValidator.ValidateAndThrowBusinessExceptionAsync(
             request,
             cancellationToken);
         var payment = await paymentEscrowService.RetryAsync(
@@ -148,8 +148,7 @@ public sealed class PaymentsController(
                 exception);
         }
 
-        await ValidateAsync(
-            webhookValidator,
+        await webhookValidator.ValidateAndThrowBusinessExceptionAsync(
             request,
             cancellationToken);
         var result = await paymentWebhookService.HandleWebhookAsync(
@@ -228,24 +227,6 @@ public sealed class PaymentsController(
     private static PayloadTooLargeException WebhookPayloadTooLarge()
         => new(
             "يتجاوز حجم إشعار مزود الدفع الحد الأقصى المسموح به.");
-
-    private static async Task ValidateAsync<T>(
-        IValidator<T> validator,
-        T request,
-        CancellationToken cancellationToken)
-    {
-        var validationResult = await validator.ValidateAsync(
-            request,
-            cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            throw new BusinessException(
-                string.Join(
-                    " ",
-                    validationResult.Errors
-                        .Select(error => error.ErrorMessage)
-                        .Distinct(StringComparer.Ordinal)));
-        }
-    }
 }
+
 

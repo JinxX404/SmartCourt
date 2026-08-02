@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
-using SmartCourt.Features.Contracts.DTOs;
-using SmartCourt.Features.Contracts.Validators;
+using SmartCourt.Common.Validators;
 using SmartCourt.Features.Milestones;
+
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Milestones.Enums;
 using System.Reflection;

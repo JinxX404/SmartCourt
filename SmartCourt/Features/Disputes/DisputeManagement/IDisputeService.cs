@@ -1,7 +1,8 @@
-using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Common.Models;
 using SmartCourt.Features.Disputes.DTOs;
 
 namespace SmartCourt.Features.Disputes;
+
 
 public interface IDisputeService
 {

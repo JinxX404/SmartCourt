@@ -1,9 +1,9 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Common.Validation;
 using SmartCourt.Features.Contracts.DTOs;
 
 namespace SmartCourt.Features.Contracts;
@@ -146,20 +146,11 @@ public sealed class ContractsController(
         CancellationToken cancellationToken)
     {
         var request = new IfMatchRequest(ifMatch ?? string.Empty);
-        var result = await ifMatchValidator.ValidateAsync(
+        await ifMatchValidator.ValidateAndThrowBusinessExceptionAsync(
             request,
             cancellationToken);
-        if (!result.IsValid)
-        {
-            throw new BusinessException(
-                string.Join(
-                    " ",
-                    result.Errors
-                        .Select(error => error.ErrorMessage)
-                        .Distinct(StringComparer.Ordinal)));
-        }
-
         return request.IfMatch;
     }
 }
+
 
