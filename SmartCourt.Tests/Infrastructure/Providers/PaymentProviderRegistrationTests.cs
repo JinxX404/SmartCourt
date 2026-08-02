@@ -26,6 +26,12 @@ public sealed class PaymentProviderRegistrationTests
             provider.GetRequiredService<IPaymentReconciliationProvider>());
         provider.GetRequiredService<IPaymentProviderStartupValidator>()
             .Validate();
+        var options = provider
+            .GetRequiredService<IOptions<PaymentProviderOptions>>()
+            .Value;
+        Assert.Equal("MockPaymentProvider", options.ProviderCode);
+        Assert.Equal(65_536, options.WebhookMaximumBodySizeBytes);
+        Assert.Empty(options.WebhookAllowedIpRanges);
     }
 
     [Fact]
@@ -92,33 +98,61 @@ public sealed class PaymentProviderRegistrationTests
         Assert.Throws<InvalidOperationException>(validator.Validate);
     }
 
+    [Theory]
+    [InlineData("PaymentProvider:ProviderCode", "")]
+    [InlineData("PaymentProvider:WebhookMaximumBodySizeBytes", "1023")]
+    [InlineData("PaymentProvider:WebhookMaximumBodySizeBytes", "1048577")]
+    [InlineData("PaymentProvider:WebhookAllowedIpRanges:0", "invalid-range")]
+    public void InvalidWebhookSecurityConfiguration_FailsOptionsValidation(
+        string key,
+        string value)
+    {
+        using var provider = BuildProvider(
+            useMockProvider: true,
+            isDevelopment: true,
+            new KeyValuePair<string, string?>(key, value));
+
+        Assert.Throws<OptionsValidationException>(() =>
+            _ = provider
+                .GetRequiredService<IOptions<PaymentProviderOptions>>()
+                .Value);
+    }
+
     private static ServiceProvider BuildProvider(
         bool useMockProvider,
-        bool isDevelopment)
+        bool isDevelopment,
+        KeyValuePair<string, string?>? overrideSetting = null)
     {
-        var configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:DefaultConnection"] =
+        var settings = new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] =
                     "Server=localhost;Database=SmartCourtPaymentProviderTests;Trusted_Connection=True;TrustServerCertificate=True;",
-                ["PaymentProvider:UseMockProvider"] =
+            ["PaymentProvider:UseMockProvider"] =
                     useMockProvider.ToString(),
-                ["PaymentProvider:Warning"] =
+            ["PaymentProvider:Warning"] =
                     "The mock payment provider is not regulated escrow and is for tests only.",
-                ["AuthEmail:PublicBaseUrl"] =
+            ["AuthEmail:PublicBaseUrl"] =
                     isDevelopment
                         ? "http://localhost:3000"
                         : "https://app.example.com",
-                ["SmtpSettings:Server"] = "smtp.example.com",
-                ["SmtpSettings:Port"] = "587",
-                ["SmtpSettings:SenderName"] = "Smart Court",
-                ["SmtpSettings:SenderEmail"] = "noreply@example.com",
-                ["SmtpSettings:Username"] = "noreply@example.com",
-                ["SmtpSettings:Password"] = "password",
-                ["Jwt:Secret"] = "01234567890123456789012345678901",
-                ["Jwt:Issuer"] = "SmartCourtAPI",
-                ["Jwt:Audience"] = "SmartCourtClient"
-            })
+            ["SmtpSettings:Server"] = "smtp.example.com",
+            ["SmtpSettings:Port"] = "587",
+            ["SmtpSettings:SenderName"] = "Smart Court",
+            ["SmtpSettings:SenderEmail"] = "noreply@example.com",
+            ["SmtpSettings:Username"] = "noreply@example.com",
+            ["SmtpSettings:Password"] = "password",
+            ["Jwt:Secret"] = "01234567890123456789012345678901",
+            ["Jwt:Issuer"] = "SmartCourtAPI",
+            ["Jwt:Audience"] = "SmartCourtClient"
+        };
+        if (overrideSetting.HasValue)
+        {
+            settings[overrideSetting.Value.Key] =
+                overrideSetting.Value.Value;
+        }
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings)
             .Build();
 
         var services = new ServiceCollection();

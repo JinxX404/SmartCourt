@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using System.Security.Claims;
+using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Builder;
@@ -82,10 +83,20 @@ public static class DependencyInjection
         {
             options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
                 CreateIpRateLimiter(),
+                CreateProviderRateLimiter(),
                 CreateUserRateLimiter());
             options.OnRejected = async (context, token) =>
             {
                 context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                if (context.Lease.TryGetMetadata(
+                        MetadataName.RetryAfter,
+                        out var retryAfter))
+                {
+                    context.HttpContext.Response.Headers.RetryAfter =
+                        Math.Max(1, Math.Ceiling(retryAfter.TotalSeconds))
+                            .ToString(CultureInfo.InvariantCulture);
+                }
+
                 await context.HttpContext.Response.WriteAsJsonAsync(
                     ApiResponse<string>.Fail(
                         RateLimitResponse.Message,
@@ -235,6 +246,21 @@ public static class DependencyInjection
                     || !string.IsNullOrWhiteSpace(
                         options.WebhookSecret),
                 "يجب إعداد سر التحقق من إشعارات مزود الدفع التجريبي.")
+            .Validate(
+                options => !string.IsNullOrWhiteSpace(
+                    options.ProviderCode),
+                "يجب إعداد رمز ثابت لمزود الدفع.")
+            .Validate(
+                options => options.WebhookMaximumBodySizeBytes
+                    is >= 1_024 and <= 1_048_576,
+                "يجب أن يكون الحد الأقصى لإشعار مزود الدفع بين 1 كيلوبايت و1 ميجابايت.")
+            .Validate(
+                options => options.WebhookAllowedIpRanges is not null
+                    && options.WebhookAllowedIpRanges.All(
+                        range => System.Net.IPNetwork.TryParse(
+                            range,
+                            out _)),
+                "تحتوي قائمة عناوين مزود الدفع المسموح بها على نطاق غير صالح.")
             .ValidateOnStart();
 
         if (configuration.GetValue<bool>(
@@ -248,7 +274,7 @@ public static class DependencyInjection
                 provider => provider
                     .GetRequiredService<MockPaymentProvider>());
         }
-            
+
         services.AddOptions<MailKitOptions>()
             .Bind(configuration.GetSection("SmtpSettings"))
             .Validate(options =>
@@ -504,6 +530,35 @@ public static class DependencyInjection
             return CreateFixedWindowPartition(
                 $"{attribute.PolicyName}:user:{userId}",
                 policy.User);
+        });
+    }
+
+    private static PartitionedRateLimiter<HttpContext>
+        CreateProviderRateLimiter()
+    {
+        return PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        {
+            var attribute = context.GetEndpoint()?.Metadata
+                .GetMetadata<SecurityRateLimitAttribute>();
+            if (attribute is null
+                || !SecurityRateLimitPolicies.TryGet(
+                    attribute.PolicyName,
+                    out var policy)
+                || policy.Provider is null)
+            {
+                return RateLimitPartition.GetNoLimiter("provider:none");
+            }
+
+            var providerCode = context.RequestServices
+                .GetService<IOptions<PaymentProviderOptions>>()?
+                .Value.ProviderCode;
+            var normalizedProviderCode =
+                string.IsNullOrWhiteSpace(providerCode)
+                    ? "unconfigured"
+                    : providerCode.Trim().ToUpperInvariant();
+            return CreateFixedWindowPartition(
+                $"{attribute.PolicyName}:provider:{normalizedProviderCode}",
+                policy.Provider);
         });
     }
 

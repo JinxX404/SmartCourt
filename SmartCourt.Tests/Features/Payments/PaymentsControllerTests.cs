@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Milestones.Entities;
@@ -89,7 +90,14 @@ public sealed class PaymentsControllerTests
     public async Task Webhook_ReadsExactBodyValidatesAndReturnsWrappedResponse()
     {
         var service = new RecordingPaymentApi();
-        var controller = CreateController(service);
+        var controller = CreateController(
+            service,
+            new PaymentProviderOptions
+            {
+                WebhookAllowedIpRanges = ["203.0.113.0/24"]
+            });
+        controller.HttpContext.Connection.RemoteIpAddress =
+            System.Net.IPAddress.Parse("203.0.113.10");
         var request = new PaymentWebhookRequest(
             "event-1",
             Guid.NewGuid(),
@@ -125,6 +133,77 @@ public sealed class PaymentsControllerTests
     }
 
     [Fact]
+    public async Task Webhook_RejectsDeclaredOversizedBodyBeforeReading()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(
+            service,
+            new PaymentProviderOptions
+            {
+                WebhookMaximumBodySizeBytes = 32
+            });
+        controller.Request.ContentLength = 33;
+        controller.Request.Body = new MemoryStream([1]);
+
+        await Assert.ThrowsAsync<PayloadTooLargeException>(() =>
+            controller.HandleWebhookAsync(
+                "event-1",
+                "1786788000",
+                "v1=signature",
+                CancellationToken.None));
+
+        Assert.Null(service.WebhookRequest);
+        Assert.Equal(0, controller.Request.Body.Position);
+    }
+
+    [Fact]
+    public async Task Webhook_RejectsChunkedBodyWhenBoundedReadExceedsLimit()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(
+            service,
+            new PaymentProviderOptions
+            {
+                WebhookMaximumBodySizeBytes = 32
+            });
+        controller.Request.Body = new MemoryStream(new byte[33]);
+
+        await Assert.ThrowsAsync<PayloadTooLargeException>(() =>
+            controller.HandleWebhookAsync(
+                "event-1",
+                "1786788000",
+                "v1=signature",
+                CancellationToken.None));
+
+        Assert.Null(service.WebhookRequest);
+    }
+
+    [Fact]
+    public async Task Webhook_RejectsSourceOutsideConfiguredProviderRanges()
+    {
+        var service = new RecordingPaymentApi();
+        var controller = CreateController(
+            service,
+            new PaymentProviderOptions
+            {
+                WebhookAllowedIpRanges = ["203.0.113.0/24"]
+            });
+        controller.HttpContext.Connection.RemoteIpAddress =
+            System.Net.IPAddress.Parse("198.51.100.10");
+        controller.Request.Body = new MemoryStream([1]);
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            controller.HandleWebhookAsync(
+                "event-1",
+                "1786788000",
+                "v1=signature",
+                CancellationToken.None));
+
+        Assert.Null(service.WebhookRequest);
+        Assert.Equal(0, controller.Request.Body.Position);
+    }
+
+    [Fact]
     public void Endpoints_DefineExpectedRoutesAndRoleBoundaries()
     {
         AssertEndpoint(
@@ -155,14 +234,17 @@ public sealed class PaymentsControllerTests
     }
 
     private static PaymentsController CreateController(
-        RecordingPaymentApi service)
+        RecordingPaymentApi service,
+        PaymentProviderOptions? providerOptions = null)
     {
         var controller = new PaymentsController(
             service,
             service,
             service,
             new RetryPaymentRequestValidator(),
-            new PaymentWebhookRequestValidator());
+            new PaymentWebhookRequestValidator(),
+            Options.Create(
+                providerOptions ?? new PaymentProviderOptions()));
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext()

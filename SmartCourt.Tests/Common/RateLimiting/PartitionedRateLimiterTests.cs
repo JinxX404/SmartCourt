@@ -14,6 +14,7 @@ using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Disputes;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Payments;
+using SmartCourt.Providers.Payments;
 using Xunit;
 
 namespace SmartCourt.Tests.Common.RateLimiting;
@@ -91,6 +92,36 @@ public sealed class PartitionedRateLimiterTests
     }
 
     [Fact]
+    public void PaymentWebhookPolicy_AppliesProviderWideEmergencyCeiling()
+    {
+        using var serviceProvider = CreateServiceProvider();
+        var limiter = GetGlobalLimiter(serviceProvider);
+
+        for (var index = 0; index < 1_000; index++)
+        {
+            var context = CreateContext(
+                RateLimitPolicyNames.PaymentWebhook,
+                $"192.0.2.{index % 10 + 1}",
+                serviceProvider: serviceProvider);
+            using var lease = limiter.AttemptAcquire(context);
+            Assert.True(lease.IsAcquired);
+        }
+
+        var rejectedContext = CreateContext(
+            RateLimitPolicyNames.PaymentWebhook,
+            "192.0.2.20",
+            serviceProvider: serviceProvider);
+        using var rejectedLease = limiter.AttemptAcquire(rejectedContext);
+
+        Assert.False(rejectedLease.IsAcquired);
+        Assert.True(SecurityRateLimitPolicies.TryGet(
+            RateLimitPolicyNames.PaymentWebhook,
+            out var policy));
+        Assert.Equal(1_000, policy.Provider?.PermitLimit);
+        Assert.Equal(TimeSpan.FromMinutes(1), policy.Provider?.Window);
+    }
+
+    [Fact]
     public async Task RejectedRequest_ReturnsGenericJsonApiResponse()
     {
         using var serviceProvider = CreateServiceProvider();
@@ -120,6 +151,7 @@ public sealed class PartitionedRateLimiterTests
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.Equal(StatusCodes.Status429TooManyRequests, rejectedContext.Response.StatusCode);
+        Assert.True(rejectedContext.Response.Headers.ContainsKey("Retry-After"));
         Assert.NotNull(response);
         Assert.False(response.Success);
         Assert.Equal(RateLimitResponse.Message, response.Message);
@@ -305,6 +337,8 @@ public sealed class PartitionedRateLimiterTests
         var services = new ServiceCollection();
         services.AddLogging();
         services.AddApiServices();
+        services.Configure<PaymentProviderOptions>(options =>
+            options.ProviderCode = "MockPaymentProvider");
         return services.BuildServiceProvider();
     }
 
@@ -320,9 +354,15 @@ public sealed class PartitionedRateLimiterTests
     private static DefaultHttpContext CreateContext(
         string policyName,
         string ipAddress,
-        string? userId = null)
+        string? userId = null,
+        IServiceProvider? serviceProvider = null)
     {
         var context = new DefaultHttpContext();
+        if (serviceProvider is not null)
+        {
+            context.RequestServices = serviceProvider;
+        }
+
         context.Connection.RemoteIpAddress = IPAddress.Parse(ipAddress);
         context.SetEndpoint(CreateEndpoint(policyName));
 

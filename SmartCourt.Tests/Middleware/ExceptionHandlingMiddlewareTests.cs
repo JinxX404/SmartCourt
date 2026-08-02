@@ -58,7 +58,11 @@ public sealed class ExceptionHandlingMiddlewareTests
         { new ForbiddenAccessException("Forbidden access."), HttpStatusCode.Forbidden },
         { new NotFoundException("Resource was not found."), HttpStatusCode.NotFound },
         { new BusinessException("Business rule failed."), HttpStatusCode.BadRequest },
-        { new TooManyRequestsException(), HttpStatusCode.TooManyRequests }
+        { new TooManyRequestsException(), HttpStatusCode.TooManyRequests },
+        {
+            new PayloadTooLargeException("Payload is too large."),
+            HttpStatusCode.RequestEntityTooLarge
+        }
     };
 
     private static async Task<MiddlewareResult> InvokeAsync(Exception exception)

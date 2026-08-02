@@ -1,13 +1,16 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Payments.DTOs;
+using SmartCourt.Providers.Payments;
 
 namespace SmartCourt.Features.Payments;
 
@@ -20,7 +23,9 @@ public sealed class PaymentsController(
     IPaymentQueryService paymentQueryService,
     IPaymentWebhookService paymentWebhookService,
     IValidator<RetryPaymentRequest> retryValidator,
-    IValidator<PaymentWebhookRequest> webhookValidator) : ControllerBase
+    IValidator<PaymentWebhookRequest> webhookValidator,
+    IOptions<PaymentProviderOptions> paymentProviderOptions)
+    : ControllerBase
 {
     private static readonly JsonSerializerOptions SerializerOptions =
         new(JsonSerializerDefaults.Web);
@@ -116,6 +121,9 @@ public sealed class PaymentsController(
     [ProducesResponseType(
         typeof(ApiResponse<PaymentActionResultDto>),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<string>),
+        StatusCodes.Status413PayloadTooLarge)]
     public async Task<ActionResult<ApiResponse<PaymentActionResultDto>>>
         HandleWebhookAsync(
             [FromHeader(Name = "X-Payment-Event-Id")]
@@ -126,12 +134,14 @@ public sealed class PaymentsController(
             string? signature,
             CancellationToken cancellationToken)
     {
-        using var reader = new StreamReader(
-            Request.Body,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: false,
-            leaveOpen: true);
-        var rawBody = await reader.ReadToEndAsync(cancellationToken);
+        var providerOptions = paymentProviderOptions.Value;
+        EnsureTrustedWebhookSource(
+            HttpContext.Connection.RemoteIpAddress,
+            providerOptions.WebhookAllowedIpRanges);
+        var rawBody = await ReadBoundedBodyAsync(
+            Request,
+            providerOptions.WebhookMaximumBodySizeBytes,
+            cancellationToken);
         if (string.IsNullOrWhiteSpace(rawBody))
         {
             throw new BusinessException(
@@ -167,6 +177,73 @@ public sealed class PaymentsController(
             cancellationToken);
         return Ok(ApiResponse<PaymentActionResultDto>.Ok(result));
     }
+
+    private static async Task<string> ReadBoundedBodyAsync(
+        HttpRequest request,
+        int maximumBodySizeBytes,
+        CancellationToken cancellationToken)
+    {
+        if (request.ContentLength > maximumBodySizeBytes)
+        {
+            throw WebhookPayloadTooLarge();
+        }
+
+        using var body = new MemoryStream();
+        var buffer = new byte[Math.Min(maximumBodySizeBytes + 1, 16_384)];
+        while (true)
+        {
+            var bytesRead = await request.Body.ReadAsync(
+                buffer,
+                cancellationToken);
+            if (bytesRead == 0)
+            {
+                break;
+            }
+
+            if (body.Length + bytesRead > maximumBodySizeBytes)
+            {
+                throw WebhookPayloadTooLarge();
+            }
+
+            await body.WriteAsync(
+                buffer.AsMemory(0, bytesRead),
+                cancellationToken);
+        }
+
+        return Encoding.UTF8.GetString(
+            body.GetBuffer(),
+            0,
+            checked((int)body.Length));
+    }
+
+    private static void EnsureTrustedWebhookSource(
+        IPAddress? remoteIpAddress,
+        IReadOnlyCollection<string>? allowedIpRanges)
+    {
+        if (allowedIpRanges is null || allowedIpRanges.Count == 0)
+        {
+            return;
+        }
+
+        if (remoteIpAddress?.IsIPv4MappedToIPv6 == true)
+        {
+            remoteIpAddress = remoteIpAddress.MapToIPv4();
+        }
+
+        if (remoteIpAddress is not null
+            && allowedIpRanges.Any(range =>
+                IPNetwork.Parse(range).Contains(remoteIpAddress)))
+        {
+            return;
+        }
+
+        throw new ForbiddenAccessException(
+            "مصدر إشعار مزود الدفع غير موثوق.");
+    }
+
+    private static PayloadTooLargeException WebhookPayloadTooLarge()
+        => new(
+            "يتجاوز حجم إشعار مزود الدفع الحد الأقصى المسموح به.");
 
     private static async Task ValidateAsync<T>(
         IValidator<T> validator,

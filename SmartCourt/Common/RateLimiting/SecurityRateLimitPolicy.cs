@@ -28,7 +28,10 @@ public static class RateLimitPolicyNames
 
 public sealed record RateLimitBucket(int PermitLimit, TimeSpan Window);
 
-public sealed record SecurityRateLimitPolicy(RateLimitBucket Ip, RateLimitBucket? User = null);
+public sealed record SecurityRateLimitPolicy(
+    RateLimitBucket Ip,
+    RateLimitBucket? User = null,
+    RateLimitBucket? Provider = null);
 
 public static class SecurityRateLimitPolicies
 {
@@ -76,7 +79,10 @@ public static class SecurityRateLimitPolicies
                 new RateLimitBucket(10, TimeSpan.FromMinutes(1)),
                 new RateLimitBucket(3, TimeSpan.FromMinutes(1))),
             [RateLimitPolicyNames.PaymentWebhook] = new(
-                new RateLimitBucket(120, TimeSpan.FromMinutes(1)))
+                new RateLimitBucket(120, TimeSpan.FromMinutes(1)),
+                Provider: new RateLimitBucket(
+                    1_000,
+                    TimeSpan.FromMinutes(1)))
         };
 
     public static bool TryGet(string policyName, out SecurityRateLimitPolicy policy)

@@ -76,6 +76,10 @@ public class ExceptionHandlingMiddleware
                 statusCode = StatusCodes.Status429TooManyRequests;
                 message = e.Message;
                 break;
+            case PayloadTooLargeException e:
+                statusCode = StatusCodes.Status413PayloadTooLarge;
+                message = e.Message;
+                break;
         }
 
         context.Response.StatusCode = statusCode;
@@ -90,7 +94,7 @@ public class ExceptionHandlingMiddleware
         {
             response = ApiResponse<string>.Fail(message, statusCode);
         }
-        
+
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var jsonResponse = JsonSerializer.Serialize(response, options);
 
