@@ -61,6 +61,35 @@ public sealed class ContractIntegrationOutboxHandlerTests
     }
 
     [Fact]
+    public async Task ConversationHandler_MapsSubmissionChangesToMilestone()
+    {
+        await using var context = CreateContext();
+        var state = AddContractAndMilestone(context);
+        await context.SaveChangesAsync();
+        var conversation = new RecordingConversationService();
+        var handler = new ContractConversationIntegrationOutboxHandler(
+            context,
+            conversation);
+        var eventId = Guid.NewGuid();
+        var message = CreateMessage(
+            eventId,
+            ContractPaymentEventTypes.MilestoneChangesRequested,
+            "Milestone",
+            state.Milestone.Id,
+            new ContractPaymentAggregateEventPayload(state.Milestone.Id));
+
+        await handler.HandleAsync(message, CancellationToken.None);
+
+        var delivered = Assert.Single(conversation.Messages);
+        Assert.Equal(eventId, delivered.EventId);
+        Assert.Equal(state.Contract.ProposalId, delivered.ProposalId);
+        Assert.Equal(
+            ContractConversationMessageType.MilestoneChangesRequested,
+            delivered.Type);
+        Assert.Equal(state.Milestone.Id, delivered.RelatedEntityId);
+    }
+
+    [Fact]
     public async Task NotificationHandler_SendsDisputeAssignmentToAllRecipients()
     {
         await using var context = CreateContext();

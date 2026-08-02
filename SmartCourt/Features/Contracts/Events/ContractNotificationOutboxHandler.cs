@@ -34,6 +34,7 @@ public sealed class ContractNotificationOutboxHandler
         ContractPaymentEventTypes.MilestoneAutoAccepted,
         ContractPaymentEventTypes.MilestoneAccepted,
         ContractPaymentEventTypes.MilestoneChangesRequested,
+        ContractPaymentEventTypes.MilestoneChangeRequestCreated,
         ContractPaymentEventTypes.FundsReleased,
         ContractPaymentEventTypes.FundsRefunded,
         ContractPaymentEventTypes.DisputeOpened,
@@ -109,7 +110,8 @@ public sealed class ContractNotificationOutboxHandler
                 ContractNotificationType.MilestoneAutoAccepted,
             ContractPaymentEventTypes.MilestoneAccepted =>
                 ContractNotificationType.MilestoneAccepted,
-            ContractPaymentEventTypes.MilestoneChangesRequested =>
+            ContractPaymentEventTypes.MilestoneChangesRequested
+                or ContractPaymentEventTypes.MilestoneChangeRequestCreated =>
                 ContractNotificationType.MilestoneChangesRequested,
             ContractPaymentEventTypes.FundsReleased =>
                 ContractNotificationType.FundsReleased,

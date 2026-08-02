@@ -50,7 +50,13 @@ internal sealed class ContractIntegrationEventResolver(
                     "Milestone",
                     null,
                     cancellationToken),
-            ContractPaymentEventTypes.MilestoneChangesRequested
+            ContractPaymentEventTypes.MilestoneChangesRequested =>
+                await ResolveMilestoneAsync(
+                    message.AggregateId,
+                    "Milestone",
+                    null,
+                    cancellationToken),
+            ContractPaymentEventTypes.MilestoneChangeRequestCreated
                 or ContractPaymentEventTypes.MilestoneChangeRequestApproved
                 or ContractPaymentEventTypes.MilestoneChangeRequestRejected
                 or ContractPaymentEventTypes.MilestoneChangeRequestCancelled =>

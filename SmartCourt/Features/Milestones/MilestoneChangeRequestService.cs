@@ -65,7 +65,7 @@ public sealed class MilestoneChangeRequestService(
             now);
         dbContext.MilestoneChangeRequests.Add(changeRequest);
         await EnqueueChangeRequestEventAsync(
-            ContractPaymentEventTypes.MilestoneChangesRequested,
+            ContractPaymentEventTypes.MilestoneChangeRequestCreated,
             changeRequest,
             correlationId,
             cancellationToken);

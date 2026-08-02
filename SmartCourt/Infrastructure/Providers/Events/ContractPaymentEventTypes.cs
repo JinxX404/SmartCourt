@@ -17,6 +17,8 @@ public static class ContractPaymentEventTypes
     public const string MilestoneAutoAccepted = "MilestoneAutoAccepted";
     public const string MilestoneAccepted = "MilestoneAccepted";
     public const string MilestoneChangesRequested = "MilestoneChangesRequested";
+    public const string MilestoneChangeRequestCreated =
+        "MilestoneChangeRequestCreated";
     public const string MilestoneChangeRequestApproved =
         "MilestoneChangeRequestApproved";
     public const string MilestoneChangeRequestRejected =

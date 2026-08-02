@@ -289,7 +289,7 @@ public sealed class MilestoneServiceTests
         Assert.Equal(ChangeRequestStatus.Pending, request.Status);
         Assert.Equal(_clientUserId, request.RequestedByUserId);
         Assert.Equal(
-            ContractPaymentEventTypes.MilestoneChangesRequested,
+            ContractPaymentEventTypes.MilestoneChangeRequestCreated,
             (await context.OutboxMessages.SingleAsync()).EventType);
     }
 

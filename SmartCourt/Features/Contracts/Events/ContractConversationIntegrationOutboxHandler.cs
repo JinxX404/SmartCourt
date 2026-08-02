@@ -25,6 +25,7 @@ public sealed class ContractConversationIntegrationOutboxHandler(
         ContractPaymentEventTypes.MilestoneAutoAccepted,
         ContractPaymentEventTypes.MilestoneAccepted,
         ContractPaymentEventTypes.MilestoneChangesRequested,
+        ContractPaymentEventTypes.MilestoneChangeRequestCreated,
         ContractPaymentEventTypes.MilestoneChangeRequestApproved,
         ContractPaymentEventTypes.MilestoneChangeRequestRejected,
         ContractPaymentEventTypes.MilestoneChangeRequestCancelled,
@@ -80,7 +81,8 @@ public sealed class ContractConversationIntegrationOutboxHandler(
                 ContractConversationMessageType.MilestoneAutoAccepted,
             ContractPaymentEventTypes.MilestoneAccepted =>
                 ContractConversationMessageType.MilestoneAccepted,
-            ContractPaymentEventTypes.MilestoneChangesRequested =>
+            ContractPaymentEventTypes.MilestoneChangesRequested
+                or ContractPaymentEventTypes.MilestoneChangeRequestCreated =>
                 ContractConversationMessageType.MilestoneChangesRequested,
             ContractPaymentEventTypes.MilestoneChangeRequestApproved =>
                 ContractConversationMessageType.MilestoneChangeRequestApproved,
