@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Contracts.Validators;
@@ -21,6 +22,7 @@ public sealed class MilestonesController(
     IValidator<IfMatchRequest> ifMatchValidator) : ControllerBase
 {
     [HttpPost("contracts/{contractId:guid}/milestones")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneDto>),
@@ -41,6 +43,7 @@ public sealed class MilestonesController(
     }
 
     [HttpGet("contracts/{contractId:guid}/milestones")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(
@@ -61,6 +64,7 @@ public sealed class MilestonesController(
 
     [HttpPut(
         "contracts/{contractId:guid}/milestones/{milestoneId:guid}")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneDto>),
@@ -86,6 +90,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/approve")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),
@@ -108,6 +113,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/ready-for-funding")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),
@@ -130,6 +136,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/submit")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneDto>),
@@ -147,6 +154,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/accept")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(Roles = "Client")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneDto>),
@@ -162,6 +170,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/request-changes")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneDto>),
@@ -180,6 +189,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("milestones/{milestoneId:guid}/change-requests")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),
@@ -206,6 +216,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("change-requests/{changeRequestId:guid}/approve")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),
@@ -228,6 +239,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("change-requests/{changeRequestId:guid}/reject")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),
@@ -252,6 +264,7 @@ public sealed class MilestonesController(
     }
 
     [HttpPost("change-requests/{changeRequestId:guid}/cancel")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<MilestoneActionResultDto>),

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Payments.DTOs;
 
 namespace SmartCourt.Features.Payments;
@@ -18,6 +19,7 @@ public sealed class WalletsController(
     : ControllerBase
 {
     [HttpGet]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialQuery)]
     [ProducesResponseType(
         typeof(ApiResponse<WalletDto>),
         StatusCodes.Status200OK)]
@@ -29,6 +31,7 @@ public sealed class WalletsController(
     }
 
     [HttpPost("withdrawals")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [ProducesResponseType(
         typeof(ApiResponse<PaymentActionResultDto>),
         StatusCodes.Status200OK)]

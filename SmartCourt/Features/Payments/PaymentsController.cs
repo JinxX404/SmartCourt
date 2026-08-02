@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Payments.DTOs;
 
 namespace SmartCourt.Features.Payments;
@@ -25,6 +26,7 @@ public sealed class PaymentsController(
         new(JsonSerializerDefaults.Web);
 
     [HttpPost("milestones/{milestoneId:guid}/fund")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(Roles = "Client")]
     [ProducesResponseType(
         typeof(ApiResponse<PaymentDto>),
@@ -44,6 +46,7 @@ public sealed class PaymentsController(
     }
 
     [HttpGet("contracts/{contractId:guid}/payments")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialQuery)]
     [Authorize(
         Roles =
             "Client,Lawyer,FinanceAdministrator,SuperAdministrator")]
@@ -63,6 +66,7 @@ public sealed class PaymentsController(
     }
 
     [HttpGet("milestones/{milestoneId:guid}/payment")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialQuery)]
     [Authorize(
         Roles =
             "Client,Lawyer,FinanceAdministrator,SuperAdministrator")]
@@ -82,6 +86,7 @@ public sealed class PaymentsController(
     }
 
     [HttpPost("payments/{paymentTransactionId:guid}/retry")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(
         Roles = "FinanceAdministrator,SuperAdministrator")]
     [ProducesResponseType(
@@ -106,6 +111,7 @@ public sealed class PaymentsController(
     }
 
     [HttpPost("payments/webhook")]
+    [SecurityRateLimit(RateLimitPolicyNames.PaymentWebhook)]
     [AllowAnonymous]
     [ProducesResponseType(
         typeof(ApiResponse<PaymentActionResultDto>),

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Disputes.DTOs;
 
@@ -22,6 +23,7 @@ public sealed class DisputesController(
     IValidator<DisputeListQuery> listValidator) : ControllerBase
 {
     [HttpPost("disputes")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> CreateAsync(
@@ -37,6 +39,7 @@ public sealed class DisputesController(
     }
 
     [HttpGet("disputes")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(
         typeof(ApiResponse<PagedResult<DisputeDto>>),
@@ -51,6 +54,7 @@ public sealed class DisputesController(
     }
 
     [HttpGet("disputes/{disputeId:guid}")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> GetAsync(
@@ -62,6 +66,7 @@ public sealed class DisputesController(
     }
 
     [HttpPost("disputes/{disputeId:guid}/evidence")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(
         typeof(ApiResponse<DisputeActionResultDto>),
@@ -81,6 +86,7 @@ public sealed class DisputesController(
     }
 
     [HttpPost("admin/disputes/{disputeId:guid}/assign")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> AssignAsync(
@@ -97,6 +103,7 @@ public sealed class DisputesController(
     }
 
     [HttpPost("admin/disputes/{disputeId:guid}/review")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> StartReviewAsync(
@@ -110,6 +117,7 @@ public sealed class DisputesController(
     }
 
     [HttpPost("admin/disputes/{disputeId:guid}/resolve")]
+    [SecurityRateLimit(RateLimitPolicyNames.AdminFinancialMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
     [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> ResolveAsync(
@@ -128,6 +136,7 @@ public sealed class DisputesController(
     }
 
     [HttpPost("admin/disputes/{disputeId:guid}/close")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
     [ProducesResponseType(
         typeof(ApiResponse<DisputeActionResultDto>),

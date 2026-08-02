@@ -1,13 +1,19 @@
 using System.Net;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Features.Contracts;
+using SmartCourt.Features.Disputes;
+using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Payments;
 using Xunit;
 
 namespace SmartCourt.Tests.Common.RateLimiting;
@@ -119,6 +125,65 @@ public sealed class PartitionedRateLimiterTests
         Assert.Equal(RateLimitResponse.Message, response.Message);
     }
 
+    [Fact]
+    public void CriticalSliceEndpoints_AllDeclareSecurityRateLimitPolicies()
+    {
+        Type[] controllerTypes =
+        [
+            typeof(ContractsController),
+            typeof(MilestonesController),
+            typeof(PaymentsController),
+            typeof(WalletsController),
+            typeof(AdminWalletsController),
+            typeof(DisputesController)
+        ];
+
+        var actions = controllerTypes
+            .SelectMany(type => type.GetMethods(
+                BindingFlags.Instance
+                | BindingFlags.Public
+                | BindingFlags.DeclaredOnly))
+            .Where(method => method
+                .GetCustomAttributes(inherit: true)
+                .OfType<IActionHttpMethodProvider>()
+                .Any())
+            .ToArray();
+
+        Assert.Equal(35, actions.Length);
+        foreach (var action in actions)
+        {
+            var attribute = action.GetCustomAttribute<SecurityRateLimitAttribute>();
+            Assert.NotNull(attribute);
+            Assert.True(SecurityRateLimitPolicies.TryGet(
+                attribute.PolicyName,
+                out _));
+        }
+    }
+
+    [Theory]
+    [InlineData(typeof(PaymentsController), nameof(PaymentsController.FundAsync),
+        RateLimitPolicyNames.FinancialMutation)]
+    [InlineData(typeof(PaymentsController), nameof(PaymentsController.HandleWebhookAsync),
+        RateLimitPolicyNames.PaymentWebhook)]
+    [InlineData(typeof(WalletsController), nameof(WalletsController.WithdrawAsync),
+        RateLimitPolicyNames.FinancialMutation)]
+    [InlineData(typeof(AdminWalletsController), nameof(AdminWalletsController.AdjustAsync),
+        RateLimitPolicyNames.AdminFinancialMutation)]
+    [InlineData(typeof(DisputesController), nameof(DisputesController.ResolveAsync),
+        RateLimitPolicyNames.AdminFinancialMutation)]
+    public void CriticalFinancialEndpoints_UseExpectedPolicy(
+        Type controllerType,
+        string actionName,
+        string expectedPolicy)
+    {
+        var action = controllerType.GetMethod(actionName);
+
+        Assert.NotNull(action);
+        Assert.Equal(
+            expectedPolicy,
+            action.GetCustomAttribute<SecurityRateLimitAttribute>()?.PolicyName);
+    }
+
     public static TheoryData<string, int, TimeSpan, int?, TimeSpan?> ExpectedPolicies => new()
     {
         {
@@ -181,6 +246,55 @@ public sealed class PartitionedRateLimiterTests
             RateLimitPolicyNames.ConfirmEmail,
             20,
             TimeSpan.FromMinutes(15),
+            null,
+            null
+        },
+        {
+            RateLimitPolicyNames.AuthenticatedQuery,
+            300,
+            TimeSpan.FromMinutes(1),
+            100,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.FinancialQuery,
+            120,
+            TimeSpan.FromMinutes(1),
+            60,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.StandardMutation,
+            60,
+            TimeSpan.FromMinutes(1),
+            20,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.SensitiveMutation,
+            30,
+            TimeSpan.FromMinutes(1),
+            10,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.FinancialMutation,
+            15,
+            TimeSpan.FromMinutes(1),
+            5,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.AdminFinancialMutation,
+            10,
+            TimeSpan.FromMinutes(1),
+            3,
+            TimeSpan.FromMinutes(1)
+        },
+        {
+            RateLimitPolicyNames.PaymentWebhook,
+            120,
+            TimeSpan.FromMinutes(1),
             null,
             null
         }

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Contracts.DTOs;
 
 namespace SmartCourt.Features.Contracts;
@@ -18,6 +19,7 @@ public sealed class ContractsController(
     IValidator<IfMatchRequest> ifMatchValidator) : ControllerBase
 {
     [HttpPost]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<ContractDetailDto>),
@@ -36,6 +38,7 @@ public sealed class ContractsController(
     }
 
     [HttpGet]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<PagedResult<ContractSummaryDto>>),
@@ -53,6 +56,7 @@ public sealed class ContractsController(
     }
 
     [HttpGet("{contractId:guid}")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(
@@ -69,6 +73,7 @@ public sealed class ContractsController(
     }
 
     [HttpPut("{contractId:guid}")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<ContractDetailDto>),
@@ -92,6 +97,7 @@ public sealed class ContractsController(
     }
 
     [HttpPost("{contractId:guid}/accept")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<ContractActionResultDto>),
@@ -113,6 +119,7 @@ public sealed class ContractsController(
     }
 
     [HttpPost("{contractId:guid}/terminate")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<ContractDetailDto>),
@@ -136,6 +143,7 @@ public sealed class ContractsController(
     }
 
     [HttpGet("{contractId:guid}/state-history")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
     [ProducesResponseType(

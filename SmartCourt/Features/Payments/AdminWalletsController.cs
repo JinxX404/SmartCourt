@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Payments.DTOs;
 
 namespace SmartCourt.Features.Payments;
@@ -18,6 +19,7 @@ public sealed class AdminWalletsController(
     : ControllerBase
 {
     [HttpPost("{lawyerUserId:guid}/adjustments")]
+    [SecurityRateLimit(RateLimitPolicyNames.AdminFinancialMutation)]
     [ProducesResponseType(
         typeof(ApiResponse<AdminWalletAdjustmentDto>),
         StatusCodes.Status200OK)]
