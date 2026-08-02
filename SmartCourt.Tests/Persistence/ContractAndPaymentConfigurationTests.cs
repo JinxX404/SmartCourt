@@ -29,6 +29,7 @@ public sealed class ContractAndPaymentConfigurationTests
             typeof(EscrowHold),
             typeof(EscrowLedgerEntry),
             typeof(PaymentTransaction),
+            typeof(PaymentWebhookEvent),
             typeof(LawyerWallet),
             typeof(WithdrawalRequest),
             typeof(Dispute),
@@ -178,6 +179,50 @@ public sealed class ContractAndPaymentConfigurationTests
     }
 
     [Fact]
+    public void CriticalFinancialUniquenessRules_ArePreciselyConfigured()
+    {
+        using var context = CreateContext();
+
+        AssertNamedUniqueIndex<PaymentWebhookEvent>(
+            context,
+            "UX_PaymentWebhookEvents_EventId",
+            filter: null,
+            "EventId");
+        AssertNamedUniqueIndex<EscrowHold>(
+            context,
+            "UX_EscrowHolds_MilestoneId",
+            filter: null,
+            "MilestoneId");
+        AssertNamedUniqueIndex<Dispute>(
+            context,
+            "UX_Disputes_OpenPerMilestone",
+            "[Status] IN (0, 1, 2)",
+            "MilestoneId");
+        AssertNamedUniqueIndex<PaymentTransaction>(
+            context,
+            "UX_PaymentTransactions_IdempotencyKey",
+            filter: null,
+            "IdempotencyKey");
+        AssertNamedUniqueIndex<PaymentTransaction>(
+            context,
+            "UX_PaymentTransactions_ProviderTransaction",
+            "[ProviderTransactionId] IS NOT NULL",
+            "ProviderName",
+            "ProviderTransactionId");
+        AssertNamedUniqueIndex<WithdrawalRequest>(
+            context,
+            "UX_WithdrawalRequests_IdempotencyKey",
+            filter: null,
+            "IdempotencyKey");
+        AssertNamedUniqueIndex<IdempotencyRecord>(
+            context,
+            "UX_IdempotencyRecords_HoldSettlement",
+            "[ResourceType] = 'EscrowHoldSettlement'",
+            "ResourceType",
+            "ResourceId");
+    }
+
+    [Fact]
     public void FinancialAndDisputeRelationships_RestrictDeletes()
     {
         using var context = CreateContext();
@@ -251,6 +296,23 @@ public sealed class ContractAndPaymentConfigurationTests
             .Model
             .FindEntityType(typeof(TEntity))!;
         Assert.Contains(entity.GetCheckConstraints(), check => check.Name == checkName);
+    }
+
+    private static void AssertNamedUniqueIndex<TEntity>(
+        ApplicationDbContext context,
+        string databaseName,
+        string? filter,
+        params string[] propertyNames)
+    {
+        var entity = context.Model.FindEntityType(typeof(TEntity))!;
+        var index = Assert.Single(
+            entity.GetIndexes(),
+            item => item.GetDatabaseName() == databaseName);
+        Assert.True(index.IsUnique);
+        Assert.Equal(
+            propertyNames,
+            index.Properties.Select(property => property.Name));
+        Assert.Equal(filter, index.GetFilter());
     }
 
     private static ApplicationDbContext CreateContext()

@@ -60,11 +60,7 @@ public sealed class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
             .HasForeignKey(dispute => dispute.ResolvedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(dispute => new
-        {
-            dispute.MilestoneId,
-            dispute.Status
-        })
+        builder.HasIndex(dispute => dispute.MilestoneId)
         .HasFilter("[Status] IN (0, 1, 2)")
         .IsUnique()
         .HasDatabaseName("UX_Disputes_OpenPerMilestone");
