@@ -23,6 +23,7 @@ namespace SmartCourt.Features.Contracts;
 
 public sealed class ContractService
     : IContractService,
+        IContractActivationEvaluator,
         IContractCompletionEvaluator,
         IContractTerminationRecoveryService
 {
@@ -231,6 +232,31 @@ public sealed class ContractService
         CancellationToken cancellationToken)
     {
         var actorUserId = GetActorUserId();
+        return await EvaluateActivationCoreAsync(
+            contractId,
+            actorUserId,
+            ensureParticipant: true,
+            cancellationToken);
+    }
+
+    async Task IContractActivationEvaluator.EvaluateActivationAsync(
+        Guid contractId,
+        Guid? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        await EvaluateActivationCoreAsync(
+            contractId,
+            actorUserId,
+            ensureParticipant: false,
+            cancellationToken);
+    }
+
+    private async Task<ContractActionResultDto> EvaluateActivationCoreAsync(
+        Guid contractId,
+        Guid? actorUserId,
+        bool ensureParticipant,
+        CancellationToken cancellationToken)
+    {
         var now = UtcNow;
         var correlationId = Guid.NewGuid();
         await using var transaction =
@@ -239,7 +265,11 @@ public sealed class ContractService
         var contract = await GetContractForMutationAsync(
             contractId,
             cancellationToken);
-        EnsureParticipant(contract, actorUserId);
+        if (ensureParticipant && actorUserId.HasValue)
+        {
+            EnsureParticipant(contract, actorUserId.Value);
+        }
+
         await TryActivateAsync(
             contract,
             actorUserId,

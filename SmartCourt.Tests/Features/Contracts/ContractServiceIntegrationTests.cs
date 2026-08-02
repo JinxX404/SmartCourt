@@ -212,20 +212,24 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         context.Milestones.Add(milestone);
         await context.SaveChangesAsync();
 
-        var activation = await service.EvaluateActivationAsync(
-            contract.Id,
-            CancellationToken.None);
+        currentUser.UserId = null;
+        await ((IContractActivationEvaluator)service)
+            .EvaluateActivationAsync(
+                contract.Id,
+                _lawyerUserId,
+                CancellationToken.None);
 
         Assert.Equal(
-            ContractStatus.Active.ToString(),
-            activation.Status);
+            ContractStatus.Active,
+            contract.Status);
         Assert.NotNull(contract.ActivatedAt);
-        Assert.Single(
+        var activationHistory = Assert.Single(
             await context.ContractStateHistories
                 .Where(item =>
                     item.Trigger
                     == ContractPaymentEventTypes.ContractActivated)
                 .ToListAsync());
+        Assert.Equal(_lawyerUserId, activationHistory.ActorUserId);
         Assert.Single(
             await context.OutboxMessages
                 .Where(item =>
@@ -235,19 +239,40 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         Assert.Empty(await context.PaymentTransactions.ToListAsync());
         Assert.Empty(await context.EscrowHolds.ToListAsync());
 
-        var repeatedEvaluation = await service.EvaluateActivationAsync(
-            contract.Id,
-            CancellationToken.None);
+        await ((IContractActivationEvaluator)service)
+            .EvaluateActivationAsync(
+                contract.Id,
+                _lawyerUserId,
+                CancellationToken.None);
 
-        Assert.Equal(
-            ContractStatus.Active.ToString(),
-            repeatedEvaluation.Status);
+        Assert.Equal(ContractStatus.Active, contract.Status);
         Assert.Single(
             await context.ContractStateHistories
                 .Where(item =>
                     item.Trigger
                     == ContractPaymentEventTypes.ContractActivated)
                 .ToListAsync());
+    }
+
+    [Fact]
+    public async Task EvaluateActivationAsync_StillRequiresAContractParticipant()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        context.Contracts.Add(contract);
+        await context.SaveChangesAsync();
+        var service = CreateService(
+            context,
+            new MutableCurrentUserService(Guid.NewGuid()));
+
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.EvaluateActivationAsync(
+                contract.Id,
+                CancellationToken.None));
     }
 
     [Fact]

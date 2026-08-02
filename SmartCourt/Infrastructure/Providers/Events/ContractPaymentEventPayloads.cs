@@ -41,6 +41,10 @@ public sealed record MilestoneChangeRequestEventPayload(
 public sealed record ContractPaymentAggregateEventPayload(
     Guid EntityId);
 
+public sealed record ContractActivationRequestedEventPayload(
+    Guid ContractId,
+    Guid RequestedByUserId);
+
 public sealed record ContractTerminatedEventPayload(
     Guid ContractId,
     Guid LegalCaseId,

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Chat.Integration;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Integration;
@@ -19,6 +20,28 @@ public sealed class ContractIntegrationOutboxHandlerTests
 {
     private static readonly DateTime UtcNow =
         new(2026, 8, 1, 10, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task ActivationHandler_DelegatesDurableRequestWithActor()
+    {
+        var contractId = Guid.NewGuid();
+        var actorUserId = Guid.NewGuid();
+        var evaluator = new RecordingActivationEvaluator();
+        var handler = new ContractActivationOutboxHandler(evaluator);
+        var message = CreateMessage(
+            Guid.NewGuid(),
+            ContractPaymentEventTypes.ContractActivationRequested,
+            "Contract",
+            contractId,
+            new ContractActivationRequestedEventPayload(
+                contractId,
+                actorUserId));
+
+        await handler.HandleAsync(message, CancellationToken.None);
+
+        Assert.Equal(contractId, evaluator.ContractId);
+        Assert.Equal(actorUserId, evaluator.ActorUserId);
+    }
 
     [Fact]
     public async Task ConversationHandler_MapsFundsReleaseToMilestone()
@@ -255,6 +278,24 @@ public sealed class ContractIntegrationOutboxHandlerTests
     private sealed record TestState(
         Contract Contract,
         Milestone Milestone);
+
+    private sealed class RecordingActivationEvaluator
+        : IContractActivationEvaluator
+    {
+        public Guid? ContractId { get; private set; }
+        public Guid? ActorUserId { get; private set; }
+
+        public Task EvaluateActivationAsync(
+            Guid contractId,
+            Guid? actorUserId,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ContractId = contractId;
+            ActorUserId = actorUserId;
+            return Task.CompletedTask;
+        }
+    }
 
     private sealed class RecordingConversationService
         : IContractConversationService

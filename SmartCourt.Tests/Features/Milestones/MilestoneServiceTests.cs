@@ -113,7 +113,19 @@ public sealed class MilestoneServiceTests
             lawyerApproval.Status);
         Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
         Assert.Single(await context.MilestoneStateHistories.ToListAsync());
-        Assert.Equal(1, contracts.EvaluateActivationCallCount);
+        Assert.Equal(0, contracts.EvaluateActivationCallCount);
+        var activationRequest = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.ContractActivationRequested,
+            activationRequest.EventType);
+        Assert.Equal(_contractId, activationRequest.AggregateId);
+        var payload = JsonSerializer.Deserialize<
+            ContractActivationRequestedEventPayload>(
+            activationRequest.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(payload);
+        Assert.Equal(_contractId, payload.ContractId);
+        Assert.Equal(_lawyerUserId, payload.RequestedByUserId);
     }
 
     [Fact]

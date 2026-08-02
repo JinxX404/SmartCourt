@@ -144,6 +144,9 @@ public static class DependencyInjection
         services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
         services.AddScoped<
             IOutboxEventHandler,
+            ContractActivationOutboxHandler>();
+        services.AddScoped<
+            IOutboxEventHandler,
             MilestoneSchedulingOutboxHandler>();
         services.AddScoped<
             IOutboxEventHandler,
@@ -178,6 +181,7 @@ public static class DependencyInjection
             IContractFileAccessService,
             ContractScopedFileAccessService>();
         services.AddScoped<IContractService, ContractService>();
+        services.AddScoped<IContractActivationEvaluator, ContractService>();
         services.AddScoped<IContractCompletionEvaluator, ContractService>();
         services.AddScoped<
             IContractTerminationRecoveryService,

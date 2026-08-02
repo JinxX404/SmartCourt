@@ -92,17 +92,21 @@ public sealed class MilestoneService(
                     "وافق طرفا العقد على شروط المرحلة.",
                     correlationId,
                     now));
+            await outboxWriter.EnqueueAsync(
+                new OutboxEvent(
+                    ContractPaymentEventTypes.ContractActivationRequested,
+                    1,
+                    new ContractActivationRequestedEventPayload(
+                        contract.Id,
+                        actorUserId),
+                    "Contract",
+                    contract.Id,
+                    correlationId),
+                cancellationToken);
         }
 
         milestone.UpdatedAt = now;
         await SaveChangesAsync(cancellationToken);
-
-        if (transitioned)
-        {
-            await contractService.EvaluateActivationAsync(
-                contract.Id,
-                cancellationToken);
-        }
 
         return ToActionResult(milestone, now);
     }
