@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
@@ -13,7 +12,6 @@ namespace SmartCourt.Features.Disputes;
 [ApiController]
 [Route("api")]
 [Authorize]
-[Produces("application/json")]
 public sealed class DisputesController(
     IDisputeService disputeService,
     IValidator<CreateDisputeRequest> createValidator,
@@ -25,7 +23,6 @@ public sealed class DisputesController(
     [HttpPost("disputes")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> CreateAsync(
         [FromBody] CreateDisputeRequest request,
         CancellationToken cancellationToken)
@@ -41,9 +38,6 @@ public sealed class DisputesController(
     [HttpGet("disputes")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PagedResult<DisputeDto>>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<DisputeDto>>>> ListAsync(
         [FromQuery] DisputeListQuery query,
         CancellationToken cancellationToken)
@@ -56,7 +50,6 @@ public sealed class DisputesController(
     [HttpGet("disputes/{disputeId:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> GetAsync(
         Guid disputeId,
         CancellationToken cancellationToken)
@@ -68,9 +61,6 @@ public sealed class DisputesController(
     [HttpPost("disputes/{disputeId:guid}/evidence")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<DisputeActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeActionResultDto>>>
         AddEvidenceAsync(
             Guid disputeId,
@@ -88,7 +78,6 @@ public sealed class DisputesController(
     [HttpPost("admin/disputes/{disputeId:guid}/assign")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> AssignAsync(
         Guid disputeId,
         [FromBody] AssignDisputeRequest request,
@@ -105,7 +94,6 @@ public sealed class DisputesController(
     [HttpPost("admin/disputes/{disputeId:guid}/review")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> StartReviewAsync(
         Guid disputeId,
         CancellationToken cancellationToken)
@@ -119,7 +107,6 @@ public sealed class DisputesController(
     [HttpPost("admin/disputes/{disputeId:guid}/resolve")]
     [SecurityRateLimit(RateLimitPolicyNames.AdminFinancialMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
-    [ProducesResponseType(typeof(ApiResponse<DisputeDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeDto>>> ResolveAsync(
         Guid disputeId,
         [FromBody] ResolveDisputeRequest request,
@@ -138,9 +125,6 @@ public sealed class DisputesController(
     [HttpPost("admin/disputes/{disputeId:guid}/close")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<DisputeActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<DisputeActionResultDto>>> CloseAsync(
         Guid disputeId,
         CancellationToken cancellationToken)
@@ -165,3 +149,4 @@ public sealed class DisputesController(
         }
     }
 }
+

@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
@@ -12,7 +11,6 @@ namespace SmartCourt.Features.Contracts;
 [ApiController]
 [Route("api/contracts")]
 [Authorize]
-[Produces("application/json")]
 public sealed class ContractsController(
     IContractService contractService,
     IContractQueryService contractQueryService,
@@ -21,9 +19,6 @@ public sealed class ContractsController(
     [HttpPost]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<ContractDetailDto>),
-        StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<ContractDetailDto>>> CreateAsync(
         [FromBody] CreateContractRequest request,
         CancellationToken cancellationToken)
@@ -40,9 +35,6 @@ public sealed class ContractsController(
     [HttpGet]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PagedResult<ContractSummaryDto>>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<ContractSummaryDto>>>>
         ListAsync(
             [FromQuery] ContractListQuery query,
@@ -59,9 +51,6 @@ public sealed class ContractsController(
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<ContractDetailDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<ContractDetailDto>>> GetAsync(
         Guid contractId,
         CancellationToken cancellationToken)
@@ -75,9 +64,6 @@ public sealed class ContractsController(
     [HttpPut("{contractId:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<ContractDetailDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<ContractDetailDto>>>
         UpdateAsync(
             Guid contractId,
@@ -99,9 +85,6 @@ public sealed class ContractsController(
     [HttpPost("{contractId:guid}/accept")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<ContractActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<ContractActionResultDto>>>
         AcceptAsync(
             Guid contractId,
@@ -121,9 +104,6 @@ public sealed class ContractsController(
     [HttpPost("{contractId:guid}/terminate")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<ContractDetailDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<ContractDetailDto>>>
         TerminateAsync(
             Guid contractId,
@@ -146,9 +126,6 @@ public sealed class ContractsController(
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PagedResult<ContractStateHistoryDto>>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<PagedResult<ContractStateHistoryDto>>>>
         GetStateHistoryAsync(
@@ -185,3 +162,4 @@ public sealed class ContractsController(
         return request.IfMatch;
     }
 }
+

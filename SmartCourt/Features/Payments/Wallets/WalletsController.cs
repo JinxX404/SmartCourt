@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
@@ -12,7 +11,6 @@ namespace SmartCourt.Features.Payments;
 [ApiController]
 [Route("api/wallet")]
 [Authorize(Roles = "Lawyer")]
-[Produces("application/json")]
 public sealed class WalletsController(
     IWalletService walletService,
     IValidator<CreateWithdrawalRequest> withdrawalValidator)
@@ -20,9 +18,6 @@ public sealed class WalletsController(
 {
     [HttpGet]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialQuery)]
-    [ProducesResponseType(
-        typeof(ApiResponse<WalletDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<WalletDto>>> GetAsync(
         CancellationToken cancellationToken)
     {
@@ -32,9 +27,6 @@ public sealed class WalletsController(
 
     [HttpPost("withdrawals")]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PaymentActionResultDto>>>
         WithdrawAsync(
             [FromBody] CreateWithdrawalRequest request,
@@ -62,3 +54,4 @@ public sealed class WalletsController(
         return Ok(ApiResponse<PaymentActionResultDto>.Ok(result));
     }
 }
+

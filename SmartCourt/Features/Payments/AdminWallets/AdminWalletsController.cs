@@ -1,6 +1,5 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
@@ -12,7 +11,6 @@ namespace SmartCourt.Features.Payments;
 [ApiController]
 [Route("api/admin/wallets")]
 [Authorize(Roles = "SuperAdministrator")]
-[Produces("application/json")]
 public sealed class AdminWalletsController(
     IAdminWalletAdjustmentService adjustmentService,
     IValidator<AdminWalletAdjustmentRequest> adjustmentValidator)
@@ -20,9 +18,6 @@ public sealed class AdminWalletsController(
 {
     [HttpPost("{lawyerUserId:guid}/adjustments")]
     [SecurityRateLimit(RateLimitPolicyNames.AdminFinancialMutation)]
-    [ProducesResponseType(
-        typeof(ApiResponse<AdminWalletAdjustmentDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<AdminWalletAdjustmentDto>>>
         AdjustAsync(
             Guid lawyerUserId,
@@ -52,3 +47,4 @@ public sealed class AdminWalletsController(
         return Ok(ApiResponse<AdminWalletAdjustmentDto>.Ok(result));
     }
 }
+

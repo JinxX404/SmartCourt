@@ -7,14 +7,12 @@ using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Milestones.DTOs;
-using SmartCourt.Features.Contracts.Validators;
 
 namespace SmartCourt.Features.Milestones;
 
 [ApiController]
 [Route("api")]
 [Authorize]
-[Produces("application/json")]
 public sealed class MilestonesController(
     IMilestoneService milestoneService,
     IMilestoneDraftService milestoneDraftService,
@@ -24,9 +22,6 @@ public sealed class MilestonesController(
     [HttpPost("contracts/{contractId:guid}/milestones")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneDto>),
-        StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>> AddAsync(
         Guid contractId,
         [FromBody] AddMilestoneRequest request,
@@ -46,9 +41,6 @@ public sealed class MilestonesController(
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(
         Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<IReadOnlyList<MilestoneDto>>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<IReadOnlyList<MilestoneDto>>>>
         ListAsync(
@@ -66,9 +58,6 @@ public sealed class MilestonesController(
         "contracts/{contractId:guid}/milestones/{milestoneId:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>>
         UpdateAsync(
             Guid contractId,
@@ -92,9 +81,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/approve")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         ApproveAsync(
@@ -115,9 +101,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/ready-for-funding")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         MarkReadyForFundingAsync(
@@ -138,9 +121,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/submit")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>> SubmitAsync(
         Guid milestoneId,
         [FromBody] SubmitMilestoneRequest request,
@@ -156,9 +136,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/accept")]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(Roles = "Client")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>> AcceptAsync(
         Guid milestoneId,
         CancellationToken cancellationToken)
@@ -172,9 +149,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/request-changes")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>>
         RequestChangesAsync(
             Guid milestoneId,
@@ -191,9 +165,6 @@ public sealed class MilestonesController(
     [HttpPost("milestones/{milestoneId:guid}/change-requests")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status201Created)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         CreateChangeRequestAsync(
@@ -218,9 +189,6 @@ public sealed class MilestonesController(
     [HttpPost("change-requests/{changeRequestId:guid}/approve")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         ApproveChangeRequestAsync(
@@ -241,9 +209,6 @@ public sealed class MilestonesController(
     [HttpPost("change-requests/{changeRequestId:guid}/reject")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         RejectChangeRequestAsync(
@@ -266,9 +231,6 @@ public sealed class MilestonesController(
     [HttpPost("change-requests/{changeRequestId:guid}/cancel")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Client,Lawyer")]
-    [ProducesResponseType(
-        typeof(ApiResponse<MilestoneActionResultDto>),
-        StatusCodes.Status200OK)]
     public async Task<
         ActionResult<ApiResponse<MilestoneActionResultDto>>>
         CancelChangeRequestAsync(
@@ -307,3 +269,4 @@ public sealed class MilestonesController(
         return request.IfMatch;
     }
 }
+

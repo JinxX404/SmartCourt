@@ -17,7 +17,6 @@ namespace SmartCourt.Features.Payments;
 [ApiController]
 [Route("api")]
 [Authorize]
-[Produces("application/json")]
 public sealed class PaymentsController(
     IPaymentEscrowService paymentEscrowService,
     IPaymentQueryService paymentQueryService,
@@ -33,9 +32,6 @@ public sealed class PaymentsController(
     [HttpPost("milestones/{milestoneId:guid}/fund")]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(Roles = "Client")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PaymentDto>>> FundAsync(
         Guid milestoneId,
         [FromBody] FundMilestoneRequest request,
@@ -55,9 +51,6 @@ public sealed class PaymentsController(
     [Authorize(
         Roles =
             "Client,Lawyer,FinanceAdministrator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentHistoryDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PaymentHistoryDto>>>
         GetContractPaymentsAsync(
             Guid contractId,
@@ -75,9 +68,6 @@ public sealed class PaymentsController(
     [Authorize(
         Roles =
             "Client,Lawyer,FinanceAdministrator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PaymentDto>>>
         GetMilestonePaymentAsync(
             Guid milestoneId,
@@ -94,9 +84,6 @@ public sealed class PaymentsController(
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(
         Roles = "FinanceAdministrator,SuperAdministrator")]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentDto>),
-        StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PaymentDto>>> RetryAsync(
         Guid paymentTransactionId,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
@@ -118,9 +105,6 @@ public sealed class PaymentsController(
     [HttpPost("payments/webhook")]
     [SecurityRateLimit(RateLimitPolicyNames.PaymentWebhook)]
     [AllowAnonymous]
-    [ProducesResponseType(
-        typeof(ApiResponse<PaymentActionResultDto>),
-        StatusCodes.Status200OK)]
     [ProducesResponseType(
         typeof(ApiResponse<string>),
         StatusCodes.Status413PayloadTooLarge)]
@@ -264,3 +248,4 @@ public sealed class PaymentsController(
         }
     }
 }
+
