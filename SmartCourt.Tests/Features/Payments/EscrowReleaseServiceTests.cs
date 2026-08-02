@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Features.Contracts.Entities;
@@ -260,6 +261,38 @@ public sealed class EscrowReleaseServiceTests
     }
 
     [Fact]
+    public async Task ReleaseProviderCall_HasNoActiveDatabaseTransaction()
+    {
+        await using var connection =
+            new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var context = CreateSqliteContext(connection);
+        var createScript = context.Database.GenerateCreateScript()
+            .Replace(
+                "\"RowVersion\" BLOB NOT NULL",
+                "\"RowVersion\" BLOB NOT NULL DEFAULT (randomblob(8))",
+                StringComparison.Ordinal);
+        await context.Database.ExecuteSqlRawAsync(createScript);
+        await context.Database.ExecuteSqlRawAsync(
+            "PRAGMA foreign_keys = OFF;");
+        var state = await AddAcceptedHoldAsync(
+            context,
+            holdExpiresAt: _utcNow);
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded,
+            context);
+
+        var result = await CreateService(context, provider)
+            .ReleaseExpiredHoldAsync(
+                state.Hold.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.True(provider.CallObservedWithoutTransaction);
+        Assert.True(provider.AttemptObservedBeforeCall);
+    }
+
+    [Fact]
     public async Task ConfirmedFailures_BackOffThenRequireManualAction()
     {
         var timeProvider = new MutableTimeProvider(_utcNow);
@@ -434,6 +467,17 @@ public sealed class EscrowReleaseServiceTests
             timeProvider ?? new FixedTimeProvider(_utcNow));
     }
 
+    private ApplicationDbContext CreateSqliteContext(
+        SqliteConnection connection)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        return new ApplicationDbContext(
+            options,
+            new FixedTimeProvider(_utcNow));
+    }
+
     private static decimal CurrentBalance(EscrowAccount account)
     {
         return account.TotalDeposited
@@ -448,33 +492,56 @@ public sealed class EscrowReleaseServiceTests
         EscrowAccount Account,
         LawyerWallet Wallet);
 
-    private sealed class TestPaymentProvider(
-        ProviderOperationOutcome outcome) : IPaymentProvider
+    private sealed class TestPaymentProvider : IPaymentProvider
     {
+        private readonly ProviderOperationOutcome _outcome;
+        private readonly ApplicationDbContext? _context;
+
+        public TestPaymentProvider(
+            ProviderOperationOutcome outcome,
+            ApplicationDbContext? context = null)
+        {
+            _outcome = outcome;
+            _context = context;
+        }
+
         public int ReleaseCalls { get; private set; }
         public List<string> ReleaseIdempotencyKeys { get; } = [];
+        public bool CallObservedWithoutTransaction { get; private set; }
+        public bool AttemptObservedBeforeCall { get; private set; }
 
-        public Task<ProviderResult> ReleaseAsync(
+        public async Task<ProviderResult> ReleaseAsync(
             ProviderReleaseRequest request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ReleaseCalls++;
             ReleaseIdempotencyKeys.Add(request.ProviderIdempotencyKey);
-            return Task.FromResult(
-                new ProviderResult(
-                    request.Amount,
-                    request.Currency,
-                    request.BusinessId,
-                    request.ProviderIdempotencyKey,
-                    request.CorrelationId,
-                    outcome,
-                    outcome == ProviderOperationOutcome.Succeeded
-                        ? $"release-{Guid.NewGuid():N}"
-                        : null,
-                    outcome == ProviderOperationOutcome.Succeeded
-                        ? null
-                        : "تعذر تنفيذ عملية التحرير."));
+            if (_context is not null)
+            {
+                CallObservedWithoutTransaction =
+                    _context.Database.CurrentTransaction is null;
+                AttemptObservedBeforeCall =
+                    await _context.PaymentTransactions
+                        .AsNoTracking()
+                        .AnyAsync(
+                            item => item.Id == request.CorrelationId,
+                            cancellationToken);
+            }
+
+            return new ProviderResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId,
+                _outcome,
+                _outcome == ProviderOperationOutcome.Succeeded
+                    ? $"release-{Guid.NewGuid():N}"
+                    : null,
+                _outcome == ProviderOperationOutcome.Succeeded
+                    ? null
+                    : "تعذر تنفيذ عملية التحرير.");
         }
 
         public Task<ProviderResult> DepositAsync(

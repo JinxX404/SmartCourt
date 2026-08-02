@@ -19,6 +19,7 @@ using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Features.Payments.Settlement;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Persistence;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
@@ -427,8 +428,10 @@ public sealed class DisputeService(
         }
 
         var pendingTransactionIds = new List<Guid>();
-        await using var transaction = await BeginSerializableAsync(
-            cancellationToken);
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
         var dispute = await GetForModeratorMutationAsync(
             disputeId,
             actorUserId,
@@ -489,16 +492,6 @@ public sealed class DisputeService(
                 $"dispute-refund-{dispute.Id:N}",
                 now);
             dbContext.PaymentTransactions.Add(refundTransaction);
-            var result = await ExecuteRefundAsync(
-                refundTransaction,
-                hold,
-                request.Summary,
-                cancellationToken);
-            ApplyProviderResult(refundTransaction, result, now);
-            if (refundTransaction.Status != PaymentTransactionStatus.Completed)
-            {
-                pendingTransactionIds.Add(refundTransaction.Id);
-            }
         }
 
         if (breakdown.LawyerGrossAllocation > 0m)
@@ -511,15 +504,6 @@ public sealed class DisputeService(
                 $"dispute-release-{dispute.Id:N}",
                 now);
             dbContext.PaymentTransactions.Add(releaseTransaction);
-            var result = await ExecuteReleaseAsync(
-                releaseTransaction,
-                hold,
-                cancellationToken);
-            ApplyProviderResult(releaseTransaction, result, now);
-            if (releaseTransaction.Status != PaymentTransactionStatus.Completed)
-            {
-                pendingTransactionIds.Add(releaseTransaction.Id);
-            }
         }
 
         DisputeTransitionGuard.EnsureCanTransition(
@@ -557,6 +541,46 @@ public sealed class DisputeService(
             correlationId,
             cancellationToken);
 
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAndCloseAsync(cancellationToken);
+
+        if (refundTransaction is not null)
+        {
+            var result = await ExecuteRefundAsync(
+                refundTransaction,
+                hold,
+                request.Summary,
+                cancellationToken);
+            await transaction.BeginAsync(cancellationToken);
+            ApplyProviderResult(refundTransaction, result, now);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
+            if (refundTransaction.Status
+                != PaymentTransactionStatus.Completed)
+            {
+                pendingTransactionIds.Add(refundTransaction.Id);
+            }
+        }
+
+        if (releaseTransaction is not null)
+        {
+            var result = await ExecuteReleaseAsync(
+                releaseTransaction,
+                hold,
+                cancellationToken);
+            await transaction.BeginAsync(cancellationToken);
+            ApplyProviderResult(releaseTransaction, result, now);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
+            if (releaseTransaction.Status
+                != PaymentTransactionStatus.Completed)
+            {
+                pendingTransactionIds.Add(releaseTransaction.Id);
+            }
+        }
+
+        await transaction.BeginAsync(cancellationToken);
+
         if (pendingTransactionIds.Count == 0)
         {
             await FinalizeSettlementAsync(
@@ -586,7 +610,7 @@ public sealed class DisputeService(
                 cancellationToken);
         }
 
-        await CommitAsync(transaction, cancellationToken);
+        await transaction.CommitAndCloseAsync(cancellationToken);
         foreach (var paymentTransactionId in pendingTransactionIds)
         {
             await TryScheduleRecoveryAsync(
@@ -706,14 +730,16 @@ public sealed class DisputeService(
         Guid disputeId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await BeginSerializableAsync(
-            cancellationToken);
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
         var dispute = await dbContext.Disputes.SingleOrDefaultAsync(
             item => item.Id == disputeId,
             cancellationToken);
         if (dispute is null || dispute.Status != DisputeStatus.Resolved)
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return false;
         }
 
@@ -734,7 +760,7 @@ public sealed class DisputeService(
         if (hold.Status != EscrowHoldStatus.Frozen
             || milestone.Status != MilestoneStatus.Disputed)
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return false;
         }
 
@@ -758,6 +784,7 @@ public sealed class DisputeService(
             resolution.ClientRefundAmount,
             now,
             pendingTransactionIds,
+            transaction,
             cancellationToken);
         var releaseGrossAmount = resolution.LawyerReleaseAmount
             + resolution.PlatformFeeAmount;
@@ -769,13 +796,14 @@ public sealed class DisputeService(
             releaseGrossAmount,
             now,
             pendingTransactionIds,
+            transaction,
             cancellationToken);
 
         if ((resolution.ClientRefundAmount > 0m && refundTransaction is null)
             || (releaseGrossAmount > 0m && releaseTransaction is null))
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             foreach (var paymentTransactionId in pendingTransactionIds)
             {
                 await TryScheduleRecoveryAsync(
@@ -821,7 +849,7 @@ public sealed class DisputeService(
                 cancellationToken);
         }
 
-        await CommitAsync(transaction, cancellationToken);
+        await transaction.CommitAndCloseAsync(cancellationToken);
         await completionEvaluator.EvaluateCompletionAsync(
             contract.Id,
             cancellationToken);
@@ -836,6 +864,7 @@ public sealed class DisputeService(
         decimal amount,
         DateTime now,
         ICollection<Guid> pendingTransactionIds,
+        SerializableOperationTransaction transaction,
         CancellationToken cancellationToken)
     {
         if (amount == 0m)
@@ -879,6 +908,8 @@ public sealed class DisputeService(
             $"{keyPrefix}-{attemptNumber}",
             now);
         dbContext.PaymentTransactions.Add(retry);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAndCloseAsync(cancellationToken);
         var result = operationType == PaymentOperationType.Refund
             ? await ExecuteRefundAsync(
                 retry,
@@ -886,6 +917,7 @@ public sealed class DisputeService(
                 resolution.Summary,
                 cancellationToken)
             : await ExecuteReleaseAsync(retry, hold, cancellationToken);
+        await transaction.BeginAsync(cancellationToken);
         ApplyProviderResult(retry, result, now);
         if (retry.Status != PaymentTransactionStatus.Completed)
         {

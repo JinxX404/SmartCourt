@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Features.Payments;
@@ -73,6 +74,39 @@ public sealed class ContractTerminationSettlementServiceTests
         Assert.Equal(1, provider.RefundCalls);
         Assert.Single(await context.EscrowLedgerEntries.ToListAsync());
         Assert.Single(await context.PaymentTransactions.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RefundProviderCall_HasNoActiveDatabaseTransaction()
+    {
+        await using var connection =
+            new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var context = CreateSqliteContext(connection);
+        var createScript = context.Database.GenerateCreateScript()
+            .Replace(
+                "\"RowVersion\" BLOB NOT NULL",
+                "\"RowVersion\" BLOB NOT NULL DEFAULT (randomblob(8))",
+                StringComparison.Ordinal);
+        await context.Database.ExecuteSqlRawAsync(createScript);
+        await context.Database.ExecuteSqlRawAsync(
+            "PRAGMA foreign_keys = OFF;");
+        var state = await AddFundedStateAsync(context);
+        var provider = new TestPaymentProvider(
+            context,
+            ProviderOperationOutcome.Succeeded);
+
+        var result = await CreateService(context, provider)
+            .SettleForTerminationAsync(
+                state.Contract.Id,
+                state.Contract.ClientUserId,
+                "إنهاء العقد ورد التمويل.",
+                Guid.NewGuid(),
+                CancellationToken.None);
+
+        Assert.True(result.Completed);
+        Assert.True(provider.CallObservedWithoutTransaction);
+        Assert.True(provider.AttemptObservedBeforeCall);
     }
 
     [Fact]
@@ -261,6 +295,17 @@ public sealed class ContractTerminationSettlementServiceTests
             new FixedTimeProvider(_utcNow));
     }
 
+    private ApplicationDbContext CreateSqliteContext(
+        SqliteConnection connection)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        return new ApplicationDbContext(
+            options,
+            new FixedTimeProvider(_utcNow));
+    }
+
     private sealed record FundedState(
         Contract Contract,
         Milestone Milestone,
@@ -268,35 +313,61 @@ public sealed class ContractTerminationSettlementServiceTests
         EscrowHold Hold,
         LawyerWallet Wallet);
 
-    private sealed class TestPaymentProvider(
-        params ProviderOperationOutcome[] outcomes) : IPaymentProvider
+    private sealed class TestPaymentProvider : IPaymentProvider
     {
-        private readonly Queue<ProviderOperationOutcome> _outcomes =
-            new(outcomes);
+        private readonly Queue<ProviderOperationOutcome> _outcomes;
+        private readonly ApplicationDbContext? _context;
+
+        public TestPaymentProvider(
+            params ProviderOperationOutcome[] outcomes)
+            : this(null, outcomes)
+        {
+        }
+
+        public TestPaymentProvider(
+            ApplicationDbContext? context,
+            params ProviderOperationOutcome[] outcomes)
+        {
+            _context = context;
+            _outcomes = new Queue<ProviderOperationOutcome>(outcomes);
+        }
 
         public int RefundCalls { get; private set; }
+        public bool CallObservedWithoutTransaction { get; private set; }
+        public bool AttemptObservedBeforeCall { get; private set; }
 
-        public Task<ProviderResult> RefundAsync(
+        public async Task<ProviderResult> RefundAsync(
             ProviderRefundRequest request,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             RefundCalls++;
+            if (_context is not null)
+            {
+                CallObservedWithoutTransaction =
+                    _context.Database.CurrentTransaction is null;
+                AttemptObservedBeforeCall =
+                    await _context.PaymentTransactions
+                        .AsNoTracking()
+                        .AnyAsync(
+                            item => item.Id == request.CorrelationId,
+                            cancellationToken);
+            }
+
             var outcome = _outcomes.Dequeue();
-            return Task.FromResult(
-                new ProviderResult(
-                    request.Amount,
-                    request.Currency,
-                    request.BusinessId,
-                    request.ProviderIdempotencyKey,
-                    request.CorrelationId,
-                    outcome,
-                    outcome == ProviderOperationOutcome.Succeeded
-                        ? $"refund-{Guid.NewGuid():N}"
-                        : null,
-                    outcome == ProviderOperationOutcome.Succeeded
-                        ? null
-                        : "تعذر تنفيذ عملية رد التمويل."));
+            return new ProviderResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId,
+                outcome,
+                outcome == ProviderOperationOutcome.Succeeded
+                    ? $"refund-{Guid.NewGuid():N}"
+                    : null,
+                outcome == ProviderOperationOutcome.Succeeded
+                    ? null
+                    : "تعذر تنفيذ عملية رد التمويل.");
         }
 
         public Task<ProviderResult> DepositAsync(

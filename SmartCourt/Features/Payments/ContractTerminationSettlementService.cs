@@ -1,4 +1,3 @@
-using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,6 +12,7 @@ using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Persistence;
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Payments;
@@ -45,11 +45,10 @@ public sealed class ContractTerminationSettlementService(
                 "تعذر بدء تسوية إنهاء العقد لأن بيانات العقد أو المستخدم غير مكتملة.");
         }
 
-        await using var transaction = dbContext.Database.IsRelational()
-            ? await dbContext.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable,
-                cancellationToken)
-            : null;
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
         var contract = await dbContext.Contracts.SingleOrDefaultAsync(
             item => item.Id == contractId,
             cancellationToken)
@@ -73,7 +72,7 @@ public sealed class ContractTerminationSettlementService(
                 cancellationToken);
         if (hasFundingInProgress)
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return Pending();
         }
 
@@ -83,7 +82,7 @@ public sealed class ContractTerminationSettlementService(
             .ToArray();
         if (unsettledHolds.Length == 0)
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return Completed();
         }
 
@@ -92,7 +91,7 @@ public sealed class ContractTerminationSettlementService(
                 !milestoneById.TryGetValue(hold.MilestoneId, out var milestone)
                 || !IsEligibleUnstartedHold(hold, milestone)))
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return Pending();
         }
 
@@ -110,7 +109,7 @@ public sealed class ContractTerminationSettlementService(
             cancellationToken);
         if (hasSubmission || hasActiveDispute)
         {
-            await CommitAsync(transaction, cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             return Pending();
         }
 
@@ -125,11 +124,12 @@ public sealed class ContractTerminationSettlementService(
                 actorUserId,
                 reason,
                 correlationId,
+                transaction,
                 cancellationToken);
             if (!refunded)
             {
                 await dbContext.SaveChangesAsync(cancellationToken);
-                await CommitAsync(transaction, cancellationToken);
+                await transaction.CommitAndCloseAsync(cancellationToken);
                 return Pending();
             }
 
@@ -137,7 +137,7 @@ public sealed class ContractTerminationSettlementService(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
-        await CommitAsync(transaction, cancellationToken);
+        await transaction.CommitAndCloseAsync(cancellationToken);
         logger.LogInformation(
             "Refunded {Amount} EGP from contract {ContractId} before termination.",
             grossRefunded,
@@ -157,6 +157,7 @@ public sealed class ContractTerminationSettlementService(
         Guid actorUserId,
         string reason,
         Guid correlationId,
+        SerializableOperationTransaction transaction,
         CancellationToken cancellationToken)
     {
         var account = await dbContext.EscrowAccounts.SingleOrDefaultAsync(
@@ -274,6 +275,8 @@ public sealed class ContractTerminationSettlementService(
                 refundTransaction.IdempotencyKey,
                 refundTransaction.Id,
                 reason);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAndCloseAsync(cancellationToken);
             try
             {
                 providerResult = await paymentProvider.RefundAsync(
@@ -287,6 +290,7 @@ public sealed class ContractTerminationSettlementService(
             }
             catch (Exception exception)
             {
+                await transaction.BeginAsync(cancellationToken);
                 refundTransaction.Status =
                     PaymentTransactionStatus.Processing;
                 refundTransaction.FailureReason =
@@ -299,6 +303,7 @@ public sealed class ContractTerminationSettlementService(
                 return false;
             }
 
+            await transaction.BeginAsync(cancellationToken);
             if (!ProviderResultMatches(providerResult, providerRequest))
             {
                 refundTransaction.Status =
@@ -494,17 +499,6 @@ public sealed class ContractTerminationSettlementService(
                 request.ProviderIdempotencyKey,
                 StringComparison.Ordinal)
             && result.CorrelationId == request.CorrelationId;
-    }
-
-    private static async Task CommitAsync(
-        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?
-            transaction,
-        CancellationToken cancellationToken)
-    {
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
-        }
     }
 
     private static ContractTerminationSettlement Pending()

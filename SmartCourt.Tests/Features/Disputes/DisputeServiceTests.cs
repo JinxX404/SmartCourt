@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -59,7 +60,13 @@ public sealed class DisputeServiceTests
     [Fact]
     public async Task ResolveAsync_FullRelease_ReconcilesLedgerWalletAndImmutableResolution()
     {
-        var state = await CreateFundedStateAsync(MilestoneStatus.Disputed);
+        await using var connection =
+            new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var sqliteContext = await CreateSqliteContextAsync(connection);
+        var state = await CreateFundedStateAsync(
+            MilestoneStatus.Disputed,
+            sqliteContext);
         await using var context = state.Context;
         state.Contract.Status = ContractStatus.SuspendedByDispute;
         state.Hold.Status = EscrowHoldStatus.Frozen;
@@ -91,7 +98,12 @@ public sealed class DisputeServiceTests
             true,
             false,
             false);
-        var service = CreateService(context, moderatorId, eligibility);
+        var provider = new SuccessfulProvider(context);
+        var service = CreateService(
+            context,
+            moderatorId,
+            eligibility,
+            provider);
 
         var result = await service.ResolveAsync(
             dispute.Id,
@@ -112,12 +124,20 @@ public sealed class DisputeServiceTests
         Assert.Equal(950m, state.Wallet.AvailableBalance);
         Assert.Single(await context.DisputeResolutions.ToListAsync());
         Assert.Equal(2, await context.EscrowLedgerEntries.CountAsync());
+        Assert.True(provider.CallsObservedWithoutTransaction);
+        Assert.True(provider.AttemptsObservedBeforeCall);
     }
 
     [Fact]
     public async Task RecoverPendingSettlementsAsync_RetriesFailedAttemptAndFinalizesOnce()
     {
-        var state = await CreateFundedStateAsync(MilestoneStatus.Disputed);
+        await using var connection =
+            new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var sqliteContext = await CreateSqliteContextAsync(connection);
+        var state = await CreateFundedStateAsync(
+            MilestoneStatus.Disputed,
+            sqliteContext);
         await using var context = state.Context;
         state.Contract.Status = ContractStatus.SuspendedByDispute;
         state.Hold.Status = EscrowHoldStatus.Frozen;
@@ -149,7 +169,7 @@ public sealed class DisputeServiceTests
             true,
             false,
             false);
-        var provider = new FailThenSucceedReleaseProvider();
+        var provider = new FailThenSucceedReleaseProvider(context);
         var evaluator = new RecordingCompletionEvaluator();
         var service = CreateService(
             context,
@@ -187,6 +207,8 @@ public sealed class DisputeServiceTests
             item.OperationType == PaymentOperationType.Release));
         Assert.Equal(2, await context.EscrowLedgerEntries.CountAsync());
         Assert.Equal(1, evaluator.CallCount);
+        Assert.True(provider.CallsObservedWithoutTransaction);
+        Assert.True(provider.AttemptsObservedBeforeCall);
     }
 
     private static DisputeService CreateService(
@@ -216,16 +238,20 @@ public sealed class DisputeServiceTests
     }
 
     private static async Task<TestState> CreateFundedStateAsync(
-        MilestoneStatus milestoneStatus)
+        MilestoneStatus milestoneStatus,
+        ApplicationDbContext? context = null)
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .ConfigureWarnings(warnings => warnings.Ignore(
-                InMemoryEventId.TransactionIgnoredWarning))
-            .Options;
-        var context = new ApplicationDbContext(
-            options,
-            new FixedTimeProvider(Now));
+        if (context is null)
+        {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(Guid.NewGuid().ToString())
+                .ConfigureWarnings(warnings => warnings.Ignore(
+                    InMemoryEventId.TransactionIgnoredWarning))
+                .Options;
+            context = new ApplicationDbContext(
+                options,
+                new FixedTimeProvider(Now));
+        }
         var clientUserId = Guid.NewGuid();
         var lawyerUserId = Guid.NewGuid();
         var contract = new Contract(
@@ -309,6 +335,26 @@ public sealed class DisputeServiceTests
             wallet);
     }
 
+    private static async Task<ApplicationDbContext> CreateSqliteContextAsync(
+        SqliteConnection connection)
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var context = new ApplicationDbContext(
+            options,
+            new FixedTimeProvider(Now));
+        var createScript = context.Database.GenerateCreateScript()
+            .Replace(
+                "\"RowVersion\" BLOB NOT NULL",
+                "\"RowVersion\" BLOB NOT NULL DEFAULT (randomblob(8))",
+                StringComparison.Ordinal);
+        await context.Database.ExecuteSqlRawAsync(createScript);
+        await context.Database.ExecuteSqlRawAsync(
+            "PRAGMA foreign_keys = OFF;");
+        return context;
+    }
+
     private sealed record TestState(
         ApplicationDbContext Context,
         Guid ClientUserId,
@@ -361,19 +407,29 @@ public sealed class DisputeServiceTests
             => Task.FromResult<ContractFileReadAccess?>(null);
     }
 
-    private sealed class SuccessfulProvider : IPaymentProvider
+    private sealed class SuccessfulProvider(
+        ApplicationDbContext? context = null) : IPaymentProvider
     {
+        public bool CallsObservedWithoutTransaction { get; private set; } = true;
+        public bool AttemptsObservedBeforeCall { get; private set; } = true;
+
         public Task<ProviderResult> DepositAsync(ProviderDepositRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
         public Task<ProviderResult> RetryDepositAsync(ProviderDepositRetryRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<ProviderResult> ReleaseAsync(ProviderReleaseRequest request, CancellationToken cancellationToken)
-            => Task.FromResult(Success(request, "release"));
+        public async Task<ProviderResult> ReleaseAsync(ProviderReleaseRequest request, CancellationToken cancellationToken)
+        {
+            await ObserveCallAsync(request.CorrelationId, cancellationToken);
+            return Success(request, "release");
+        }
 
-        public Task<ProviderResult> RefundAsync(ProviderRefundRequest request, CancellationToken cancellationToken)
-            => Task.FromResult(Success(request, "refund"));
+        public async Task<ProviderResult> RefundAsync(ProviderRefundRequest request, CancellationToken cancellationToken)
+        {
+            await ObserveCallAsync(request.CorrelationId, cancellationToken);
+            return Success(request, "refund");
+        }
 
         public Task<ProviderResult> WithdrawAsync(ProviderWithdrawalRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
@@ -388,11 +444,33 @@ public sealed class DisputeServiceTests
                 ProviderOperationOutcome.Succeeded,
                 $"provider-{operation}-{Guid.NewGuid():N}",
                 null);
+
+        private async Task ObserveCallAsync(
+            Guid paymentTransactionId,
+            CancellationToken cancellationToken)
+        {
+            if (context is null)
+            {
+                return;
+            }
+
+            CallsObservedWithoutTransaction &=
+                context.Database.CurrentTransaction is null;
+            AttemptsObservedBeforeCall &=
+                await context.PaymentTransactions
+                    .AsNoTracking()
+                    .AnyAsync(
+                        item => item.Id == paymentTransactionId,
+                        cancellationToken);
+        }
     }
 
-    private sealed class FailThenSucceedReleaseProvider : IPaymentProvider
+    private sealed class FailThenSucceedReleaseProvider(
+        ApplicationDbContext? context = null) : IPaymentProvider
     {
         private int _releaseCalls;
+        public bool CallsObservedWithoutTransaction { get; private set; } = true;
+        public bool AttemptsObservedBeforeCall { get; private set; } = true;
 
         public Task<ProviderResult> DepositAsync(ProviderDepositRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
@@ -400,10 +478,22 @@ public sealed class DisputeServiceTests
         public Task<ProviderResult> RetryDepositAsync(ProviderDepositRetryRequest request, CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<ProviderResult> ReleaseAsync(ProviderReleaseRequest request, CancellationToken cancellationToken)
+        public async Task<ProviderResult> ReleaseAsync(ProviderReleaseRequest request, CancellationToken cancellationToken)
         {
             _releaseCalls++;
-            return Task.FromResult(new ProviderResult(
+            if (context is not null)
+            {
+                CallsObservedWithoutTransaction &=
+                    context.Database.CurrentTransaction is null;
+                AttemptsObservedBeforeCall &=
+                    await context.PaymentTransactions
+                        .AsNoTracking()
+                        .AnyAsync(
+                            item => item.Id == request.CorrelationId,
+                            cancellationToken);
+            }
+
+            return new ProviderResult(
                 request.Amount,
                 request.Currency,
                 request.BusinessId,
@@ -413,7 +503,7 @@ public sealed class DisputeServiceTests
                     ? ProviderOperationOutcome.Failed
                     : ProviderOperationOutcome.Succeeded,
                 _releaseCalls == 1 ? null : $"provider-release-{Guid.NewGuid():N}",
-                _releaseCalls == 1 ? "رفض مزود الدفع محاولة التحرير الأولى." : null));
+                _releaseCalls == 1 ? "رفض مزود الدفع محاولة التحرير الأولى." : null);
         }
 
         public Task<ProviderResult> RefundAsync(ProviderRefundRequest request, CancellationToken cancellationToken)

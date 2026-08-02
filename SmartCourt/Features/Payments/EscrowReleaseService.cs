@@ -1,4 +1,3 @@
-using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -12,6 +11,7 @@ using SmartCourt.Features.Payments.Domain;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Persistence;
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
@@ -42,11 +42,10 @@ public sealed class EscrowReleaseService(
             return NoOp("InvalidEscrowHoldId", escrowHoldId);
         }
 
-        await using var transaction = dbContext.Database.IsRelational()
-            ? await dbContext.Database.BeginTransactionAsync(
-                IsolationLevel.Serializable,
-                cancellationToken)
-            : null;
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
         var hold = await dbContext.EscrowHolds.SingleOrDefaultAsync(
             item => item.Id == escrowHoldId,
             cancellationToken);
@@ -237,6 +236,9 @@ public sealed class EscrowReleaseService(
                 hold.Id,
                 releaseTransaction.IdempotencyKey,
                 releaseTransaction.Id);
+            await SaveAttemptAndCommitAsync(
+                transaction,
+                cancellationToken);
             try
             {
                 providerResult = await paymentProvider.ReleaseAsync(
@@ -250,6 +252,7 @@ public sealed class EscrowReleaseService(
             }
             catch (Exception exception)
             {
+                await transaction.BeginAsync(cancellationToken);
                 releaseTransaction.FailureReason =
                     "تعذر التأكد من نتيجة تحرير حجز الضمان لدى مزود الدفع.";
                 releaseTransaction.UpdatedAt = now;
@@ -260,6 +263,8 @@ public sealed class EscrowReleaseService(
                     "تعذر التأكد من نتيجة تحرير حجز الضمان. ستظل الأموال محجوزة لحين إعادة المحاولة.",
                     exception);
             }
+
+            await transaction.BeginAsync(cancellationToken);
 
             if (!ProviderResultMatches(
                     providerResult,
@@ -442,10 +447,7 @@ public sealed class EscrowReleaseService(
         try
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            if (transaction is not null)
-            {
-                await transaction.CommitAsync(cancellationToken);
-            }
+            await transaction.CommitAndCloseAsync(cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -472,15 +474,11 @@ public sealed class EscrowReleaseService(
     }
 
     private async Task SaveAttemptAndCommitAsync(
-        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?
-            transaction,
+        SerializableOperationTransaction transaction,
         CancellationToken cancellationToken)
     {
         await dbContext.SaveChangesAsync(cancellationToken);
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
-        }
+        await transaction.CommitAndCloseAsync(cancellationToken);
     }
 
     private static bool FinancialStateIsValid(
