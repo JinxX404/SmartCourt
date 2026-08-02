@@ -21,6 +21,9 @@ public sealed record PaymentAttemptDto(
     decimal Amount,
     string Currency,
     string ProviderName,
+    int ProviderAttemptCount,
+    DateTime? NextRetryAt,
+    bool RequiresManualAction,
     DateTime CreatedAt,
     DateTime? ProcessedAt);
 

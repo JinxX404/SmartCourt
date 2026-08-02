@@ -202,7 +202,7 @@ public sealed class EscrowReleaseServiceTests
     [InlineData(
         ProviderOperationOutcome.Failed,
         PaymentTransactionStatus.Failed,
-        "ReleaseProviderConfirmedFailure")]
+        "ReleaseRetryScheduled")]
     [InlineData(
         ProviderOperationOutcome.Unknown,
         PaymentTransactionStatus.Processing,
@@ -245,6 +245,13 @@ public sealed class EscrowReleaseServiceTests
             PaymentOperationType.Release,
             attempt.OperationType);
         Assert.NotNull(attempt.FailureReason);
+        Assert.Equal(1, attempt.ProviderAttemptCount);
+        Assert.False(attempt.RequiresManualAction);
+        Assert.Equal(
+            outcome == ProviderOperationOutcome.Failed
+                ? _utcNow.AddMinutes(1)
+                : null,
+            attempt.NextRetryAt);
         var reservation =
             await context.IdempotencyRecords.SingleAsync();
         Assert.Equal(
@@ -252,11 +259,57 @@ public sealed class EscrowReleaseServiceTests
             reservation.Status);
     }
 
+    [Fact]
+    public async Task ConfirmedFailures_BackOffThenRequireManualAction()
+    {
+        var timeProvider = new MutableTimeProvider(_utcNow);
+        await using var context = CreateContext(timeProvider);
+        var state = await AddAcceptedHoldAsync(
+            context,
+            holdExpiresAt: _utcNow);
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Failed);
+        var service = CreateService(
+            context,
+            provider,
+            timeProvider);
+
+        var first = await service.ReleaseExpiredHoldAsync(
+            state.Hold.Id,
+            CancellationToken.None);
+        var early = await service.ReleaseExpiredHoldAsync(
+            state.Hold.Id,
+            CancellationToken.None);
+        timeProvider.Advance(TimeSpan.FromMinutes(1));
+        var second = await service.ReleaseExpiredHoldAsync(
+            state.Hold.Id,
+            CancellationToken.None);
+        timeProvider.Advance(TimeSpan.FromMinutes(5));
+        var third = await service.ReleaseExpiredHoldAsync(
+            state.Hold.Id,
+            CancellationToken.None);
+
+        Assert.Equal("ReleaseRetryScheduled", first.Reason);
+        Assert.Equal("ReleaseRetryNotDue", early.Reason);
+        Assert.Equal("ReleaseRetryScheduled", second.Reason);
+        Assert.Equal("ReleaseRequiresManualAction", third.Reason);
+        Assert.Equal(3, provider.ReleaseCalls);
+        Assert.Single(provider.ReleaseIdempotencyKeys.Distinct());
+        var attempt = await context.PaymentTransactions.SingleAsync();
+        Assert.Equal(3, attempt.ProviderAttemptCount);
+        Assert.True(attempt.RequiresManualAction);
+        Assert.Null(attempt.NextRetryAt);
+        Assert.Equal(PaymentTransactionStatus.Failed, attempt.Status);
+        Assert.Equal(EscrowHoldStatus.Funded, state.Hold.Status);
+        Assert.Equal(MilestoneStatus.AcceptedHold, state.Milestone.Status);
+    }
+
     private EscrowReleaseService CreateService(
         ApplicationDbContext context,
-        IPaymentProvider paymentProvider)
+        IPaymentProvider paymentProvider,
+        TimeProvider? timeProvider = null)
     {
-        var timeProvider = new FixedTimeProvider(_utcNow);
+        timeProvider ??= new FixedTimeProvider(_utcNow);
         return new EscrowReleaseService(
             context,
             paymentProvider,
@@ -369,7 +422,8 @@ public sealed class EscrowReleaseServiceTests
             wallet);
     }
 
-    private ApplicationDbContext CreateContext()
+    private ApplicationDbContext CreateContext(
+        TimeProvider? timeProvider = null)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(
@@ -377,7 +431,7 @@ public sealed class EscrowReleaseServiceTests
             .Options;
         return new ApplicationDbContext(
             options,
-            new FixedTimeProvider(_utcNow));
+            timeProvider ?? new FixedTimeProvider(_utcNow));
     }
 
     private static decimal CurrentBalance(EscrowAccount account)
@@ -398,6 +452,7 @@ public sealed class EscrowReleaseServiceTests
         ProviderOperationOutcome outcome) : IPaymentProvider
     {
         public int ReleaseCalls { get; private set; }
+        public List<string> ReleaseIdempotencyKeys { get; } = [];
 
         public Task<ProviderResult> ReleaseAsync(
             ProviderReleaseRequest request,
@@ -405,6 +460,7 @@ public sealed class EscrowReleaseServiceTests
         {
             cancellationToken.ThrowIfCancellationRequested();
             ReleaseCalls++;
+            ReleaseIdempotencyKeys.Add(request.ProviderIdempotencyKey);
             return Task.FromResult(
                 new ProviderResult(
                     request.Amount,
@@ -447,5 +503,19 @@ public sealed class EscrowReleaseServiceTests
     {
         public override DateTimeOffset GetUtcNow()
             => new(utcNow);
+    }
+
+    private sealed class MutableTimeProvider(DateTime utcNow)
+        : TimeProvider
+    {
+        private DateTime _utcNow = utcNow;
+
+        public override DateTimeOffset GetUtcNow()
+            => new(_utcNow);
+
+        public void Advance(TimeSpan duration)
+        {
+            _utcNow = _utcNow.Add(duration);
+        }
     }
 }

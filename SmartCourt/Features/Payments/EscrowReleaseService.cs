@@ -207,15 +207,30 @@ public sealed class EscrowReleaseService(
         if (releaseTransaction.Status
             == PaymentTransactionStatus.Failed)
         {
-            return NoOp(
-                "ReleaseProviderAttemptFailed",
-                escrowHoldId);
+            if (releaseTransaction.RequiresManualAction)
+            {
+                return NoOp(
+                    "ReleaseRequiresManualAction",
+                    escrowHoldId);
+            }
+
+            if (!PaymentReleaseRetryPolicy.CanRetry(
+                    releaseTransaction,
+                    now))
+            {
+                return NoOp(
+                    "ReleaseRetryNotDue",
+                    escrowHoldId);
+            }
         }
 
         ProviderResult? providerResult = null;
         if (releaseTransaction.Status
             != PaymentTransactionStatus.Completed)
         {
+            PaymentReleaseRetryPolicy.StartProviderAttempt(
+                releaseTransaction,
+                now);
             var providerRequest = new ProviderReleaseRequest(
                 hold.GrossAmount,
                 account.Currency,
@@ -263,27 +278,43 @@ public sealed class EscrowReleaseService(
             if (providerResult.Outcome
                 != ProviderOperationOutcome.Succeeded)
             {
-                releaseTransaction.Status =
-                    providerResult.Outcome
-                        == ProviderOperationOutcome.Failed
-                    ? PaymentTransactionStatus.Failed
-                    : PaymentTransactionStatus.Processing;
-                releaseTransaction.FailureReason =
-                    providerResult.FailureReason
-                    ?? "لم ينجح مزود الدفع في تحرير حجز الضمان.";
-                releaseTransaction.ProcessedAt =
-                    providerResult.Outcome
-                        == ProviderOperationOutcome.Failed
-                    ? now
-                    : null;
-                releaseTransaction.UpdatedAt = now;
+                var retryScheduled = true;
+                if (providerResult.Outcome
+                    == ProviderOperationOutcome.Failed)
+                {
+                    retryScheduled = PaymentReleaseRetryPolicy
+                        .RecordConfirmedFailure(
+                            releaseTransaction,
+                            providerResult.FailureReason
+                                ?? "أكد مزود الدفع فشل تحرير حجز الضمان.",
+                            now);
+                }
+                else
+                {
+                    releaseTransaction.FailureReason =
+                        providerResult.FailureReason
+                        ?? "تعذر التأكد من نتيجة تحرير حجز الضمان لدى مزود الدفع.";
+                    releaseTransaction.UpdatedAt = now;
+                }
+
                 await SaveAttemptAndCommitAsync(
                     transaction,
                     cancellationToken);
+                if (!retryScheduled)
+                {
+                    logger.LogError(
+                        "Escrow release {PaymentTransactionId} for hold {EscrowHoldId} requires manual action after {ProviderAttemptCount} provider attempts.",
+                        releaseTransaction.Id,
+                        hold.Id,
+                        releaseTransaction.ProviderAttemptCount);
+                }
+
                 return NoOp(
                     providerResult.Outcome
                         == ProviderOperationOutcome.Failed
-                        ? "ReleaseProviderConfirmedFailure"
+                        ? retryScheduled
+                            ? "ReleaseRetryScheduled"
+                            : "ReleaseRequiresManualAction"
                         : "ReleaseProviderOutcomeUnknown",
                     escrowHoldId);
             }
@@ -304,11 +335,9 @@ public sealed class EscrowReleaseService(
 
             releaseTransaction.ProviderTransactionId =
                 providerResult.ProviderTransactionId;
-            releaseTransaction.Status =
-                PaymentTransactionStatus.Completed;
-            releaseTransaction.FailureReason = null;
-            releaseTransaction.ProcessedAt = now;
-            releaseTransaction.UpdatedAt = now;
+            PaymentReleaseRetryPolicy.RecordSuccess(
+                releaseTransaction,
+                now);
         }
 
         var currentBalance = CurrentBalance(account);

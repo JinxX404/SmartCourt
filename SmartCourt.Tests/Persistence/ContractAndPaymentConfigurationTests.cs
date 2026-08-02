@@ -161,6 +161,14 @@ public sealed class ContractAndPaymentConfigurationTests
         AssertCheck<PaymentTransaction>(
             context,
             "CK_PaymentTransactions_CompletedDepositRequiresHold");
+        AssertCheck<PaymentTransaction>(
+            context,
+            "CK_PaymentTransactions_ProviderAttemptCount_NonNegative");
+        Assert.Contains(
+            context.Model.FindEntityType(typeof(PaymentTransaction))!
+                .GetIndexes(),
+            index => index.GetDatabaseName()
+                == "IX_PaymentTransactions_ReleaseRecovery");
         AssertCheck<DisputeResolution>(
             context,
             "CK_DisputeResolutions_Reconciliation");

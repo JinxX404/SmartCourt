@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Milestones.Enums;
+using SmartCourt.Features.Payments.Domain;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Providers.Jobs;
@@ -40,6 +41,30 @@ public sealed class PaymentReconciliationService(
             return JobExecutionResult.NoOp("PaymentTransactionNotFound");
         }
 
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (paymentTransaction.Status == PaymentTransactionStatus.Failed
+            && paymentTransaction.OperationType
+                == PaymentOperationType.Release
+            && paymentTransaction.EscrowHoldId.HasValue)
+        {
+            if (paymentTransaction.RequiresManualAction)
+            {
+                return JobExecutionResult.NoOp(
+                    "ReleaseRequiresManualAction");
+            }
+
+            if (!PaymentReleaseRetryPolicy.CanRetry(
+                    paymentTransaction,
+                    now))
+            {
+                return JobExecutionResult.NoOp("ReleaseRetryNotDue");
+            }
+
+            return await escrowReleaseService.ReleaseExpiredHoldAsync(
+                paymentTransaction.EscrowHoldId.Value,
+                cancellationToken);
+        }
+
         if (paymentTransaction.Status != PaymentTransactionStatus.Processing)
         {
             return JobExecutionResult.NoOp("PaymentTransactionAlreadyFinal");
@@ -66,9 +91,16 @@ public sealed class PaymentReconciliationService(
         ReconcilePendingProviderTransactionsAsync(
             CancellationToken cancellationToken)
     {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var transactionIds = await dbContext.PaymentTransactions
             .AsNoTracking()
-            .Where(item => item.Status == PaymentTransactionStatus.Processing)
+            .Where(item =>
+                item.Status == PaymentTransactionStatus.Processing
+                || item.OperationType == PaymentOperationType.Release
+                && item.Status == PaymentTransactionStatus.Failed
+                && !item.RequiresManualAction
+                && (!item.NextRetryAt.HasValue
+                    || item.NextRetryAt <= now))
             .OrderBy(item => item.CreatedAt)
             .ThenBy(item => item.Id)
             .Select(item => item.Id)
@@ -205,14 +237,40 @@ public sealed class PaymentReconciliationService(
         var now = timeProvider.GetUtcNow().UtcDateTime;
         if (result.Outcome == ProviderOperationOutcome.Failed)
         {
-            paymentTransaction.Status = PaymentTransactionStatus.Failed;
-            paymentTransaction.FailureReason = result.FailureReason
-                ?? "أكد مزود الدفع فشل عملية التسوية.";
-            paymentTransaction.ProcessedAt = now;
-            paymentTransaction.UpdatedAt = now;
+            bool? releaseRetryScheduled = null;
+            if (isRelease)
+            {
+                releaseRetryScheduled = PaymentReleaseRetryPolicy
+                    .RecordConfirmedFailure(
+                        paymentTransaction,
+                        result.FailureReason
+                            ?? "أكد مزود الدفع فشل عملية تحرير حجز الضمان.",
+                        now);
+            }
+            else
+            {
+                paymentTransaction.Status = PaymentTransactionStatus.Failed;
+                paymentTransaction.FailureReason = result.FailureReason
+                    ?? "أكد مزود الدفع فشل عملية التسوية.";
+                paymentTransaction.ProcessedAt = now;
+                paymentTransaction.UpdatedAt = now;
+            }
+
             await dbContext.SaveChangesAsync(cancellationToken);
+            if (releaseRetryScheduled == false)
+            {
+                logger.LogError(
+                    "Release transaction {PaymentTransactionId} requires manual action after {ProviderAttemptCount} provider attempts.",
+                    paymentTransaction.Id,
+                    paymentTransaction.ProviderAttemptCount);
+            }
+
             return JobExecutionResult.Completed(
-                "ProviderSettlementFailureConfirmed");
+                releaseRetryScheduled.HasValue
+                    ? releaseRetryScheduled.Value
+                        ? "ReleaseRetryScheduled"
+                        : "ReleaseRequiresManualAction"
+                    : "ProviderSettlementFailureConfirmed");
         }
 
         if (string.IsNullOrWhiteSpace(result.ProviderTransactionId)
@@ -223,10 +281,19 @@ public sealed class PaymentReconciliationService(
         }
 
         paymentTransaction.ProviderTransactionId = result.ProviderTransactionId;
-        paymentTransaction.Status = PaymentTransactionStatus.Completed;
-        paymentTransaction.FailureReason = null;
-        paymentTransaction.ProcessedAt = now;
-        paymentTransaction.UpdatedAt = now;
+        if (isRelease)
+        {
+            PaymentReleaseRetryPolicy.RecordSuccess(
+                paymentTransaction,
+                now);
+        }
+        else
+        {
+            paymentTransaction.Status = PaymentTransactionStatus.Completed;
+            paymentTransaction.FailureReason = null;
+            paymentTransaction.ProcessedAt = now;
+            paymentTransaction.UpdatedAt = now;
+        }
         await dbContext.SaveChangesAsync(cancellationToken);
         if (isRelease)
         {

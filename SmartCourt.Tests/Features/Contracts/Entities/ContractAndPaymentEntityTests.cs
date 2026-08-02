@@ -478,7 +478,8 @@ public sealed class ContractAndPaymentEntityTests
             [
                 "Id", "ContractId", "MilestoneId", "EscrowHoldId", "OperationType",
                 "ProviderName", "ProviderTransactionId", "IdempotencyKey", "Amount",
-                "Currency", "Status", "FailureReason", "ProcessedAt", "RowVersion",
+                "Currency", "Status", "FailureReason", "ProviderAttemptCount",
+                "NextRetryAt", "RequiresManualAction", "ProcessedAt", "RowVersion",
                 "CreatedAt", "UpdatedAt"
             ]
         },

@@ -54,6 +54,9 @@ public sealed class PaymentTransaction
     public string Currency { get; internal set; } = EntityGuard.CurrencyEgp;
     public PaymentTransactionStatus Status { get; internal set; }
     public string? FailureReason { get; internal set; }
+    public int ProviderAttemptCount { get; internal set; }
+    public DateTime? NextRetryAt { get; internal set; }
+    public bool RequiresManualAction { get; internal set; }
     public DateTime? ProcessedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTime CreatedAt { get; internal set; }

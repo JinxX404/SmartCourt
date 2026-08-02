@@ -545,6 +545,96 @@ public sealed class PaymentEscrowServiceTests
     }
 
     [Fact]
+    public async Task ReconcileProviderTransactionAsync_ConfirmedReleaseFailureSchedulesRetry()
+    {
+        await using var context = CreateContext();
+        var holdId = Guid.NewGuid();
+        var transaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            _contractId,
+            Guid.NewGuid(),
+            PaymentOperationType.Release,
+            "TestPaymentProvider",
+            $"release-{holdId:N}",
+            1_000m,
+            Now)
+        {
+            EscrowHoldId = holdId,
+            ProviderAttemptCount = 1
+        };
+        context.PaymentTransactions.Add(transaction);
+        await context.SaveChangesAsync();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Failed);
+        var escrowService = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var reconciliationService = CreateReconciliationService(
+            context,
+            escrowService,
+            provider);
+
+        var result = await reconciliationService
+            .ReconcileProviderTransactionAsync(
+                transaction.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal("ReleaseRetryScheduled", result.Reason);
+        Assert.Equal(PaymentTransactionStatus.Failed, transaction.Status);
+        Assert.Equal(Now.AddMinutes(1), transaction.NextRetryAt);
+        Assert.False(transaction.RequiresManualAction);
+    }
+
+    [Fact]
+    public async Task ReconciliationSweep_RetriesOnlyDueFailedRelease()
+    {
+        await using var context = CreateContext();
+        var holdId = Guid.NewGuid();
+        var transaction = new PaymentTransaction(
+            Guid.NewGuid(),
+            _contractId,
+            Guid.NewGuid(),
+            PaymentOperationType.Release,
+            "TestPaymentProvider",
+            $"release-{holdId:N}",
+            1_000m,
+            Now)
+        {
+            EscrowHoldId = holdId,
+            Status = PaymentTransactionStatus.Failed,
+            FailureReason = "confirmed failure",
+            ProviderAttemptCount = 1,
+            NextRetryAt = Now.AddMinutes(-1),
+            ProcessedAt = Now.AddMinutes(-2)
+        };
+        context.PaymentTransactions.Add(transaction);
+        await context.SaveChangesAsync();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Unknown);
+        var escrowService = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var releaseService = new RecordingEscrowReleaseService();
+        var reconciliationService = CreateReconciliationService(
+            context,
+            escrowService,
+            provider,
+            releaseService);
+
+        var result = await reconciliationService
+            .ReconcilePendingProviderTransactionsAsync(
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal(holdId, releaseService.EscrowHoldId);
+    }
+
+    [Fact]
     public async Task GetContractPaymentsAsync_ParticipantSeesOnlyOwnContractHistory()
     {
         await using var context = CreateContext();
@@ -844,11 +934,12 @@ public sealed class PaymentEscrowServiceTests
     private PaymentReconciliationService CreateReconciliationService(
         ApplicationDbContext context,
         PaymentEscrowService escrowService,
-        TestPaymentProvider provider)
+        TestPaymentProvider provider,
+        IEscrowReleaseService? escrowReleaseService = null)
         => new(
             context,
             escrowService,
-            new UnusedEscrowReleaseService(),
+            escrowReleaseService ?? new UnusedEscrowReleaseService(),
             provider,
             new FixedTimeProvider(Now),
             NullLogger<PaymentReconciliationService>.Instance);
@@ -859,6 +950,22 @@ public sealed class PaymentEscrowServiceTests
             Guid escrowHoldId,
             CancellationToken cancellationToken)
             => Task.FromResult(JobExecutionResult.NoOp("Unused"));
+    }
+
+    private sealed class RecordingEscrowReleaseService
+        : IEscrowReleaseService
+    {
+        public Guid? EscrowHoldId { get; private set; }
+
+        public Task<JobExecutionResult> ReleaseExpiredHoldAsync(
+            Guid escrowHoldId,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            EscrowHoldId = escrowHoldId;
+            return Task.FromResult(
+                JobExecutionResult.Completed("ReleaseRetried"));
+        }
     }
 
     private sealed class MutableCurrentUser(Guid userId)

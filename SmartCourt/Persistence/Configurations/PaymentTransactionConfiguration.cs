@@ -37,6 +37,13 @@ public sealed class PaymentTransactionConfiguration
             .HasConversion<int>();
         builder.Property(transaction => transaction.FailureReason)
             .NullableUnicode(2_000);
+        builder.Property(transaction => transaction.ProviderAttemptCount)
+            .IsRequired()
+            .HasDefaultValue(0);
+        builder.Property(transaction => transaction.NextRetryAt).NullableUtc();
+        builder.Property(transaction => transaction.RequiresManualAction)
+            .IsRequired()
+            .HasDefaultValue(false);
         builder.Property(transaction => transaction.ProcessedAt).NullableUtc();
         builder.Property(transaction => transaction.CreatedAt).Utc();
         builder.Property(transaction => transaction.UpdatedAt).Utc();
@@ -80,6 +87,15 @@ public sealed class PaymentTransactionConfiguration
             transaction.Status
         })
         .HasDatabaseName("IX_PaymentTransactions_ContractId_Status");
+        builder.HasIndex(transaction => new
+        {
+            transaction.Status,
+            transaction.OperationType,
+            transaction.RequiresManualAction,
+            transaction.NextRetryAt
+        })
+        .HasDatabaseName(
+            "IX_PaymentTransactions_ReleaseRecovery");
 
         builder.HasCheckConstraint(
             "CK_PaymentTransactions_Amount_Positive",
@@ -100,5 +116,8 @@ public sealed class PaymentTransactionConfiguration
             "CK_PaymentTransactions_CompletedDepositRequiresHold",
             "NOT ([OperationType] = 0 AND [Status] = 1) "
             + "OR [EscrowHoldId] IS NOT NULL");
+        builder.HasCheckConstraint(
+            "CK_PaymentTransactions_ProviderAttemptCount_NonNegative",
+            "[ProviderAttemptCount] >= 0");
     }
 }
