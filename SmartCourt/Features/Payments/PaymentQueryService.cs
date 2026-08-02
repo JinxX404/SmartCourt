@@ -47,6 +47,7 @@ public sealed class PaymentQueryService(
                 transaction.ProviderAttemptCount,
                 transaction.NextRetryAt,
                 transaction.RequiresManualAction,
+                transaction.ManualActionRequiredAt,
                 transaction.CreatedAt,
                 transaction.ProcessedAt))
             .ToListAsync(cancellationToken);

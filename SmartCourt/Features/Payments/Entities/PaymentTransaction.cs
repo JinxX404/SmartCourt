@@ -57,6 +57,7 @@ public sealed class PaymentTransaction
     public int ProviderAttemptCount { get; internal set; }
     public DateTime? NextRetryAt { get; internal set; }
     public bool RequiresManualAction { get; internal set; }
+    public DateTime? ManualActionRequiredAt { get; internal set; }
     public DateTime? ProcessedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTime CreatedAt { get; internal set; }

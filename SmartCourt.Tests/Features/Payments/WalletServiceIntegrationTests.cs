@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.Payments;
@@ -13,6 +15,7 @@ using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Providers.Payments;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Payments;
@@ -208,6 +211,50 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reconciliation_UnknownWithdrawalBeyondSlaRequiresManualAction()
+    {
+        await using var context = CreateContext();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Unknown);
+        var service = CreateService(context, provider);
+
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            service.WithdrawAsync(
+                new CreateWithdrawalRequest(
+                    400m,
+                    "bank-account-token"),
+                "withdraw-stale-unknown",
+                CancellationToken.None));
+        var withdrawal = await context.WithdrawalRequests.SingleAsync();
+        withdrawal.RequestedAt = _utcNow.AddDays(-2);
+        await context.SaveChangesAsync();
+        var logger = new RecordingLogger<WalletService>();
+        var reconciliationService = CreateService(
+            context,
+            provider,
+            logger);
+
+        var result = await reconciliationService
+            .ReconcilePendingWithdrawalsAsync(CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        await context.Entry(withdrawal).ReloadAsync();
+        Assert.Equal(WithdrawalStatus.Processing, withdrawal.Status);
+        Assert.True(withdrawal.RequiresManualAction);
+        Assert.Equal(_utcNow, withdrawal.ManualActionRequiredAt);
+        Assert.Matches("[\\u0600-\\u06FF]", withdrawal.FailureReason!);
+        Assert.Equal(1, logger.CriticalCount);
+        Assert.Equal(
+            600m,
+            (await context.LawyerWallets.SingleAsync()).AvailableBalance);
+
+        var replay = await reconciliationService
+            .ReconcilePendingWithdrawalsAsync(CancellationToken.None);
+        Assert.Equal(JobExecutionOutcome.NoOp, replay.Outcome);
+        Assert.Equal(1, logger.CriticalCount);
+    }
+
+    [Fact]
     public async Task WithdrawAsync_CannotUsePendingOrInsufficientFunds()
     {
         await using var context = CreateContext();
@@ -304,7 +351,8 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
 
     private WalletService CreateService(
         ApplicationDbContext context,
-        IPaymentProvider paymentProvider)
+        IPaymentProvider paymentProvider,
+        ILogger<WalletService>? logger = null)
     {
         var timeProvider = new FixedTimeProvider(_utcNow);
         return new WalletService(
@@ -317,7 +365,8 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
                 new CanonicalIdempotencyRequestHasher(),
                 timeProvider),
             timeProvider,
-            NullLogger<WalletService>.Instance);
+            Options.Create(new PaymentProviderOptions()),
+            logger ?? NullLogger<WalletService>.Instance);
     }
 
     private ApplicationDbContext CreateContext()
@@ -444,5 +493,29 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
     {
         public override DateTimeOffset GetUtcNow()
             => new(utcNow);
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public int CriticalCount { get; private set; }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Critical)
+            {
+                CriticalCount++;
+            }
+        }
     }
 }

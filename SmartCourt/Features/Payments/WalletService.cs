@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Payments.DTOs;
 using SmartCourt.Features.Payments.Entities;
@@ -11,6 +12,7 @@ using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Providers.Payments;
 
 namespace SmartCourt.Features.Payments;
 
@@ -21,6 +23,7 @@ public sealed class WalletService(
     IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
     TimeProvider timeProvider,
+    IOptions<PaymentProviderOptions> paymentProviderOptions,
     ILogger<WalletService> logger) : IWalletService
 {
     private const string WithdrawalOperation = "CreateWithdrawal";
@@ -206,12 +209,13 @@ public sealed class WalletService(
     {
         var withdrawalIds = await dbContext.WithdrawalRequests
             .AsNoTracking()
-            .Where(item => item.Status == WithdrawalStatus.Processing)
+            .Where(item => item.Status == WithdrawalStatus.Processing
+                && !item.RequiresManualAction)
             .OrderBy(item => item.RequestedAt)
             .Select(item => item.Id)
             .Take(100)
             .ToListAsync(cancellationToken);
-        var reconciled = 0;
+        var handled = 0;
         foreach (var withdrawalId in withdrawalIds)
         {
             var withdrawal = await dbContext.WithdrawalRequests
@@ -220,7 +224,8 @@ public sealed class WalletService(
                     item =>
                         item.Id == withdrawalId
                         && item.Status
-                            == WithdrawalStatus.Processing,
+                            == WithdrawalStatus.Processing
+                        && !item.RequiresManualAction,
                     cancellationToken);
             if (withdrawal is null)
             {
@@ -248,6 +253,17 @@ public sealed class WalletService(
             }
             catch (Exception exception)
             {
+                if (HasExceededProcessingSla(withdrawal))
+                {
+                    await RequireManualActionAsync(
+                        withdrawal.Id,
+                        "تعذر حسم نتيجة طلب السحب بعد تجاوز مهلة المطابقة.",
+                        exception,
+                        cancellationToken);
+                    handled++;
+                    continue;
+                }
+
                 logger.LogWarning(
                     exception,
                     "Withdrawal reconciliation failed for {WithdrawalId}.",
@@ -258,6 +274,16 @@ public sealed class WalletService(
             if (providerResult is null
                 || providerResult.Outcome == ProviderOperationOutcome.Unknown)
             {
+                if (HasExceededProcessingSla(withdrawal))
+                {
+                    await RequireManualActionAsync(
+                        withdrawal.Id,
+                        "ظلت نتيجة طلب السحب غير مؤكدة بعد تجاوز مهلة المطابقة.",
+                        exception: null,
+                        cancellationToken);
+                    handled++;
+                }
+
                 continue;
             }
 
@@ -269,6 +295,16 @@ public sealed class WalletService(
                     withdrawal.Id,
                     "بيانات نتيجة مزود الدفع لا تطابق طلب السحب أثناء المراجعة.",
                     cancellationToken);
+                if (HasExceededProcessingSla(withdrawal))
+                {
+                    await RequireManualActionAsync(
+                        withdrawal.Id,
+                        "تعذر اعتماد نتيجة مطابقة طلب السحب بعد تجاوز المهلة.",
+                        exception: null,
+                        cancellationToken);
+                    handled++;
+                }
+
                 continue;
             }
 
@@ -299,7 +335,7 @@ public sealed class WalletService(
                         cancellationToken);
                 }
 
-                reconciled++;
+                handled++;
                 continue;
             }
 
@@ -330,16 +366,16 @@ public sealed class WalletService(
                         cancellationToken);
                 }
 
-                reconciled++;
+                handled++;
             }
         }
 
-        return reconciled == 0
+        return handled == 0
             ? JobExecutionResult.NoOp(
                 "NoPendingWithdrawalsWereReconciled")
             : JobExecutionResult.Completed(
                 "PendingWithdrawalsReconciled",
-                reconciled);
+                handled);
     }
 
     private async Task<WithdrawalRequest> ReserveBalanceAsync(
@@ -470,6 +506,8 @@ public sealed class WalletService(
         withdrawal.Status = WithdrawalStatus.Completed;
         withdrawal.ProviderTransactionId = providerTransactionId;
         withdrawal.FailureReason = null;
+        withdrawal.RequiresManualAction = false;
+        withdrawal.ManualActionRequiredAt = null;
         withdrawal.ProcessedAt = now;
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAction(withdrawal);
@@ -499,6 +537,8 @@ public sealed class WalletService(
             wallet.UpdatedAt = now;
             withdrawal.Status = WithdrawalStatus.Failed;
             withdrawal.FailureReason = failureReason;
+            withdrawal.RequiresManualAction = false;
+            withdrawal.ManualActionRequiredAt = null;
             withdrawal.ProcessedAt = now;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -522,6 +562,42 @@ public sealed class WalletService(
             withdrawal.FailureReason = reason;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private async Task RequireManualActionAsync(
+        Guid withdrawalId,
+        string reason,
+        Exception? exception,
+        CancellationToken cancellationToken)
+    {
+        var withdrawal = await dbContext.WithdrawalRequests.SingleAsync(
+            item => item.Id == withdrawalId,
+            cancellationToken);
+        if (withdrawal.Status != WithdrawalStatus.Processing
+            || withdrawal.RequiresManualAction)
+        {
+            return;
+        }
+
+        var now = UtcNow;
+        withdrawal.RequiresManualAction = true;
+        withdrawal.ManualActionRequiredAt = now;
+        withdrawal.FailureReason = reason;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogCritical(
+            exception,
+            "Withdrawal {WithdrawalId} exceeded the processing SLA and requires manual action. Requested: {RequestedAt}; escalated: {EscalatedAt}.",
+            withdrawal.Id,
+            withdrawal.RequestedAt,
+            now);
+    }
+
+    private bool HasExceededProcessingSla(
+        WithdrawalRequest withdrawal)
+    {
+        var cutoff = UtcNow.AddMinutes(
+            -paymentProviderOptions.Value.ProcessingSlaMinutes);
+        return withdrawal.RequestedAt <= cutoff;
     }
 
     private async Task<PaymentActionResultDto> ReplayAsync(

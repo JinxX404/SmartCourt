@@ -15,6 +15,8 @@ public sealed class PaymentProviderOptions
 
     public string[] WebhookAllowedIpRanges { get; set; } = [];
 
+    public int ProcessingSlaMinutes { get; set; } = 1_440;
+
     public string Warning { get; set; } =
         "The mock payment provider is not regulated escrow and must never be enabled silently in production.";
 }

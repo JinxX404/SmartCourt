@@ -261,6 +261,10 @@ public static class DependencyInjection
                             range,
                             out _)),
                 "تحتوي قائمة عناوين مزود الدفع المسموح بها على نطاق غير صالح.")
+            .Validate(
+                options => options.ProcessingSlaMinutes
+                    is >= 5 and <= 10_080,
+                "يجب أن تكون مهلة معالجة العمليات المالية بين 5 دقائق و7 أيام.")
             .ValidateOnStart();
 
         if (configuration.GetValue<bool>(

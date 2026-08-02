@@ -21,6 +21,9 @@ public sealed class ContractAndPaymentMigrationTests
     private const string CriticalFinancialUniquenessMigrationId =
         "20260802151827_EnforceCriticalFinancialUniqueness";
 
+    private const string FinancialManualActionMigrationId =
+        "20260802153701_AddFinancialManualActionEscalation";
+
     [Fact]
     public void ContractAndPaymentMigration_IsDiscoverableByApplicationDbContext()
     {
@@ -32,6 +35,7 @@ public sealed class ContractAndPaymentMigrationTests
         Assert.Contains(ProposalWorkflowMigrationId, migrations);
         Assert.Contains(PaymentReleaseRecoveryMigrationId, migrations);
         Assert.Contains(CriticalFinancialUniquenessMigrationId, migrations);
+        Assert.Contains(FinancialManualActionMigrationId, migrations);
     }
 
     [Fact]
@@ -55,6 +59,9 @@ public sealed class ContractAndPaymentMigrationTests
         var criticalFinancialUniquenessIndex = Array.IndexOf(
             migrations,
             CriticalFinancialUniquenessMigrationId);
+        var financialManualActionIndex = Array.IndexOf(
+            migrations,
+            FinancialManualActionMigrationId);
 
         Assert.True(baselineIndex >= 0);
         Assert.True(featureIndex > baselineIndex);
@@ -63,6 +70,32 @@ public sealed class ContractAndPaymentMigrationTests
         Assert.True(
             criticalFinancialUniquenessIndex
                 > paymentReleaseRecoveryIndex);
+        Assert.True(
+            financialManualActionIndex
+                > criticalFinancialUniquenessIndex);
+    }
+
+    [Fact]
+    public void FinancialReconciliationQueueIndexes_AreDeployedByMigration()
+    {
+        using var context = CreateContext();
+        var operations = GetCreateIndexOperations(context);
+
+        var paymentQueue = operations.Last(item => item.Name
+            == "IX_PaymentTransactions_ReconciliationQueue");
+        Assert.False(paymentQueue.IsUnique);
+        Assert.Equal("PaymentTransactions", paymentQueue.Table);
+        Assert.Equal(
+            new[] { "Status", "RequiresManualAction", "CreatedAt", "Id" },
+            paymentQueue.Columns);
+
+        var withdrawalQueue = operations.Last(item => item.Name
+            == "IX_WithdrawalRequests_ReconciliationQueue");
+        Assert.False(withdrawalQueue.IsUnique);
+        Assert.Equal("WithdrawalRequests", withdrawalQueue.Table);
+        Assert.Equal(
+            new[] { "Status", "RequiresManualAction", "RequestedAt", "Id" },
+            withdrawalQueue.Columns);
     }
 
     [Fact]

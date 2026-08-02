@@ -165,11 +165,27 @@ public sealed class ContractAndPaymentConfigurationTests
         AssertCheck<PaymentTransaction>(
             context,
             "CK_PaymentTransactions_ProviderAttemptCount_NonNegative");
+        AssertCheck<PaymentTransaction>(
+            context,
+            "CK_PaymentTransactions_ManualActionTimestamp");
         Assert.Contains(
             context.Model.FindEntityType(typeof(PaymentTransaction))!
                 .GetIndexes(),
             index => index.GetDatabaseName()
                 == "IX_PaymentTransactions_ReleaseRecovery");
+        Assert.Contains(
+            context.Model.FindEntityType(typeof(PaymentTransaction))!
+                .GetIndexes(),
+            index => index.GetDatabaseName()
+                == "IX_PaymentTransactions_ReconciliationQueue");
+        AssertCheck<WithdrawalRequest>(
+            context,
+            "CK_WithdrawalRequests_ManualActionTimestamp");
+        Assert.Contains(
+            context.Model.FindEntityType(typeof(WithdrawalRequest))!
+                .GetIndexes(),
+            index => index.GetDatabaseName()
+                == "IX_WithdrawalRequests_ReconciliationQueue");
         AssertCheck<DisputeResolution>(
             context,
             "CK_DisputeResolutions_Reconciliation");

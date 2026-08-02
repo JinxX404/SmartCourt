@@ -24,6 +24,7 @@ public sealed record PaymentAttemptDto(
     int ProviderAttemptCount,
     DateTime? NextRetryAt,
     bool RequiresManualAction,
+    DateTime? ManualActionRequiredAt,
     DateTime CreatedAt,
     DateTime? ProcessedAt);
 

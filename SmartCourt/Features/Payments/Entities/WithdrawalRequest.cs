@@ -36,6 +36,8 @@ public sealed class WithdrawalRequest
     public WithdrawalStatus Status { get; internal set; }
     public string? ProviderTransactionId { get; internal set; }
     public string? FailureReason { get; internal set; }
+    public bool RequiresManualAction { get; internal set; }
+    public DateTime? ManualActionRequiredAt { get; internal set; }
     public DateTime RequestedAt { get; internal set; }
     public DateTime? ProcessedAt { get; internal set; }
     public string IdempotencyKey { get; internal set; } = string.Empty;

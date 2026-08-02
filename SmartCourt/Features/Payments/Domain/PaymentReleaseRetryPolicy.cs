@@ -33,6 +33,7 @@ internal static class PaymentReleaseRetryPolicy
         transaction.FailureReason = null;
         transaction.NextRetryAt = null;
         transaction.RequiresManualAction = false;
+        transaction.ManualActionRequiredAt = null;
         transaction.ProcessedAt = null;
         transaction.UpdatedAt = now;
     }
@@ -54,11 +55,13 @@ internal static class PaymentReleaseRetryPolicy
             >= MaximumProviderAttempts)
         {
             transaction.RequiresManualAction = true;
+            transaction.ManualActionRequiredAt = now;
             transaction.NextRetryAt = null;
             return false;
         }
 
         transaction.RequiresManualAction = false;
+        transaction.ManualActionRequiredAt = null;
         transaction.NextRetryAt = now.Add(
             RetryDelays[transaction.ProviderAttemptCount - 1]);
         return true;
@@ -73,6 +76,7 @@ internal static class PaymentReleaseRetryPolicy
         transaction.FailureReason = null;
         transaction.NextRetryAt = null;
         transaction.RequiresManualAction = false;
+        transaction.ManualActionRequiredAt = null;
         transaction.ProcessedAt = now;
         transaction.UpdatedAt = now;
     }

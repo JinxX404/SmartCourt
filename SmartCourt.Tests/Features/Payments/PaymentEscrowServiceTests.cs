@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
@@ -501,6 +502,54 @@ public sealed class PaymentEscrowServiceTests
         Assert.Empty(await context.EscrowHolds.ToListAsync());
     }
 
+    [Fact]
+    public async Task ReconcileProviderTransactionAsync_UnknownBeyondSlaRequiresManualAction()
+    {
+        await using var context = CreateContext();
+        var (milestone, transaction) =
+            await SeedProcessingFundingAsync(
+                context,
+                Now.AddDays(-2));
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Unknown);
+        var service = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+        var logger = new RecordingLogger<PaymentReconciliationService>();
+        var reconciliationService = CreateReconciliationService(
+            context,
+            service,
+            provider,
+            logger: logger);
+
+        var result = await reconciliationService
+            .ReconcileProviderTransactionAsync(
+                transaction.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal(
+            "PaymentTransactionRequiresManualAction",
+            result.Reason);
+        Assert.Equal(MilestoneStatus.FundingProcessing, milestone.Status);
+        Assert.Equal(
+            PaymentTransactionStatus.Processing,
+            transaction.Status);
+        Assert.True(transaction.RequiresManualAction);
+        Assert.Equal(Now, transaction.ManualActionRequiredAt);
+        Assert.Matches("[\\u0600-\\u06FF]", transaction.FailureReason!);
+        Assert.Equal(1, logger.CriticalCount);
+
+        var replay = await reconciliationService
+            .ReconcileProviderTransactionAsync(
+                transaction.Id,
+                CancellationToken.None);
+        Assert.Equal(JobExecutionOutcome.NoOp, replay.Outcome);
+        Assert.Equal(1, logger.CriticalCount);
+    }
+
     [Theory]
     [InlineData(PaymentOperationType.Release)]
     [InlineData(PaymentOperationType.Refund)]
@@ -762,7 +811,9 @@ public sealed class PaymentEscrowServiceTests
     }
 
     private async Task<(Milestone Milestone, PaymentTransaction Transaction)>
-        SeedProcessingFundingAsync(ApplicationDbContext context)
+        SeedProcessingFundingAsync(
+            ApplicationDbContext context,
+            DateTime? createdAt = null)
     {
         var contract = new Contract(
             _contractId,
@@ -787,7 +838,7 @@ public sealed class PaymentEscrowServiceTests
             "TestPaymentProvider",
             "provider-idempotency-key",
             milestone.Amount,
-            Now.AddMinutes(-10));
+            createdAt ?? Now.AddMinutes(-10));
         context.Contracts.Add(contract);
         context.Milestones.Add(milestone);
         context.PaymentTransactions.Add(transaction);
@@ -935,14 +986,16 @@ public sealed class PaymentEscrowServiceTests
         ApplicationDbContext context,
         PaymentEscrowService escrowService,
         TestPaymentProvider provider,
-        IEscrowReleaseService? escrowReleaseService = null)
+        IEscrowReleaseService? escrowReleaseService = null,
+        ILogger<PaymentReconciliationService>? logger = null)
         => new(
             context,
             escrowService,
             escrowReleaseService ?? new UnusedEscrowReleaseService(),
             provider,
             new FixedTimeProvider(Now),
-            NullLogger<PaymentReconciliationService>.Instance);
+            Options.Create(new PaymentProviderOptions()),
+            logger ?? NullLogger<PaymentReconciliationService>.Instance);
 
     private sealed class UnusedEscrowReleaseService : IEscrowReleaseService
     {
@@ -1293,5 +1346,29 @@ public sealed class PaymentEscrowServiceTests
     {
         public override DateTimeOffset GetUtcNow()
             => new(utcNow);
+    }
+
+    private sealed class RecordingLogger<T> : ILogger<T>
+    {
+        public int CriticalCount { get; private set; }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull
+            => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Critical)
+            {
+                CriticalCount++;
+            }
+        }
     }
 }

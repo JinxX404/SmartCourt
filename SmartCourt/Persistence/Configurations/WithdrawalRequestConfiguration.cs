@@ -26,6 +26,11 @@ public sealed class WithdrawalRequestConfiguration
             .HasMaxLength(200);
         builder.Property(request => request.FailureReason)
             .NullableUnicode(2_000);
+        builder.Property(request => request.RequiresManualAction)
+            .IsRequired()
+            .HasDefaultValue(false);
+        builder.Property(request => request.ManualActionRequiredAt)
+            .NullableUtc();
         builder.Property(request => request.IdempotencyKey)
             .IsRequired()
             .IsUnicode(false)
@@ -50,6 +55,15 @@ public sealed class WithdrawalRequestConfiguration
             request.Status
         })
         .HasDatabaseName("IX_WithdrawalRequests_LawyerUserId_Status");
+        builder.HasIndex(request => new
+        {
+            request.Status,
+            request.RequiresManualAction,
+            request.RequestedAt,
+            request.Id
+        })
+        .HasDatabaseName(
+            "IX_WithdrawalRequests_ReconciliationQueue");
         builder.HasCheckConstraint(
             "CK_WithdrawalRequests_Amount_Positive",
             "[Amount] > 0");
@@ -59,5 +73,8 @@ public sealed class WithdrawalRequestConfiguration
         builder.HasCheckConstraint(
             "CK_WithdrawalRequests_Status_Range",
             "[Status] BETWEEN 0 AND 2");
+        builder.HasCheckConstraint(
+            "CK_WithdrawalRequests_ManualActionTimestamp",
+            "[RequiresManualAction] = 0 OR [ManualActionRequiredAt] IS NOT NULL");
     }
 }

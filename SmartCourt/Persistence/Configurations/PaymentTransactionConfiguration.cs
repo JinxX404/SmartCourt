@@ -44,6 +44,8 @@ public sealed class PaymentTransactionConfiguration
         builder.Property(transaction => transaction.RequiresManualAction)
             .IsRequired()
             .HasDefaultValue(false);
+        builder.Property(transaction => transaction.ManualActionRequiredAt)
+            .NullableUtc();
         builder.Property(transaction => transaction.ProcessedAt).NullableUtc();
         builder.Property(transaction => transaction.CreatedAt).Utc();
         builder.Property(transaction => transaction.UpdatedAt).Utc();
@@ -96,6 +98,15 @@ public sealed class PaymentTransactionConfiguration
         })
         .HasDatabaseName(
             "IX_PaymentTransactions_ReleaseRecovery");
+        builder.HasIndex(transaction => new
+        {
+            transaction.Status,
+            transaction.RequiresManualAction,
+            transaction.CreatedAt,
+            transaction.Id
+        })
+        .HasDatabaseName(
+            "IX_PaymentTransactions_ReconciliationQueue");
 
         builder.HasCheckConstraint(
             "CK_PaymentTransactions_Amount_Positive",
@@ -119,5 +130,8 @@ public sealed class PaymentTransactionConfiguration
         builder.HasCheckConstraint(
             "CK_PaymentTransactions_ProviderAttemptCount_NonNegative",
             "[ProviderAttemptCount] >= 0");
+        builder.HasCheckConstraint(
+            "CK_PaymentTransactions_ManualActionTimestamp",
+            "[RequiresManualAction] = 0 OR [ManualActionRequiredAt] IS NOT NULL");
     }
 }

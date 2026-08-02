@@ -32,6 +32,7 @@ public sealed class PaymentProviderRegistrationTests
         Assert.Equal("MockPaymentProvider", options.ProviderCode);
         Assert.Equal(65_536, options.WebhookMaximumBodySizeBytes);
         Assert.Empty(options.WebhookAllowedIpRanges);
+        Assert.Equal(1_440, options.ProcessingSlaMinutes);
     }
 
     [Fact]
@@ -103,6 +104,8 @@ public sealed class PaymentProviderRegistrationTests
     [InlineData("PaymentProvider:WebhookMaximumBodySizeBytes", "1023")]
     [InlineData("PaymentProvider:WebhookMaximumBodySizeBytes", "1048577")]
     [InlineData("PaymentProvider:WebhookAllowedIpRanges:0", "invalid-range")]
+    [InlineData("PaymentProvider:ProcessingSlaMinutes", "4")]
+    [InlineData("PaymentProvider:ProcessingSlaMinutes", "10081")]
     public void InvalidWebhookSecurityConfiguration_FailsOptionsValidation(
         string key,
         string value)

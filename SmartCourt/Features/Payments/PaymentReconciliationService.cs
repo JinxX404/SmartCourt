@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Domain;
@@ -8,6 +9,7 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Persistence;
+using SmartCourt.Providers.Payments;
 
 namespace SmartCourt.Features.Payments;
 
@@ -17,6 +19,7 @@ public sealed class PaymentReconciliationService(
     IEscrowReleaseService escrowReleaseService,
     IPaymentReconciliationProvider reconciliationProvider,
     TimeProvider timeProvider,
+    IOptions<PaymentProviderOptions> paymentProviderOptions,
     ILogger<PaymentReconciliationService> logger)
     : IPaymentReconciliationService
 {
@@ -70,21 +73,62 @@ public sealed class PaymentReconciliationService(
             return JobExecutionResult.NoOp("PaymentTransactionAlreadyFinal");
         }
 
-        return paymentTransaction.OperationType switch
+        if (paymentTransaction.RequiresManualAction)
         {
-            PaymentOperationType.Deposit => await ReconcileDepositAsync(
-                paymentTransaction,
-                cancellationToken),
-            PaymentOperationType.Release => await ReconcileSettlementAsync(
-                paymentTransaction,
-                isRelease: true,
-                cancellationToken),
-            PaymentOperationType.Refund => await ReconcileSettlementAsync(
-                paymentTransaction,
-                isRelease: false,
-                cancellationToken),
-            _ => JobExecutionResult.NoOp("PaymentOperationNotSupported")
-        };
+            return JobExecutionResult.NoOp(
+                "PaymentTransactionRequiresManualAction");
+        }
+
+        try
+        {
+            return paymentTransaction.OperationType switch
+            {
+                PaymentOperationType.Deposit => await ReconcileDepositAsync(
+                    paymentTransaction,
+                    cancellationToken),
+                PaymentOperationType.Release => await ReconcileSettlementAsync(
+                    paymentTransaction,
+                    isRelease: true,
+                    cancellationToken),
+                PaymentOperationType.Refund => await ReconcileSettlementAsync(
+                    paymentTransaction,
+                    isRelease: false,
+                    cancellationToken),
+                _ => await EscalateIfStaleAsync(
+                    paymentTransaction,
+                    "PaymentOperationNotSupported",
+                    "تعذر إجراء مطابقة آلية لنوع العملية المالية.",
+                    cancellationToken)
+            };
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+            when (HasExceededProcessingSla(paymentTransaction))
+        {
+            dbContext.ChangeTracker.Clear();
+            var pendingTransaction = await dbContext.PaymentTransactions
+                .SingleOrDefaultAsync(
+                    item => item.Id == paymentTransactionId,
+                    cancellationToken);
+            if (pendingTransaction is null
+                || pendingTransaction.Status
+                    != PaymentTransactionStatus.Processing
+                || pendingTransaction.RequiresManualAction)
+            {
+                return JobExecutionResult.NoOp(
+                    "PaymentTransactionAlreadyFinal");
+            }
+
+            return await RequireManualActionAsync(
+                pendingTransaction,
+                "تعذر حسم نتيجة العملية المالية بعد تجاوز مهلة المطابقة.",
+                exception,
+                cancellationToken);
+        }
     }
 
     public async Task<JobExecutionResult>
@@ -95,12 +139,13 @@ public sealed class PaymentReconciliationService(
         var transactionIds = await dbContext.PaymentTransactions
             .AsNoTracking()
             .Where(item =>
-                item.Status == PaymentTransactionStatus.Processing
-                || item.OperationType == PaymentOperationType.Release
-                && item.Status == PaymentTransactionStatus.Failed
-                && !item.RequiresManualAction
-                && (!item.NextRetryAt.HasValue
-                    || item.NextRetryAt <= now))
+                (item.Status == PaymentTransactionStatus.Processing
+                    && !item.RequiresManualAction)
+                || (item.OperationType == PaymentOperationType.Release
+                    && item.Status == PaymentTransactionStatus.Failed
+                    && !item.RequiresManualAction
+                    && (!item.NextRetryAt.HasValue
+                        || item.NextRetryAt <= now)))
             .OrderBy(item => item.CreatedAt)
             .ThenBy(item => item.Id)
             .Select(item => item.Id)
@@ -133,7 +178,11 @@ public sealed class PaymentReconciliationService(
     {
         if (!paymentTransaction.MilestoneId.HasValue)
         {
-            return JobExecutionResult.NoOp("DepositMilestoneIsMissing");
+            return await EscalateIfStaleAsync(
+                paymentTransaction,
+                "DepositMilestoneIsMissing",
+                "معاملة الإيداع غير مرتبطة بمرحلة صالحة للمطابقة.",
+                cancellationToken);
         }
 
         var milestone = await dbContext.Milestones.SingleOrDefaultAsync(
@@ -142,8 +191,11 @@ public sealed class PaymentReconciliationService(
         if (milestone is null
             || milestone.Status != MilestoneStatus.FundingProcessing)
         {
-            return JobExecutionResult.NoOp(
-                "MilestoneNoLongerAwaitingReconciliation");
+            return await EscalateIfStaleAsync(
+                paymentTransaction,
+                "MilestoneNoLongerAwaitingReconciliation",
+                "حالة المرحلة لا تسمح بإكمال مطابقة معاملة الإيداع آليًا.",
+                cancellationToken);
         }
 
         var correlationId = Guid.NewGuid();
@@ -157,7 +209,11 @@ public sealed class PaymentReconciliationService(
             cancellationToken);
         if (result is null || result.Outcome == ProviderOperationOutcome.Unknown)
         {
-            return JobExecutionResult.NoOp("ProviderOutcomeStillUnknown");
+            return await EscalateIfStaleAsync(
+                paymentTransaction,
+                "ProviderOutcomeStillUnknown",
+                "ظلت نتيجة معاملة الإيداع غير مؤكدة بعد تجاوز مهلة المطابقة.",
+                cancellationToken);
         }
 
         EnsureResultMatches(result, paymentTransaction, milestone.Id);
@@ -230,7 +286,11 @@ public sealed class PaymentReconciliationService(
                 cancellationToken);
         if (result is null || result.Outcome == ProviderOperationOutcome.Unknown)
         {
-            return JobExecutionResult.NoOp("ProviderOutcomeStillUnknown");
+            return await EscalateIfStaleAsync(
+                paymentTransaction,
+                "ProviderOutcomeStillUnknown",
+                "ظلت نتيجة معاملة التسوية غير مؤكدة بعد تجاوز مهلة المطابقة.",
+                cancellationToken);
         }
 
         EnsureResultMatches(result, paymentTransaction, holdId);
@@ -252,6 +312,8 @@ public sealed class PaymentReconciliationService(
                 paymentTransaction.Status = PaymentTransactionStatus.Failed;
                 paymentTransaction.FailureReason = result.FailureReason
                     ?? "أكد مزود الدفع فشل عملية التسوية.";
+                paymentTransaction.RequiresManualAction = false;
+                paymentTransaction.ManualActionRequiredAt = null;
                 paymentTransaction.ProcessedAt = now;
                 paymentTransaction.UpdatedAt = now;
             }
@@ -291,6 +353,8 @@ public sealed class PaymentReconciliationService(
         {
             paymentTransaction.Status = PaymentTransactionStatus.Completed;
             paymentTransaction.FailureReason = null;
+            paymentTransaction.RequiresManualAction = false;
+            paymentTransaction.ManualActionRequiredAt = null;
             paymentTransaction.ProcessedAt = now;
             paymentTransaction.UpdatedAt = now;
         }
@@ -308,6 +372,56 @@ public sealed class PaymentReconciliationService(
         }
 
         return JobExecutionResult.Completed("ProviderSettlementReconciled");
+    }
+
+    private async Task<JobExecutionResult> EscalateIfStaleAsync(
+        PaymentTransaction paymentTransaction,
+        string pendingReason,
+        string manualActionReason,
+        CancellationToken cancellationToken)
+    {
+        if (!HasExceededProcessingSla(paymentTransaction))
+        {
+            return JobExecutionResult.NoOp(pendingReason);
+        }
+
+        return await RequireManualActionAsync(
+            paymentTransaction,
+            manualActionReason,
+            exception: null,
+            cancellationToken);
+    }
+
+    private async Task<JobExecutionResult> RequireManualActionAsync(
+        PaymentTransaction paymentTransaction,
+        string reason,
+        Exception? exception,
+        CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        paymentTransaction.RequiresManualAction = true;
+        paymentTransaction.ManualActionRequiredAt = now;
+        paymentTransaction.NextRetryAt = null;
+        paymentTransaction.FailureReason = reason;
+        paymentTransaction.UpdatedAt = now;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        logger.LogCritical(
+            exception,
+            "Payment transaction {PaymentTransactionId} exceeded the processing SLA and requires manual action. Operation: {OperationType}; created: {CreatedAt}; escalated: {EscalatedAt}.",
+            paymentTransaction.Id,
+            paymentTransaction.OperationType,
+            paymentTransaction.CreatedAt,
+            now);
+        return JobExecutionResult.Completed(
+            "PaymentTransactionRequiresManualAction");
+    }
+
+    private bool HasExceededProcessingSla(
+        PaymentTransaction paymentTransaction)
+    {
+        var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddMinutes(
+            -paymentProviderOptions.Value.ProcessingSlaMinutes);
+        return paymentTransaction.CreatedAt <= cutoff;
     }
 
     private void EnsureResultMatches(
