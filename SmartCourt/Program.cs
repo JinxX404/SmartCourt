@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.Extensions;
 using SmartCourt.Features.Chat.Hubs;
+using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Middleware;
 
 namespace SmartCourt
@@ -24,6 +25,14 @@ namespace SmartCourt
                 
 
                 var app = builder.Build();
+
+                using (var scope = app.Services.CreateScope())
+                {
+                    scope.ServiceProvider
+                        .GetRequiredService<
+                            IPaymentProviderStartupValidator>()
+                        .Validate();
+                }
 
                 // 3. Configure HTTP Request Pipeline
                 app.UseMiddleware<ExceptionHandlingMiddleware>();

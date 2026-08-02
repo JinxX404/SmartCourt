@@ -1086,6 +1086,16 @@ public sealed class PaymentEscrowServiceTests
                 request.ProviderIdempotencyKey,
                 request.CorrelationId));
 
+        public Task<ProviderResult?> GetWithdrawalStatusAsync(
+            ProviderWithdrawalStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(StatusResult(
+                request.Amount,
+                request.Currency,
+                request.BusinessId,
+                request.ProviderIdempotencyKey,
+                request.CorrelationId));
+
         private ProviderResult StatusResult(
             decimal amount,
             string currency,

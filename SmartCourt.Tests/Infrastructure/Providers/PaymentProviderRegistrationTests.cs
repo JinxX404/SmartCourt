@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using SmartCourt.Features.Payments;
 using SmartCourt.Features.Payments.Integration;
@@ -20,6 +21,11 @@ public sealed class PaymentProviderRegistrationTests
 
         Assert.IsType<MockPaymentProvider>(
             provider.GetRequiredService<IPaymentProvider>());
+        Assert.Same(
+            provider.GetRequiredService<IPaymentProvider>(),
+            provider.GetRequiredService<IPaymentReconciliationProvider>());
+        provider.GetRequiredService<IPaymentProviderStartupValidator>()
+            .Validate();
     }
 
     [Fact]
@@ -36,6 +42,11 @@ public sealed class PaymentProviderRegistrationTests
         Assert.True(options.UseMockProvider);
         Assert.IsType<MockPaymentProvider>(
             provider.GetRequiredService<IPaymentProvider>());
+        Assert.Same(
+            provider.GetRequiredService<IPaymentProvider>(),
+            provider.GetRequiredService<IPaymentReconciliationProvider>());
+        provider.GetRequiredService<IPaymentProviderStartupValidator>()
+            .Validate();
         Assert.IsType<ContractTerminationSettlementService>(
             provider.GetRequiredService<
                 IContractTerminationSettlementService>());
@@ -55,6 +66,30 @@ public sealed class PaymentProviderRegistrationTests
             isDevelopment: false);
 
         Assert.Null(provider.GetService<IPaymentProvider>());
+        Assert.Throws<InvalidOperationException>(() =>
+            provider
+                .GetRequiredService<IPaymentProviderStartupValidator>()
+                .Validate());
+    }
+
+    [Fact]
+    public void SplitOperationalAndReconciliationInstances_FailValidation()
+    {
+        var options = Options.Create(new PaymentProviderOptions
+        {
+            UseMockProvider = true
+        });
+        var operational = new MockPaymentProvider(
+            options,
+            NullLogger<MockPaymentProvider>.Instance);
+        var reconciliation = new MockPaymentProvider(
+            options,
+            NullLogger<MockPaymentProvider>.Instance);
+        var validator = new PaymentProviderStartupValidator(
+            [operational],
+            [reconciliation]);
+
+        Assert.Throws<InvalidOperationException>(validator.Validate);
     }
 
     private static ServiceProvider BuildProvider(

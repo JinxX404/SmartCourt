@@ -206,6 +206,9 @@ public static class DependencyInjection
             AdminWalletAdjustmentService>();
         services.AddScoped<IWalletReconciliationService, WalletReconciliationService>();
         services.AddScoped<IEscrowReleaseService, EscrowReleaseService>();
+        services.AddScoped<
+            IPaymentProviderStartupValidator,
+            PaymentProviderStartupValidator>();
         services.AddScoped<DisputeService>();
         services.AddScoped<IDisputeService>(provider =>
             provider.GetRequiredService<DisputeService>());

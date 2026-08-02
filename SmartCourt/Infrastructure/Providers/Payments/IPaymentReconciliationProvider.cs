@@ -8,18 +8,15 @@ public interface IPaymentReconciliationProvider
 
     Task<ProviderResult?> GetReleaseStatusAsync(
         ProviderReleaseStatusRequest request,
-        CancellationToken cancellationToken)
-        => Task.FromResult<ProviderResult?>(null);
+        CancellationToken cancellationToken);
 
     Task<ProviderResult?> GetRefundStatusAsync(
         ProviderRefundStatusRequest request,
-        CancellationToken cancellationToken)
-        => Task.FromResult<ProviderResult?>(null);
+        CancellationToken cancellationToken);
 
     Task<ProviderResult?> GetWithdrawalStatusAsync(
         ProviderWithdrawalStatusRequest request,
-        CancellationToken cancellationToken)
-        => Task.FromResult<ProviderResult?>(null);
+        CancellationToken cancellationToken);
 }
 
 public sealed record ProviderDepositStatusRequest(

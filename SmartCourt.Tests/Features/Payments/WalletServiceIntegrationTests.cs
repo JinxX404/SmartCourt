@@ -411,6 +411,16 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
             CancellationToken cancellationToken)
             => Task.FromResult<ProviderResult?>(null);
 
+        public Task<ProviderResult?> GetReleaseStatusAsync(
+            ProviderReleaseStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(null);
+
+        public Task<ProviderResult?> GetRefundStatusAsync(
+            ProviderRefundStatusRequest request,
+            CancellationToken cancellationToken)
+            => Task.FromResult<ProviderResult?>(null);
+
         public Task<ProviderResult?> GetWithdrawalStatusAsync(
             ProviderWithdrawalStatusRequest request,
             CancellationToken cancellationToken)

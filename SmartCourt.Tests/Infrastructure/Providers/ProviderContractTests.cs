@@ -39,6 +39,35 @@ public sealed class ProviderContractTests
     }
 
     [Fact]
+    public void ReconciliationProvider_RequiresEveryFinancialStatusCapability()
+    {
+        var methods = typeof(IPaymentReconciliationProvider).GetMethods();
+
+        Assert.Equal(
+            new[]
+            {
+                "GetDepositStatusAsync",
+                "GetRefundStatusAsync",
+                "GetReleaseStatusAsync",
+                "GetWithdrawalStatusAsync"
+            },
+            methods.Select(method => method.Name).OrderBy(name => name));
+        Assert.All(
+            methods,
+            method =>
+            {
+                Assert.True(method.IsAbstract);
+                Assert.Equal(
+                    typeof(Task<ProviderResult>),
+                    method.ReturnType);
+                Assert.Contains(
+                    method.GetParameters(),
+                    parameter => parameter.ParameterType
+                        == typeof(CancellationToken));
+            });
+    }
+
+    [Fact]
     public void ProviderRequestsAndResult_CarryFinancialCorrelationContract()
     {
         var commonProperties = new[]
