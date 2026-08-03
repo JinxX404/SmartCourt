@@ -6,6 +6,10 @@
 # dotenv files
 .env
 
+# Local development settings (contain API keys — never commit)
+**/appsettings.Development.json
+**/appsettings.Development.*.json
+
 # User-specific files
 *.rsuser
 *.suo

@@ -34,27 +34,11 @@ public class DeepSeekChatModelProvider : IChatModelProvider
         else
         {
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
-            _httpClient.DefaultRequestHeaders.Add("x-api-key", _options.ApiKey);
         }
 
         if (!string.IsNullOrWhiteSpace(_options.BaseUrl))
         {
-            var baseUrlStr = _options.BaseUrl;
-            if (baseUrlStr.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-            {
-                baseUrlStr = "http://" + baseUrlStr.Substring(8);
-            }
-
-            if (Uri.TryCreate(baseUrlStr, UriKind.Absolute, out var baseUri))
-            {
-                var uriBuilder = new UriBuilder(baseUri);
-                uriBuilder.Scheme = Uri.UriSchemeHttp;
-                if (uriBuilder.Port == 443)
-                {
-                    uriBuilder.Port = -1;
-                }
-                _httpClient.BaseAddress = uriBuilder.Uri;
-            }
+            _httpClient.BaseAddress = new Uri(_options.BaseUrl);
         }
     }
 
@@ -68,7 +52,7 @@ public class DeepSeekChatModelProvider : IChatModelProvider
                 new { role = "user", content = userPrompt }
             },
             system_prompt = systemPrompt,
-            max_tokens = 300
+            max_tokens = _options.MaxTokens
         };
 
         HttpResponseMessage? response = null;
@@ -77,18 +61,7 @@ public class DeepSeekChatModelProvider : IChatModelProvider
 
         for (int i = 0; i < maxRetries; i++)
         {
-            string url = "student/chat";
-            if (_httpClient.BaseAddress == null && !string.IsNullOrWhiteSpace(_options.BaseUrl))
-            {
-                var baseUrlStr = _options.BaseUrl;
-                if (baseUrlStr.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-                {
-                    baseUrlStr = "http://" + baseUrlStr.Substring(8);
-                }
-                url = $"{baseUrlStr.TrimEnd('/')}/{url}";
-            }
-
-            response = await _httpClient.PostAsJsonAsync(url, requestBody, cancellationToken);
+            response = await _httpClient.PostAsJsonAsync("student/chat", requestBody, cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -113,15 +86,27 @@ public class DeepSeekChatModelProvider : IChatModelProvider
             throw new BusinessException("Failed to generate content via DeepSeek.");
         }
 
-        var responseData = await response.Content.ReadFromJsonAsync<JsonDocument>(cancellationToken: cancellationToken);
-        if (responseData == null)
+        var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
+        _logger.LogDebug("DeepSeek raw response body: {RawBody}", rawBody);
+
+        if (string.IsNullOrWhiteSpace(rawBody))
         {
             throw new BusinessException("DeepSeek Chat API returned an empty response.");
         }
 
         try
         {
-            // Try OpenAI-like format first
+            using var responseData = JsonDocument.Parse(rawBody);
+
+            // ITI Student Bedrock Gateway format: { "output_text": "..." }
+            if (responseData.RootElement.TryGetProperty("output_text", out var outputTextProp))
+            {
+                var text = outputTextProp.GetString();
+                if (!string.IsNullOrEmpty(text))
+                    return text;
+            }
+
+            // Try OpenAI-like format
             if (responseData.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
             {
                 var message = choices[0].GetProperty("message");
@@ -151,11 +136,18 @@ public class DeepSeekChatModelProvider : IChatModelProvider
             }
 
             // Fallback: just return the raw JSON if we can't parse it
-            return responseData.RootElement.ToString();
+            _logger.LogWarning("Could not extract text from DeepSeek response. Returning raw body.");
+            return rawBody;
+        }
+        catch (JsonException ex)
+        {
+            // If the body isn't valid JSON at all, return it as-is (plain text response)
+            _logger.LogWarning(ex, "DeepSeek response was not valid JSON. Treating as plain text.");
+            return rawBody;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to parse API response: {Response}", responseData.RootElement.ToString());
+            _logger.LogError(ex, "Failed to parse API response: {Response}", rawBody);
             throw new BusinessException("Chat API returned an invalid response format.");
         }
     }
