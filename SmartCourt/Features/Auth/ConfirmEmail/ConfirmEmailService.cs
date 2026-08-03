@@ -12,21 +12,17 @@ public class ConfirmEmailService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext dbContext) : IConfirmEmailService
 {
-    private const int MaximumUserIdLength = 64;
-    private const int MaximumEncodedTokenLength = 2048;
     private const string InvalidConfirmationMessage =
         "رابط تأكيد البريد الإلكتروني غير صالح أو منتهي الصلاحية.";
 
     public async Task ConfirmEmailAsync(
-        string? userId,
-        string? token,
+        string userId,
+        string token,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(userId)
-            || userId.Length > MaximumUserIdLength
             || !Guid.TryParse(userId, out var parsedUserId)
-            || string.IsNullOrWhiteSpace(token)
-            || token.Length > MaximumEncodedTokenLength)
+            || string.IsNullOrWhiteSpace(token))
         {
             throw new BusinessException(InvalidConfirmationMessage);
         }

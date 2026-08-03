@@ -4,6 +4,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Auth.ConfirmEmail;
+using SmartCourt.Features.Auth.ConfirmEmail.DTOs;
 using SmartCourt.Features.Auth.Enums;
 using Xunit;
 
@@ -113,7 +114,7 @@ public sealed class ConfirmEmailServiceTests
         var malformedId = await Assert.ThrowsAsync<BusinessException>(() =>
             service.ConfirmEmailAsync("not-a-guid", validEncodedToken, CancellationToken.None));
         var missingToken = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.ConfirmEmailAsync(validUserId, null, CancellationToken.None));
+            service.ConfirmEmailAsync(validUserId, null!, CancellationToken.None));
         var missingUser = await Assert.ThrowsAsync<BusinessException>(() =>
             service.ConfirmEmailAsync(Guid.NewGuid().ToString(), validEncodedToken, CancellationToken.None));
         var invalidToken = await Assert.ThrowsAsync<BusinessException>(() =>
@@ -193,7 +194,7 @@ public sealed class ConfirmEmailServiceTests
             new NoOpConfirmEmailService(),
             new NoOpAccountKeyRateLimiter());
 
-        var result = await controller.Get("bad-id", "bad-token", CancellationToken.None);
+        var result = await controller.Get(new VerifyEmailRequest { UserId = "bad-id", Token = "bad-token" }, CancellationToken.None);
 
         var value = Assert.IsType<OkObjectResult>(result).Value;
         var response = Assert.IsType<ApiResponse>(value);
@@ -219,7 +220,7 @@ public sealed class ConfirmEmailServiceTests
 
     private sealed class NoOpConfirmEmailService : IConfirmEmailService
     {
-        public Task ConfirmEmailAsync(string? userId, string? token, CancellationToken cancellationToken = default)
+        public Task ConfirmEmailAsync(string userId, string token, CancellationToken cancellationToken = default)
             => Task.CompletedTask;
 
     }

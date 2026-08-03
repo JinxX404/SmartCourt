@@ -2,6 +2,7 @@ using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using SmartCourt.Common.RateLimiting;
+using SmartCourt.Features.Auth.ConfirmEmail.DTOs;
 
 namespace SmartCourt.Features.Auth.ConfirmEmail;
 
@@ -15,12 +16,11 @@ public class ConfirmEmailController(
     [AllowAnonymous]
     [SecurityRateLimit(RateLimitPolicyNames.ConfirmEmail)]
     public async Task<IActionResult> Get(
-        [FromQuery] string? userId,
-        [FromQuery] string? token,
+        [FromQuery] VerifyEmailRequest request,
         CancellationToken cancellationToken)
     {
-        accountKeyRateLimiter.CheckConfirmEmail(userId ?? string.Empty);
-        await confirmEmailService.ConfirmEmailAsync(userId, token, cancellationToken);
+        accountKeyRateLimiter.CheckConfirmEmail(request.UserId);
+        await confirmEmailService.ConfirmEmailAsync(request.UserId, request.Token, cancellationToken);
         return Ok(ApiResponse.Ok("تم تأكيد البريد الإلكتروني بنجاح."));
     }
 
