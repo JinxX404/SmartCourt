@@ -5,6 +5,7 @@ using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Auth.RegisterLawyer;
 
@@ -12,13 +13,16 @@ public class RegisterLawyerService : IRegisterLawyerService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuthHelperService _authHelper;
+    private readonly ApplicationDbContext _dbContext;
 
     public RegisterLawyerService(
         UserManager<ApplicationUser> userManager,
-        IAuthHelperService authHelper)
+        IAuthHelperService authHelper,
+        ApplicationDbContext dbContext)
     {
         _userManager = userManager;
         _authHelper = authHelper;
+        _dbContext = dbContext;
     }
 
     public async Task<RegisterResponse> RegisterLawyerAsync(RegisterLawyerRequest request, CancellationToken cancellationToken = default)
@@ -36,27 +40,38 @@ public class RegisterLawyerService : IRegisterLawyerService
 
         await _authHelper.EnsureRoleExistsAsync("Lawyer");
 
-        var user = new ApplicationUser
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
         {
-            UserName = request.Email,
-            Email = request.Email,
-            FullName = request.FullName,
-            Status = UserStatus.Unverified,
-            LawyerProfile = new LawyerProfile
+            var user = new ApplicationUser
             {
-                IsAvailable = true
+                UserName = request.Email,
+                Email = request.Email,
+                FullName = request.FullName,
+                Status = UserStatus.Unverified,
+                LawyerProfile = new LawyerProfile
+                {
+                    IsAvailable = true
+                }
+            };
+
+            var result = await _userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                throw new ValidationException(result.Errors.Select(e => new KeyValuePair<string, string[]>(e.Code, new[] { e.Description })));
             }
-        };
 
-        var result = await _userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
-        {
-            throw new ValidationException(result.Errors.Select(e => new KeyValuePair<string, string[]>(e.Code, new[] { e.Description })));
+            await _userManager.AddToRoleAsync(user, "Lawyer");
+            await _authHelper.SendConfirmationEmailAsync(user, cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return new RegisterResponse(user.Id.ToString(), user.Email!, user.FullName, "Lawyer");
         }
-
-        await _userManager.AddToRoleAsync(user, "Lawyer");
-        await _authHelper.SendConfirmationEmailAsync(user, cancellationToken);
-
-        return new RegisterResponse(user.Id.ToString(), user.Email!, user.FullName, "Lawyer");
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 }

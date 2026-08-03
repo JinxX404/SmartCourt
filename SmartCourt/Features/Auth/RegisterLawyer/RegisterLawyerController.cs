@@ -12,7 +12,7 @@ public class RegisterLawyerController(IRegisterLawyerService registerLawyerServi
 {
     [HttpPost]
     [AllowAnonymous]
-    public async Task<IActionResult> Post([FromForm] RegisterLawyerRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Post(RegisterLawyerRequest request, CancellationToken cancellationToken)
     {
         var response = await registerLawyerService.RegisterLawyerAsync(request, cancellationToken);
         var apiResponse = ApiResponse<RegisterResponse>.Created(response, "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني");

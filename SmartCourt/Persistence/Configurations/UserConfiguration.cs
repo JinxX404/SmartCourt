@@ -29,7 +29,6 @@ public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
             .HasColumnType("nvarchar(150)");
 
         builder.Property(u => u.NationalNumber)
-            .IsRequired()
             .HasMaxLength(14)
             .HasColumnType("varchar(14)");
 
