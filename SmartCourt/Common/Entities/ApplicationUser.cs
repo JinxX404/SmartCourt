@@ -6,7 +6,7 @@ using SmartCourt.Features.Auth.Enums;
 public class ApplicationUser : IdentityUser<Guid>
 {
     public string FullName { get; set; } = string.Empty;
-    public string NationalNumber { get; set; } = string.Empty;
+    public string? NationalNumber { get; set; }
     public string? Gender { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public string? Address { get; set; }

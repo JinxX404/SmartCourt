@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
@@ -11,9 +12,11 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260803071643_MakeNationalNumberNullable")]
+    partial class MakeNationalNumberNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -797,43 +800,6 @@ namespace SmartCourt.Migrations
                     b.ToTable("ContractAttachments", (string)null);
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.ContractFileAccessAudit", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AccessedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("ActorUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("ModeratorAccess")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Purpose")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("RelatedEntityId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("StoredFileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ActorUserId");
-
-                    b.HasIndex("StoredFileId", "RelatedEntityId", "AccessedAt")
-                        .HasDatabaseName("IX_ContractFileAccessAudits_File_Entity_Time");
-
-                    b.ToTable("ContractFileAccessAudits", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ContractFileAccessAudits_Purpose_Range", "[Purpose] BETWEEN 1 AND 3");
-                        });
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.ContractStateHistory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -962,21 +928,21 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("ContractId");
 
-                    b.HasIndex("MilestoneId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_Disputes_OpenPerMilestone")
-                        .HasFilter("[Status] IN (0, 1, 2)");
-
                     b.HasIndex("RaisedByUserId");
 
                     b.HasIndex("ResolvedByUserId");
+
+                    b.HasIndex("MilestoneId", "Status")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Disputes_OpenPerMilestone")
+                        .HasFilter("[Status] IN (0, 1, 2)");
 
                     b.HasIndex("Status", "CreatedAt")
                         .HasDatabaseName("IX_Disputes_Status_CreatedAt");
 
                     b.ToTable("Disputes", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Disputes_Category_Range", "[Category] BETWEEN 0 AND 5");
+                            t.HasCheckConstraint("CK_Disputes_Category_Range", "[Category] BETWEEN 0 AND 3");
 
                             t.HasCheckConstraint("CK_Disputes_RequestedOutcome_Range", "[RequestedOutcome] BETWEEN 0 AND 2");
 
@@ -1775,25 +1741,14 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime?>("ManualActionRequiredAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<Guid?>("MilestoneId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("NextRetryAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("OperationType")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<int>("ProviderAttemptCount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
 
                     b.Property<string>("ProviderName")
                         .IsRequired()
@@ -1805,11 +1760,6 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(200)
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
-
-                    b.Property<bool>("RequiresManualAction")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1842,12 +1792,6 @@ namespace SmartCourt.Migrations
                         .HasDatabaseName("UX_PaymentTransactions_ProviderTransaction")
                         .HasFilter("[ProviderTransactionId] IS NOT NULL");
 
-                    b.HasIndex("Status", "OperationType", "RequiresManualAction", "NextRetryAt")
-                        .HasDatabaseName("IX_PaymentTransactions_ReleaseRecovery");
-
-                    b.HasIndex("Status", "RequiresManualAction", "CreatedAt", "Id")
-                        .HasDatabaseName("IX_PaymentTransactions_ReconciliationQueue");
-
                     b.ToTable("PaymentTransactions", null, t =>
                         {
                             t.HasCheckConstraint("CK_PaymentTransactions_Amount_Positive", "[Amount] > 0");
@@ -1856,13 +1800,9 @@ namespace SmartCourt.Migrations
 
                             t.HasCheckConstraint("CK_PaymentTransactions_Currency_EGP", "[Currency] = 'EGP'");
 
-                            t.HasCheckConstraint("CK_PaymentTransactions_ManualActionTimestamp", "[RequiresManualAction] = 0 OR [ManualActionRequiredAt] IS NOT NULL");
-
                             t.HasCheckConstraint("CK_PaymentTransactions_MilestoneRequiredForMoneyOperations", "[OperationType] = 3 OR [MilestoneId] IS NOT NULL");
 
                             t.HasCheckConstraint("CK_PaymentTransactions_OperationType_Range", "[OperationType] BETWEEN 0 AND 3");
-
-                            t.HasCheckConstraint("CK_PaymentTransactions_ProviderAttemptCount_NonNegative", "[ProviderAttemptCount] >= 0");
 
                             t.HasCheckConstraint("CK_PaymentTransactions_Status_Range", "[Status] BETWEEN 0 AND 2");
                         });
@@ -1897,85 +1837,6 @@ namespace SmartCourt.Migrations
                     b.ToTable("PaymentWebhookEvents", (string)null);
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WalletAdjustment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("AvailableBalanceAfter")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AvailableBalanceBefore")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("AvailableBalanceDelta")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("ContractId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CorrelationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("CreatedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("EscrowAccountId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("LawyerWalletId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("LedgerEntryId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("PendingBalanceAfter")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("PendingBalanceBefore")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("PendingBalanceDelta")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(2000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(2000)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ContractId");
-
-                    b.HasIndex("CreatedByUserId");
-
-                    b.HasIndex("EscrowAccountId");
-
-                    b.HasIndex("LedgerEntryId")
-                        .IsUnique();
-
-                    b.HasIndex("LawyerWalletId", "CreatedAt")
-                        .HasDatabaseName("IX_WalletAdjustments_WalletId_CreatedAt");
-
-                    b.ToTable("WalletAdjustments", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_WalletAdjustments_Balances_NonNegative", "[PendingBalanceBefore] >= 0 AND [PendingBalanceAfter] >= 0 AND [AvailableBalanceBefore] >= 0 AND [AvailableBalanceAfter] >= 0");
-
-                            t.HasCheckConstraint("CK_WalletAdjustments_Delta_NonZero", "[PendingBalanceDelta] <> 0 OR [AvailableBalanceDelta] <> 0");
-                        });
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WithdrawalRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2008,9 +1869,6 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ManualActionRequiredAt")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
 
@@ -2021,11 +1879,6 @@ namespace SmartCourt.Migrations
 
                     b.Property<DateTime>("RequestedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<bool>("RequiresManualAction")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -2045,16 +1898,11 @@ namespace SmartCourt.Migrations
                     b.HasIndex("LawyerUserId", "Status")
                         .HasDatabaseName("IX_WithdrawalRequests_LawyerUserId_Status");
 
-                    b.HasIndex("Status", "RequiresManualAction", "RequestedAt", "Id")
-                        .HasDatabaseName("IX_WithdrawalRequests_ReconciliationQueue");
-
                     b.ToTable("WithdrawalRequests", null, t =>
                         {
                             t.HasCheckConstraint("CK_WithdrawalRequests_Amount_Positive", "[Amount] > 0");
 
                             t.HasCheckConstraint("CK_WithdrawalRequests_Currency_EGP", "[Currency] = 'EGP'");
-
-                            t.HasCheckConstraint("CK_WithdrawalRequests_ManualActionTimestamp", "[RequiresManualAction] = 0 OR [ManualActionRequiredAt] IS NOT NULL");
 
                             t.HasCheckConstraint("CK_WithdrawalRequests_Status_Range", "[Status] BETWEEN 0 AND 2");
                         });
@@ -2544,15 +2392,6 @@ namespace SmartCourt.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.ContractFileAccessAudit", b =>
-                {
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ActorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.ContractStateHistory", b =>
                 {
                     b.HasOne("ApplicationUser", null)
@@ -2820,39 +2659,6 @@ namespace SmartCourt.Migrations
                     b.HasOne("SmartCourt.Features.Payments.Entities.PaymentTransaction", null)
                         .WithMany()
                         .HasForeignKey("PaymentTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WalletAdjustment", b =>
-                {
-                    b.HasOne("SmartCourt.Features.Contracts.Entities.Contract", null)
-                        .WithMany()
-                        .HasForeignKey("ContractId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartCourt.Features.Payments.Entities.EscrowAccount", null)
-                        .WithMany()
-                        .HasForeignKey("EscrowAccountId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartCourt.Features.Payments.Entities.LawyerWallet", null)
-                        .WithMany()
-                        .HasForeignKey("LawyerWalletId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("SmartCourt.Features.Payments.Entities.EscrowLedgerEntry", null)
-                        .WithOne()
-                        .HasForeignKey("SmartCourt.Features.Payments.Entities.WalletAdjustment", "LedgerEntryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

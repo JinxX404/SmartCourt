@@ -56,6 +56,7 @@ public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
 
         builder.HasIndex(u => u.NationalNumber)
             .IsUnique()
+            .HasFilter("[NationalNumber] IS NOT NULL")
             .HasDatabaseName("IX_ApplicationUser_NationalNumber");
 
         builder.HasIndex(u => u.Status)
