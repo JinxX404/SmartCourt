@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Features.Cases.Enums;
+using SmartCourt.Common.Enums;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Cases.Integration;

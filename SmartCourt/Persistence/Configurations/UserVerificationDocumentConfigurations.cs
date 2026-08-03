@@ -1,8 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Entities;
 
-namespace SmartCourt.Persistence.EntitiesConfigurations
+namespace SmartCourt.Persistence.Configurations
 {
     public class UserVerificationDocumentConfigurations : IEntityTypeConfiguration<UserVerificationDocument>
     {

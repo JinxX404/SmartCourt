@@ -1,5 +1,5 @@
+using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Features.Cases.Enums;
 
 namespace SmartCourt.Features.Cases.Entities;
 

@@ -9,10 +9,6 @@ public class LawyerProfileResponse
     public string NationalNumber { get; set; } = string.Empty;
     public string Gender { get; set; } = string.Empty;
     public DateOnly? DateOfBirth { get; set; }
-    public Guid? SpecializationId { get; set; }
-    public string SpecializationName { get; set; } = string.Empty;
-    public string CategoryName { get; set; } = string.Empty;
-    public int YearsOfExperience { get; set; }
     public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }

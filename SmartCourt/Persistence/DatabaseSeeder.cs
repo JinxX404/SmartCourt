@@ -101,9 +101,7 @@ public static class DatabaseSeeder
                 EmailConfirmed = true,
                 LawyerProfile = new LawyerProfile
                 {
-                    YearsOfExperience = 5,
                     Bio = "Experienced corporate lawyer.",
-                    Address = "123 Legal St Office"
                 }
             };
 

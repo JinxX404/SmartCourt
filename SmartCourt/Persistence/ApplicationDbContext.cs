@@ -170,6 +170,16 @@ public class ApplicationDbContext
                 $"السجل المالي أو التدقيقي من النوع {entry.Metadata.ClrType.Name} للإضافة فقط ولا يمكن تعديله أو حذفه.");
         }
     }
+    public DbSet<Case> Cases { get; set; }
+    public DbSet<CaseDocument> CaseDocuments { get; set; }
+    public DbSet<CaseProfile> CaseProfiles { get; set; }
+    public DbSet<CaseReviewReport> CaseReviewReports { get; set; }
+    public DbSet<CaseRecommendation> CaseRecommendations { get; set; }
+    public DbSet<ReviewPoint> ReviewPoints { get; set; }
+    public DbSet<ClientProfile> ClientProfile { get; set; }
+    public DbSet<LawyerProfile> lawyerProfile { get; set; }
+    public DbSet<LawyerProfile> LawyerProfiles => lawyerProfile;
+    public DbSet<LawyerSpecialization> LawyerSpecializations { get; set; }
 
     private void ApplyLegacyAuditMetadata()
     {

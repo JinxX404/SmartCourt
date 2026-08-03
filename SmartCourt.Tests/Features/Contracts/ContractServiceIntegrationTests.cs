@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Cases.Entities;
-using SmartCourt.Features.Cases.Enums;
+using SmartCourt.Common.Enums;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.DTOs;

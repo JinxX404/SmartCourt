@@ -1,5 +1,5 @@
-
 using SmartCourt.Common.Models;
+
 namespace SmartCourt.Interfaces.Providers
 {
     public interface IFileStorageService
@@ -8,6 +8,13 @@ namespace SmartCourt.Interfaces.Providers
             Stream stream,
             string filePath,
             string originalFileName,
+            CancellationToken cancellationToken = default);
+
+        Task<FileUploadResult> UploadAsync(
+            Stream stream,
+            string filePath,
+            string originalFileName,
+            string? contentType,
             CancellationToken cancellationToken = default);
 
         Task<byte[]> DownloadAsync(

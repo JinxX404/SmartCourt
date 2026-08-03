@@ -134,6 +134,14 @@ public sealed class ContractFileAccessServiceTests
             CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
+        public Task<FileUploadResult> UploadAsync(
+            Stream stream,
+            string filePath,
+            string originalFileName,
+            string? contentType,
+            CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+
         public Task<byte[]> DownloadAsync(
             string filePath,
             CancellationToken cancellationToken = default)

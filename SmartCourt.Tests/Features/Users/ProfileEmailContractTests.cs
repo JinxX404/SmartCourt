@@ -48,14 +48,11 @@ public sealed class ProfileEmailContractTests
     [Fact]
     public void LawyerUpdate_IgnoresUnknownEmailField()
     {
-        var specializationId = Guid.NewGuid();
-        var json = $$"""
+        var json = """
             {
               "email": "attacker@example.com",
               "phoneNumber": "+201012345678",
               "dateOfBirth": "1990-01-01",
-              "specializationId": "{{specializationId}}",
-              "yearsOfExperience": 5,
               "level": 0,
               "bio": "Bio",
               "address": "Cairo"
@@ -69,8 +66,6 @@ public sealed class ProfileEmailContractTests
         Assert.NotNull(request);
         Assert.Equal("+201012345678", request.PhoneNumber);
         Assert.Equal(new DateOnly(1990, 1, 1), request.DateOfBirth);
-        Assert.Equal(specializationId, request.SpecializationId);
-        Assert.Equal(5, request.YearsOfExperience);
         Assert.Equal("Cairo", request.Address);
     }
 }

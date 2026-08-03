@@ -11,7 +11,7 @@ public sealed class UpdateLawyerProfileRequestValidatorTests
     public void Validator_RejectsUndefinedLevel()
     {
         var request = CreateRequest();
-        request.Level = (LawyerLevel)999;
+        request.Level = (LawyerLevel)127;
 
         var result = new UpdateLawyerProfileRequestValidator().Validate(request);
 
@@ -31,32 +31,12 @@ public sealed class UpdateLawyerProfileRequestValidatorTests
         Assert.Contains(result.Errors, error => error.PropertyName == nameof(request.DateOfBirth));
     }
 
-    [Theory]
-    [InlineData(0, true)]
-    [InlineData(50, true)]
-    [InlineData(-1, false)]
-    [InlineData(51, false)]
-    public void Validator_EnforcesInclusiveExperienceRange(int years, bool expectedValid)
-    {
-        var request = CreateRequest();
-        request.YearsOfExperience = years;
-
-        var result = new UpdateLawyerProfileRequestValidator().Validate(request);
-
-        var hasExperienceError = result.Errors
-            .Any(error => error.PropertyName == nameof(request.YearsOfExperience));
-
-        Assert.Equal(expectedValid, !hasExperienceError);
-    }
-
     private static UpdateLawyerProfileRequest CreateRequest()
     {
         return new UpdateLawyerProfileRequest
         {
             PhoneNumber = "+201012345678",
             DateOfBirth = new DateOnly(1990, 1, 1),
-            SpecializationId = Guid.NewGuid(),
-            YearsOfExperience = 5,
             Level = LawyerLevel.GeneralRegistration,
             Address = "Cairo"
         };

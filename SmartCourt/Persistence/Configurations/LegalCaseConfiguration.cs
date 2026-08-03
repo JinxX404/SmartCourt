@@ -39,6 +39,6 @@ public sealed class LegalCaseConfiguration
         });
         builder.HasCheckConstraint(
             "CK_LegalCases_Status_Range",
-            "[Status] BETWEEN 0 AND 4");
+            "[Status] BETWEEN 0 AND 6");
     }
 }

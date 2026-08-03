@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using SmartCourt.Common.Entities;
 using SmartCourt.Entities;
+using SmartCourt.Features.Auth.Enums;
 
 namespace SmartCourt.Persistence.DataSeeders
 {
@@ -52,6 +55,46 @@ namespace SmartCourt.Persistence.DataSeeders
                     await roleManager.CreateAsync(new IdentityRole(role));
                 }
             }
+        }
+
+        public static async Task SeedTestClientAsync(
+            UserManager<ApplicationUser> userManager, ApplicationDbContext context)
+        {
+            const string email = "client@test.com";
+
+            if (await userManager.Users.AnyAsync(x => x.Email == email))
+                return;
+
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Test Client",
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                NationalNumber = "29801011234567",
+                Status = UserStatus.Active
+            };
+
+            var result = await userManager.CreateAsync(user, "Client@123");
+
+            if (!result.Succeeded)
+            {
+                throw new Exception(
+                    $"Failed to create test client: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+            var clientProfile = new ClientProfile
+            {
+                UserId = user.Id,
+                User = user
+            };
+
+            user.ClientProfile = clientProfile;
+
+            context.ClientProfile.Add(clientProfile);
+
+            await context.SaveChangesAsync();
         }
     }
 }

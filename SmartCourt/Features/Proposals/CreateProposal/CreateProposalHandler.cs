@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Auth.Enums;
-using SmartCourt.Features.Cases.Enums;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
@@ -27,7 +26,7 @@ public sealed class CreateProposalHandler(
     [
         CaseStatus.Submitted,
         CaseStatus.Analyzed,
-        CaseStatus.Finalized
+        CaseStatus.FinalSubmitted
     ];
 
     public async Task<ApiResponse<ProposalDetailDto>> Handle(

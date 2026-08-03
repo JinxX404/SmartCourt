@@ -79,22 +79,27 @@ public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile
     public void Configure(EntityTypeBuilder<LawyerProfile> builder)
     {
         builder.HasKey(p => p.UserId);
-        
-        builder.HasOne(p => p.Specialization)
-            .WithMany()
-            .HasForeignKey(p => p.SpecializationId)
-            .OnDelete(DeleteBehavior.SetNull);
-            
+
+        builder.HasMany(p => p.Specializations)
+            .WithOne(s => s.LawyerProfile)
+            .HasForeignKey(s => s.LawyerProfileUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Property(p => p.Bio)
             .HasMaxLength(500);
-            
-        builder.Property(p => p.Address)
-            .HasMaxLength(255);
 
         builder.Property(p => p.Level)
             .HasConversion<int>()
             .HasDefaultValue(SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration)
             .HasSentinel((SmartCourt.Common.Enums.LawyerLevel)0);
+
+        builder.Property(p => p.AverageRating)
+            .HasColumnType("decimal(3,2)")
+            .HasDefaultValue(0m);
+
+        builder.Property(p => p.AverageResponseTimeHours)
+            .HasColumnType("decimal(10,2)")
+            .HasDefaultValue(0m);
     }
 }
 

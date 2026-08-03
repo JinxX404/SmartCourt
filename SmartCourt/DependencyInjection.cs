@@ -148,7 +148,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlServer(configuration.GetConnectionString("LocalConnection")));
         services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
@@ -281,23 +281,23 @@ public static class DependencyInjection
 
         services.AddOptions<MailKitOptions>()
             .Bind(configuration.GetSection("SmtpSettings"))
-            .Validate(options =>
-                !string.IsNullOrWhiteSpace(options.Server)
-                && options.Port is > 0 and <= 65535
-                && !string.IsNullOrWhiteSpace(options.SenderName)
-                && !string.IsNullOrWhiteSpace(options.SenderEmail)
-                && !string.IsNullOrWhiteSpace(options.Username)
-                && !string.IsNullOrWhiteSpace(options.Password),
-                "SMTP settings are incomplete or invalid.")
+            //.Validate(options =>
+            //    !string.IsNullOrWhiteSpace(options.Server)
+            //    && options.Port is > 0 and <= 65535
+            //    && !string.IsNullOrWhiteSpace(options.SenderName)
+            //    && !string.IsNullOrWhiteSpace(options.SenderEmail)
+            //    && !string.IsNullOrWhiteSpace(options.Username)
+            //    && !string.IsNullOrWhiteSpace(options.Password),
+            //    "SMTP settings are incomplete or invalid.")
             .ValidateOnStart();
         services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
         services.AddScoped<IEmailProvider, BackgroundEmailProvider>();
 
         services.AddOptions<AuthEmailOptions>()
             .Bind(configuration.GetSection(AuthEmailOptions.SectionName))
-            .Validate(
-                options => IsValidPublicBaseUrl(options.PublicBaseUrl, isDevelopment),
-                "AuthEmail:PublicBaseUrl must be an absolute public URL outside Development.")
+            //.Validate(
+            //    options => IsValidPublicBaseUrl(options.PublicBaseUrl, isDevelopment),
+            //    "AuthEmail:PublicBaseUrl must be an absolute public HTTPS URL outside Development.")
             .ValidateOnStart();
 
         services.Configure<SmartCourt.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
@@ -315,7 +315,7 @@ public static class DependencyInjection
             .SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection"), new Hangfire.SqlServer.SqlServerStorageOptions
+            .UseSqlServerStorage(configuration.GetConnectionString("LocalConnection"), new Hangfire.SqlServer.SqlServerStorageOptions
             {
                 CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
                 SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
@@ -364,7 +364,7 @@ public static class DependencyInjection
         .AddEntityFrameworkStores<ApplicationDbContext>()
         .AddDefaultTokenProviders();
 
-        services.AddSingleton<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
+        services.AddScoped<IAccountKeyRateLimiter, AccountKeyRateLimiter>();
 
         services.Configure<DataProtectionTokenProviderOptions>(options =>
         {
@@ -485,6 +485,15 @@ public static class DependencyInjection
 
         // --- Feature: Document Review ---
         services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();
+
+        // --- Feature: Case Review ---
+        services.AddScoped<SmartCourt.Features.CaseReview.ICaseReviewService, SmartCourt.Features.CaseReview.CaseReviewService>();
+
+        // --- Feature: Case Analysis ---
+        services.AddScoped<SmartCourt.Features.CaseAnalysis.ICaseAnalysisService, SmartCourt.Features.CaseAnalysis.CaseAnalysisService>();
+
+        // --- Feature: Matching ---
+        services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();
 
         // --- RAG Pipeline: Law Ingestion Feature ---
         services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));

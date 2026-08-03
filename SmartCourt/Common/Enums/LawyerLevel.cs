@@ -1,6 +1,6 @@
 namespace SmartCourt.Common.Enums;
 
-public enum LawyerLevel
+public enum LawyerLevel : byte
 {
     GeneralRegistration = 1, // محامي جدول عام
     PrimaryCourt = 2,        // محامي ابتدائي

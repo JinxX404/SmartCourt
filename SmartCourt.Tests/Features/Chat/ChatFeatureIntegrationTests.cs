@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Cases.Entities;
-using SmartCourt.Features.Cases.Enums;
+using SmartCourt.Common.Enums;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Events;

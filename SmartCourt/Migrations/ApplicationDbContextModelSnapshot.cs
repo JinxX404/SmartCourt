@@ -62,7 +62,7 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("Government")
+                    b.Property<string>("Governorate")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("LastLoginAt")
@@ -361,9 +361,20 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Address")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
+                    b.Property<decimal>("AverageRating")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(3,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("AverageResponseTimeHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("AverageResponseTimeHours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(10,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("Bio")
                         .HasMaxLength(500)
@@ -377,17 +388,40 @@ namespace SmartCourt.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
-                    b.Property<Guid?>("SpecializationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("YearsOfExperience")
-                        .HasColumnType("int");
-
                     b.HasKey("UserId");
 
-                    b.HasIndex("SpecializationId");
+                    b.ToTable("lawyerProfile");
+                });
 
-                    b.ToTable("LawyerProfile");
+            modelBuilder.Entity("SmartCourt.Common.Entities.LawyerSpecialization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CasesHandled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("LawyerProfileUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Specialization")
+                        .HasColumnType("int");
+
+                    b.Property<int>("YearsOfExperience")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerProfileUserId", "Specialization")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LawyerSpecialization_LawyerId_Specialization");
+
+                    b.ToTable("LawyerSpecializations");
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalCategory", b =>
@@ -432,6 +466,443 @@ namespace SmartCourt.Migrations
                     b.HasIndex("CategoryId");
 
                     b.ToTable("LegalSpecializations");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.Case", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Governorate")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("Cases");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StoredFileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("StoredFileId")
+                        .IsUnique();
+
+                    b.ToTable("CaseDocuments");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Complexity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RequiredLawyerLevelId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Specialization")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId")
+                        .IsUnique();
+
+                    b.ToTable("CaseProfiles");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseRecommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ExperienceScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LocationScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RatingScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("ResponseTimeScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("TotalScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerId");
+
+                    b.HasIndex("CaseId", "Rank")
+                        .HasDatabaseName("IX_CaseRecommendation_CaseId_Rank");
+
+                    b.ToTable("CaseRecommendations");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.Case", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Governorate")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClientId");
+
+                    b.ToTable("Cases");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StoredFileId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("StoredFileId")
+                        .IsUnique();
+
+                    b.ToTable("CaseDocuments");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Complexity")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RequiredLawyerLevelId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Specialization")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId")
+                        .IsUnique();
+
+                    b.ToTable("CaseProfiles");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseRecommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ExperienceScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<string>("Explanation")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LocationScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("RatingScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("ResponseTimeScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<decimal>("TotalScore")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerId");
+
+                    b.HasIndex("CaseId", "Rank")
+                        .HasDatabaseName("IX_CaseRecommendation_CaseId_Rank");
+
+                    b.ToTable("CaseRecommendations");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseReviewReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsLatest")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.ToTable("CaseReviewReports");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.ReviewPoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CaseReviewReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte>("Type")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseReviewReportId");
+
+                    b.ToTable("ReviewPoints");
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.StoredFile", b =>
@@ -2389,20 +2860,24 @@ namespace SmartCourt.Migrations
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LawyerProfile", b =>
                 {
-                    b.HasOne("SmartCourt.Common.Entities.LegalSpecialization", "Specialization")
-                        .WithMany()
-                        .HasForeignKey("SpecializationId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("ApplicationUser", "User")
                         .WithOne("LawyerProfile")
                         .HasForeignKey("SmartCourt.Common.Entities.LawyerProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Specialization");
-
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SmartCourt.Common.Entities.LawyerSpecialization", b =>
+                {
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", "LawyerProfile")
+                        .WithMany("Specializations")
+                        .HasForeignKey("LawyerProfileUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LawyerProfile");
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalSpecialization", b =>
@@ -2414,6 +2889,88 @@ namespace SmartCourt.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.Case", b =>
+                {
+                    b.HasOne("SmartCourt.Common.Entities.ClientProfile", "ClientProfile")
+                        .WithMany("Cases")
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClientProfile");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseDocument", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
+                        .WithMany("Documents")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Entities.StoredFile", "StoredFile")
+                        .WithOne()
+                        .HasForeignKey("SmartCourt.Entities.CaseDocument", "StoredFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("StoredFile");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseProfile", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
+                        .WithOne("CaseProfile")
+                        .HasForeignKey("SmartCourt.Entities.CaseProfile", "CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseRecommendation", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
+                        .WithMany("Recommendations")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", "LawyerProfile")
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("LawyerProfile");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.CaseReviewReport", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
+                        .WithMany("ReviewReports")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+                });
+
+            modelBuilder.Entity("SmartCourt.Entities.ReviewPoint", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.CaseReviewReport", "CaseReviewReport")
+                        .WithMany("ReviewPoints")
+                        .HasForeignKey("CaseReviewReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CaseReviewReport");
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.UserVerificationDocument", b =>
@@ -2905,6 +3462,16 @@ namespace SmartCourt.Migrations
                     b.Navigation("LawyerProfile");
 
                     b.Navigation("VerificationDocuments");
+                });
+
+            modelBuilder.Entity("SmartCourt.Common.Entities.ClientProfile", b =>
+                {
+                    b.Navigation("Cases");
+                });
+
+            modelBuilder.Entity("SmartCourt.Common.Entities.LawyerProfile", b =>
+                {
+                    b.Navigation("Specializations");
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalCategory", b =>

@@ -19,14 +19,6 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
          .LessThan(DateOnly.FromDateTime(DateTime.Today))
          .WithMessage("يجب أن يكون تاريخ الميلاد في الماضي.");
 
-         RuleFor(x => x.SpecializationId)
-         .NotEmpty()
-         .WithMessage("يجب إدخال التخصص.");
-
-         RuleFor(x => x.YearsOfExperience)
-         .InclusiveBetween(0, 50)
-         .WithMessage("عدد سنوات الخبرة يجب أن يكون بين 0 و 50.");
-
          RuleFor(x => x.Level)
          .IsInEnum()
          .WithMessage("مستوى المحامي غير صالح.");

@@ -61,28 +61,13 @@ public sealed class LawyerServiceReleaseTests
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
         var lawyer = await testContext.CreateUserAsync();
         var request = CreateUpdateRequest();
-        request.Level = (LawyerLevel)999;
+        request.Level = (LawyerLevel)127;
         var service = CreateService(testContext, lawyer.Id);
 
         var exception = await Assert.ThrowsAsync<ValidationException>(() =>
             service.UpdateProfileAsync(request, CancellationToken.None));
 
         Assert.Contains(nameof(request.Level), exception.Errors.Keys);
-    }
-
-    [Fact]
-    public async Task UpdateProfile_MissingSpecializationFailsValidation()
-    {
-        await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var lawyer = await testContext.CreateUserAsync();
-        await AddLawyerProfileAsync(testContext, lawyer.Id);
-        var request = CreateUpdateRequest();
-        var service = CreateService(testContext, lawyer.Id);
-
-        var exception = await Assert.ThrowsAsync<ValidationException>(() =>
-            service.UpdateProfileAsync(request, CancellationToken.None));
-
-        Assert.Contains(nameof(request.SpecializationId), exception.Errors.Keys);
     }
 
     private static LawyerService CreateService(
@@ -104,7 +89,6 @@ public sealed class LawyerServiceReleaseTests
         user.LawyerProfile = new LawyerProfile
         {
             UserId = userId,
-            YearsOfExperience = 5,
             Level = LawyerLevel.GeneralRegistration,
             IsAvailable = true
         };
@@ -118,8 +102,6 @@ public sealed class LawyerServiceReleaseTests
         {
             PhoneNumber = "+201012345678",
             DateOfBirth = new DateOnly(1990, 1, 1),
-            SpecializationId = Guid.NewGuid(),
-            YearsOfExperience = 5,
             Level = LawyerLevel.GeneralRegistration,
             Address = "Cairo"
         };

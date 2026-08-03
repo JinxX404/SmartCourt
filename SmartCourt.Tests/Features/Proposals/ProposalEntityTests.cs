@@ -1,6 +1,6 @@
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Cases.Entities;
-using SmartCourt.Features.Cases.Enums;
+using SmartCourt.Common.Enums;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
 using Xunit;

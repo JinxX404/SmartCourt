@@ -10,7 +10,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? Gender { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public string? Address { get; set; }
-    public string? Government { get; set; }
+    public string? Governorate { get; set; }
     public string? City { get; set; }
     public DateTime? LastLoginAt { get; set; }
     public UserStatus Status { get; set; } = UserStatus.Unverified;

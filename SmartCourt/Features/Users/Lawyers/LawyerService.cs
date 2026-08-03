@@ -40,10 +40,6 @@ public class LawyerService(
                 DateOfBirth = u.DateOfBirth,
                 Address = u.Address,
                 Status = u.Status.ToString(),
-                SpecializationId = u.LawyerProfile != null ? u.LawyerProfile.SpecializationId : null,
-                SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null ? u.LawyerProfile.Specialization.Name : string.Empty,
-                CategoryName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null && u.LawyerProfile.Specialization.Category != null ? u.LawyerProfile.Specialization.Category.Name : string.Empty,
-                YearsOfExperience = u.LawyerProfile != null ? u.LawyerProfile.YearsOfExperience : 0,
                 Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
@@ -66,10 +62,6 @@ public class LawyerService(
                 Id = u.Id,
                 Name = u.FullName ?? string.Empty,
                 Gender = u.Gender ?? string.Empty,
-                SpecializationId = u.LawyerProfile != null ? u.LawyerProfile.SpecializationId : null,
-                SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null ? u.LawyerProfile.Specialization.Name : string.Empty,
-                CategoryName = u.LawyerProfile != null && u.LawyerProfile.Specialization != null && u.LawyerProfile.Specialization.Category != null ? u.LawyerProfile.Specialization.Category.Name : string.Empty,
-                YearsOfExperience = u.LawyerProfile != null ? u.LawyerProfile.YearsOfExperience : 0,
                 Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
@@ -95,15 +87,6 @@ public class LawyerService(
         if (user == null)
             throw new NotFoundException("المحامي غير موجود");
 
-        var specializationExists = await _dbContext.LegalSpecializations
-            .AnyAsync(s => s.Id == request.SpecializationId && !s.IsDeleted, cancellationToken);
-        if (!specializationExists)
-        {
-            throw new ValidationException(
-                nameof(request.SpecializationId),
-                "التخصص غير صالح.");
-        }
-
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -117,14 +100,12 @@ public class LawyerService(
 
             user.DateOfBirth = request.DateOfBirth;
             user.Address = request.Address;
-            
+
             if (user.LawyerProfile == null)
             {
                 user.LawyerProfile = new LawyerProfile { UserId = user.Id, IsAvailable = true };
             }
 
-            user.LawyerProfile.SpecializationId = request.SpecializationId;
-            user.LawyerProfile.YearsOfExperience = request.YearsOfExperience;
             user.LawyerProfile.Level = request.Level;
             user.LawyerProfile.Bio = request.Bio;
 
@@ -154,13 +135,6 @@ public class LawyerService(
         if (request.DateOfBirth == default || request.DateOfBirth >= today)
         {
             throw new ValidationException(nameof(request.DateOfBirth), "يجب أن يكون تاريخ الميلاد في الماضي.");
-        }
-
-        if (request.YearsOfExperience is < 0 or > 50)
-        {
-            throw new ValidationException(
-                nameof(request.YearsOfExperience),
-                "عدد سنوات الخبرة يجب أن يكون بين 0 و 50.");
         }
     }
 
