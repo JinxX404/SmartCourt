@@ -1,24 +1,52 @@
+import { motion, useSpring, useTransform } from 'framer-motion';
+import { useEffect } from 'react';
+import { useInView } from 'react-intersection-observer';
+
 const STATS = [
   {
-    value: "+١٠ آلاف",
+    prefix: "+",
+    value: 10,
+    suffix: " آلاف",
     label: "استشارة قانونية",
     description: "تمت بنجاح وموثوقية عبر المنصة",
   },
   {
-    value: "٩٨٪",
+    prefix: "",
+    value: 98,
+    suffix: "٪",
     label: "دقة الإجابات",
     description: "بشهادة مراجعينا وخبرائنا القانونيين",
   },
   {
-    value: "٢٤/٧",
+    prefix: "",
+    value: 24,
+    suffix: "/7",
     label: "متاح دائماً",
     description: "دعم مستمر وإجابات ذكية في أي وقت",
   },
 ];
 
+const AnimatedCounter = ({ to, inView }: { to: number; inView: boolean }) => {
+  const spring = useSpring(0, { bounce: 0, duration: 2500 });
+  const display = useTransform(spring, (current) => Math.round(current).toString());
+
+  useEffect(() => {
+    if (inView) {
+      spring.set(to);
+    }
+  }, [spring, to, inView]);
+
+  return <motion.span>{display}</motion.span>;
+};
+
 export const StatisticsSection = () => {
+  const { ref, inView } = useInView({
+    triggerOnce: true,
+    threshold: 0.2,
+  });
+
   return (
-    <section className="w-full bg-bg-secondary border-y border-border-primary py-16 transition-colors duration-300">
+    <section ref={ref} className="w-full bg-bg-secondary border-y border-border-primary py-16 transition-colors duration-300">
       <div className="w-full max-w-7xl mx-auto px-6">
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-0 items-center justify-between">
@@ -30,8 +58,14 @@ export const StatisticsSection = () => {
               }`}
             >
               {/* Stat Value */}
-              <span className="text-gold font-extrabold text-5xl md:text-6xl tracking-tight leading-none">
-                {stat.value}
+              <span className="text-gold font-extrabold text-5xl md:text-6xl tracking-tight leading-none" dir="ltr">
+                {stat.prefix}
+                {inView ? (
+                  <AnimatedCounter to={stat.value} inView={inView} />
+                ) : (
+                  "0"
+                )}
+                {stat.suffix}
               </span>
               
               {/* Stat Label */}

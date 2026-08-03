@@ -59,7 +59,7 @@ export const FeaturedLawyers = () => {
           {MOCK_LAWYERS.map((lawyer) => (
             <div 
               key={lawyer.id} 
-              className="flex flex-col p-8 bg-bg-secondary border border-border-primary rounded-[24px] shadow-card hover:shadow-premium hover:-translate-y-1 transition-all duration-300 gap-6 text-right"
+              className="flex flex-col p-8 bg-bg-secondary border border-border-primary rounded-xl shadow-card hover:shadow-premium hover:-translate-y-1 transition-all duration-300 gap-6 text-right"
             >
               <div className="flex items-center gap-4 w-full">
                 {/* Avatar */}

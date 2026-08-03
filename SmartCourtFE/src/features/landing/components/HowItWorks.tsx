@@ -1,4 +1,5 @@
 import { LuMessageSquare, LuBrain, LuUsers, LuShieldCheck } from "react-icons/lu";
+import { motion } from "framer-motion";
 
 const STEPS = [
   {
@@ -50,8 +51,12 @@ export const HowItWorks = () => {
             const isEven = index % 2 === 0;
 
             return (
-              <div 
+              <motion.div 
                 key={index}
+                initial={{ opacity: 0, y: 50 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, delay: index * 0.2, type: "spring", stiffness: 50 }}
                 className={`flex flex-col md:flex-row items-start justify-between w-full relative ${
                   isEven ? "md:flex-row-reverse" : ""
                 }`}
@@ -68,7 +73,7 @@ export const HowItWorks = () => {
                     isEven ? "md:text-right" : "md:text-left"
                   }`}
                 >
-                  <div className="p-6 bg-bg-secondary border border-border-primary rounded-[20px] shadow-card hover:shadow-sm transition-all duration-300">
+                  <div className="p-6 bg-bg-secondary border border-border-primary rounded-xl shadow-card hover:shadow-sm transition-all duration-300">
                     <span className="text-gold/60 font-bold text-xs block mb-1">الخطوة {index + 1}</span>
                     <h3 className="text-text-primary font-bold text-lg leading-relaxed mb-2 text-right">
                       {step.title}
@@ -82,7 +87,7 @@ export const HowItWorks = () => {
                 {/* Empty spacer for desktop layout */}
                 <div className="hidden md:block w-[45%]"></div>
 
-              </div>
+              </motion.div>
             );
           })}
 

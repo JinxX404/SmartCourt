@@ -40,7 +40,9 @@
     --border-primary: #eeeeee;
     --card-bg: #ffffff;
     --card-border: #eeeeee;
-    --bg-hero: #efe6dd;
+    --bg-hero: #f0ece8;
+    /* --bg-hero: #efe6dd; */
+    /* f0ece8 */
     --shadow-val: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
     --shadow-card-val: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
   }
