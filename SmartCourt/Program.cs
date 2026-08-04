@@ -43,10 +43,6 @@ namespace SmartCourt
                     app.UseSwaggerUI();
                     app.UseHangfireDashboard();
                 }
-                else
-                {
-                    app.UseHttpsRedirection();
-                }
 
                 app.UseAuthentication();
                 app.UseRateLimiter();
