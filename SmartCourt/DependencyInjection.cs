@@ -106,6 +106,7 @@ public static class DependencyInjection
         });
 
         services.AddControllers();
+        services.AddHealthChecks();
         services.AddSignalR();
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();

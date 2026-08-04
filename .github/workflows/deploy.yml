@@ -24,6 +24,9 @@ jobs:
       - name: Build
         run: dotnet build SmartCourt.sln --configuration Release --no-restore
 
+      - name: Run Tests
+        run: dotnet test SmartCourt.Tests/SmartCourt.Tests.csproj --configuration Release --no-build
+
       - name: Create appsettings.Production.json
         shell: pwsh
         env:
@@ -67,3 +70,39 @@ jobs:
           MONSTERASP_PASSWORD: ${{ secrets.MONSTERASP_PASSWORD }}
         run: |
           "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:contentPath="%GITHUB_WORKSPACE%\publish" -dest:contentPath="%MONSTERASP_SITENAME%",ComputerName="https://%MONSTERASP_SERVER%:8172/msdeploy.axd?site=%MONSTERASP_SITENAME%",UserName="%MONSTERASP_USERNAME%",Password="%MONSTERASP_PASSWORD%",AuthType="Basic" -allowUntrusted -enableRule:AppOffline
+
+      - name: Post-Deployment Verification (Health Check)
+        shell: pwsh
+        env:
+          PROD_PUBLIC_BASE_URL: ${{ secrets.PROD_PUBLIC_BASE_URL }}
+          MONSTERASP_SITENAME: ${{ secrets.MONSTERASP_SITENAME }}
+        run: |
+          $baseUrl = $env:PROD_PUBLIC_BASE_URL
+          if ([string]::IsNullOrWhiteSpace($baseUrl)) {
+              $baseUrl = "http://$env:MONSTERASP_SITENAME.site"
+          }
+          $healthUrl = "$($baseUrl.TrimEnd('/'))/health"
+          Write-Host "Verifying post-deployment application health at $healthUrl..."
+
+          $maxRetries = 10
+          $delaySeconds = 6
+          $success = $false
+
+          for ($i = 1; $i -le $maxRetries; $i++) {
+              try {
+                  $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
+                  if ($response.StatusCode -eq 200) {
+                      Write-Host "Post-deployment health check PASSED on attempt $i! (HTTP 200 OK)"
+                      $success = $true
+                      break
+                  }
+              } catch {
+                  Write-Host "Attempt $i/$maxRetries failed: $_. Retrying in $delaySeconds seconds..."
+              }
+              Start-Sleep -Seconds $delaySeconds
+          }
+
+          if (-not $success) {
+              Write-Error "Post-deployment verification FAILED! The health endpoint did not return HTTP 200 OK."
+              exit 1
+          }

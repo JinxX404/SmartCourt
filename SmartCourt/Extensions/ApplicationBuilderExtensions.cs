@@ -19,6 +19,7 @@ public static class ApplicationBuilderExtensions
         catch (Exception ex)
         {
             AppDomain.CurrentDomain.SetData("MigrationError", ex.ToString());
+            throw;
         }
 
         return app;

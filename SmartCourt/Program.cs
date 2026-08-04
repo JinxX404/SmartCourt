@@ -52,6 +52,7 @@ namespace SmartCourt
                 app.UseRateLimiter();
                 app.UseAuthorization();
                 app.MapControllers();
+                app.MapHealthChecks("/health");
                 app.MapHub<ChatHub>("/hubs/chat").RequireAuthorization();
 
                 // 4. Auto-Migrate Database on Startup
