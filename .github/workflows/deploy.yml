@@ -84,6 +84,8 @@ jobs:
               $urlsToTry += "$($env:PROD_PUBLIC_BASE_URL.TrimEnd('/'))/health"
           }
           if (-not [string]::IsNullOrWhiteSpace($env:MONSTERASP_SITENAME)) {
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.runasp.net/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.runasp.net/health"
               $urlsToTry += "http://$env:MONSTERASP_SITENAME.site/health"
               $urlsToTry += "https://$env:MONSTERASP_SITENAME.site/health"
               $urlsToTry += "http://$env:MONSTERASP_SITENAME.monsterasp.net/health"
