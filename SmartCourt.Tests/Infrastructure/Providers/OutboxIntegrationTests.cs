@@ -226,7 +226,8 @@ public sealed class OutboxIntegrationTests : IAsyncLifetime
     }
 
     private string ConnectionString =>
-        $"Server=localhost;Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
+        Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")
+        ?? $"Server=(localdb)\\mssqllocaldb;Database={_databaseName};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=True;";
 
     private sealed class RecordingHandler(string eventType)
         : IOutboxEventHandler

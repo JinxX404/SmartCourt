@@ -223,9 +223,10 @@ public sealed class ApplicationDbContextPersistenceGuardTests
         TimeProvider? timeProvider = null,
         ICurrentUserService? currentUserService = null)
     {
+        var connectionString = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")
+            ?? "Server=(localdb)\\mssqllocaldb;Database=SmartCourtGuardTests;Trusted_Connection=True;TrustServerCertificate=True;";
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=SmartCourtGuardTests;Trusted_Connection=True;TrustServerCertificate=True")
+            .UseSqlServer(connectionString)
             .Options;
 
         return new ApplicationDbContext(

@@ -180,9 +180,10 @@ public sealed class ContractAndPaymentMigrationTests
 
     private static ApplicationDbContext CreateContext()
     {
+        var connectionString = Environment.GetEnvironmentVariable("TEST_DB_CONNECTION_STRING")
+            ?? "Server=(localdb)\\mssqllocaldb;Database=SmartCourtMigrationMetadataTests;Trusted_Connection=True;TrustServerCertificate=True;";
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseSqlServer(
-                "Server=localhost;Database=SmartCourtMigrationMetadataTests;Trusted_Connection=True;TrustServerCertificate=True")
+            .UseSqlServer(connectionString)
             .Options;
 
         return new ApplicationDbContext(options);

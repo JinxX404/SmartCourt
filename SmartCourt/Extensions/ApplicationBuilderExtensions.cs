@@ -14,7 +14,10 @@ public static class ApplicationBuilderExtensions
         {
             using var scope = app.ApplicationServices.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            db.Database.Migrate();
+            if (db.Database.IsSqlServer())
+            {
+                db.Database.Migrate();
+            }
         }
         catch (Exception ex)
         {
