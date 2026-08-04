@@ -7,6 +7,7 @@
 .env
 
 # Local development settings (contain API keys — never commit)
+**/appsettings.json
 **/appsettings.Development.json
 **/appsettings.Development.*.json
 
