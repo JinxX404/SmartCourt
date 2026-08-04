@@ -489,3 +489,8 @@ $RECYCLE.BIN/
 # Ignore local development settings
 appsettings.Development.json
 appsettings.Development.*.json
+appsettings.Local.json
+appsettings.*.local.json
+startup-error.txt
+
+

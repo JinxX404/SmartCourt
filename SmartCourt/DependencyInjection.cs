@@ -153,7 +153,9 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("لم يتم العثور على نص الاتصال بقاعدة البيانات (DefaultConnection / LocalConnection).");
 
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(connectionString));
+            options.UseSqlServer(
+                connectionString,
+                sqlOptions => sqlOptions.EnableRetryOnFailure()));
         services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
@@ -330,7 +332,11 @@ public static class DependencyInjection
             .SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
+<<<<<<< HEAD
             .UseSqlServerStorage(connectionString, new Hangfire.SqlServer.SqlServerStorageOptions
+=======
+            .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection"), new Hangfire.SqlServer.SqlServerStorageOptions
+>>>>>>> 1fda311 (chore: enable EF Core transient retry resiliency and sanitize appsettings secrets)
             {
                 CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
                 SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
