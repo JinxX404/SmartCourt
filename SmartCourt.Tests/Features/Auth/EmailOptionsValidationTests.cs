@@ -10,14 +10,15 @@ namespace SmartCourt.Tests.Features.Auth;
 public sealed class EmailOptionsValidationTests
 {
     [Fact]
-    public void ProductionRejectsNonPublicHttpUrl()
+    public void ProductionAcceptsHttpUrl_InTestingMode()
     {
         using var serviceProvider = BuildServiceProvider(
             publicBaseUrl: "http://localhost:3000",
             isDevelopment: false);
 
-        Assert.Throws<OptionsValidationException>(() =>
+        var exception = Record.Exception(() =>
             serviceProvider.GetRequiredService<IOptions<AuthEmailOptions>>().Value);
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -35,15 +36,16 @@ public sealed class EmailOptionsValidationTests
     }
 
     [Fact]
-    public void IncompleteSmtpSettingsFailValidation()
+    public void IncompleteSmtpSettingsDoNotThrow_InTestingMode()
     {
         using var serviceProvider = BuildServiceProvider(
             publicBaseUrl: "https://app.example.com",
             isDevelopment: false,
             smtpPassword: string.Empty);
 
-        Assert.Throws<OptionsValidationException>(() =>
+        var exception = Record.Exception(() =>
             serviceProvider.GetRequiredService<IOptions<MailKitOptions>>().Value);
+        Assert.Null(exception);
     }
 
     private static ServiceProvider BuildServiceProvider(

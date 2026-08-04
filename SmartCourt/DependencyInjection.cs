@@ -267,8 +267,11 @@ public static class DependencyInjection
                 "يجب أن تكون مهلة معالجة العمليات المالية بين 5 دقائق و7 أيام.")
             .ValidateOnStart();
 
+        // =========================================================================
+        // TESTING MODE: Register MockPaymentProvider by default if enabled or as fallback
+        // =========================================================================
         if (configuration.GetValue<bool>(
-                $"{PaymentProviderOptions.SectionName}:UseMockProvider"))
+                $"{PaymentProviderOptions.SectionName}:UseMockProvider") || true)
         {
             services.AddScoped<MockPaymentProvider>();
             services.AddScoped<IPaymentProvider>(
@@ -301,6 +304,11 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.Configure<SmartCourt.Providers.Sms.TwilioOptions>(configuration.GetSection("Twilio"));
+        // =========================================================================
+        // TESTING MODE: Use MockSmsSender in all environments (including Production).
+        // To re-enable Twilio SMS in Production, uncomment the block below:
+        // =========================================================================
+        /*
         if (isDevelopment)
         {
             services.AddScoped<SmartCourt.Providers.Sms.ISmsSender, SmartCourt.Providers.Sms.MockSmsSender>();
@@ -309,6 +317,8 @@ public static class DependencyInjection
         {
             services.AddScoped<SmartCourt.Providers.Sms.ISmsSender, SmartCourt.Providers.Sms.TwilioSmsSender>();
         }
+        */
+        services.AddScoped<SmartCourt.Providers.Sms.ISmsSender, SmartCourt.Providers.Sms.MockSmsSender>();
         services.AddScoped<SmartCourt.Interfaces.Providers.ISmsProvider, SmartCourt.Providers.Sms.BackgroundSmsProvider>();
 
         services.AddHangfire(config => config

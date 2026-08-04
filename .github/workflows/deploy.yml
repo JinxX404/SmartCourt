@@ -46,6 +46,7 @@ jobs:
         run: |
           $settings = @{
             ConnectionStrings = @{ DefaultConnection = $env:PROD_DB_CONNECTION_STRING }
+            PaymentProvider = @{ UseMockProvider = $true; Warning = "The mock payment provider is not regulated escrow and is used for testing." }
             Supabase = @{ Url = $env:PROD_SUPABASE_URL; ApiKey = $env:PROD_SUPABASE_API_KEY; Bucket = $env:PROD_SUPABASE_BUCKET }
             Jwt = @{ Secret = $env:PROD_JWT_SECRET; Issuer = $env:PROD_JWT_ISSUER; Audience = $env:PROD_JWT_AUDIENCE; ExpiresInMinutes = 15 }
             SmtpSettings = @{ Server = $env:PROD_SMTP_SERVER; Port = 587; SenderName = $env:PROD_SMTP_SENDER_NAME; SenderEmail = $env:PROD_SMTP_SENDER_EMAIL; Username = $env:PROD_SMTP_USERNAME; Password = $env:PROD_SMTP_PASSWORD }
