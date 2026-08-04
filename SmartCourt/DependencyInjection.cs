@@ -147,8 +147,12 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddSingleton(TimeProvider.System);
 
+        var connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? configuration.GetConnectionString("LocalConnection")
+            ?? throw new InvalidOperationException("لم يتم العثور على نص الاتصال بقاعدة البيانات (DefaultConnection / LocalConnection).");
+
         services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("LocalConnection")));
+            options.UseSqlServer(connectionString));
         services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
@@ -325,7 +329,7 @@ public static class DependencyInjection
             .SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(configuration.GetConnectionString("LocalConnection"), new Hangfire.SqlServer.SqlServerStorageOptions
+            .UseSqlServerStorage(connectionString, new Hangfire.SqlServer.SqlServerStorageOptions
             {
                 CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
                 SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),

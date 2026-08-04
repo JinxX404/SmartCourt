@@ -45,7 +45,7 @@ jobs:
           PROD_TWILIO_NUMBER: ${{ secrets.PROD_TWILIO_NUMBER }}
         run: |
           $settings = @{
-            ConnectionStrings = @{ DefaultConnection = $env:PROD_DB_CONNECTION_STRING }
+            ConnectionStrings = @{ DefaultConnection = $env:PROD_DB_CONNECTION_STRING; LocalConnection = $env:PROD_DB_CONNECTION_STRING }
             PaymentProvider = @{ UseMockProvider = $true; Warning = "The mock payment provider is not regulated escrow and is used for testing." }
             Supabase = @{ Url = $env:PROD_SUPABASE_URL; ApiKey = $env:PROD_SUPABASE_API_KEY; Bucket = $env:PROD_SUPABASE_BUCKET }
             Jwt = @{ Secret = $env:PROD_JWT_SECRET; Issuer = $env:PROD_JWT_ISSUER; Audience = $env:PROD_JWT_AUDIENCE; ExpiresInMinutes = 15 }
