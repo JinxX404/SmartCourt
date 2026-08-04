@@ -117,6 +117,16 @@ public class SmartCourtWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IBackgroundJobProvider>();
             services.RemoveAll<IRecurringBackgroundJobProvider>();
 
+            var hangfireHostedServices = services
+                .Where(d => d.ServiceType == typeof(Microsoft.Extensions.Hosting.IHostedService)
+                            && (d.ImplementationType?.Assembly.FullName?.Contains("Hangfire", StringComparison.OrdinalIgnoreCase) == true
+                                || d.ImplementationFactory?.Method.DeclaringType?.Assembly.FullName?.Contains("Hangfire", StringComparison.OrdinalIgnoreCase) == true))
+                .ToList();
+            foreach (var s in hangfireHostedServices)
+            {
+                services.Remove(s);
+            }
+
             services.AddSingleton<IContractRecurringJobRegistrar, TestContractRecurringJobRegistrar>();
             services.AddSingleton<IContractJobScheduler, TestContractJobScheduler>();
             services.AddSingleton<IBackgroundJobProvider, TestBackgroundJobProvider>();
