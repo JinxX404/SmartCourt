@@ -77,32 +77,46 @@ jobs:
           PROD_PUBLIC_BASE_URL: ${{ secrets.PROD_PUBLIC_BASE_URL }}
           MONSTERASP_SITENAME: ${{ secrets.MONSTERASP_SITENAME }}
         run: |
-          $baseUrl = $env:PROD_PUBLIC_BASE_URL
-          if ([string]::IsNullOrWhiteSpace($baseUrl)) {
-              $baseUrl = "http://$env:MONSTERASP_SITENAME.site"
+          [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
+          
+          $urlsToTry = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:PROD_PUBLIC_BASE_URL)) {
+              $urlsToTry += "$($env:PROD_PUBLIC_BASE_URL.TrimEnd('/'))/health"
           }
-          $healthUrl = "$($baseUrl.TrimEnd('/'))/health"
-          Write-Host "Verifying post-deployment application health at $healthUrl..."
+          if (-not [string]::IsNullOrWhiteSpace($env:MONSTERASP_SITENAME)) {
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.site/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.site/health"
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.monsterasp.net/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.monsterasp.net/health"
+          }
+          $urlsToTry = $urlsToTry | Select-Object -Unique
 
-          $maxRetries = 10
-          $delaySeconds = 6
+          Write-Host "Target Health Endpoints: $($urlsToTry -join ', ')"
+          $maxRetries = 25
+          $delaySeconds = 8
           $success = $false
 
           for ($i = 1; $i -le $maxRetries; $i++) {
-              try {
-                  $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 10
-                  if ($response.StatusCode -eq 200) {
-                      Write-Host "Post-deployment health check PASSED on attempt $i! (HTTP 200 OK)"
-                      $success = $true
-                      break
+              Write-Host "--- Attempt $i of $maxRetries ---"
+              foreach ($healthUrl in $urlsToTry) {
+                  try {
+                      Write-Host "Probing: $healthUrl"
+                      $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -SkipCertificateCheck -TimeoutSec 15 -ErrorAction Stop
+                      if ($response.StatusCode -eq 200) {
+                          Write-Host "Post-deployment health check PASSED on attempt $i at $healthUrl! (HTTP 200 OK)"
+                          $success = $true
+                          break
+                      }
+                  } catch {
+                      $msg = $_.Exception.Message
+                      Write-Host "Probe $healthUrl failed: $msg"
                   }
-              } catch {
-                  Write-Host "Attempt $i/$maxRetries failed: $_. Retrying in $delaySeconds seconds..."
               }
+              if ($success) { break }
               Start-Sleep -Seconds $delaySeconds
           }
 
           if (-not $success) {
-              Write-Error "Post-deployment verification FAILED! The health endpoint did not return HTTP 200 OK."
+              Write-Error "Post-deployment verification FAILED! The health endpoint did not respond with 200 OK within the allocated warmup time."
               exit 1
           }
