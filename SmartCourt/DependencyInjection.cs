@@ -332,11 +332,7 @@ public static class DependencyInjection
             .SetDataCompatibilityLevel(Hangfire.CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-<<<<<<< HEAD
             .UseSqlServerStorage(connectionString, new Hangfire.SqlServer.SqlServerStorageOptions
-=======
-            .UseSqlServerStorage(configuration.GetConnectionString("DefaultConnection"), new Hangfire.SqlServer.SqlServerStorageOptions
->>>>>>> 1fda311 (chore: enable EF Core transient retry resiliency and sanitize appsettings secrets)
             {
                 CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
                 SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
