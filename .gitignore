@@ -6,6 +6,11 @@
 # dotenv files
 .env
 
+# Local development settings (contain API keys — never commit)
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.Development.*.json
+
 # User-specific files
 *.rsuser
 *.suo
@@ -480,3 +485,12 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Ignore local development settings
+appsettings.Development.json
+appsettings.Development.*.json
+appsettings.Local.json
+appsettings.*.local.json
+startup-error.txt
+
+

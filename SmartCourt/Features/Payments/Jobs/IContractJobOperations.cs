@@ -1,0 +1,42 @@
+using SmartCourt.Infrastructure.Providers.Jobs;
+
+namespace SmartCourt.Features.Payments;
+
+public interface IContractJobOperations
+{
+    Task<JobExecutionResult> AutoAcceptMilestoneAsync(
+        Guid milestoneId,
+        Guid escrowHoldId,
+        int submissionVersion,
+        CancellationToken cancellationToken);
+
+    Task<JobExecutionResult> ReleaseExpiredHoldAsync(
+        Guid escrowHoldId,
+        CancellationToken cancellationToken);
+
+    Task<JobExecutionResult> ReconcileProviderTransactionAsync(
+        Guid paymentTransactionId,
+        CancellationToken cancellationToken);
+
+    Task<JobExecutionResult> RetryProviderTransactionAsync(
+        Guid paymentTransactionId,
+        CancellationToken cancellationToken);
+
+    Task<JobExecutionResult> ReconcilePendingProviderTransactionsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult(JobExecutionResult.NoOp(
+            "PendingProviderTransactionReconciliationNotConfigured"));
+
+    Task<JobExecutionResult> RecoverPendingContractTerminationsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult(JobExecutionResult.NoOp(
+            "ContractTerminationRecoveryNotConfigured"));
+
+    Task<JobExecutionResult> RecoverPendingDisputeSettlementsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult(JobExecutionResult.NoOp(
+            "DisputeSettlementRecoveryNotConfigured"));
+
+    Task<JobExecutionResult> ReconcilePendingWalletProjectionsAsync(
+        CancellationToken cancellationToken);
+}

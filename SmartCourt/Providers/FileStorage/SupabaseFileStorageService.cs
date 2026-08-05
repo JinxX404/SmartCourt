@@ -1,5 +1,12 @@
-﻿using Microsoft.Extensions.Options;
-using SmartCourt.Common;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
+using SmartCourt.Common.Models;
+using SmartCourt.Common.Options;
 using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Providers.FileStorage
@@ -48,7 +55,32 @@ namespace SmartCourt.Providers.FileStorage
                 file.Name.Equals(fileName, StringComparison.Ordinal));
         }
 
-        public async Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, CancellationToken cancellationToken = default)
+        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+
+            var url = _client.Storage
+                .From(_options.Bucket)
+                .GetPublicUrl(filePath);
+
+            return Task.FromResult(url);
+        }
+
+        public Task<FileUploadResult> UploadAsync(
+            Stream stream,
+            string filePath,
+            string originalFileName,
+            CancellationToken cancellationToken = default)
+        {
+            return UploadAsync(stream, filePath, originalFileName, contentType: null, cancellationToken);
+        }
+
+        public async Task<FileUploadResult> UploadAsync(
+            Stream stream,
+            string filePath,
+            string originalFileName,
+            string? contentType,
+            CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(stream);
 
@@ -59,18 +91,41 @@ namespace SmartCourt.Providers.FileStorage
                 throw new ArgumentException("Original file name cannot be empty.", nameof(originalFileName));
 
             await using var memoryStream = new MemoryStream();
-
             await stream.CopyToAsync(memoryStream, cancellationToken);
-
             byte[] bytes = memoryStream.ToArray();
 
-            await _client.Storage.From(_options.Bucket).Upload(bytes,filePath);
+            var resolvedContentType = ResolveContentType(originalFileName, contentType);
+
+            var fileOptions = new Supabase.Storage.FileOptions
+            {
+                ContentType = resolvedContentType,
+                Upsert = true
+            };
+
+            await _client.Storage.From(_options.Bucket).Upload(bytes, filePath, fileOptions);
 
             return new FileUploadResult
             {
                 StoragePath = filePath,
                 OriginalFileName = originalFileName,
                 Size = bytes.LongLength
+            };
+        }
+
+        private static string ResolveContentType(string fileName, string? providedContentType)
+        {
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            return ext switch
+            {
+                ".pdf" => "application/pdf",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".doc" => "application/msword",
+                ".txt" => "text/plain",
+                ".png" => "image/png",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                _ => !string.IsNullOrWhiteSpace(providedContentType) && providedContentType != "application/octet-stream"
+                    ? providedContentType
+                    : "application/octet-stream"
             };
         }
     }

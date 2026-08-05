@@ -25,6 +25,16 @@ public class SmtpEmailSender : ISmtpEmailSender
 
     public async Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = false)
     {
+        if (string.IsNullOrWhiteSpace(_options.Server))
+        {
+            _logger.LogInformation("--- MOCK EMAIL (SMTP Server not configured) ---");
+            _logger.LogInformation("To: {To}", to);
+            _logger.LogInformation("Subject: {Subject}", subject);
+            _logger.LogInformation("Body: {Body}", body);
+            _logger.LogInformation("------------------------------------------------");
+            return true;
+        }
+
         try
         {
             var email = new MimeMessage();
@@ -48,7 +58,7 @@ public class SmtpEmailSender : ISmtpEmailSender
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {To}", to);
-            return false;
+            throw;
         }
     }
 }

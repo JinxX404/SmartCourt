@@ -24,6 +24,40 @@ jobs:
       - name: Build
         run: dotnet build SmartCourt.sln --configuration Release --no-restore
 
+      - name: Run Tests
+        run: dotnet test SmartCourt.Tests/SmartCourt.Tests.csproj --configuration Release --no-build
+
+      - name: Create appsettings.Production.json
+        shell: pwsh
+        env:
+          PROD_DB_CONNECTION_STRING: ${{ secrets.PROD_DB_CONNECTION_STRING }}
+          PROD_SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          PROD_SUPABASE_API_KEY: ${{ secrets.PROD_SUPABASE_API_KEY }}
+          PROD_SUPABASE_BUCKET: ${{ secrets.PROD_SUPABASE_BUCKET }}
+          PROD_JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+          PROD_JWT_ISSUER: ${{ secrets.PROD_JWT_ISSUER }}
+          PROD_JWT_AUDIENCE: ${{ secrets.PROD_JWT_AUDIENCE }}
+          PROD_SMTP_SERVER: ${{ secrets.PROD_SMTP_SERVER }}
+          PROD_SMTP_SENDER_NAME: ${{ secrets.PROD_SMTP_SENDER_NAME }}
+          PROD_SMTP_SENDER_EMAIL: ${{ secrets.PROD_SMTP_SENDER_EMAIL }}
+          PROD_SMTP_USERNAME: ${{ secrets.PROD_SMTP_USERNAME }}
+          PROD_SMTP_PASSWORD: ${{ secrets.PROD_SMTP_PASSWORD }}
+          PROD_PUBLIC_BASE_URL: ${{ secrets.PROD_PUBLIC_BASE_URL }}
+          PROD_TWILIO_SID: ${{ secrets.PROD_TWILIO_SID }}
+          PROD_TWILIO_TOKEN: ${{ secrets.PROD_TWILIO_TOKEN }}
+          PROD_TWILIO_NUMBER: ${{ secrets.PROD_TWILIO_NUMBER }}
+        run: |
+          $settings = @{
+            ConnectionStrings = @{ DefaultConnection = $env:PROD_DB_CONNECTION_STRING; LocalConnection = $env:PROD_DB_CONNECTION_STRING }
+            PaymentProvider = @{ UseMockProvider = $true; Warning = "The mock payment provider is not regulated escrow and is used for testing." }
+            Supabase = @{ Url = $env:PROD_SUPABASE_URL; ApiKey = $env:PROD_SUPABASE_API_KEY; Bucket = $env:PROD_SUPABASE_BUCKET }
+            Jwt = @{ Secret = $env:PROD_JWT_SECRET; Issuer = $env:PROD_JWT_ISSUER; Audience = $env:PROD_JWT_AUDIENCE; ExpiresInMinutes = 15 }
+            SmtpSettings = @{ Server = $env:PROD_SMTP_SERVER; Port = 587; SenderName = $env:PROD_SMTP_SENDER_NAME; SenderEmail = $env:PROD_SMTP_SENDER_EMAIL; Username = $env:PROD_SMTP_USERNAME; Password = $env:PROD_SMTP_PASSWORD }
+            AuthEmail = @{ PublicBaseUrl = $env:PROD_PUBLIC_BASE_URL }
+            Twilio = @{ AccountSid = $env:PROD_TWILIO_SID; AuthToken = $env:PROD_TWILIO_TOKEN; FromNumber = $env:PROD_TWILIO_NUMBER }
+          }
+          $settings | ConvertTo-Json -Depth 5 | Set-Content -Path "SmartCourt/appsettings.Production.json" -Encoding UTF8
+
       - name: Publish API
         run: dotnet publish SmartCourt/SmartCourt.csproj --configuration Release --no-build --output ./publish
 
@@ -36,3 +70,55 @@ jobs:
           MONSTERASP_PASSWORD: ${{ secrets.MONSTERASP_PASSWORD }}
         run: |
           "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" -verb:sync -source:contentPath="%GITHUB_WORKSPACE%\publish" -dest:contentPath="%MONSTERASP_SITENAME%",ComputerName="https://%MONSTERASP_SERVER%:8172/msdeploy.axd?site=%MONSTERASP_SITENAME%",UserName="%MONSTERASP_USERNAME%",Password="%MONSTERASP_PASSWORD%",AuthType="Basic" -allowUntrusted -enableRule:AppOffline
+
+      - name: Post-Deployment Verification (Health Check)
+        shell: pwsh
+        env:
+          PROD_PUBLIC_BASE_URL: ${{ secrets.PROD_PUBLIC_BASE_URL }}
+          MONSTERASP_SITENAME: ${{ secrets.MONSTERASP_SITENAME }}
+        run: |
+          [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}
+          
+          $urlsToTry = @()
+          if (-not [string]::IsNullOrWhiteSpace($env:PROD_PUBLIC_BASE_URL)) {
+              $urlsToTry += "$($env:PROD_PUBLIC_BASE_URL.TrimEnd('/'))/health"
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:MONSTERASP_SITENAME)) {
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.runasp.net/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.runasp.net/health"
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.site/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.site/health"
+              $urlsToTry += "http://$env:MONSTERASP_SITENAME.monsterasp.net/health"
+              $urlsToTry += "https://$env:MONSTERASP_SITENAME.monsterasp.net/health"
+          }
+          $urlsToTry = $urlsToTry | Select-Object -Unique
+
+          Write-Host "Target Health Endpoints: $($urlsToTry -join ', ')"
+          $maxRetries = 25
+          $delaySeconds = 8
+          $success = $false
+
+          for ($i = 1; $i -le $maxRetries; $i++) {
+              Write-Host "--- Attempt $i of $maxRetries ---"
+              foreach ($healthUrl in $urlsToTry) {
+                  try {
+                      Write-Host "Probing: $healthUrl"
+                      $response = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -SkipCertificateCheck -TimeoutSec 15 -ErrorAction Stop
+                      if ($response.StatusCode -eq 200) {
+                          Write-Host "Post-deployment health check PASSED on attempt $i at $healthUrl! (HTTP 200 OK)"
+                          $success = $true
+                          break
+                      }
+                  } catch {
+                      $msg = $_.Exception.Message
+                      Write-Host "Probe $healthUrl failed: $msg"
+                  }
+              }
+              if ($success) { break }
+              Start-Sleep -Seconds $delaySeconds
+          }
+
+          if (-not $success) {
+              Write-Error "Post-deployment verification FAILED! The health endpoint did not respond with 200 OK within the allocated warmup time."
+              exit 1
+          }
