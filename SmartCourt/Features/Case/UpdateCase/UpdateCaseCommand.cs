@@ -10,5 +10,7 @@ public class UpdateCaseCommand : IRequest<ApiResponse<UpdateCaseResponse>>
     public Guid CaseId { get; set; }
     public string Title { get; set; }
     public string Description { get; set; }
+    public string? Governorate { get; set; }
+    public string? City { get; set; }
     public IReadOnlyCollection<IFormFile> Documents { get; set; }
 }

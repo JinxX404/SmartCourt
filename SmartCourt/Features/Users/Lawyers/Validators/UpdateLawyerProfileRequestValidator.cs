@@ -25,5 +25,31 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
          RuleFor(x => x.Address)
          .MaximumLength(255)
          .WithMessage("يجب ألا يتجاوز العنوان 255 حرف.");
+
+         RuleFor(x => x.Governorate)
+         .MaximumLength(100)
+         .WithMessage("يجب ألا تتجاوز المحافظة 100 حرف.");
+
+         RuleFor(x => x.City)
+         .MaximumLength(100)
+         .WithMessage("يجب ألا تتجاوز المدينة 100 حرف.");
+
+         When(x => x.Specializations != null, () =>
+         {
+             RuleForEach(x => x.Specializations!).ChildRules(spec =>
+             {
+                 spec.RuleFor(s => s.Specialization)
+                     .IsInEnum()
+                     .WithMessage("التخصص غير صالح.");
+
+                 spec.RuleFor(s => s.YearsOfExperience)
+                     .GreaterThanOrEqualTo(0)
+                     .WithMessage("سنوات الخبرة يجب أن تكون 0 أو أكثر.");
+
+                 spec.RuleFor(s => s.CasesHandled)
+                     .GreaterThanOrEqualTo(0)
+                     .WithMessage("عدد القضايا المنجزة يجب أن يكون 0 أو أكثر.");
+             });
+         });
     }
 }

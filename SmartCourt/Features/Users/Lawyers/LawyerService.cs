@@ -27,52 +27,75 @@ public class LawyerService(
     {
         var userId = _currentUserService.UserId;
 
-        var response = await _userManager.Users
-            .Where(u => u.Id == userId)
-            .Select(u => new LawyerProfileResponse
-            {
-                Id = u.Id,
-                Name = u.FullName ?? string.Empty,
-                Email = u.Email ?? string.Empty,
-                PhoneNumber = u.PhoneNumber ?? string.Empty,
-                NationalNumber = u.NationalNumber ?? string.Empty,
-                Gender = u.Gender,
-                DateOfBirth = u.DateOfBirth,
-                Address = u.Address,
-                Status = u.Status.ToString(),
-                Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
-                Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
-                IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
-                ProfilePictureUrl = u.ProfilePictureUrl
-            })
-            .FirstOrDefaultAsync(cancellationToken);
+        var user = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .ThenInclude(lp => lp.Specializations)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-        if (response == null)
+        if (user == null)
             throw new NotFoundException("المحامي غير موجود");
 
-        return response;
+        var specializations = user.LawyerProfile?.Specializations
+            .Select(s => new LawyerSpecializationDto
+            {
+                Specialization = s.Specialization,
+                YearsOfExperience = s.YearsOfExperience,
+                CasesHandled = s.CasesHandled
+            }).ToList() ?? new List<LawyerSpecializationDto>();
+
+        return new LawyerProfileResponse
+        {
+            Id = user.Id,
+            Name = user.FullName ?? string.Empty,
+            Email = user.Email ?? string.Empty,
+            PhoneNumber = user.PhoneNumber ?? string.Empty,
+            NationalNumber = user.NationalNumber ?? string.Empty,
+            Gender = user.Gender,
+            DateOfBirth = user.DateOfBirth,
+            Address = user.Address,
+            Governorate = user.Governorate,
+            City = user.City,
+            Status = user.Status.ToString(),
+            Level = user.LawyerProfile != null ? user.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
+            Bio = user.LawyerProfile?.Bio,
+            IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+            Specializations = specializations
+        };
     }
 
     public async Task<PublicLawyerProfileResponse> GetPublicProfileAsync(Guid lawyerId, CancellationToken cancellationToken)
     {
-        var response = await _userManager.Users
+        var user = await _userManager.Users
             .WherePublicLawyer(lawyerId)
-            .Select(u => new PublicLawyerProfileResponse
-            {
-                Id = u.Id,
-                Name = u.FullName ?? string.Empty,
-                Gender = u.Gender,
-                Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
-                Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
-                IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
-                ProfilePictureUrl = u.ProfilePictureUrl
-            })
+            .Include(u => u.LawyerProfile)
+            .ThenInclude(lp => lp.Specializations)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (response == null)
+        if (user == null)
             throw new NotFoundException("المحامي غير موجود");
 
-        return response;
+        var specializations = user.LawyerProfile?.Specializations
+            .Select(s => new LawyerSpecializationDto
+            {
+                Specialization = s.Specialization,
+                YearsOfExperience = s.YearsOfExperience,
+                CasesHandled = s.CasesHandled
+            }).ToList() ?? new List<LawyerSpecializationDto>();
+
+        return new PublicLawyerProfileResponse
+        {
+            Id = user.Id,
+            Name = user.FullName ?? string.Empty,
+            Gender = user.Gender,
+            Level = user.LawyerProfile != null ? user.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
+            Bio = user.LawyerProfile?.Bio,
+            Governorate = user.Governorate,
+            City = user.City,
+            IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+            Specializations = specializations
+        };
     }
 
     public async Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
@@ -105,6 +128,8 @@ public class LawyerService(
             user.Gender = request.Gender;
             user.DateOfBirth = request.DateOfBirth;
             user.Address = request.Address;
+            user.Governorate = request.Governorate;
+            user.City = request.City;
             user.Status = UserStatus.PendingReview;
 
             if (user.LawyerProfile == null)
@@ -119,6 +144,32 @@ public class LawyerService(
             if (!updateResult.Succeeded)
             {
                 throw new BusinessException(string.Join(" ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            if (request.Specializations != null && request.Specializations.Count > 0)
+            {
+                var existingSpecs = await _dbContext.LawyerSpecializations
+                    .Where(ls => ls.LawyerProfileUserId == user.Id)
+                    .ToListAsync(cancellationToken);
+
+                if (existingSpecs.Count > 0)
+                {
+                    _dbContext.LawyerSpecializations.RemoveRange(existingSpecs);
+                }
+
+                foreach (var specDto in request.Specializations)
+                {
+                    _dbContext.LawyerSpecializations.Add(new LawyerSpecialization
+                    {
+                        Id = Guid.NewGuid(),
+                        LawyerProfileUserId = user.Id,
+                        Specialization = specDto.Specialization,
+                        YearsOfExperience = specDto.YearsOfExperience,
+                        CasesHandled = specDto.CasesHandled
+                    });
+                }
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
             await transaction.CommitAsync(cancellationToken);
@@ -154,6 +205,8 @@ public class LawyerService(
             }
 
             user.Address = request.Address;
+            user.Governorate = request.Governorate;
+            user.City = request.City;
 
             if (user.LawyerProfile == null)
             {
@@ -167,6 +220,32 @@ public class LawyerService(
             if (!updateResult.Succeeded)
             {
                 throw new BusinessException(string.Join(" ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            if (request.Specializations != null)
+            {
+                var existingSpecs = await _dbContext.LawyerSpecializations
+                    .Where(ls => ls.LawyerProfileUserId == user.Id)
+                    .ToListAsync(cancellationToken);
+
+                if (existingSpecs.Count > 0)
+                {
+                    _dbContext.LawyerSpecializations.RemoveRange(existingSpecs);
+                }
+
+                foreach (var specDto in request.Specializations)
+                {
+                    _dbContext.LawyerSpecializations.Add(new LawyerSpecialization
+                    {
+                        Id = Guid.NewGuid(),
+                        LawyerProfileUserId = user.Id,
+                        Specialization = specDto.Specialization,
+                        YearsOfExperience = specDto.YearsOfExperience,
+                        CasesHandled = specDto.CasesHandled
+                    });
+                }
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
             await transaction.CommitAsync(cancellationToken);

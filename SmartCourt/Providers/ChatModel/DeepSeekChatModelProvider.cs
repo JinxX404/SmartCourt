@@ -386,23 +386,28 @@ public class DeepSeekChatModelProvider : IChatModelProvider
     {
         string title = ExtractPromptValue(userPrompt, "Case Title:").ToLowerInvariant();
         string desc = ExtractPromptValue(userPrompt, "Case Description:").ToLowerInvariant();
+        string text = $"{title} {desc}";
 
         string spec = "CivilLaw";
-        if (title.Contains("أسرة") || title.Contains("طلاق") || title.Contains("نفقة") || desc.Contains("نفقة") || desc.Contains("طلاق"))
+        if (text.Contains("أسرة") || text.Contains("طلاق") || text.Contains("نفقة") || text.Contains("خلع") || text.Contains("حضانة") || text.Contains("تركة") || text.Contains("ميراث"))
         {
             spec = "FamilyLaw";
         }
-        else if (title.Contains("تجاري") || title.Contains("شركة") || title.Contains("شيك") || desc.Contains("شركة"))
-        {
-            spec = "CommercialLaw";
-        }
-        else if (title.Contains("عمل") || title.Contains("عمال") || title.Contains("راتب") || desc.Contains("استقالة"))
+        else if (text.Contains("عمل") || text.Contains("عمال") || text.Contains("راتب") || text.Contains("أجر") || text.Contains("استقالة") || text.Contains("فصل") || text.Contains("موظف") || text.Contains("وظيفة") || text.Contains("إجازات") || text.Contains("مكافأة"))
         {
             spec = "LaborLaw";
         }
-        else if (title.Contains("جناية") || title.Contains("سرقة") || title.Contains("جنحة") || desc.Contains("محضر"))
+        else if (text.Contains("جناية") || text.Contains("سرقة") || text.Contains("جنحة") || text.Contains("محضر") || text.Contains("نصب") || text.Contains("تزوير") || text.Contains("احتيال") || text.Contains("جريمة"))
         {
             spec = "CriminalLaw";
+        }
+        else if (text.Contains("مجلس الدولة") || text.Contains("قرار إداري") || text.Contains("حكومة") || text.Contains("مناقصة"))
+        {
+            spec = "AdministrativeAndStateCouncilLaw";
+        }
+        else if (text.Contains("تجاري") || text.Contains("شيك") || text.Contains("كمبيالة") || text.Contains("إيصال أمانة") || text.Contains("سجل تجاري") || text.Contains("شراكة") || text.Contains("مساهمين") || (text.Contains("شركة") && !text.Contains("عمل") && !text.Contains("راتب") && !text.Contains("فصل")))
+        {
+            spec = "CommercialLaw";
         }
 
         return JsonSerializer.Serialize(new
