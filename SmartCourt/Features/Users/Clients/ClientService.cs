@@ -34,7 +34,7 @@ public class ClientService(
                 Name = u.FullName ?? string.Empty,
                 Email = u.Email ?? string.Empty,
                 PhoneNumber = u.PhoneNumber ?? string.Empty,
-                Gender = u.Gender ?? string.Empty,
+                Gender = u.Gender,
                 DateOfBirth = u.DateOfBirth,
                 Address = u.Address,
                 Status = u.Status.ToString()
@@ -45,6 +45,57 @@ public class ClientService(
             throw new NotFoundException("الموكل غير موجود");
 
         return response;
+    }
+
+    public async Task CompleteProfileAsync(CompleteClientProfileRequest request, CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        var user = await _userManager.Users
+            .Include(u => u.ClientProfile)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+            throw new NotFoundException("الموكل غير موجود");
+
+        if (user.Status == UserStatus.Active)
+        {
+            throw new BusinessException("تم استكمال الملف الشخصي مسبقاً.");
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            if (user.PhoneNumber != request.PhoneNumber)
+            {
+                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
+                if (!setPhoneResult.Succeeded)
+                    throw new BusinessException(string.Join(" ", setPhoneResult.Errors.Select(e => e.Description)));
+            }
+
+            user.DateOfBirth = request.DateOfBirth;
+            user.Gender = request.Gender;
+            user.Address = request.Address;
+            user.Status = UserStatus.Active;
+
+            if (user.ClientProfile == null)
+            {
+                user.ClientProfile = new ClientProfile { UserId = user.Id };
+            }
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                throw new BusinessException(string.Join(" ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task UpdateProfileAsync(UpdateClientProfileRequest request, CancellationToken cancellationToken)
@@ -68,7 +119,6 @@ public class ClientService(
                     throw new BusinessException(string.Join(" ", setPhoneResult.Errors.Select(e => e.Description)));
             }
 
-            user.DateOfBirth = request.DateOfBirth;
             user.Address = request.Address;
 
             if (user.ClientProfile == null)

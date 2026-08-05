@@ -1,8 +1,13 @@
+using SmartCourt.Features.Auth.Enums;
+
 namespace SmartCourt.Features.Users.Lawyers.DTOs;
 
-public class UpdateLawyerProfileRequest
+public class CompleteLawyerProfileRequest
 {
     public string PhoneNumber { get; set; } = string.Empty;
+    public string NationalNumber { get; set; } = string.Empty;
+    public Gender? Gender { get; set; }
+    public DateOnly DateOfBirth { get; set; }
     public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }

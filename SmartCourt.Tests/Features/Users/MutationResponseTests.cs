@@ -65,6 +65,9 @@ public sealed class MutationResponseTests
         public Task<ClientProfileResponse> GetProfileAsync(CancellationToken cancellationToken)
             => Task.FromResult(new ClientProfileResponse());
 
+        public Task CompleteProfileAsync(CompleteClientProfileRequest request, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
         public Task UpdateProfileAsync(UpdateClientProfileRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
@@ -76,6 +79,9 @@ public sealed class MutationResponseTests
     {
         public Task<LawyerProfileResponse> GetProfileAsync(CancellationToken cancellationToken)
             => Task.FromResult(new LawyerProfileResponse());
+
+        public Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
+            => Task.CompletedTask;
 
         public Task<PublicLawyerProfileResponse> GetPublicProfileAsync(Guid lawyerId, CancellationToken cancellationToken)
             => Task.FromResult(new PublicLawyerProfileResponse());

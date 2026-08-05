@@ -36,7 +36,7 @@ public class LawyerService(
                 Email = u.Email ?? string.Empty,
                 PhoneNumber = u.PhoneNumber ?? string.Empty,
                 NationalNumber = u.NationalNumber ?? string.Empty,
-                Gender = u.Gender ?? string.Empty,
+                Gender = u.Gender,
                 DateOfBirth = u.DateOfBirth,
                 Address = u.Address,
                 Status = u.Status.ToString(),
@@ -61,7 +61,7 @@ public class LawyerService(
             {
                 Id = u.Id,
                 Name = u.FullName ?? string.Empty,
-                Gender = u.Gender ?? string.Empty,
+                Gender = u.Gender,
                 Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
@@ -73,6 +73,61 @@ public class LawyerService(
             throw new NotFoundException("المحامي غير موجود");
 
         return response;
+    }
+
+    public async Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        var user = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user == null)
+            throw new NotFoundException("المحامي غير موجود");
+
+        if (user.Status == UserStatus.Active)
+        {
+            throw new BusinessException("تم استكمال الملف الشخصي مسبقاً.");
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            if (user.PhoneNumber != request.PhoneNumber)
+            {
+                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
+                if (!setPhoneResult.Succeeded)
+                    throw new BusinessException(string.Join(" ", setPhoneResult.Errors.Select(e => e.Description)));
+            }
+
+            user.NationalNumber = request.NationalNumber;
+            user.Gender = request.Gender;
+            user.DateOfBirth = request.DateOfBirth;
+            user.Address = request.Address;
+            user.Status = UserStatus.PendingReview;
+
+            if (user.LawyerProfile == null)
+            {
+                user.LawyerProfile = new LawyerProfile { UserId = user.Id, IsAvailable = true };
+            }
+
+            user.LawyerProfile.Level = request.Level;
+            user.LawyerProfile.Bio = request.Bio;
+
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                throw new BusinessException(string.Join(" ", updateResult.Errors.Select(e => e.Description)));
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
@@ -98,7 +153,6 @@ public class LawyerService(
                     throw new BusinessException(string.Join(" ", setPhoneResult.Errors.Select(e => e.Description)));
             }
 
-            user.DateOfBirth = request.DateOfBirth;
             user.Address = request.Address;
 
             if (user.LawyerProfile == null)
@@ -131,11 +185,6 @@ public class LawyerService(
             throw new ValidationException(nameof(request.Level), "مستوى المحامي غير صالح.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        if (request.DateOfBirth == default || request.DateOfBirth >= today)
-        {
-            throw new ValidationException(nameof(request.DateOfBirth), "يجب أن يكون تاريخ الميلاد في الماضي.");
-        }
     }
 
     public async Task DeleteProfileAsync(

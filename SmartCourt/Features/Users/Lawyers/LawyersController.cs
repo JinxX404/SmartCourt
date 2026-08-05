@@ -28,6 +28,14 @@ public class LawyersController : ControllerBase
         return Ok(ApiResponse<LawyerProfileResponse>.Ok(result));
     }
 
+    [HttpPost("profile/complete")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)] // Using same rate limit as update for now
+    public async Task<IActionResult> CompleteProfile([FromBody] CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
+    {
+        await _lawyerService.CompleteProfileAsync(request, cancellationToken);
+        return Ok(ApiResponse.Ok("تم استكمال البيانات بنجاح"));
+    }
+
     [HttpPut("profile")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateLawyerProfileRequest request, CancellationToken cancellationToken)

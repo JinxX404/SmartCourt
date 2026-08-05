@@ -154,8 +154,8 @@ public static class DependencyInjection
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
-                connectionString,
-                sqlOptions => sqlOptions.EnableRetryOnFailure()));
+                connectionString));
+        // sqlOptions => sqlOptions.EnableRetryOnFailure()));
         services.AddSingleton<IIdempotencyRequestHasher, CanonicalIdempotencyRequestHasher>();
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
@@ -436,8 +436,12 @@ public static class DependencyInjection
                         .GetRequiredService<UserManager<ApplicationUser>>();
                     var user = await userManager.FindByIdAsync(parsedUserId.ToString());
 
+                    var path = context.HttpContext.Request.Path.Value ?? string.Empty;
+                    bool isProfileCompletion = path.EndsWith("/profile/complete", StringComparison.OrdinalIgnoreCase);
+                    bool isEligible = user != null && (user.IsAccessEligible() || (user.EmailConfirmed && user.Status == SmartCourt.Features.Auth.Enums.UserStatus.Unverified && isProfileCompletion));
+
                     if (user is null
-                        || !user.IsAccessEligible()
+                        || !isEligible
                         || context.Principal is null
                         || !user.HasValidSecurityStamp(context.Principal))
                     {

@@ -94,7 +94,7 @@ public static class DatabaseSeeder
                 FullName = "Test Lawyer",
                 PhoneNumber = "01000000000",
                 NationalNumber = "00000000000003",
-                Gender = "Male",
+                Gender = Gender.Male,
                 DateOfBirth = new DateOnly(1980, 1, 1),
                 Address = "123 Legal St",
                 Status = UserStatus.Active,
@@ -115,7 +115,7 @@ public static class DatabaseSeeder
         {
             // Update existing record if it was already seeded from the previous run
             lawyerUser.PhoneNumber = "01000000000";
-            lawyerUser.Gender = "Male";
+            lawyerUser.Gender = Gender.Male;
             lawyerUser.DateOfBirth = new DateOnly(1980, 1, 1);
             lawyerUser.Address = "123 Legal St";
             
@@ -134,7 +134,7 @@ public static class DatabaseSeeder
                 FullName = "Test Client",
                 PhoneNumber = "01100000000",
                 NationalNumber = "00000000000004",
-                Gender = "Male",
+                Gender = Gender.Male,
                 DateOfBirth = new DateOnly(1990, 1, 1),
                 Address = "456 Client Ave",
                 Status = UserStatus.Active,
@@ -151,7 +151,7 @@ public static class DatabaseSeeder
         else
         {
             clientUser.PhoneNumber = "01100000000";
-            clientUser.Gender = "Male";
+            clientUser.Gender = Gender.Male;
             clientUser.DateOfBirth = new DateOnly(1990, 1, 1);
             clientUser.Address = "456 Client Ave";
             

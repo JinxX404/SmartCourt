@@ -101,7 +101,6 @@ public sealed class LawyerServiceReleaseTests
         return new UpdateLawyerProfileRequest
         {
             PhoneNumber = "+201012345678",
-            DateOfBirth = new DateOnly(1990, 1, 1),
             Level = LawyerLevel.GeneralRegistration,
             Address = "Cairo"
         };

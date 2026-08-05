@@ -20,6 +20,14 @@ public class ClientsController(IClientService clientService) : ControllerBase
         return Ok(ApiResponse<ClientProfileResponse>.Ok(result));
     }
 
+    [HttpPost("complete")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)] // Using same rate limit as update for now
+    public async Task<IActionResult> CompleteAsync([FromBody] CompleteClientProfileRequest request, CancellationToken cancellationToken)
+    {
+        await clientService.CompleteProfileAsync(request, cancellationToken);
+        return Ok(ApiResponse.Ok("تم استكمال الملف الشخصي بنجاح."));
+    }
+
     [HttpPut]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
     public async Task<IActionResult> UpdateAsync([FromBody] UpdateClientProfileRequest request, CancellationToken cancellationToken)

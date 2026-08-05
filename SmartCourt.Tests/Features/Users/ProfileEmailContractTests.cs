@@ -65,7 +65,7 @@ public sealed class ProfileEmailContractTests
 
         Assert.NotNull(request);
         Assert.Equal("+201012345678", request.PhoneNumber);
-        Assert.Equal(new DateOnly(1990, 1, 1), request.DateOfBirth);
+
         Assert.Equal("Cairo", request.Address);
     }
 }

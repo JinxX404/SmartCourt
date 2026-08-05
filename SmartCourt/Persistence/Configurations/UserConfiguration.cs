@@ -32,9 +32,7 @@ public class UserConfiguration : IEntityTypeConfiguration<ApplicationUser>
             .HasMaxLength(14)
             .HasColumnType("varchar(14)");
 
-        builder.Property(u => u.Gender)
-            .HasMaxLength(20)
-            .HasColumnType("varchar(20)");
+
 
         builder.Property(u => u.DateOfBirth)
             .HasColumnType("date");

@@ -44,26 +44,9 @@ public class ConfirmEmailService(
             throw new BusinessException(InvalidConfirmationMessage);
         }
 
-        var roles = await userManager.GetRolesAsync(user);
-        var expectedStatus = roles.Contains("Client")
-            ? UserStatus.Active
-            : roles.Contains("Lawyer")
-                ? UserStatus.PendingReview
-                : (UserStatus?)null;
-
-        if (expectedStatus is null)
-        {
-            throw new BusinessException(InvalidConfirmationMessage);
-        }
-
-        if (user.EmailConfirmed && user.Status == expectedStatus)
+        if (user.EmailConfirmed)
         {
             return;
-        }
-
-        if (user.EmailConfirmed || user.Status != UserStatus.Unverified)
-        {
-            throw new BusinessException(InvalidConfirmationMessage);
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -75,8 +58,6 @@ public class ConfirmEmailService(
             {
                 throw new BusinessException(InvalidConfirmationMessage);
             }
-
-            user.Status = expectedStatus.Value;
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

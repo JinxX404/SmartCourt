@@ -1,3 +1,5 @@
+using SmartCourt.Features.Auth.Enums;
+
 namespace SmartCourt.Features.Users.Lawyers.DTOs;
 
 public class LawyerProfileResponse
@@ -7,7 +9,7 @@ public class LawyerProfileResponse
     public string Email { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public string NationalNumber { get; set; } = string.Empty;
-    public string Gender { get; set; } = string.Empty;
+    public Gender? Gender { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
     public string? Bio { get; set; }
