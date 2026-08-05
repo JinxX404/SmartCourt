@@ -10,7 +10,6 @@ namespace SmartCourt.Features.Users.Lawyers;
 
 [Route("api/lawyers")]
 [ApiController]
-[Authorize(Roles = "Lawyer")]
 public class LawyersController : ControllerBase
 {
     private readonly ILawyerService _lawyerService;
@@ -21,6 +20,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpGet("profile")]
+    [Authorize(Roles = "Lawyer")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileGet)]
     public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
     {
@@ -29,6 +29,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpPost("profile/complete")]
+    [Authorize(Roles = "Lawyer")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)] // Using same rate limit as update for now
     public async Task<IActionResult> CompleteProfile([FromBody] CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
     {
@@ -37,6 +38,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpPut("profile")]
+    [Authorize(Roles = "Lawyer")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
     {
@@ -45,6 +47,7 @@ public class LawyersController : ControllerBase
     }
 
     [HttpDelete("profile")]
+    [Authorize(Roles = "Lawyer")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
     public async Task<IActionResult> DeleteProfile(
         [FromBody] DeleteAccountRequest request,
