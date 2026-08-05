@@ -25,10 +25,10 @@
                               "fullName":  "Moataz Mohammed",
                               "role":  "Admin"
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MmI3YzZiOS04NjkwLTQ1NmMtNzE2YS0wOGRlZTMxNDk3ZmUiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQyYjdjNmI5LTg2OTAtNDU2Yy03MTZhLTA4ZGVlMzE0OTdmZSIsImVtYWlsIjoibW9hdGF6bW9oYW1tZWQyMzkyMDAzQGdtYWlsLmNvbSIsIm5hbWUiOiJNb2F0YXogTW9oYW1tZWQiLCJzZWN1cml0eV9zdGFtcCI6IlFWMkhOTEtXUENLUVNQMlE1VTJPQkNBVTRYVFdYUUJTIiwianRpIjoiMTA0MGY0MzktZWZhMy00OTg0LTg5NjMtMDZhZTJkZjA4MWY0IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODU5NDQ2MDUsImV4cCI6MTc4NTk0ODIwNSwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.OFJ2uktGACr9XE8-NbPAmnyMiSF06yTASnRT-1pDD78",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0MmI3YzZiOS04NjkwLTQ1NmMtNzE2YS0wOGRlZTMxNDk3ZmUiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjQyYjdjNmI5LTg2OTAtNDU2Yy03MTZhLTA4ZGVlMzE0OTdmZSIsImVtYWlsIjoibW9hdGF6bW9oYW1tZWQyMzkyMDAzQGdtYWlsLmNvbSIsIm5hbWUiOiJNb2F0YXogTW9oYW1tZWQiLCJzZWN1cml0eV9zdGFtcCI6IlFWMkhOTEtXUENLUVNQMlE1VTJPQkNBVTRYVFdYUUJTIiwianRpIjoiOTVkNzBkNTUtMjNiYi00N2RmLTg1YzUtY2IxM2Q5NmU2Y2UyIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODU5NDYzOTcsImV4cCI6MTc4NTk0OTk5NywiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.bPqrIdQ9YrpkjRKTwzsAEEQwP7YoUpWxKVH6qZKEMps",
                  "expiresIn":  3600,
-                 "refreshToken":  "w/idkOw+Trzd+47j8lVEbgXZJXP1KSVTr21WuhEvNK1BL04A601nLFRCo6D+61jcnLcAqCkzhnSW3Or/BDu62g==",
-                 "refreshTokenExpiration":  "2026-08-12T15:43:25.0731047Z"
+                 "refreshToken":  "FK2qqNEqwzCcvNuHDB9iXppAq0B5WELpgPu3CUCxZhQsypPTVRSd8R6lJV4tEAUJ1kzufjpT+h5EU3eZfmuDYQ==",
+                 "refreshTokenExpiration":  "2026-08-12T16:13:17.329293Z"
              },
     "message":  null,
     "errors":  null,
@@ -44,7 +44,7 @@
 **Body:**
 `json
 {
-    "Email":  "lawyer_verification_192134597@test.com",
+    "Email":  "lawyer_verification_93095493@test.com",
     "FullName":  "Lawyer Verification",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
@@ -57,8 +57,8 @@
 {
     "success":  true,
     "data":  {
-                 "userId":  "d19a6821-6f53-4d0b-e47a-08def300e686",
-                 "email":  "lawyer_verification_192134597@test.com",
+                 "userId":  "6673da4c-b515-4fdf-b0fb-08def30c75ec",
+                 "email":  "lawyer_verification_93095493@test.com",
                  "fullName":  "Lawyer Verification",
                  "role":  "Lawyer"
              },
@@ -69,11 +69,11 @@
 ``n---
 
 
-Found confirmation URL for lawyer_verification_192134597@test.com: http://localhost:5173/verify-email?userId=d19a6821-6f53-4d0b-e47a-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5MXcvSG5EaUEvbGpUa3BRdjdaRjFBakdqNXBSYk1aWGpPNnZXZTRPYW1hQ2U1bzR6cklRYWxuMDc2YjhsRmxjZVFtejNTYloxL1hTNnVGZFh4YmFWMU84UXhyajhiMU5RUEJYOUFyMkpHSlI1SGhJT3lueWRnUzhHTllBVFY1V2tzYU1QTGRJZFJxd3ZqcCtvMjc3YzJxTDZFL1FFOHNTM24ybHpDV3o4eVhOUzlaQ3VNcHRicm92WFhld0lCaFVGUm9GTlRvd1o5VVErQ0dWQzZYelFCTFZ0UC9pbWg2MXpBVUxpUjdwUlZCdz09
+Found confirmation URL for lawyer_verification_93095493@test.com: http://localhost:5173/verify-email?userId=6673da4c-b515-4fdf-b0fb-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5b24vNTBoeWRYak1ZVUIxeDVQVzBRTGpDT2JmbURTWFJxVFVrSnFoclNGRFRvN0hEdFZuNEI1ZlNlNTdzODZ2Q2kwMHN2TG1IYjdzU0o4YTJmTjFEbDRrbitsNkRxUVh4ZEs1MmZYUGRxVG9zL2dPcWw1cEtRa1F0NFdRd1hoNkhOaVV4bWV0S2IySVFJYnljSjFJYWdzcVgySUl5VVhTVVczZi8zVmFIR2oxSUVONmFWRGlJcXJlOU1SYStJYUMzUEVwOW84WTUvQmEvcVJ4Z3lGTldrQ0ZVVEpSMFRkMHNWQW95U3VRdm5hUT09
 
-### Confirm Email for lawyer_verification_192134597@test.com
+### Confirm Email for lawyer_verification_93095493@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=d19a6821-6f53-4d0b-e47a-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5MXcvSG5EaUEvbGpUa3BRdjdaRjFBakdqNXBSYk1aWGpPNnZXZTRPYW1hQ2U1bzR6cklRYWxuMDc2YjhsRmxjZVFtejNTYloxL1hTNnVGZFh4YmFWMU84UXhyajhiMU5RUEJYOUFyMkpHSlI1SGhJT3lueWRnUzhHTllBVFY1V2tzYU1QTGRJZFJxd3ZqcCtvMjc3YzJxTDZFL1FFOHNTM24ybHpDV3o4eVhOUzlaQ3VNcHRicm92WFhld0lCaFVGUm9GTlRvd1o5VVErQ0dWQzZYelFCTFZ0UC9pbWg2MXpBVUxpUjdwUlZCdz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=6673da4c-b515-4fdf-b0fb-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5b24vNTBoeWRYak1ZVUIxeDVQVzBRTGpDT2JmbURTWFJxVFVrSnFoclNGRFRvN0hEdFZuNEI1ZlNlNTdzODZ2Q2kwMHN2TG1IYjdzU0o4YTJmTjFEbDRrbitsNkRxUVh4ZEs1MmZYUGRxVG9zL2dPcWw1cEtRa1F0NFdRd1hoNkhOaVV4bWV0S2IySVFJYnljSjFJYWdzcVgySUl5VVhTVVczZi8zVmFIR2oxSUVONmFWRGlJcXJlOU1SYStJYUMzUEVwOW84WTUvQmEvcVJ4Z3lGTldrQ0ZVVEpSMFRkMHNWQW95U3VRdm5hUT09
 
 **Response Status:** 200
 
@@ -96,7 +96,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 `json
 {
     "Password":  "Password123!",
-    "Email":  "lawyer_verification_192134597@test.com"
+    "Email":  "lawyer_verification_93095493@test.com"
 }
 ``n
 **Response Status:** 200
@@ -107,15 +107,15 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "d19a6821-6f53-4d0b-e47a-08def300e686",
-                              "email":  "lawyer_verification_192134597@test.com",
+                              "id":  "6673da4c-b515-4fdf-b0fb-08def30c75ec",
+                              "email":  "lawyer_verification_93095493@test.com",
                               "fullName":  "Lawyer Verification",
                               "role":  "Lawyer"
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkMTlhNjgyMS02ZjUzLTRkMGItZTQ3YS0wOGRlZjMwMGU2ODYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImQxOWE2ODIxLTZmNTMtNGQwYi1lNDdhLTA4ZGVmMzAwZTY4NiIsImVtYWlsIjoibGF3eWVyX3ZlcmlmaWNhdGlvbl8xOTIxMzQ1OTdAdGVzdC5jb20iLCJuYW1lIjoiTGF3eWVyIFZlcmlmaWNhdGlvbiIsInNlY3VyaXR5X3N0YW1wIjoiSFVYVlFKSk5ONlMyV1ZQNFZOMzVFTkY3R0VRSDNMSEIiLCJqdGkiOiI3OGJkZWQ3OS04MGViLTQ4MzMtOWExNy1iYmFlYzllODlkNDciLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODU5NDQ2MTAsImV4cCI6MTc4NTk0ODIxMCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.T7BsUELH4PwhHaPMcfxWUcaaEGR22cVq7oOdLdQrMI4",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NjczZGE0Yy1iNTE1LTRmZGYtYjBmYi0wOGRlZjMwYzc1ZWMiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjY2NzNkYTRjLWI1MTUtNGZkZi1iMGZiLTA4ZGVmMzBjNzVlYyIsImVtYWlsIjoibGF3eWVyX3ZlcmlmaWNhdGlvbl85MzA5NTQ5M0B0ZXN0LmNvbSIsIm5hbWUiOiJMYXd5ZXIgVmVyaWZpY2F0aW9uIiwic2VjdXJpdHlfc3RhbXAiOiJON1FPQ1dSWDVIUEs1UUhTVVBXNFlTQk4zNERFNEI1VSIsImp0aSI6IjgyOTYzNWEzLWJiNjUtNGY3OC04YWYwLTdhMWJlNWIwYzQwZSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NTk0NjQwMywiZXhwIjoxNzg1OTUwMDAzLCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.UsfzERq9jLV5qfNtdX7KWimHFawMxi2fgv95Q2RYv1A",
                  "expiresIn":  3600,
-                 "refreshToken":  "NMLfrmks6KfsIef3ff2VnnmVdUvtoOYg7UTWOusOpZGIXtvxClu6Dji55ly7iaH+vnKoLupwTUc0A9ISWb0oEA==",
-                 "refreshTokenExpiration":  "2026-08-12T15:43:30.5389596Z"
+                 "refreshToken":  "yk2fuPG9G7xvL85+BqGfBvUTLU9fPtgf0wWuMWwTn6RKXu+JUmhO2L+JsqcbzOYb3MsFNLrQPXUJ6qQANftm7g==",
+                 "refreshTokenExpiration":  "2026-08-12T16:13:23.2670097Z"
              },
     "message":  null,
     "errors":  null,
@@ -130,7 +130,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = d19a6821-6f53-4d0b-e47a-08def300e686
+- UserId = 6673da4c-b515-4fdf-b0fb-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_admin_id.jpg]
 
@@ -155,7 +155,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  4,
+    "totalRecords":  5,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
@@ -188,9 +188,18 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                      "rejectedDocumentCount":  1
                  },
                  {
-                     "lawyerId":  "d19a6821-6f53-4d0b-e47a-08def300e686",
+                     "lawyerId":  "88404714-5076-4ed1-e479-08def300e686",
                      "fullName":  "Lawyer Verification",
-                     "email":  "lawyer_verification_192134597@test.com",
+                     "email":  "lawyer_verification_730984203@test.com",
+                     "phoneNumber":  null,
+                     "pendingDocumentCount":  2,
+                     "verifiedDocumentCount":  0,
+                     "rejectedDocumentCount":  0
+                 },
+                 {
+                     "lawyerId":  "6673da4c-b515-4fdf-b0fb-08def30c75ec",
+                     "fullName":  "Lawyer Verification",
+                     "email":  "lawyer_verification_93095493@test.com",
                      "phoneNumber":  null,
                      "pendingDocumentCount":  1,
                      "verifiedDocumentCount":  0,
@@ -206,7 +215,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 2. Get Verification Details (Admin)
 
-**Request:** GET http://localhost:5049/api/admin/verifications/d19a6821-6f53-4d0b-e47a-08def300e686
+**Request:** GET http://localhost:5049/api/admin/verifications/6673da4c-b515-4fdf-b0fb-08def30c75ec
 
 **Response Status:** 200
 
@@ -215,15 +224,15 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "d19a6821-6f53-4d0b-e47a-08def300e686",
+                 "lawyerId":  "6673da4c-b515-4fdf-b0fb-08def30c75ec",
                  "fullName":  "Lawyer Verification",
-                 "email":  "lawyer_verification_192134597@test.com",
+                 "email":  "lawyer_verification_93095493@test.com",
                  "phoneNumber":  null,
-                 "accountStatus":  "Unverified",
+                 "accountStatus":  "PendingReview",
                  "isFullyVerified":  false,
                  "documents":  [
                                    {
-                                       "documentId":  "87a80219-2d48-4e51-f75f-08def3010d2a",
+                                       "documentId":  "b06b6d29-3a42-44ff-e66e-08def30c7c70",
                                        "documentType":  "NationalIdFront",
                                        "status":  "Pending",
                                        "fileName":  "dummy_admin_id.jpg",
@@ -231,7 +240,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                                        "expirationDate":  "2030-01-01",
                                        "reviewedAt":  null,
                                        "rejectionReason":  null,
-                                       "contentUrl":  "/api/admin/verifications/documents/87a80219-2d48-4e51-f75f-08def3010d2a/content"
+                                       "contentUrl":  "/api/admin/verifications/documents/b06b6d29-3a42-44ff-e66e-08def30c7c70/content"
                                    }
                                ]
              },
@@ -244,7 +253,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 3. Get Document Content (Admin)
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/87a80219-2d48-4e51-f75f-08def3010d2a/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/b06b6d29-3a42-44ff-e66e-08def30c7c70/content
 
 **Response Status:** 200
 
@@ -253,7 +262,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "downloadUrl":  "https://msahvjipdwvgdartpeqj.supabase.co/storage/v1/object/public/smart-court-files/d19a6821-6f53-4d0b-e47a-08def300e686/national-id/1e473386-48eb-49b9-9325-11fc14f4364e.jpg",
+                 "downloadUrl":  "https://msahvjipdwvgdartpeqj.supabase.co/storage/v1/object/public/smart-court-files/6673da4c-b515-4fdf-b0fb-08def30c75ec/national-id/b72c0189-99e5-4bef-846c-c760d9e32aae.jpg",
                  "contentType":  "image/jpeg",
                  "fileName":  "dummy_admin_id.jpg"
              },
@@ -266,7 +275,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 4. Review Verification Document - Reject
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/87a80219-2d48-4e51-f75f-08def3010d2a
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/b06b6d29-3a42-44ff-e66e-08def30c7c70
 
 **Body:**
 `json
@@ -282,7 +291,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "documentId":  "87a80219-2d48-4e51-f75f-08def3010d2a",
+                 "documentId":  "b06b6d29-3a42-44ff-e66e-08def30c7c70",
                  "documentStatus":  "Rejected",
                  "lawyerAccountStatus":  "Rejected",
                  "isFullyVerified":  false
@@ -300,7 +309,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 2
-- UserId = d19a6821-6f53-4d0b-e47a-08def300e686
+- UserId = 6673da4c-b515-4fdf-b0fb-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_admin_id.jpg]
 
@@ -315,7 +324,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 5b. Setup - Get Verification Details Again
 
-**Request:** GET http://localhost:5049/api/admin/verifications/d19a6821-6f53-4d0b-e47a-08def300e686
+**Request:** GET http://localhost:5049/api/admin/verifications/6673da4c-b515-4fdf-b0fb-08def30c75ec
 
 **Response Status:** 200
 
@@ -324,15 +333,15 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "d19a6821-6f53-4d0b-e47a-08def300e686",
+                 "lawyerId":  "6673da4c-b515-4fdf-b0fb-08def30c75ec",
                  "fullName":  "Lawyer Verification",
-                 "email":  "lawyer_verification_192134597@test.com",
+                 "email":  "lawyer_verification_93095493@test.com",
                  "phoneNumber":  null,
                  "accountStatus":  "Rejected",
                  "isFullyVerified":  false,
                  "documents":  [
                                    {
-                                       "documentId":  "87a80219-2d48-4e51-f75f-08def3010d2a",
+                                       "documentId":  "b06b6d29-3a42-44ff-e66e-08def30c7c70",
                                        "documentType":  "NationalIdFront",
                                        "status":  "Rejected",
                                        "fileName":  "dummy_admin_id.jpg",
@@ -340,10 +349,10 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                                        "expirationDate":  "2030-01-01",
                                        "reviewedAt":  null,
                                        "rejectionReason":  "Image is too blurry.",
-                                       "contentUrl":  "/api/admin/verifications/documents/87a80219-2d48-4e51-f75f-08def3010d2a/content"
+                                       "contentUrl":  "/api/admin/verifications/documents/b06b6d29-3a42-44ff-e66e-08def30c7c70/content"
                                    },
                                    {
-                                       "documentId":  "424c0eba-a235-43ce-f760-08def3010d2a",
+                                       "documentId":  "5b9674d6-68f2-4e20-e66f-08def30c7c70",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Pending",
                                        "fileName":  "dummy_admin_id.jpg",
@@ -351,7 +360,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                                        "expirationDate":  "2030-01-01",
                                        "reviewedAt":  null,
                                        "rejectionReason":  null,
-                                       "contentUrl":  "/api/admin/verifications/documents/424c0eba-a235-43ce-f760-08def3010d2a/content"
+                                       "contentUrl":  "/api/admin/verifications/documents/5b9674d6-68f2-4e20-e66f-08def30c7c70/content"
                                    }
                                ]
              },
@@ -364,7 +373,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 6. Review Verification Document - Approve
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/424c0eba-a235-43ce-f760-08def3010d2a
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/5b9674d6-68f2-4e20-e66f-08def30c7c70
 
 **Body:**
 `json
@@ -380,7 +389,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "documentId":  "424c0eba-a235-43ce-f760-08def3010d2a",
+                 "documentId":  "5b9674d6-68f2-4e20-e66f-08def30c7c70",
                  "documentStatus":  "Verified",
                  "lawyerAccountStatus":  "Rejected",
                  "isFullyVerified":  false
@@ -404,7 +413,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 8. Lawyer Deletes Rejected Document
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=d19a6821-6f53-4d0b-e47a-08def300e686&DocumentId=87a80219-2d48-4e51-f75f-08def3010d2a
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=6673da4c-b515-4fdf-b0fb-08def30c75ec&DocumentId=b06b6d29-3a42-44ff-e66e-08def30c7c70
 
 **Response Status:** 404
 
@@ -423,7 +432,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 9. Get User Documents After Approval
 
-**Request:** GET http://localhost:5049/api/UserVerification/d19a6821-6f53-4d0b-e47a-08def300e686
+**Request:** GET http://localhost:5049/api/UserVerification/6673da4c-b515-4fdf-b0fb-08def30c75ec
 
 **Response Status:** 200
 
@@ -434,7 +443,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
     "data":  {
                  "documents":  [
                                    {
-                                       "documentId":  "d67afd0a-7f50-4db1-c6dc-08def3010d27",
+                                       "documentId":  "0aedaf31-7a97-4661-3b51-08def30c7c6d",
                                        "documentType":  1,
                                        "status":  3,
                                        "expirationDate":  "2030-01-01",
@@ -442,7 +451,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                                        "fileName":  "dummy_admin_id.jpg"
                                    },
                                    {
-                                       "documentId":  "f239a570-c159-4265-c6dd-08def3010d27",
+                                       "documentId":  "e368b786-9e57-4d36-3b52-08def30c7c6d",
                                        "documentType":  2,
                                        "status":  2,
                                        "expirationDate":  "2030-01-01",
@@ -478,7 +487,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
                                       "\u0027Page Number\u0027 must be greater than or equal to \u00271\u0027."
                                   ]
                },
-    "traceId":  "00-aa36cc6db96e522b40beabc9d5d7a288-e261399bac9c871c-00"
+    "traceId":  "00-677c76c6fc0ad1d5759eb5b699e6b3a6-23f289f31688d128-00"
 }
 ``n---
 
@@ -505,7 +514,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 13. Read - GET details non-existent LawyerId
 
-**Request:** GET http://localhost:5049/api/admin/verifications/00261808-5515-4ba5-829a-b81d98189261
+**Request:** GET http://localhost:5049/api/admin/verifications/f1dfd8c3-b756-449b-b3c4-52376d3ffbf5
 
 **Response Status:** 404
 
@@ -528,7 +537,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 **Body:**
 `json
 {
-    "Email":  "client_192134597@test.com",
+    "Email":  "client_93095493@test.com",
     "FullName":  "Client Verification",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
@@ -541,8 +550,8 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 {
     "success":  true,
     "data":  {
-                 "userId":  "adb48d0c-6e45-4869-e47b-08def300e686",
-                 "email":  "client_192134597@test.com",
+                 "userId":  "73bd7346-9696-401c-b0fc-08def30c75ec",
+                 "email":  "client_93095493@test.com",
                  "fullName":  "Client Verification",
                  "role":  "Client"
              },
@@ -555,7 +564,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 14b. Read - GET details for Client user
 
-**Request:** GET http://localhost:5049/api/admin/verifications/adb48d0c-6e45-4869-e47b-08def300e686
+**Request:** GET http://localhost:5049/api/admin/verifications/73bd7346-9696-401c-b0fc-08def30c75ec
 
 **Response Status:** 404
 
@@ -573,7 +582,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 15. Read - GET content non-existent DocumentId
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/209a19d1-441d-4ebe-8967-55838f44ccdf/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/263c04a1-1906-4bd3-baf2-c4891f9258ff/content
 
 **Response Status:** 404
 
@@ -591,7 +600,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 16. Update - PATCH Reject without Reason
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/424c0eba-a235-43ce-f760-08def3010d2a
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/5b9674d6-68f2-4e20-e66f-08def30c7c70
 
 **Body:**
 `json
@@ -618,7 +627,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 17. Update - PATCH Approve with Reason
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/424c0eba-a235-43ce-f760-08def3010d2a
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/5b9674d6-68f2-4e20-e66f-08def30c7c70
 
 **Body:**
 `json
@@ -645,7 +654,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 18. Update - PATCH invalid Decision enum
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/424c0eba-a235-43ce-f760-08def3010d2a
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/5b9674d6-68f2-4e20-e66f-08def30c7c70
 
 **Body:**
 `json
@@ -672,7 +681,7 @@ Found confirmation URL for lawyer_verification_192134597@test.com: http://localh
 
 ### 19. Update - PATCH non-existent DocumentId
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/5cacca8b-ccb3-4a15-868d-0290dd7f3129
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/1bab5084-c3d7-4c9a-84c7-1eaa5c97c68d
 
 **Body:**
 `json

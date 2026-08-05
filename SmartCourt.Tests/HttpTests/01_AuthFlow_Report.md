@@ -7,7 +7,7 @@
 **Body:**
 `json
 {
-    "Email":  "client_auth_1055316627@test.com",
+    "Email":  "client_auth_158804931@test.com",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
 }
@@ -26,7 +26,7 @@
                                     "الاسم الكامل مطلوب."
                                 ]
                },
-    "traceId":  "00-6431f0234a45678b69abad068f893c61-be601ece7e4c2e47-00"
+    "traceId":  "00-a5c5f64b5bf2cbae929ae5430fcd1c8d-bf2b4e0a6d030d25-00"
 }
 ``n---
 
@@ -57,7 +57,7 @@
                                  "البريد الإلكتروني مطلوب."
                              ]
                },
-    "traceId":  "00-acff9111757234437efc33dc609c106e-2cace485f16cbfbc-00"
+    "traceId":  "00-3430b1941e7fa6ef96cf7c239e1be346-472a0c8f421fc3bc-00"
 }
 ``n---
 
@@ -88,7 +88,7 @@
                                  "البريد الإلكتروني غير صالح."
                              ]
                },
-    "traceId":  "00-221a1193ae72a8070adc3c15ab142355-8080c2b0cc577b79-00"
+    "traceId":  "00-9e106f4d269c416d2f4563c0bc92f745-d065f5dd85cd967b-00"
 }
 ``n---
 
@@ -100,7 +100,7 @@
 **Body:**
 `json
 {
-    "Email":  "client_auth_1055316627@test.com",
+    "Email":  "client_auth_158804931@test.com",
     "FullName":  "Test Client",
     "ConfirmPassword":  "password",
     "Password":  "password"
@@ -119,7 +119,7 @@
                                     "كلمة المرور يجب أن تحتوي على حرف كبير وحرف صغير ورقم."
                                 ]
                },
-    "traceId":  "00-225d9b9ec56bbb8f6520daa515e2d91d-6dd823cdf0583ab1-00"
+    "traceId":  "00-6ba40c098c871bbfcfe7f3164be85e42-b97a97a25c5599fc-00"
 }
 ``n---
 
@@ -131,7 +131,7 @@
 **Body:**
 `json
 {
-    "Email":  "client_auth_1055316627@test.com",
+    "Email":  "client_auth_158804931@test.com",
     "FullName":  "Test Client",
     "ConfirmPassword":  "Password1234!",
     "Password":  "Password123!"
@@ -150,7 +150,7 @@
                                            "تأكيد كلمة المرور غير مطابق."
                                        ]
                },
-    "traceId":  "00-91d651091ce5108114c0fc31e14b600c-e51180bb6d645c6b-00"
+    "traceId":  "00-49dabc9ced1d81fbf86781be9afed878-9b7570f11dab63a8-00"
 }
 ``n---
 
@@ -162,7 +162,7 @@
 **Body:**
 `json
 {
-    "Email":  "client_auth_1055316627@test.com",
+    "Email":  "client_auth_158804931@test.com",
     "FullName":  "Test Client",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
@@ -175,8 +175,8 @@
 {
     "success":  true,
     "data":  {
-                 "userId":  "63b8cce2-b926-45c1-810f-08def2e76edd",
-                 "email":  "client_auth_1055316627@test.com",
+                 "userId":  "2c4688f1-579a-4372-e602-08def30d5f49",
+                 "email":  "client_auth_158804931@test.com",
                  "fullName":  "Test Client",
                  "role":  "Client"
              },
@@ -195,7 +195,7 @@
 `json
 {
     "Password":  "Password123!",
-    "Email":  "client_auth_1055316627@test.com"
+    "Email":  "client_auth_158804931@test.com"
 }
 ``n
 **Response Status:** 403
@@ -212,11 +212,11 @@
 ``n---
 
 
-Found confirmation URL for client_auth_1055316627@test.com: http://localhost:5173/verify-email?userId=63b8cce2-b926-45c1-810f-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIvNlJablgxNmdhNXJXUDJ3cXB6aHdMeXgzQjZhQ2pQUjBSTkxtRlRuVUxhMDBWUlpSbHpJVE5hdWRWSE5sT1V2MzlEUGYzRVltT1k0UENKbWwvOTlwRUR5WG5uaVBzVi9qUFBPUTJpZVdBUE1KL2NEeEkrZEhpOFV3MjdBRDQrTk55NE85YUZVR1VLdmhzWUJQQ1FZUURhZTh6ek1YVWg3cXBlYVRMYzZOMXhCWEdTa2xBVkNqV3B5WWgwckZNZXpxMGdCUmZwVERlQ1N2RFE3cUZ2YTlSaW5iQW9RK0k2WllnS2dscWxiaUZkUT09
+Found confirmation URL for client_auth_158804931@test.com: http://localhost:5173/verify-email?userId=2c4688f1-579a-4372-e602-08def30d5f49&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4d3RLS0UyVmVraVFpUXpLS2lEQjRIci8wWHFmLzdsZVRsbWZoLzJtc2lmRHhCTFFlUXJ5QU5pOWlwSS9KcTRsU2wwNDVUM1djUDZMNEY0clh1YUFHUEhCNWNVcVBPeTFBR1ZURGpwU1VBV1ZqK010aFoxYTMwVkJPMjU2MWdUK05KODZ2UkpKMVBBanFES0l2aDBtaDZ2cHk3Q0dGUGZEb3ptOEJBbXp1T2JBTlk0V3lZaktKNXRSYkxJZ3dwRGFpS09VUjZKQm4ydnczSm9LMlZWcEs0Z1hUMXN1WGpmTkQ1bGV0QVp1VjlXUT09
 
-### Confirm Email for client_auth_1055316627@test.com
+### Confirm Email for client_auth_158804931@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=63b8cce2-b926-45c1-810f-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIvNlJablgxNmdhNXJXUDJ3cXB6aHdMeXgzQjZhQ2pQUjBSTkxtRlRuVUxhMDBWUlpSbHpJVE5hdWRWSE5sT1V2MzlEUGYzRVltT1k0UENKbWwvOTlwRUR5WG5uaVBzVi9qUFBPUTJpZVdBUE1KL2NEeEkrZEhpOFV3MjdBRDQrTk55NE85YUZVR1VLdmhzWUJQQ1FZUURhZTh6ek1YVWg3cXBlYVRMYzZOMXhCWEdTa2xBVkNqV3B5WWgwckZNZXpxMGdCUmZwVERlQ1N2RFE3cUZ2YTlSaW5iQW9RK0k2WllnS2dscWxiaUZkUT09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=2c4688f1-579a-4372-e602-08def30d5f49&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4d3RLS0UyVmVraVFpUXpLS2lEQjRIci8wWHFmLzdsZVRsbWZoLzJtc2lmRHhCTFFlUXJ5QU5pOWlwSS9KcTRsU2wwNDVUM1djUDZMNEY0clh1YUFHUEhCNWNVcVBPeTFBR1ZURGpwU1VBV1ZqK010aFoxYTMwVkJPMjU2MWdUK05KODZ2UkpKMVBBanFES0l2aDBtaDZ2cHk3Q0dGUGZEb3ptOEJBbXp1T2JBTlk0V3lZaktKNXRSYkxJZ3dwRGFpS09VUjZKQm4ydnczSm9LMlZWcEs0Z1hUMXN1WGpmTkQ1bGV0QVp1VjlXUT09
 
 **Response Status:** 200
 
@@ -239,7 +239,7 @@ Found confirmation URL for client_auth_1055316627@test.com: http://localhost:517
 `json
 {
     "Password":  "Password123!",
-    "Email":  "client_auth_1055316627@test.com"
+    "Email":  "client_auth_158804931@test.com"
 }
 ``n
 **Response Status:** 200
@@ -250,15 +250,15 @@ Found confirmation URL for client_auth_1055316627@test.com: http://localhost:517
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "63b8cce2-b926-45c1-810f-08def2e76edd",
-                              "email":  "client_auth_1055316627@test.com",
+                              "id":  "2c4688f1-579a-4372-e602-08def30d5f49",
+                              "email":  "client_auth_158804931@test.com",
                               "fullName":  "Test Client",
                               "role":  "Client"
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2M2I4Y2NlMi1iOTI2LTQ1YzEtODEwZi0wOGRlZjJlNzZlZGQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjYzYjhjY2UyLWI5MjYtNDVjMS04MTBmLTA4ZGVmMmU3NmVkZCIsImVtYWlsIjoiY2xpZW50X2F1dGhfMTA1NTMxNjYyN0B0ZXN0LmNvbSIsIm5hbWUiOiJUZXN0IENsaWVudCIsInNlY3VyaXR5X3N0YW1wIjoiV0k3NzJONUM2Mk9UR1RXWVdKMkpXR1JNMkJQSVZDT0MiLCJqdGkiOiJlNTljY2ZiYS1kMjY0LTRmN2QtOTQxYy1jNDI3YWUxZDNkNDciLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJuYmYiOjE3ODU5MzE1MjUsImV4cCI6MTc4NTkzNTEyNSwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.IKk6997fU3NnT2dBPnJVHOLTUP5z63DRzEGZiSqhwBE",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyYzQ2ODhmMS01NzlhLTQzNzItZTYwMi0wOGRlZjMwZDVmNDkiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjJjNDY4OGYxLTU3OWEtNDM3Mi1lNjAyLTA4ZGVmMzBkNWY0OSIsImVtYWlsIjoiY2xpZW50X2F1dGhfMTU4ODA0OTMxQHRlc3QuY29tIiwibmFtZSI6IlRlc3QgQ2xpZW50Iiwic2VjdXJpdHlfc3RhbXAiOiJHSFBFMkNBTERPV1JDRERHNUo0Vlc3Mk1FQ0xOS0VYQSIsImp0aSI6Ijg5M2RjNTQwLTdlMTYtNDJhMy1hYWFkLTg1ZTI5MzYxMmJmNyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNsaWVudCIsIm5iZiI6MTc4NTk0Njc5MywiZXhwIjoxNzg1OTUwMzkzLCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.B_1y4QtcXTguJCxbnnWxxXXfMprbrjFnLjCi6FrozfA",
                  "expiresIn":  3600,
-                 "refreshToken":  "L2nBAgrqhEZdhoR0kvqFthVvkV8tAShNZ7dzN+T2D2KuktY22FPLiu2HxT6s8JPWsQy89ej1XbnCqqyv1prTCA==",
-                 "refreshTokenExpiration":  "2026-08-12T12:05:25.9240427Z"
+                 "refreshToken":  "3MkE9bSAq3odjn94H0qBLyLKS0I6PfBAz+PgkOvJuE/dTAqZpozUSWq0QJlio6OlQN8lsSpGJvramLPvDt+lrA==",
+                 "refreshTokenExpiration":  "2026-08-12T16:19:53.315614Z"
              },
     "message":  null,
     "errors":  null,
