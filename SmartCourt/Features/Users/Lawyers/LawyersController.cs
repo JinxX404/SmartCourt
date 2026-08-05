@@ -54,6 +54,17 @@ public class LawyersController : ControllerBase
         return Ok(ApiResponse.Ok("تم حذف الحساب بنجاح"));
     }
 
+    [HttpGet("search")]
+    [Authorize]
+    [SecurityRateLimit(RateLimitPolicyNames.PublicLawyerGet)]
+    public async Task<IActionResult> SearchLawyers(
+        [FromQuery] SearchLawyersRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _lawyerService.SearchLawyersAsync(request, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("public/{id:guid}")]
     [AllowAnonymous]
     [SecurityRateLimit(RateLimitPolicyNames.PublicLawyerGet)]
