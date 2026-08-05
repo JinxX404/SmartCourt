@@ -64,14 +64,23 @@ function Invoke-Api {
         
         return ($responseBody | ConvertFrom-Json -ErrorAction SilentlyContinue)
     } catch {
-        $status = $_.Exception.Response.StatusCode.value__
-        if (-not $status) { $status = "Error" }
+        $status = "Error"
+        if ($_.Exception.Response.StatusCode) {
+            $status = [int]$_.Exception.Response.StatusCode
+        } elseif ($_.Exception.Response.StatusCode.value__) {
+            $status = $_.Exception.Response.StatusCode.value__
+        }
         
-        # Read the error response stream if available
         $errorResponse = ""
-        if ($_.Exception.Response) {
-            $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
-            $errorResponse = $reader.ReadToEnd()
+        if ($_.ErrorDetails -and -not [string]::IsNullOrEmpty($_.ErrorDetails.Message)) {
+            $errorResponse = $_.ErrorDetails.Message
+        } elseif ($_.Exception.Response -and -not ($_.Exception.Response -is [System.Net.Http.HttpResponseMessage])) {
+            try {
+                $reader = New-Object System.IO.StreamReader($_.Exception.Response.GetResponseStream())
+                $errorResponse = $reader.ReadToEnd()
+            } catch {
+                $errorResponse = $_.Exception.Message
+            }
         } else {
             $errorResponse = $_.Exception.Message
         }

@@ -7,7 +7,7 @@
 **Body:**
 `json
 {
-    "Email":  "lawyer_verification_730984203@test.com",
+    "Email":  "lawyer_verification_324320347@test.com",
     "FullName":  "Lawyer Verification",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
@@ -20,8 +20,8 @@
 {
     "success":  true,
     "data":  {
-                 "userId":  "88404714-5076-4ed1-e479-08def300e686",
-                 "email":  "lawyer_verification_730984203@test.com",
+                 "userId":  "58cfbed4-4c92-4c32-b0fd-08def30c75ec",
+                 "email":  "lawyer_verification_324320347@test.com",
                  "fullName":  "Lawyer Verification",
                  "role":  "Lawyer"
              },
@@ -32,11 +32,11 @@
 ``n---
 
 
-Found confirmation URL for lawyer_verification_730984203@test.com: http://localhost:5173/verify-email?userId=88404714-5076-4ed1-e479-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrZDZvcFRNaHQybC80SXZrdm45SE1hdjN6VmpvYWl2QXhHemZTb0ZNNjdpdjVtZnhmZWJ2bk8wWldyUm8wZWxBQUtIU1hSWlZ5L3NHRUxURS83VFR6UXZxRll3akQzdVdKWFNqMDdENGx5TmlZSHFkVm50MVJuRU1hMytEKy9GREpQV1BsQnh2K2RUN1FGZFVNOFBURTVtTlljZFVONHRjdEpaMkEyQ0NtdVkvZG01bE8zeElXdFd0enRmcFUwc25HK2Y1RmNDZFI1Ni9DYnp0UGczWGs4S0pCR3BVWmVuRlRzK1BZNFlDSThydz09
+Found confirmation URL for lawyer_verification_324320347@test.com: http://localhost:5173/verify-email?userId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5K1NJcGdCMGgvdXFHWFBLanhvdmdTRkdDRklJQW1OZFBZM1hhNnd1Q2hMaTBDcjhnYkx2dGh3M2JVUWR1Q2l1U1FhUW5UVlpPaXpBWHNZUUpwa0ppVkhRSFp0Z1dsQlk1dXFDeFNlR2p5MXFYcVVhczlKNjBYdzM4TVZORVNETVk1M29MNG8yYnRUL1l2RFk1TFBpeURkQTlsQ0RINHhVMjlzL0dqaTVxMGFyNlBsZ3BmTHkrWDhsdEZ6c0ZUSlNkUDJncmlKMURjNHpENXVIZ3NRU2EyNlFNUUVNZ2MvT0dzMDVwKzdHU1JWdz09
 
-### Confirm Email for lawyer_verification_730984203@test.com
+### Confirm Email for lawyer_verification_324320347@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=88404714-5076-4ed1-e479-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrZDZvcFRNaHQybC80SXZrdm45SE1hdjN6VmpvYWl2QXhHemZTb0ZNNjdpdjVtZnhmZWJ2bk8wWldyUm8wZWxBQUtIU1hSWlZ5L3NHRUxURS83VFR6UXZxRll3akQzdVdKWFNqMDdENGx5TmlZSHFkVm50MVJuRU1hMytEKy9GREpQV1BsQnh2K2RUN1FGZFVNOFBURTVtTlljZFVONHRjdEpaMkEyQ0NtdVkvZG01bE8zeElXdFd0enRmcFUwc25HK2Y1RmNDZFI1Ni9DYnp0UGczWGs4S0pCR3BVWmVuRlRzK1BZNFlDSThydz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5K1NJcGdCMGgvdXFHWFBLanhvdmdTRkdDRklJQW1OZFBZM1hhNnd1Q2hMaTBDcjhnYkx2dGh3M2JVUWR1Q2l1U1FhUW5UVlpPaXpBWHNZUUpwa0ppVkhRSFp0Z1dsQlk1dXFDeFNlR2p5MXFYcVVhczlKNjBYdzM4TVZORVNETVk1M29MNG8yYnRUL1l2RFk1TFBpeURkQTlsQ0RINHhVMjlzL0dqaTVxMGFyNlBsZ3BmTHkrWDhsdEZ6c0ZUSlNkUDJncmlKMURjNHpENXVIZ3NRU2EyNlFNUUVNZ2MvT0dzMDVwKzdHU1JWdz09
 
 **Response Status:** 200
 
@@ -59,7 +59,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 `json
 {
     "Password":  "Password123!",
-    "Email":  "lawyer_verification_730984203@test.com"
+    "Email":  "lawyer_verification_324320347@test.com"
 }
 ``n
 **Response Status:** 200
@@ -70,15 +70,15 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "88404714-5076-4ed1-e479-08def300e686",
-                              "email":  "lawyer_verification_730984203@test.com",
+                              "id":  "58cfbed4-4c92-4c32-b0fd-08def30c75ec",
+                              "email":  "lawyer_verification_324320347@test.com",
                               "fullName":  "Lawyer Verification",
                               "role":  "Lawyer"
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4ODQwNDcxNC01MDc2LTRlZDEtZTQ3OS0wOGRlZjMwMGU2ODYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6Ijg4NDA0NzE0LTUwNzYtNGVkMS1lNDc5LTA4ZGVmMzAwZTY4NiIsImVtYWlsIjoibGF3eWVyX3ZlcmlmaWNhdGlvbl83MzA5ODQyMDNAdGVzdC5jb20iLCJuYW1lIjoiTGF3eWVyIFZlcmlmaWNhdGlvbiIsInNlY3VyaXR5X3N0YW1wIjoiSDdBUEtRTDVNUkdPRFdWQzREMlJQSk9UUEI2TFdFTlAiLCJqdGkiOiI4NjlhYzhhZS02ZjBmLTRmZGEtOWI3NC03NTBmY2JjNGE5NGQiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODU5NDQ1OTAsImV4cCI6MTc4NTk0ODE5MCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.fkHT0Gh8X2jVgNYEfNJ2irGUdO2UyZbgvwRnzBSV3RE",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1OGNmYmVkNC00YzkyLTRjMzItYjBmZC0wOGRlZjMwYzc1ZWMiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjU4Y2ZiZWQ0LTRjOTItNGMzMi1iMGZkLTA4ZGVmMzBjNzVlYyIsImVtYWlsIjoibGF3eWVyX3ZlcmlmaWNhdGlvbl8zMjQzMjAzNDdAdGVzdC5jb20iLCJuYW1lIjoiTGF3eWVyIFZlcmlmaWNhdGlvbiIsInNlY3VyaXR5X3N0YW1wIjoiTVhDSUJZQjZFRUVDNVNIU0FUTUFFQU00WDZSRkZJVkgiLCJqdGkiOiIyZjRlNWE3My1mZjhlLTRkN2EtOGQzMC1jMTg2MDVlMTllMDciLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODU5NDY0NjQsImV4cCI6MTc4NTk1MDA2NCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.Cd0lhrbmK-jnA_5Y6NBbILrMOEXyAjR5r164C6BclD4",
                  "expiresIn":  3600,
-                 "refreshToken":  "tM/V7Gj9Od21yncZtjY4vvPTTGFTejFhMlspNkXba1JR+P9FGt5pPbOuKj76neJZeB8U2YthiJAWxYkwZaw5oA==",
-                 "refreshTokenExpiration":  "2026-08-12T15:43:10.9865375Z"
+                 "refreshToken":  "mfYTW8YEIhfaf+DMQ83JvN5A0uwkt3gwoZXTc1OI5lx2FRI91EMDWRZy2gbd0cDrptKZKUsauWssz/v/4TKi4g==",
+                 "refreshTokenExpiration":  "2026-08-12T16:14:24.7383229Z"
              },
     "message":  null,
     "errors":  null,
@@ -93,7 +93,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_id.jpg]
 
@@ -120,7 +120,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["UserId is required"]},"traceId":"00-23d358be405232d05ad535f10629711e-383d028f684e5c74-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["UserId is required"]},"traceId":"00-ffe6667d1c741b0c9133f7504dfbb660-549090e0893d8a4a-00"}
 ``n---
 
 
@@ -131,7 +131,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 **Body:**
 `json
 {
-    "UserId":  "88404714-5076-4ed1-e479-08def300e686",
+    "UserId":  "58cfbed4-4c92-4c32-b0fd-08def30c75ec",
     "Documents":  [
 
                   ]
@@ -157,7 +157,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 999
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_id.jpg]
 
@@ -166,7 +166,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents[0].Type":["The value '999' is not valid for Type."]},"traceId":"00-a063556889425b3ddb922eebb562b12d-6b480774574edc75-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents[0].Type":["The value '999' is not valid for Type."]},"traceId":"00-6cc0dfd3d795106e9b1926a09c7261bf-14f107eb3b9984d7-00"}
 ``n---
 
 
@@ -185,7 +185,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value '1' OR '1'='1' is not valid for UserId.","UserId is required"]},"traceId":"00-a0bc2a908d63a3777d9abc772f347ccc-32f5eed717bf74f3-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value '1' OR '1'='1' is not valid for UserId.","UserId is required"]},"traceId":"00-9e55c5cf34545261feaba1973b4af175-9d5c3aa036315785-00"}
 ``n---
 
 
@@ -195,7 +195,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_id.jpg]
 
@@ -210,7 +210,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 ### 5. Get User Documents - Valid
 
-**Request:** GET http://localhost:5049/api/UserVerification/88404714-5076-4ed1-e479-08def300e686
+**Request:** GET http://localhost:5049/api/UserVerification/58cfbed4-4c92-4c32-b0fd-08def30c75ec
 
 **Response Status:** 200
 
@@ -221,7 +221,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
     "data":  {
                  "documents":  [
                                    {
-                                       "documentId":  "ee2b2ab7-eed8-4c72-c6db-08def3010d27",
+                                       "documentId":  "d8baf648-842e-4fee-3b53-08def30c7c6d",
                                        "documentType":  1,
                                        "status":  1,
                                        "expirationDate":  "2030-01-01",
@@ -254,7 +254,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
                                   "User Id is required."
                               ]
                },
-    "traceId":  "00-ab5c168b47a3910f4a599581e5b76bfd-32a5bd8832d2d5a4-00"
+    "traceId":  "00-0cb22148ec5ddb3c62c6740361a1385e-f7253653a0832776-00"
 }
 ``n---
 
@@ -277,14 +277,14 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
                                   "User Id is required."
                               ]
                },
-    "traceId":  "00-cb58d3a3eaaf171c8bdb3234fcd14887-5744000e18e5701c-00"
+    "traceId":  "00-4928f045bcc95482902a887ce2423e98-f36d3c134e939602-00"
 }
 ``n---
 
 
 ### 8. Get User Documents - No Token (401)
 
-**Request:** GET http://localhost:5049/api/UserVerification/88404714-5076-4ed1-e479-08def300e686
+**Request:** GET http://localhost:5049/api/UserVerification/58cfbed4-4c92-4c32-b0fd-08def30c75ec
 
 **Response Status:** 200
 
@@ -295,7 +295,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
     "data":  {
                  "documents":  [
                                    {
-                                       "documentId":  "ee2b2ab7-eed8-4c72-c6db-08def3010d27",
+                                       "documentId":  "d8baf648-842e-4fee-3b53-08def30c7c6d",
                                        "documentType":  1,
                                        "status":  1,
                                        "expirationDate":  "2030-01-01",
@@ -313,7 +313,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 ### 9. Delete User Document - Missing DocumentId
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec
 
 **Response Status:** 400
 
@@ -328,14 +328,14 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
                                       "Document Id is required."
                                   ]
                },
-    "traceId":  "00-205d7f60e252aa031975a039dcfaecd9-9243fae1516d8bbc-00"
+    "traceId":  "00-2f3d53209f61f02d9869f2e6630bb0b9-fb1fb05eaaef7876-00"
 }
 ``n---
 
 
 ### 10. Delete User Document - Missing UserId
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?DocumentId=ee2b2ab7-eed8-4c72-c6db-08def3010d27
+**Request:** DELETE http://localhost:5049/api/UserVerification?DocumentId=d8baf648-842e-4fee-3b53-08def30c7c6d
 
 **Response Status:** 400
 
@@ -350,14 +350,14 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
                                   "User Id is required."
                               ]
                },
-    "traceId":  "00-3d855985e4afc5697070ac33fa7baa82-4dffc200d750204d-00"
+    "traceId":  "00-05af73fdc9e3476e9535e1240da23495-3d932be7d33ed8a9-00"
 }
 ``n---
 
 
 ### 11. Delete User Document - No Token (401)
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686&DocumentId=ee2b2ab7-eed8-4c72-c6db-08def3010d27
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&DocumentId=d8baf648-842e-4fee-3b53-08def30c7c6d
 
 **Response Status:** 200
 
@@ -374,7 +374,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 ### 12. Delete User Document - Valid
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686&DocumentId=ee2b2ab7-eed8-4c72-c6db-08def3010d27
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&DocumentId=d8baf648-842e-4fee-3b53-08def30c7c6d
 
 **Response Status:** 404
 
@@ -393,7 +393,7 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 ### 13. Delete User Document - Not Found (Already deleted)
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686&DocumentId=ee2b2ab7-eed8-4c72-c6db-08def3010d27
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&DocumentId=d8baf648-842e-4fee-3b53-08def30c7c6d
 
 **Response Status:** 404
 
@@ -416,16 +416,17 @@ Found confirmation URL for lawyer_verification_730984203@test.com: http://localh
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\large_id.jpg]
 
 
-**Response Status:** Error
+**Response Status:** 200
 
 **Response Body:**
-Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A task was canceled.
----
+`json
+{"success":true,"data":{"uploadedDocuments":[{"fileName":"large_id.jpg","type":1}],"failedDocuments":[]},"message":null,"errors":null,"statusCode":200}
+``n---
 
 
 ### 15. Submit Verification - Invalid File Extension (.exe)
@@ -434,7 +435,7 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\malicious.exe]
 
@@ -443,7 +444,7 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 
 **Response Body:**
 `json
-{"success":true,"data":{"uploadedDocuments":[{"fileName":"malicious.exe","type":1}],"failedDocuments":[]},"message":null,"errors":null,"statusCode":200}
+{"success":true,"data":{"uploadedDocuments":[],"failedDocuments":[{"fileName":"malicious.exe","type":1,"error":"You already uploaded this document before. Wait untill admin verifies your document"}]},"message":null,"errors":null,"statusCode":200}
 ``n---
 
 
@@ -462,7 +463,7 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is not valid for UserId.","UserId is required"]},"traceId":"00-ae848e58f76b0d1ce170d958524b7836-3a35f909e59f667b-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' is not valid for UserId.","UserId is required"]},"traceId":"00-36dcfad7efc3ff1a38690b3fb6e4d41a-f74d65fcd58e63e5-00"}
 ``n---
 
 
@@ -472,7 +473,7 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 1800-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_id.jpg]
 
@@ -492,7 +493,7 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 **Body:**
 `json
 {
-    "Email":  "attacker_730984203@test.com",
+    "Email":  "attacker_324320347@test.com",
     "FullName":  "Attacker User",
     "ConfirmPassword":  "Password123!",
     "Password":  "Password123!"
@@ -505,8 +506,8 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 {
     "success":  true,
     "data":  {
-                 "userId":  "4de07fb8-c7a7-4b3d-e47c-08def300e686",
-                 "email":  "attacker_730984203@test.com",
+                 "userId":  "bdd03951-73f7-4490-b0fe-08def30c75ec",
+                 "email":  "attacker_324320347@test.com",
                  "fullName":  "Attacker User",
                  "role":  "Lawyer"
              },
@@ -517,11 +518,11 @@ Exception calling "GetResult" with "0" argument(s): "A task was canceled." - A t
 ``n---
 
 
-Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/verify-email?userId=4de07fb8-c7a7-4b3d-e47c-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4QUJ6VUhLa2tDN1Npdk85WDU4QXNkTFp0TDk0REhMbWFZU0kvOEY3eWlGYnRxcHNpNG1CZ3J1aThCSXFZVzEveHFPeXRWM201dldwZkRPMnFaeHNFS1VLSEFwSmxDNmhNRitRR0xJclN6TlZvc1JpdnBxQW40ZlVjUkUxMENMY2Z6Z25qOTlqTzhZOEZlVHhBUmxEajVYLzRVQlExcHZmbGhYOUYybEMyUGFVbGhUUVFhZmhYWEFBQisxQnBQRmRKajRMQ1dJTk93Q00zUnp1YmpkR0srNjVOdlJwb0lUTmhRdlIwcHl1dDdWdz09
+Found confirmation URL for attacker_324320347@test.com: http://localhost:5173/verify-email?userId=bdd03951-73f7-4490-b0fe-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrMlo4amVSZDVtRFFKdEpzZlUyRGVkK2Z3RWR5T3AxZmRtbG9mREFPS0VETC9Oek80SHdTMXAzZWhHaEZ0Uzd4c1lPUVhGWmJ1amZ5NTAzcUtHRnFKbnY0NDNxMnBIMzNZOTdqZ0NzWVJEaHYxV3E1QTZ3TmZGUGVFUWh1T2Nlb3lRWE1JYm0xNC9yQnZXSkZNTTB6azJzTCtMaE9hcFE4SmxwZzM3VVljeE9qbU5TUmhrVXlaa0Fzakg5TUZ3SGZwVWVHWEg3NEFjN0tFVTVlWTVmOXgxdHV3dVRJT1F0ZWJhb2dXU0lDeW5IUT09
 
-### Confirm Email for attacker_730984203@test.com
+### Confirm Email for attacker_324320347@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=4de07fb8-c7a7-4b3d-e47c-08def300e686&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4QUJ6VUhLa2tDN1Npdk85WDU4QXNkTFp0TDk0REhMbWFZU0kvOEY3eWlGYnRxcHNpNG1CZ3J1aThCSXFZVzEveHFPeXRWM201dldwZkRPMnFaeHNFS1VLSEFwSmxDNmhNRitRR0xJclN6TlZvc1JpdnBxQW40ZlVjUkUxMENMY2Z6Z25qOTlqTzhZOEZlVHhBUmxEajVYLzRVQlExcHZmbGhYOUYybEMyUGFVbGhUUVFhZmhYWEFBQisxQnBQRmRKajRMQ1dJTk93Q00zUnp1YmpkR0srNjVOdlJwb0lUTmhRdlIwcHl1dDdWdz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=bdd03951-73f7-4490-b0fe-08def30c75ec&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrMlo4amVSZDVtRFFKdEpzZlUyRGVkK2Z3RWR5T3AxZmRtbG9mREFPS0VETC9Oek80SHdTMXAzZWhHaEZ0Uzd4c1lPUVhGWmJ1amZ5NTAzcUtHRnFKbnY0NDNxMnBIMzNZOTdqZ0NzWVJEaHYxV3E1QTZ3TmZGUGVFUWh1T2Nlb3lRWE1JYm0xNC9yQnZXSkZNTTB6azJzTCtMaE9hcFE4SmxwZzM3VVljeE9qbU5TUmhrVXlaa0Fzakg5TUZ3SGZwVWVHWEg3NEFjN0tFVTVlWTVmOXgxdHV3dVRJT1F0ZWJhb2dXU0lDeW5IUT09
 
 **Response Status:** 200
 
@@ -544,7 +545,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 `json
 {
     "Password":  "Password123!",
-    "Email":  "attacker_730984203@test.com"
+    "Email":  "attacker_324320347@test.com"
 }
 ``n
 **Response Status:** 200
@@ -555,15 +556,15 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "4de07fb8-c7a7-4b3d-e47c-08def300e686",
-                              "email":  "attacker_730984203@test.com",
+                              "id":  "bdd03951-73f7-4490-b0fe-08def30c75ec",
+                              "email":  "attacker_324320347@test.com",
                               "fullName":  "Attacker User",
                               "role":  "Lawyer"
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0ZGUwN2ZiOC1jN2E3LTRiM2QtZTQ3Yy0wOGRlZjMwMGU2ODYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjRkZTA3ZmI4LWM3YTctNGIzZC1lNDdjLTA4ZGVmMzAwZTY4NiIsImVtYWlsIjoiYXR0YWNrZXJfNzMwOTg0MjAzQHRlc3QuY29tIiwibmFtZSI6IkF0dGFja2VyIFVzZXIiLCJzZWN1cml0eV9zdGFtcCI6IlFJN0pBNlJWWjZZWFBGNUVWMkZIWEhIRkNCWVBJS0xCIiwianRpIjoiY2E2NTUzNGYtMzExOC00NzUxLWI5MjgtYWUxZThmMGUzMmMyIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiTGF3eWVyIiwibmJmIjoxNzg1OTQ0NzAzLCJleHAiOjE3ODU5NDgzMDMsImlzcyI6IlNtYXJ0Q291cnRBUEkiLCJhdWQiOiJTbWFydENvdXJ0Q2xpZW50In0.1A2L7gYhrwMtFlb1ED8wP-f9-mbGqn_lSpcxBGwd-fE",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiZGQwMzk1MS03M2Y3LTQ0OTAtYjBmZS0wOGRlZjMwYzc1ZWMiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImJkZDAzOTUxLTczZjctNDQ5MC1iMGZlLTA4ZGVmMzBjNzVlYyIsImVtYWlsIjoiYXR0YWNrZXJfMzI0MzIwMzQ3QHRlc3QuY29tIiwibmFtZSI6IkF0dGFja2VyIFVzZXIiLCJzZWN1cml0eV9zdGFtcCI6IjM3WFFHSTZWVkxHSEc0TkRTUExGU0FXWUc0TkFNVkE2IiwianRpIjoiYWE3OGM0MTgtYzNlOC00ZmJiLWEwNjgtYTQ1MmI4NDBlNTAyIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiTGF3eWVyIiwibmJmIjoxNzg1OTQ2NTY0LCJleHAiOjE3ODU5NTAxNjQsImlzcyI6IlNtYXJ0Q291cnRBUEkiLCJhdWQiOiJTbWFydENvdXJ0Q2xpZW50In0.UmcetHIA8fGlmmoNwPpwZ3hi92K396UeLm9kcGPU-4E",
                  "expiresIn":  3600,
-                 "refreshToken":  "Krbn0DbghysiUuzi+r0131qyGKxV6T3HCIEEn9CI7rAmZc1MbvWGluktQsVA65LkJu1CRN0xjFmyRnLYIxNViA==",
-                 "refreshTokenExpiration":  "2026-08-12T15:45:03.7839994Z"
+                 "refreshToken":  "57cxkfKxYo7oQpx4g1TDMukrezDx03U+EguQcoyEC+Rn4nFKqiOyJ9w1SRU40MFxnl4cojUJwvaS2l8ceh6azw==",
+                 "refreshTokenExpiration":  "2026-08-12T16:16:04.2191455Z"
              },
     "message":  null,
     "errors":  null,
@@ -574,7 +575,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 ### 18c. Delete User Document - Cross-User (Attacker Token)
 
-**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686&DocumentId=ee2b2ab7-eed8-4c72-c6db-08def3010d27
+**Request:** DELETE http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&DocumentId=d8baf648-842e-4fee-3b53-08def30c7c6d
 
 **Response Status:** 404
 
@@ -597,7 +598,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 13-13-2030
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\dummy_id.jpg]
 
@@ -606,7 +607,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents[0].ExpirationDate":["The value '13-13-2030' is not valid for ExpirationDate."]},"traceId":"00-41802e44f3ee6eb98b17481e7b28f204-e482b99539c48997-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents[0].ExpirationDate":["The value '13-13-2030' is not valid for ExpirationDate."]},"traceId":"00-491aace6585675cd83ea74365b981d7a-9aadee62ebdcae0a-00"}
 ``n---
 
 
@@ -624,7 +625,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["UserId is required"]},"traceId":"00-f63a1feed03c6b3d4bfa1363d28f92bd-7052b5b713b6ce87-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["UserId is required"]},"traceId":"00-1d6757fbfe5e152c6d844901c4a00dfa-2c7514c2d42a958e-00"}
 ``n---
 
 
@@ -633,7 +634,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 **Request:** POST http://localhost:5049/api/UserVerification/submit-verification-documents (Multipart Form Data)
 
 **Form Data:**
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 
 
 **Response Status:** 500
@@ -659,7 +660,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value 'not-a-guid' is not valid for UserId.","UserId is required"]},"traceId":"00-bf6c8dbd90c2f0288d72c1ad1f0dccd1-7b7af887ff33e3f5-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"UserId":["The value 'not-a-guid' is not valid for UserId.","UserId is required"]},"traceId":"00-4b10421344e1b8ce28b7cb8df6964db1-9a2109c7a52e3cf9-00"}
 ``n---
 
 
@@ -693,7 +694,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Response Body:**
 ```json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents":["The same verification document cannot be submitted more than once."]},"traceId":"00-b19f1f42299a351ae96fe4cf1f20fae4-d614164a92754147-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"Documents":["The same verification document cannot be submitted more than once."]},"traceId":"00-0aa08dcaf57442af83efc02011c5e235-1add14490f4bef8c-00"}
 ```n---
 
 
@@ -703,7 +704,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Form Data:**
 - Documents[0].Type = 1
-- UserId = 88404714-5076-4ed1-e479-08def300e686
+- UserId = 58cfbed4-4c92-4c32-b0fd-08def30c75ec
 - Documents[0].ExpirationDate = 2030-01-01
 - Documents[0].File = [File: P:\Projects\Smart Court\SmartCourt.Tests\HttpTests\giant_id.jpg]
 
@@ -712,7 +713,7 @@ Found confirmation URL for attacker_730984203@test.com: http://localhost:5173/ve
 
 **Response Body:**
 `json
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"":["Failed to read the request form. Request body too large. The max request body size is 30000000 bytes."]},"traceId":"00-2ef2cc38af3bba1204dc6a130b65db1d-bf9d436e2b64ecdc-00"}
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"":["Failed to read the request form. Request body too large. The max request body size is 30000000 bytes."]},"traceId":"00-18f071b89ebb9efde14243ab6d2e382c-54dc57f4c740a54b-00"}
 ``n---
 
 
@@ -725,7 +726,7 @@ Cannot process argument because the value of argument "name" is not valid. Chang
 
 ### 25a. HTTP Method - POST to GET endpoint
 
-**Request:** POST http://localhost:5049/api/UserVerification/88404714-5076-4ed1-e479-08def300e686
+**Request:** POST http://localhost:5049/api/UserVerification/58cfbed4-4c92-4c32-b0fd-08def30c75ec
 
 **Body:**
 `json
@@ -741,7 +742,7 @@ Cannot process argument because the value of argument "name" is not valid. Chang
 
 ### 25b. HTTP Method - GET to DELETE endpoint
 
-**Request:** GET http://localhost:5049/api/UserVerification?UserId=88404714-5076-4ed1-e479-08def300e686&DocumentId=c7be6940-677d-41d9-8353-55eab71cb203
+**Request:** GET http://localhost:5049/api/UserVerification?UserId=58cfbed4-4c92-4c32-b0fd-08def30c75ec&DocumentId=82be6c38-df10-4e4d-abd8-9ab43da08ae1
 
 **Response Status:** 405
 
@@ -751,7 +752,7 @@ Cannot process argument because the value of argument "name" is not valid. Chang
 
 ### 26. Read - Get documents for non-existent UserId
 
-**Request:** GET http://localhost:5049/api/UserVerification/b8f4198d-33c7-4a7f-acd1-f77dcb5eb26a
+**Request:** GET http://localhost:5049/api/UserVerification/2bb76308-6a47-4a48-bf03-74758f4afda8
 
 **Response Status:** 404
 

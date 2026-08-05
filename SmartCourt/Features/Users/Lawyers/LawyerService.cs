@@ -1,5 +1,6 @@
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Entities;
+using SmartCourt.Common.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Users.Lawyers.DTOs;
@@ -96,6 +97,76 @@ public class LawyerService(
             ProfilePictureUrl = user.ProfilePictureUrl,
             Specializations = specializations
         };
+    }
+
+    public async Task<PagedResponse<List<PublicLawyerProfileResponse>>> SearchLawyersAsync(
+        SearchLawyersRequest request,
+        CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Users
+            .AsNoTracking()
+            .Where(u =>
+                u.LawyerProfile != null &&
+                u.EmailConfirmed &&
+                u.Status == UserStatus.Active);
+
+        // Apply optional filters
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var term = request.SearchTerm.Trim().ToLower();
+            query = query.Where(u =>
+                u.FullName.ToLower().Contains(term) ||
+                (u.LawyerProfile!.Bio != null && u.LawyerProfile.Bio.ToLower().Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Governorate))
+            query = query.Where(u => u.Governorate == request.Governorate);
+
+        if (request.Level.HasValue)
+            query = query.Where(u => u.LawyerProfile!.Level == request.Level.Value);
+
+        if (request.Specialization.HasValue)
+            query = query.Where(u =>
+                u.LawyerProfile!.Specializations.Any(s => s.Specialization == request.Specialization.Value));
+
+        if (request.MinRating.HasValue)
+            query = query.Where(u => u.LawyerProfile!.AverageRating >= request.MinRating.Value);
+
+        if (request.IsAvailable.HasValue)
+            query = query.Where(u => u.LawyerProfile!.IsAvailable == request.IsAvailable.Value);
+
+        // Apply sorting
+        query = (request.SortBy, request.SortDirection) switch
+        {
+            (LawyerSortBy.Rating, SortDirection.Descending)    => query.OrderByDescending(u => u.LawyerProfile!.AverageRating),
+            (LawyerSortBy.Rating, SortDirection.Ascending)     => query.OrderBy(u => u.LawyerProfile!.AverageRating),
+            (LawyerSortBy.ResponseTime, SortDirection.Ascending)  => query.OrderBy(u => u.LawyerProfile!.AverageResponseTimeHours),
+            (LawyerSortBy.ResponseTime, SortDirection.Descending) => query.OrderByDescending(u => u.LawyerProfile!.AverageResponseTimeHours),
+            (LawyerSortBy.ExperienceLevel, SortDirection.Descending) => query.OrderByDescending(u => u.LawyerProfile!.Level),
+            (LawyerSortBy.ExperienceLevel, SortDirection.Ascending)  => query.OrderBy(u => u.LawyerProfile!.Level),
+            _ => query.OrderByDescending(u => u.LawyerProfile!.AverageRating)
+        };
+
+        var totalRecords = await query.CountAsync(cancellationToken);
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)request.PageSize);
+
+        var items = await query
+            .Skip((request.PageNumber - 1) * request.PageSize)
+            .Take(request.PageSize)
+            .Select(u => new PublicLawyerProfileResponse
+            {
+                Id = u.Id,
+                Name = u.FullName,
+                Gender = u.Gender,
+                Level = u.LawyerProfile!.Level,
+                Bio = u.LawyerProfile.Bio,
+                IsAvailable = u.LawyerProfile.IsAvailable,
+                ProfilePictureUrl = u.ProfilePictureUrl
+            })
+            .ToListAsync(cancellationToken);
+
+        return PagedResponse<List<PublicLawyerProfileResponse>>.OkPaged(
+            items, request.PageNumber, request.PageSize, totalRecords, totalPages);
     }
 
     public async Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken)
