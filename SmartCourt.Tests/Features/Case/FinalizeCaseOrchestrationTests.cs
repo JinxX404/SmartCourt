@@ -120,7 +120,7 @@ public sealed class FinalizeCaseOrchestrationTests
         };
 
         var currentUserService = new TestCurrentUserService { UserId = clientId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, chatModelProvider, NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, chatModelProvider, null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, chatModelProvider, NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(
@@ -194,7 +194,7 @@ public sealed class FinalizeCaseOrchestrationTests
         await dbContext.SaveChangesAsync();
 
         var currentUserService = new TestCurrentUserService { UserId = clientId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, new TestChatModelProvider(), NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(
@@ -238,7 +238,7 @@ public sealed class FinalizeCaseOrchestrationTests
         await dbContext.SaveChangesAsync();
 
         var currentUserService = new TestCurrentUserService { UserId = clientId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, new TestChatModelProvider(), NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(
@@ -280,7 +280,7 @@ public sealed class FinalizeCaseOrchestrationTests
         await dbContext.SaveChangesAsync();
 
         var currentUserService = new TestCurrentUserService { UserId = attackerId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, new TestChatModelProvider(), null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, new TestChatModelProvider(), NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(
@@ -319,7 +319,7 @@ public sealed class FinalizeCaseOrchestrationTests
 
         var failingChatProvider = new FailingChatModelProvider();
         var currentUserService = new TestCurrentUserService { UserId = clientId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, failingChatProvider, NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, failingChatProvider, null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, failingChatProvider, NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(
@@ -380,7 +380,7 @@ public sealed class FinalizeCaseOrchestrationTests
         };
 
         var currentUserService = new TestCurrentUserService { UserId = clientId };
-        var caseAnalysisService = new CaseAnalysisService(dbContext, chatModelProvider, NullLogger<CaseAnalysisService>.Instance);
+        var caseAnalysisService = new CaseAnalysisService(dbContext, chatModelProvider, null!, null!, NullLogger<CaseAnalysisService>.Instance);
         var matchingService = new MatchingService(dbContext, chatModelProvider, NullLogger<MatchingService>.Instance);
 
         var handler = new FinalizeCaseHandler(

@@ -91,5 +91,8 @@ public sealed class MutationResponseTests
 
         public Task DeleteProfileAsync(DeleteAccountRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task<PagedResponse<List<PublicLawyerProfileResponse>>> SearchLawyersAsync(SearchLawyersRequest request, CancellationToken cancellationToken)
+            => Task.FromResult<PagedResponse<List<PublicLawyerProfileResponse>>>(null!);
     }
 }
