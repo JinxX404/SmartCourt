@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Ignored Scraped Data
+docs/Egyptian law/manshurat.org/
+
 # Local development settings (contain API keys — never commit)
 **/appsettings.json
 **/appsettings.Development.json
