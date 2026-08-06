@@ -17,7 +17,8 @@ internal static class VerificationStatusEvaluator
                 VerificationDocumentType.NationalIdBack,
                 VerificationDocumentType.BarAssociationCardFront,
                 VerificationDocumentType.BarAssociationCardBack,
-                VerificationDocumentType.SelfieWithId
+                VerificationDocumentType.SelfieWithId,
+                VerificationDocumentType.OfficialProfilePicture
             ];
         }
 

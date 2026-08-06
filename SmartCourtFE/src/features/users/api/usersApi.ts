@@ -5,6 +5,7 @@ export interface ClientProfile {
   name: string;
   email: string;
   phoneNumber?: string;
+  nationalNumber?: string;
   gender?: string;
   dateOfBirth?: string;
   address?: string;
@@ -13,6 +14,7 @@ export interface ClientProfile {
 
 export interface UpdateClientProfileRequest {
   phoneNumber: string;
+  nationalNumber?: string;
   dateOfBirth?: string;
   address?: string;
 }
@@ -39,6 +41,7 @@ export interface LawyerProfile {
 
 export interface UpdateLawyerProfileRequest {
   phoneNumber: string;
+  nationalNumber?: string;
   dateOfBirth?: string;
   specializationId?: string;
   yearsOfExperience?: number;

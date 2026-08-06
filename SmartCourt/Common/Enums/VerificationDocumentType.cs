@@ -10,5 +10,6 @@ namespace SmartCourt.Common.Enums
 
         SelfieWithId = 5,
         Other = 6,
+        OfficialProfilePicture = 7
     }
 }

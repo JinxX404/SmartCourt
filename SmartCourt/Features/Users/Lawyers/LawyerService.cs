@@ -158,6 +158,7 @@ public class LawyerService(
 
             user.Address = request.Address;
             user.DateOfBirth = request.DateOfBirth;
+            user.NationalNumber = request.NationalNumber;
 
             if (user.LawyerProfile == null)
             {

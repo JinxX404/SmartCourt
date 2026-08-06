@@ -94,11 +94,11 @@ export const AdminVerificationsTab = () => {
 
       {/* Main Layout: List on one side, Details on the other if selected */}
       <div className="flex flex-col lg:flex-row gap-6">
-        
+
         {/* Left Side: List of Pending Users */}
         <div className={`w-full ${selectedLawyerId ? 'lg:w-1/3' : ''} bg-white dark:bg-[#1a1d23] rounded-3xl p-6 border border-gray-200/80 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col`}>
           <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">قائمة الانتظار</h2>
-          
+
           {isLoadingPending ? (
             <div className="flex justify-center p-8"><LuLoader className="w-8 h-8 animate-spin text-gold" /></div>
           ) : pendingList.length === 0 ? (
@@ -106,14 +106,13 @@ export const AdminVerificationsTab = () => {
           ) : (
             <div className="flex flex-col gap-3 overflow-y-auto max-h-[600px] pr-2 custom-scrollbar">
               {pendingList.map((req) => (
-                <div 
+                <div
                   key={req.lawyerId}
                   onClick={() => setSelectedLawyerId(req.lawyerId)}
-                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                    selectedLawyerId === req.lawyerId 
-                    ? 'border-gold bg-gold/5' 
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedLawyerId === req.lawyerId
+                    ? 'border-gold bg-gold/5'
                     : 'border-gray-100 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
-                  }`}
+                    }`}
                 >
                   <div className="font-bold text-gray-800 dark:text-white mb-1 flex items-center justify-between">
                     <span>{req.fullName}</span>
@@ -139,7 +138,7 @@ export const AdminVerificationsTab = () => {
           <div className="w-full lg:w-2/3 bg-white dark:bg-[#1a1d23] rounded-3xl p-6 border border-gray-200/80 dark:border-gray-800 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">تفاصيل الوثائق</h2>
-              <button 
+              <button
                 onClick={() => setSelectedLawyerId(null)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
@@ -153,7 +152,7 @@ export const AdminVerificationsTab = () => {
               <div className="text-center p-8 text-red-500">حدث خطأ في جلب التفاصيل.</div>
             ) : (
               <div className="space-y-6">
-                
+
                 {/* User Info Header with Extended Profile Details */}
                 <div className="bg-gray-50 dark:bg-gray-800/50 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
                   <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
@@ -173,12 +172,12 @@ export const AdminVerificationsTab = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {details.accountStatus === 'PendingReview' && (
+                      {details.accountStatus === 'PendingReview' && !details.documents?.some((doc: any) => doc.status === 'Pending') && (
                         <button
                           onClick={() => approveAccount(details.lawyerId)}
                           disabled={isApprovingAccount}
                           className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                          title="اعتماد التعديلات وحالة الحساب"
+                          title="اعتماد التعديلات الشخصية أو المهنية"
                         >
                           {isApprovingAccount ? (
                             <LuLoader className="w-4 h-4 animate-spin" />
@@ -256,28 +255,28 @@ export const AdminVerificationsTab = () => {
 
                       {/* Document Image */}
                       <div className="bg-black/5 dark:bg-black/20 h-48 relative flex items-center justify-center overflow-hidden group p-2">
-                        <SecureImage 
-                          url={AdminVerificationsApi.getDocumentImageUrl(doc.documentId)} 
+                        <SecureImage
+                          url={AdminVerificationsApi.getDocumentImageUrl(doc.documentId)}
                           className="max-h-full max-w-full object-contain"
                           alt={doc.documentType}
                         />
                         {/* Overlay to view full image */}
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                           <button 
-                             onClick={async () => {
-                               try {
-                                 const res = await import("../../../../api/apiClient").then(m => m.apiClient.get(AdminVerificationsApi.getDocumentImageUrl(doc.documentId)));
-                                 if (res.data?.data?.downloadUrl) {
-                                   setFullSizeImageUrl(res.data.data.downloadUrl);
-                                 }
-                               } catch (err) {
-                                 import("react-hot-toast").then(m => m.default.error("فشل فتح الصورة"));
-                               }
-                             }}
-                             className="text-white flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl font-bold backdrop-blur-sm cursor-pointer"
-                           >
-                             <LuEye className="w-5 h-5" /> عرض بحجم كامل
-                           </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await import("../../../../api/apiClient").then(m => m.apiClient.get(AdminVerificationsApi.getDocumentImageUrl(doc.documentId)));
+                                if (res.data?.data?.downloadUrl) {
+                                  setFullSizeImageUrl(res.data.data.downloadUrl);
+                                }
+                              } catch (err) {
+                                import("react-hot-toast").then(m => m.default.error("فشل فتح الصورة"));
+                              }
+                            }}
+                            className="text-white flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl font-bold backdrop-blur-sm cursor-pointer"
+                          >
+                            <LuEye className="w-5 h-5" /> عرض بحجم كامل
+                          </button>
                         </div>
                       </div>
 
@@ -286,27 +285,25 @@ export const AdminVerificationsTab = () => {
                         <button
                           onClick={() => handleReview(doc.documentId, "Approve")}
                           disabled={doc.status === 'Accepted' || doc.status === 'Verified' || isReviewing}
-                          className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold transition-colors ${
-                            doc.status === 'Accepted' || doc.status === 'Verified'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 opacity-60 cursor-not-allowed' 
+                          className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold transition-colors ${doc.status === 'Accepted' || doc.status === 'Verified'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 opacity-60 cursor-not-allowed'
                             : 'bg-green-500 text-white hover:bg-green-600 shadow-sm cursor-pointer'
-                          }`}
+                            }`}
                         >
                           <LuCheck className="w-4 h-4" /> قبول
                         </button>
                         <button
                           onClick={() => handleReview(doc.documentId, "Reject")}
                           disabled={doc.status === 'Rejected' || isReviewing}
-                          className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold transition-colors ${
-                            doc.status === 'Rejected' 
-                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 opacity-60 cursor-not-allowed' 
+                          className={`flex-1 py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold transition-colors ${doc.status === 'Rejected'
+                            ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 opacity-60 cursor-not-allowed'
                             : 'bg-red-500 text-white hover:bg-red-600 shadow-sm cursor-pointer'
-                          }`}
+                            }`}
                         >
                           <LuX className="w-4 h-4" /> {doc.status === 'Verified' || doc.status === 'Accepted' ? 'تغيير لرفض' : 'رفض'}
                         </button>
                       </div>
-                      
+
                       {rejectingDocId === doc.documentId && (
                         <div className="p-3 bg-red-50 dark:bg-red-900/10 border-t border-red-100 dark:border-red-900/30 flex flex-col gap-2">
                           <input
@@ -338,7 +335,7 @@ export const AdminVerificationsTab = () => {
                           </div>
                         </div>
                       )}
-                      
+
                       {doc.rejectionReason && (
                         <div className="p-3 text-xs text-red-600 bg-red-50 dark:bg-red-900/10 font-bold border-t border-red-100 dark:border-red-900/30">
                           سبب الرفض: {doc.rejectionReason}
@@ -356,23 +353,23 @@ export const AdminVerificationsTab = () => {
 
       {/* Full Size Image Modal */}
       {fullSizeImageUrl && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
           onClick={() => setFullSizeImageUrl(null)}
         >
-          <div 
+          <div
             className="relative max-w-5xl max-h-[90vh] w-full h-full flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <button 
+            <button
               onClick={() => setFullSizeImageUrl(null)}
               className="absolute -top-12 right-0 md:-right-12 text-white/70 hover:text-white bg-black/50 hover:bg-black p-2 rounded-full backdrop-blur-md transition-all"
             >
               <LuX className="w-6 h-6" />
             </button>
-            <img 
-              src={fullSizeImageUrl} 
-              alt="Full size document" 
+            <img
+              src={fullSizeImageUrl}
+              alt="Full size document"
               className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
             />
           </div>
@@ -389,7 +386,8 @@ const formatDocType = (type: string) => {
     case "NationalIdBack": return "بطاقة الرقم القومي (خلفي)";
     case "BarAssociationCardFront": return "كارنيه النقابة (أمامي)";
     case "BarAssociationCardBack": return "كارنيه النقابة (خلفي)";
-    case "SelfieWithId": return "صورة شخصية مع البطاقة";
+    case "SelfieWithId": return "صورة شخصية وانت ممسك بالبطاقة";
+    case "OfficialProfilePicture": return "صورة شخصية رسمية لصفحتك";
     default: return type;
   }
 };

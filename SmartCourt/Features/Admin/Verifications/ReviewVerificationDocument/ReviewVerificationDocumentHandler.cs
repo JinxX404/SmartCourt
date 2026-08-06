@@ -11,6 +11,7 @@ using SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument.DTOs;
 using SmartCourt.Entities;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument;
 
@@ -18,7 +19,8 @@ public sealed class ReviewVerificationDocumentHandler(
     ApplicationDbContext context,
     ICurrentUserService currentUserService,
     UserManager<ApplicationUser> userManager,
-    IValidator<ReviewVerificationDocumentCommand> validator)
+    IValidator<ReviewVerificationDocumentCommand> validator,
+    IFileStorageService fileStorageService)
     : IRequestHandler<ReviewVerificationDocumentCommand, ApiResponse<ReviewVerificationDocumentResponse>>
 {
     public async Task<ApiResponse<ReviewVerificationDocumentResponse>> Handle(
@@ -33,8 +35,10 @@ public sealed class ReviewVerificationDocumentHandler(
         }
 
         var document = await context.UserVerificationDocuments
+            .Include(verificationDocument => verificationDocument.StoredFile)
             .Include(verificationDocument => verificationDocument.User)
             .ThenInclude(user => user.VerificationDocuments)
+                .ThenInclude(d => d.StoredFile)
             .SingleOrDefaultAsync(verificationDocument => verificationDocument.Id == request.DocumentId, cancellationToken);
 
         // Use NotFoundException instead of ApiResponse.Fail so ExceptionHandlingMiddleware
@@ -74,6 +78,26 @@ public sealed class ReviewVerificationDocumentHandler(
             document.VerifiedAt = DateTime.UtcNow;
             document.VerifiedByAdminId = adminId;
             document.RejectionReason = null;
+
+            if (document.DocumentType == VerificationDocumentType.OfficialProfilePicture)
+            {
+                document.User.ProfilePictureUrl = document.StoredFile.FileUrl;
+            }
+
+            // Delete any older documents of the same type now that the new one is approved
+            var oldDocuments = document.User.VerificationDocuments
+                .Where(candidate => candidate.Id != document.Id && candidate.DocumentType == document.DocumentType)
+                .ToList();
+
+            foreach (var oldDoc in oldDocuments)
+            {
+                if (oldDoc.StoredFile != null)
+                {
+                    await fileStorageService.DeleteAsync(oldDoc.StoredFile.FileUrl, cancellationToken);
+                    context.StoredFiles.Remove(oldDoc.StoredFile);
+                }
+                context.UserVerificationDocuments.Remove(oldDoc);
+            }
         }
         else
         {
@@ -83,8 +107,10 @@ public sealed class ReviewVerificationDocumentHandler(
             document.RejectionReason = request.RejectionReason!.Trim();
         }
 
-        // Demote any other current document of the same type that was previously
-        // marked current (handles the replacement-document scenario).
+        // We already handled deleting old ones if approved. 
+        // If rejected, there might be another IsCurrent document? 
+        // SubmitVerificationDocumentsHandler sets IsCurrent = false for the old one immediately.
+        // So this loop below is generally redundant now but we can keep it for safety.
         foreach (var previousVersion in document.User.VerificationDocuments.Where(candidate =>
                      candidate.Id != document.Id &&
                      candidate.DocumentType == document.DocumentType &&

@@ -9,8 +9,8 @@ interface DocumentUploadCardProps {
   selectedFile?: File | null;
   status?: "Pending" | "Verified" | "Rejected" | "Expired" | string;
   rejectionReason?: string | null;
-  existingFileName?: string;
   existingImageUrl?: string;
+  error?: string | null;
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -35,8 +35,8 @@ export const DocumentUploadCard = ({
   selectedFile,
   status,
   rejectionReason,
-  existingFileName,
-  existingImageUrl
+  existingImageUrl,
+  error
 }: DocumentUploadCardProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -152,8 +152,18 @@ export const DocumentUploadCard = ({
         </div>
       </div>
 
+      {/* Error Footer */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 p-2 border-t border-red-100 dark:border-red-900/50 flex items-center justify-center gap-2">
+          <span className="text-red-500 font-bold text-xs">⚠️</span>
+          <p className="text-xs text-red-600 dark:text-red-400 font-bold text-center">
+            {error}
+          </p>
+        </div>
+      )}
+
       {/* Rejection Reason Footer */}
-      {status === "Rejected" && rejectionReason && !selectedFile && (
+      {status === "Rejected" && rejectionReason && !selectedFile && !error && (
         <div className="bg-red-50 dark:bg-red-900/20 p-2 border-t border-red-100 dark:border-red-900/50">
           <p className="text-[11px] text-red-500 font-bold text-center truncate" title={rejectionReason}>
             سبب الرفض: {rejectionReason}

@@ -34,6 +34,7 @@ public class ClientService(
                 Name = u.FullName ?? string.Empty,
                 Email = u.Email ?? string.Empty,
                 PhoneNumber = u.PhoneNumber ?? string.Empty,
+                NationalNumber = u.NationalNumber ?? string.Empty,
                 Gender = u.Gender,
                 DateOfBirth = u.DateOfBirth,
                 Address = u.Address,
@@ -76,6 +77,7 @@ public class ClientService(
             user.DateOfBirth = request.DateOfBirth;
             user.Gender = request.Gender;
             user.Address = request.Address;
+            user.NationalNumber = request.NationalNumber;
             user.Status = UserStatus.Active;
 
             if (user.ClientProfile == null)
@@ -121,6 +123,7 @@ public class ClientService(
 
             user.Address = request.Address;
             user.DateOfBirth = request.DateOfBirth;
+            user.NationalNumber = request.NationalNumber;
 
             if (user.ClientProfile == null)
             {

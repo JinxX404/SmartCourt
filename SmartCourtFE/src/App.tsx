@@ -11,7 +11,7 @@ import { Profile } from "./pages/Profile";
 import { Dashboard } from "./pages/Dashboard";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { Loader } from "./components/Loader";
-import { GoogleOAuthProvider } from '@react-oauth/google';
+
 import { Toaster } from "react-hot-toast";
 
 import { useAuthStore } from "./features/auth/store/useAuthStore";
@@ -51,7 +51,7 @@ function App() {
   }, []);
 
   return (
-    <GoogleOAuthProvider clientId="21307316304-ie0ousqrqgsmuurcvvoesht1r9o1bfhv.apps.googleusercontent.com">
+
       <QueryClientProvider client={queryClient}>
       <Toaster position="top-center" toastOptions={{ className: 'dark:bg-navy dark:text-white border border-border-primary' }} />
       <BrowserRouter>
@@ -72,7 +72,7 @@ function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
-    </GoogleOAuthProvider>
+
   );
 }
 

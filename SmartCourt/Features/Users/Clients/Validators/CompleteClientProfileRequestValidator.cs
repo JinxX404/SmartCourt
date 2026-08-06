@@ -12,6 +12,11 @@ public class CompleteClientProfileRequestValidator : AbstractValidator<CompleteC
             .NotEmpty().WithMessage("رقم الهاتف مطلوب")
             .Matches(@"^\+20\d{10}$").WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
 
+        RuleFor(x => x.NationalNumber)
+            .NotEmpty()
+            .Matches(@"^\d{14}$")
+            .WithMessage("الرقم القومي يجب أن يتكون من 14 رقم بالضبط.");
+
         RuleFor(x => x.DateOfBirth)
             .NotEmpty().WithMessage("تاريخ الميلاد مطلوب")
             .LessThan(DateOnly.FromDateTime(DateTime.Today)).WithMessage("تاريخ الميلاد يجب أن يكون في الماضي");

@@ -9,4 +9,5 @@ public class UpdateLawyerProfileRequest
     public Guid? SpecializationId { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }
+    public string? NationalNumber { get; set; }
 }

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import imageCompression from 'browser-image-compression';
 import { useAuthStore } from "../store/useAuthStore";
 import { DocumentUploadCard } from "./DocumentUploadCard";
 import { AuthApi } from "../api/authApi";
@@ -17,7 +18,6 @@ import {
   LuClock,
   LuFileText,
   LuBriefcase,
-  LuAward,
   LuShieldCheck,
   LuMail,
   LuPhone,
@@ -68,6 +68,7 @@ export const VerificationTab = () => {
   const [selfie, setSelfie] = useState<File | null>(null);
   const [barCard, setBarCard] = useState<File | null>(null);
   const [barCardBack, setBarCardBack] = useState<File | null>(null);
+  const [officialProfilePicture, setOfficialProfilePicture] = useState<File | null>(null);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +84,7 @@ export const VerificationTab = () => {
   // Edit profile state
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [nationalNumber, setNationalNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [address, setAddress] = useState("");
   const [bio, setBio] = useState("");
@@ -108,6 +110,7 @@ export const VerificationTab = () => {
         login({ ...user, status: profile.status as any });
       }
       setPhoneNumber(profile.phoneNumber || "");
+      setNationalNumber(profile.nationalNumber || "");
       setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "");
       setAddress(profile.address || "");
       if (isLawyer) {
@@ -136,6 +139,7 @@ export const VerificationTab = () => {
       if (isLawyer) {
         return await UsersApi.updateLawyerProfile({
           phoneNumber,
+          nationalNumber: nationalNumber && nationalNumber.trim() !== "" ? nationalNumber : undefined,
           dateOfBirth: formattedDob,
           address,
           bio,
@@ -146,6 +150,7 @@ export const VerificationTab = () => {
       } else {
         return await UsersApi.updateClientProfile({
           phoneNumber,
+          nationalNumber: nationalNumber && nationalNumber.trim() !== "" ? nationalNumber : undefined,
           dateOfBirth: formattedDob,
           address
         });
@@ -195,17 +200,17 @@ export const VerificationTab = () => {
   const getDocInfo = (type: number) => {
     const doc = docs.find((d: any) => d.documentType === type && d.isCurrent);
     if (!doc) return { status: undefined, reason: undefined, name: undefined, id: undefined };
-    
+
     let statusStr = doc.status;
     if (typeof doc.status === 'number') {
-       statusStr = doc.status === 1 ? 'Pending' : doc.status === 2 ? 'Verified' : doc.status === 3 ? 'Rejected' : 'Expired';
+      statusStr = doc.status === 1 ? 'Pending' : doc.status === 2 ? 'Verified' : doc.status === 3 ? 'Rejected' : 'Expired';
     } else if (typeof doc.status === 'string') {
-       if (doc.status.toLowerCase() === 'verified') statusStr = 'Verified';
-       else if (doc.status.toLowerCase() === 'pending') statusStr = 'Pending';
-       else if (doc.status.toLowerCase() === 'rejected') statusStr = 'Rejected';
-       else if (doc.status.toLowerCase() === 'expired') statusStr = 'Expired';
+      if (doc.status.toLowerCase() === 'verified') statusStr = 'Verified';
+      else if (doc.status.toLowerCase() === 'pending') statusStr = 'Pending';
+      else if (doc.status.toLowerCase() === 'rejected') statusStr = 'Rejected';
+      else if (doc.status.toLowerCase() === 'expired') statusStr = 'Expired';
     }
-    
+
     return { status: statusStr, reason: doc.rejectionReason, name: doc.fileName, id: doc.documentId };
   };
 
@@ -214,8 +219,9 @@ export const VerificationTab = () => {
   const selfieInfo = getDocInfo(5);
   const barCardInfo = getDocInfo(3);
   const barCardBackInfo = getDocInfo(4);
+  const officialProfilePictureInfo = getDocInfo(7);
 
-  const hasSelectedNewFiles = !!(nationalIdFront || nationalIdBack || selfie || barCard || barCardBack);
+  const hasSelectedNewFiles = !!(nationalIdFront || nationalIdBack || selfie || barCard || barCardBack || officialProfilePicture);
   const hasPendingDocs = useMemo(() => {
     return docs.some((d: any) => d.isCurrent && (d.status === 1 || d.status === 'Pending'));
   }, [docs]);
@@ -247,58 +253,99 @@ export const VerificationTab = () => {
     const missingSelfie = (!selfieInfo.status || selfieInfo.status === 'Rejected') && !selfie;
     const missingBarCard = isLawyer && (!barCardInfo.status || barCardInfo.status === 'Rejected') && !barCard;
     const missingBarCardBack = isLawyer && (!barCardBackInfo.status || barCardBackInfo.status === 'Rejected') && !barCardBack;
+    const missingOfficialProfilePicture = isLawyer && (!officialProfilePictureInfo.status || officialProfilePictureInfo.status === 'Rejected') && !officialProfilePicture;
 
-    if (missingFront || missingBack || missingSelfie || missingBarCard || missingBarCardBack) {
+    if (missingFront || missingBack || missingSelfie || missingBarCard || missingBarCardBack || missingOfficialProfilePicture) {
       setError("الرجاء إرفاق جميع المستندات المطلوبة (الجديدة أو المرفوضة).");
       return;
     }
 
-    if (!nationalIdFront && !nationalIdBack && !selfie && !barCard && !barCardBack) {
-       setError("لم تقم باختيار أي مستندات جديدة للرفع.");
-       return;
+    if (!nationalIdFront && !nationalIdBack && !selfie && !barCard && !barCardBack && !officialProfilePicture) {
+      setError("لم تقم باختيار أي مستندات جديدة للرفع.");
+      return;
+    }
+
+    const MAX_FILE_SIZE_MB = 5;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+    const hasSizeErrors = [nationalIdFront, nationalIdBack, selfie, barCard, barCardBack, officialProfilePicture].some(f => f && f.size > MAX_FILE_SIZE_BYTES);
+
+    if (hasSizeErrors) {
+      setError("يوجد صورة يتجاوز حجمها الحد الأقصى المسموح (5 ميجابايت)، يرجى مراجعة التنبيهات باللون الأحمر أسفل الصور المرفوضة.");
+      toast.error("عذراً، بعض الصور حجمها كبير جداً.");
+      return;
     }
 
     setIsLoading(true);
     setError(null);
     setSuccess(false);
 
+    console.time('Total Time');
+    console.time('Image Compression');
+
     try {
       const futureDate = new Date();
       futureDate.setFullYear(futureDate.getFullYear() + 10);
       const formattedDate = futureDate.toISOString().split('T')[0];
 
-      const documents = [];
-      
+      const compressImage = async (file: File) => {
+        const options = {
+          maxWidthOrHeight: 1280,
+          initialQuality: 0.7,
+          useWebWorker: true
+        };
+        try {
+          const compressed = await imageCompression(file, options);
+          return compressed as File;
+        } catch (error) {
+          console.error('Error compressing image:', error);
+          return file; // Fallback to original
+        }
+      };
+
+      const tasks: Promise<{ file: File; type: number; expirationDate: string }>[] = [];
+
       if (nationalIdFront) {
-        documents.push({ file: nationalIdFront, type: 1, expirationDate: formattedDate });
+        tasks.push(compressImage(nationalIdFront).then(res => ({ file: res, type: 1, expirationDate: formattedDate })));
       }
-      
+
       if (nationalIdBack) {
-        documents.push({ file: nationalIdBack, type: 2, expirationDate: formattedDate });
+        tasks.push(compressImage(nationalIdBack).then(res => ({ file: res, type: 2, expirationDate: formattedDate })));
       }
-      
+
       if (selfie) {
-        documents.push({ file: selfie, type: 5, expirationDate: formattedDate });
+        tasks.push(compressImage(selfie).then(res => ({ file: res, type: 5, expirationDate: formattedDate })));
       }
-      
+
       if (isLawyer && barCard) {
-        documents.push({ file: barCard, type: 3, expirationDate: formattedDate });
+        tasks.push(compressImage(barCard).then(res => ({ file: res, type: 3, expirationDate: formattedDate })));
       }
-      
+
       if (isLawyer && barCardBack) {
-        documents.push({ file: barCardBack, type: 4, expirationDate: formattedDate });
+        tasks.push(compressImage(barCardBack).then(res => ({ file: res, type: 4, expirationDate: formattedDate })));
       }
-      
+
+      if (isLawyer && officialProfilePicture) {
+        tasks.push(compressImage(officialProfilePicture).then(res => ({ file: res, type: 7, expirationDate: formattedDate })));
+      }
+
+      const documents = await Promise.all(tasks);
+
       if (documents.length === 0) {
         setError("لم تقم بتحديد أي مستندات جديدة للرفع.");
         setIsLoading(false);
         return;
       }
 
+      console.timeEnd('Image Compression');
+      console.time('API Request');
+
       const response = await AuthApi.submitVerificationDocuments({
         userId: user.id,
         documents
       });
+
+      console.timeEnd('API Request');
 
       if (response.data?.failedDocuments?.length > 0 && response.data?.uploadedDocuments?.length === 0) {
         setError(response.data.failedDocuments[0].error || "حدث خطأ أثناء رفع المستندات.");
@@ -306,38 +353,52 @@ export const VerificationTab = () => {
         return;
       }
 
+      if (user) {
+        login({ ...user, status: 'PendingReview' });
+      }
+      toast.success("تم إرسال المستندات بنجاح. حسابك الآن قيد المراجعة من الأدمن.");
+
+      await refetch();
+
+      console.timeEnd('Total Time');
       setSuccess(true);
-      
       setNationalIdFront(null);
       setNationalIdBack(null);
       setSelfie(null);
       setBarCard(null);
       setBarCardBack(null);
-      
-      login({ ...user, status: 'PendingReview' });
-      toast.success("تم إرسال المستندات بنجاح. حسابك الآن قيد المراجعة من الأدمن.");
-      refetch();
-      
+      setOfficialProfilePicture(null);
+
+      // Reset file input UI values manually if needed
+      const fileInputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
+      fileInputs.forEach(input => input.value = "");
     } catch (err: any) {
       console.error("Error submitting documents:", err);
-      
+
       let errorMessage = "حدث خطأ أثناء رفع المستندات. تأكد من حجم وصيغة الصور.";
       if (err.response?.data?.errors && err.response.data.errors.length > 0) {
         errorMessage = err.response.data.errors.join(" | ");
       } else if (err.response?.data?.message) {
         errorMessage = err.response.data.message;
       }
-      
+
       setError(errorMessage);
       setIsLoading(false);
     }
   };
 
-  const isAllSubmittedOrVerified = 
+  const isAllSubmittedOrVerified =
     (idFrontInfo.status === 'Pending' || idFrontInfo.status === 'Verified') &&
     (idBackInfo.status === 'Pending' || idBackInfo.status === 'Verified') &&
     (selfieInfo.status === 'Pending' || selfieInfo.status === 'Verified') &&
-    (!isLawyer || ((barCardInfo.status === 'Pending' || barCardInfo.status === 'Verified') && (barCardBackInfo.status === 'Pending' || barCardBackInfo.status === 'Verified')));
+    (!isLawyer || ((barCardInfo.status === 'Pending' || barCardInfo.status === 'Verified') && (barCardBackInfo.status === 'Pending' || barCardBackInfo.status === 'Verified') && (officialProfilePictureInfo.status === 'Pending' || officialProfilePictureInfo.status === 'Verified')));
+
+  const getFileSizeError = (file: File | null) => {
+    if (file && file.size > 5 * 1024 * 1024) {
+      return "حجم الصورة أكبر من 5 ميجابايت. يرجى اختيار صورة أصغر.";
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-6">
@@ -422,22 +483,20 @@ export const VerificationTab = () => {
         <div className="flex justify-center gap-2 mb-8">
           <button
             onClick={() => handleTabChange('professional')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-              activeSubTab === 'professional'
-                ? 'bg-gold text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeSubTab === 'professional'
+              ? 'bg-gold text-white shadow-md'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             <LuBriefcase className="w-4 h-4" />
             البيانات الشخصية والمهنية
           </button>
           <button
             onClick={() => handleTabChange('documents')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${
-              activeSubTab === 'documents'
-                ? 'bg-gold text-white shadow-md'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeSubTab === 'documents'
+              ? 'bg-gold text-white shadow-md'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
           >
             <LuFileText className="w-4 h-4" />
             الوثائق والمستندات
@@ -540,6 +599,28 @@ export const VerificationTab = () => {
                     </div>
                   </div>
 
+                  {/* National Number */}
+                  <div className="bg-white dark:bg-gray-900 rounded-xl p-3.5 border border-gray-200 dark:border-gray-800 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center text-gold shrink-0">
+                      <LuIdCard className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[11px] text-gray-500 dark:text-gray-400">الرقم القومي</p>
+                      {isEditingInfo ? (
+                        <input
+                          type="text"
+                          value={nationalNumber}
+                          onChange={(e) => setNationalNumber(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                          placeholder="14 رقم"
+                          maxLength={14}
+                          className="w-full mt-1 p-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg text-xs outline-none focus:border-gold"
+                        />
+                      ) : (
+                        <p className="text-xs font-bold text-gray-800 dark:text-white dir-ltr text-right">{profile?.nationalNumber || "غير محدد"}</p>
+                      )}
+                    </div>
+                  </div>
+
                   {/* Date of Birth */}
                   <div className="bg-white dark:bg-gray-900 rounded-xl p-3.5 border border-gray-200 dark:border-gray-800 flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center text-gold shrink-0">
@@ -591,18 +672,7 @@ export const VerificationTab = () => {
                 </h4>
 
                 <div className="space-y-4">
-                  {/* Specialization */}
-                  <div className="bg-white dark:bg-gray-900 rounded-xl p-3.5 border border-gray-200 dark:border-gray-800 flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-gold/10 flex items-center justify-center text-gold shrink-0">
-                      <LuAward className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400">التخصص الرئيسي</p>
-                      <p className="text-xs font-bold text-gray-800 dark:text-white truncate">
-                        {isLawyer ? (lawyerProf?.specializationName || "محاماة عامة") : "موكل"}
-                      </p>
-                    </div>
-                  </div>
+
 
                   {/* Years of Experience */}
                   {isLawyer && (
@@ -709,7 +779,7 @@ export const VerificationTab = () => {
                 selectedFile={nationalIdFront}
                 status={idFrontInfo.status}
                 rejectionReason={idFrontInfo.reason}
-                existingFileName={idFrontInfo.name}
+                error={getFileSizeError(nationalIdFront)}
                 existingImageUrl={idFrontInfo.id ? AuthApi.getDocumentImageUrl(idFrontInfo.id) : undefined}
               />
               <DocumentUploadCard
@@ -719,7 +789,7 @@ export const VerificationTab = () => {
                 selectedFile={nationalIdBack}
                 status={idBackInfo.status}
                 rejectionReason={idBackInfo.reason}
-                existingFileName={idBackInfo.name}
+                error={getFileSizeError(nationalIdBack)}
                 existingImageUrl={idBackInfo.id ? AuthApi.getDocumentImageUrl(idBackInfo.id) : undefined}
               />
               {isLawyer && (
@@ -730,7 +800,7 @@ export const VerificationTab = () => {
                   selectedFile={barCard}
                   status={barCardInfo.status}
                   rejectionReason={barCardInfo.reason}
-                  existingFileName={barCardInfo.name}
+                  error={getFileSizeError(barCard)}
                   existingImageUrl={barCardInfo.id ? AuthApi.getDocumentImageUrl(barCardInfo.id) : undefined}
                 />
               )}
@@ -742,20 +812,33 @@ export const VerificationTab = () => {
                   selectedFile={barCardBack}
                   status={barCardBackInfo.status}
                   rejectionReason={barCardBackInfo.reason}
-                  existingFileName={barCardBackInfo.name}
+                  error={getFileSizeError(barCardBack)}
                   existingImageUrl={barCardBackInfo.id ? AuthApi.getDocumentImageUrl(barCardBackInfo.id) : undefined}
                 />
               )}
+
               <DocumentUploadCard
-                label="صورة شخصية مع البطاقة"
+                label="صورة شخصية وانت ممسك بالبطاقة"
                 icon={<LuUser className="w-8 h-8" />}
                 onFileSelect={setSelfie}
                 selectedFile={selfie}
                 status={selfieInfo.status}
                 rejectionReason={selfieInfo.reason}
-                existingFileName={selfieInfo.name}
+                error={getFileSizeError(selfie)}
                 existingImageUrl={selfieInfo.id ? AuthApi.getDocumentImageUrl(selfieInfo.id) : undefined}
               />
+              {isLawyer && (
+                <DocumentUploadCard
+                  label="صورة شخصية رسمية للبروفايل"
+                  icon={<LuUser className="w-8 h-8" />}
+                  onFileSelect={setOfficialProfilePicture}
+                  selectedFile={officialProfilePicture}
+                  status={officialProfilePictureInfo.status}
+                  rejectionReason={officialProfilePictureInfo.reason}
+                  error={getFileSizeError(officialProfilePicture)}
+                  existingImageUrl={officialProfilePictureInfo.id ? AuthApi.getDocumentImageUrl(officialProfilePictureInfo.id) : undefined}
+                />
+              )}
             </div>
 
             {/* Info Banner */}

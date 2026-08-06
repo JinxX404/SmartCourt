@@ -14,6 +14,11 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
          .Matches(@"^(\+20|0)1[0125]\d{8}$")
          .WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح (مثال: 011xxxxxxxx أو +2011xxxxxxxx)");
 
+         RuleFor(x => x.NationalNumber)
+         .NotEmpty()
+         .Matches(@"^\d{14}$")
+         .WithMessage("الرقم القومي يجب أن يتكون من 14 رقم بالضبط.");
+
          RuleFor(x => x.Level)
          .IsInEnum()
          .WithMessage("مستوى المحامي غير صالح.");

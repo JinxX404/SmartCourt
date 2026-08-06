@@ -6,10 +6,7 @@ export interface LoginRequest {
   password?: string;
 }
 
-export interface GoogleLoginRequest {
-  idToken: string;
-  role?: string;
-}
+
 
 export interface RegisterClientRequest {
   fullName: string;
@@ -54,13 +51,7 @@ export class AuthApi {
     return response.data;
   }
 
-  /**
-   * Authenticates a user via Google ID Token.
-   */
-  static async googleLogin(data: GoogleLoginRequest) {
-    const response = await apiClient.post('/api/auth/google', data);
-    return response.data;
-  }
+
 
   /**
    * Registers a new unverified client account.

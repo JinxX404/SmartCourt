@@ -5,7 +5,7 @@ import { ProfilePage } from "../features/users";
 import { UserStatusBadge } from "../features/auth/components/UserStatusBadge";
 import { VerificationTab } from "../features/auth/components/VerificationTab";
 import { AdminVerificationsTab } from "../features/admin/verifications/components/AdminVerificationsTab";
-import { NotificationBell } from "../features/notifications/components/NotificationBell";
+
 import {
   LuScale,
   LuLayoutDashboard,
@@ -86,7 +86,7 @@ export const Dashboard = () => {
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <NotificationBell />
+
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 rounded-xl bg-gray-800 text-white"
@@ -102,7 +102,7 @@ export const Dashboard = () => {
           }`}
       >
         <div className="absolute top-4 left-4 hidden md:block">
-          <NotificationBell />
+
         </div>
         <div className="space-y-6">
 
