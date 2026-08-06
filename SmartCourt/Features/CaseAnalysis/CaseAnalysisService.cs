@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -16,10 +17,14 @@ namespace SmartCourt.Features.CaseAnalysis;
 public class CaseAnalysisService(
     ApplicationDbContext dbContext,
     IChatModelProvider chatModelProvider,
+    IFileStorageService fileStorageService,
+    IDocumentParsingProvider documentParsingProvider,
     ILogger<CaseAnalysisService> logger) : ICaseAnalysisService
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly IChatModelProvider _chatModelProvider = chatModelProvider;
+    private readonly IFileStorageService _fileStorageService = fileStorageService;
+    private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
     private readonly ILogger<CaseAnalysisService> _logger = logger;
 
     public async Task<CaseProfile> AnalyzeCaseAsync(Guid caseId, CancellationToken cancellationToken = default)
@@ -35,8 +40,8 @@ public class CaseAnalysisService(
         }
 
         var systemPrompt = """
-            You are an expert Egyptian Law AI classifier.
-            Analyze the submitted case title, description, and attached documents to classify the case into exact categories according to Egyptian Law requirements.
+            You are an expert Egyptian Law AI classifier specializing in legal jurisdiction, court admission levels, and legal categorization under Egyptian Law.
+            Analyze the submitted case title, description, and attached document contents to classify the case into exact categories.
 
             You MUST return ONLY a valid JSON object with the following schema:
             {
@@ -45,17 +50,50 @@ public class CaseAnalysisService(
               "complexity": "Routine | Standard | Advanced | Exceptional"
             }
 
-            Enum value reference:
-            - specialization:
-              - "FamilyLaw": الأحوال الشخصية والأسرة
-              - "CivilLaw": التعويضات، العقود المدنية، الملكية، الإيجارات
-              - "CommercialLaw": الشركات، النزاعات التجارية، الأوراق التجارية
-              - "AdministrativeAndStateCouncilLaw": القضاء الإداري ومجلس الدولة
-              - "CriminalLaw": الجنايات والجنح والجرائم الجنائية
-              - "LaborLaw": منازعات العمل والمستحقات العمالية
+            DETAILED CONCEPTUAL CLASSIFICATION GUIDELINES FOR SPECIALIZATIONS:
 
+            1. "LaborLaw" (منازعات العمل والمستحقات العمالية):
+               - RELATIONSHIP CONTEXT: An individual employee, worker, engineer, manager, or laborer vs. an employer, business, factory, software company, or corporate organization.
+               - SITUATIONAL TRIGGERS:
+                 * The case describes a person working for an employer (whether with a written or verbal contract, full-time or part-time).
+                 * The conflict involves job dismissal, wrongful termination (الفصل التعسفي), verbal firing, account suspension/lockout by HR.
+                 * The individual claims unpaid monthly salaries, overdue wages, annual leave compensation, end-of-service gratuity, severance pay, or work-related injury/social insurance benefits under Egyptian Labor Law No. 12 of 2003.
+               - ABSOLUTE BOUNDARY RULE: Whenever an individual is demanding rights or compensation arising from their job/service for a company or employer, classify as "LaborLaw", REGARDLESS of whether the employer is a commercial enterprise or corporation.
+
+            2. "CommercialLaw" (القانون التجاري والشركات):
+               - RELATIONSHIP CONTEXT: Merchant vs. Merchant, Company vs. Company (B2B), Partner vs. Partner, Shareholder vs. Corporate Board, or Business vs. Commercial Paper Holder.
+               - SITUATIONAL TRIGGERS:
+                 * Two commercial companies or business partners disagreeing over commercial trade agreements, supply contracts, distribution rights, franchise deals, or agency commissions under Commercial Code No. 17 of 1999.
+                 * Corporate internal disputes involving company formation, shareholder voting, partner expulsion, corporate restructuring, liquidation, or commercial registry.
+                 * Commercial negotiable instruments (cheques, bills of exchange, promissory notes) issued between business entities or trade bankruptcy/insolvency.
+               - ABSOLUTE BOUNDARY RULE: "CommercialLaw" is strictly for commercial activities between trading entities or corporate partners. NEVER select CommercialLaw for an individual employee suing their employer.
+
+            3. "CriminalLaw" (القانون الجنائي والجنايات والجنح):
+               - RELATIONSHIP CONTEXT: State Prosecutor / Victim vs. Accused Offender.
+               - SITUATIONAL TRIGGERS:
+                 * The case involves acts defined as crimes, felonies (جنايات), misdemeanors (جنح), or contraventions punishable by imprisonment or penal fines under the Egyptian Penal Code.
+                 * Offenses including fraud (النصب), breach of trust (خيانة الأمانة), theft, forgery of official/private documents (التزوير), cybercrime (الجرائم الإلكترونية / السب والقذف عبر الإنترنت), bribery, embezzlement of public funds, physical assault, or drugs.
+
+            4. "AdministrativeAndStateCouncilLaw" (القضاء الإداري ومجلس الدولة):
+               - RELATIONSHIP CONTEXT: Citizen or Private Entity vs. Public Government Authority / Sovereign Ministry / State Department (الجهة الإدارية).
+               - SITUATIONAL TRIGGERS:
+                 * Challenging an official government administrative decision, executive order, license revocation, or decree before the State Council (مجلس الدولة).
+                 * Disputes involving public sector civil service government employees (كادر الموظفين الحكوميين), or public state tenders, auctions, and government procurement contracts.
+
+            5. "FamilyLaw" (الأحوال الشخصية والأسرة):
+               - RELATIONSHIP CONTEXT: Spouses, Ex-spouses, Family Members, Heirs, Guardians.
+               - SITUATIONAL TRIGGERS:
+                 * Disputes involving marital status, divorce, khula, marriage contract validity, alimony/maintenance (نفقات الزوجية والأولاد), child custody/visitation (الحضانة والرؤية), estate inheritance among heirs (إعلام الوراثة والتركات), or legal guardianship over minors.
+
+            6. "CivilLaw" (القانون المدني):
+               - RELATIONSHIP CONTEXT: Private Individual vs. Private Individual or Entity in a General Civil Relationship.
+               - SITUATIONAL TRIGGERS:
+                 * Disputes involving real estate ownership, land registration (الشهر العقاري), property boundary lines, or court validation of contracts (دعاوى صحة ونفاذ / تثبيت الملكية).
+                 * Residential or commercial real estate leasing contracts governed by the Civil Code, eviction, civil tort liability/damages (التعويض عن الضرر المدني), or personal private loans between individuals where no specialized code (like Labor or Commercial Law) applies.
+
+            Enum value reference:
             - requiredLawyerLevel:
-              - "GeneralRegistration": قضايا بسيطة لا تتطلب درجة قيد عالية
+              - "GeneralRegistration": قضايا بسيطة لا تتطلب درجة قيد عالية (جدول عام)
               - "PrimaryCourt": المحاكم الابتدائية
               - "AppealCourt": محاكم الاستئناف
               - "CassationCourt": محكمة النقض أو القضايا المعقدة للغاية
@@ -76,7 +114,52 @@ public class CaseAnalysisService(
             {
                 var name = doc.StoredFile?.OriginalFileName ?? "Document";
                 var type = doc.StoredFile?.ContentType ?? "application/octet-stream";
-                docInfoBuilder.AppendLine($"- Document: {name} ({type})");
+                var storagePath = doc.StoredFile?.FileUrl;
+
+                docInfoBuilder.AppendLine($"--- Document: {name} ({type}) ---");
+
+                if (!string.IsNullOrWhiteSpace(storagePath))
+                {
+                    try
+                    {
+                        var fileBytes = await _fileStorageService.DownloadAsync(storagePath, cancellationToken);
+                        if (fileBytes.Length > 0)
+                        {
+                            using var stream = new MemoryStream(fileBytes);
+                            var extractedText = await _documentParsingProvider.ExtractTextAsync(stream, name, cancellationToken);
+
+                            if (!string.IsNullOrWhiteSpace(extractedText))
+                            {
+                                const int maxDocChars = 4000;
+                                var truncatedText = extractedText.Length > maxDocChars
+                                    ? string.Concat(extractedText.AsSpan(0, maxDocChars), "\n[... Content truncated due to length ...]")
+                                    : extractedText;
+
+                                docInfoBuilder.AppendLine("Extracted Content:");
+                                docInfoBuilder.AppendLine(truncatedText);
+                            }
+                            else
+                            {
+                                docInfoBuilder.AppendLine("[No text content could be extracted from this document.]");
+                            }
+                        }
+                        else
+                        {
+                            docInfoBuilder.AppendLine("[Document file is empty.]");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to download or parse content for document {FileName} (StoragePath: {StoragePath}) in CaseId {CaseId}", name, storagePath, caseId);
+                        docInfoBuilder.AppendLine($"[Unable to extract text content: {ex.Message}]");
+                    }
+                }
+                else
+                {
+                    docInfoBuilder.AppendLine("[No storage path available for this document.]");
+                }
+
+                docInfoBuilder.AppendLine();
             }
         }
         else

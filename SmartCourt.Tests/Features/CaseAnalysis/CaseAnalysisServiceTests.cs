@@ -56,6 +56,8 @@ public sealed class CaseAnalysisServiceTests
         var service = new CaseAnalysisService(
             dbContext,
             chatModelProvider,
+            null!,
+            null!,
             NullLogger<CaseAnalysisService>.Instance);
 
         // Act
@@ -118,6 +120,8 @@ public sealed class CaseAnalysisServiceTests
         var service = new CaseAnalysisService(
             dbContext,
             chatModelProvider,
+            null!,
+            null!,
             NullLogger<CaseAnalysisService>.Instance);
 
         // Act
@@ -162,6 +166,8 @@ public sealed class CaseAnalysisServiceTests
         var service = new CaseAnalysisService(
             dbContext,
             chatModelProvider,
+            null!,
+            null!,
             NullLogger<CaseAnalysisService>.Instance);
 
         // Act & Assert
@@ -179,6 +185,8 @@ public sealed class CaseAnalysisServiceTests
         var service = new CaseAnalysisService(
             dbContext,
             new TestChatModelProvider(),
+            null!,
+            null!,
             NullLogger<CaseAnalysisService>.Instance);
 
         // Act & Assert

@@ -10,4 +10,7 @@ public class UpdateLawyerProfileRequest
     public string? Bio { get; set; }
     public string? Address { get; set; }
     public string? NationalNumber { get; set; }
+    public string? Governorate { get; set; }
+    public string? City { get; set; }
+    public List<LawyerSpecializationDto>? Specializations { get; set; }
 }

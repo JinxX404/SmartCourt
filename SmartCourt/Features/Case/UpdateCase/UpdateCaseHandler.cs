@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
 using SmartCourt.Features.Case.CreateCase.DTOs;
@@ -48,8 +49,19 @@ public class UpdateCaseHandler : IRequestHandler<UpdateCaseCommand, ApiResponse<
         if (existing.ClientId != clientId)
             return ApiResponse<UpdateCaseResponse>.Fail(new List<string>{"Not authorized to update this case"}, 403);
 
+        var clientUser = await _context.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == clientId, cancellationToken);
+
         existing.Title = request.Title;
         existing.Description = request.Description;
+
+        existing.Governorate = !string.IsNullOrWhiteSpace(request.Governorate)
+            ? request.Governorate
+            : (!string.IsNullOrWhiteSpace(existing.Governorate) ? existing.Governorate : clientUser?.Governorate);
+
+        existing.City = !string.IsNullOrWhiteSpace(request.City)
+            ? request.City
+            : (!string.IsNullOrWhiteSpace(existing.City) ? existing.City : clientUser?.City);
 
         if (existing.Status == SmartCourt.Common.Enums.CaseStatus.Reviewed)
         {

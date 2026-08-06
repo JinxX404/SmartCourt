@@ -31,6 +31,8 @@ public class GetCaseByIdHandler : IRequestHandler<GetCaseByIdQuery, ApiResponse<
             ClientId = existing.ClientId,
             Title = existing.Title,
             Description = existing.Description,
+            Governorate = existing.Governorate,
+            City = existing.City,
             Status = existing.Status.ToString(),
             CreatedAt = existing.CreatedAt,
             Documents = existing.Documents?.Select(cd => new CaseDocumentDto

@@ -46,7 +46,7 @@ namespace SmartCourt
                 }
 
                 app.UseAuthentication();
-                app.UseRateLimiter();
+                //app.UseRateLimiter();
                 app.UseAuthorization();
                 app.MapControllers();
                 app.MapHealthChecks("/health");

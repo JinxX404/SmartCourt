@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
@@ -41,8 +42,19 @@ namespace SmartCourt.Features.Case.CreateCase
             var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             var clientId = Guid.Parse(userId!);
 
+            var clientUser = await _context.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == clientId, cancellationToken);
+
             var uploadedPaths = new List<string>();
             var failedDocuments = new List<CaseDocumentUploadErrorDto>();
+
+            var governorate = !string.IsNullOrWhiteSpace(request.Governorate)
+                ? request.Governorate
+                : clientUser?.Governorate;
+
+            var city = !string.IsNullOrWhiteSpace(request.City)
+                ? request.City
+                : clientUser?.City;
 
             SmartCourt.Entities.Case legalCase = new()
             {
@@ -50,6 +62,8 @@ namespace SmartCourt.Features.Case.CreateCase
                 ClientId = clientId,
                 Title = request.Title,
                 Description = request.Description,
+                Governorate = governorate,
+                City = city,
                 Status = CaseStatus.Submitted
             };
 

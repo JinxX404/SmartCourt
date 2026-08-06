@@ -44,6 +44,11 @@ public class ConfirmEmailService(
             throw new BusinessException(InvalidConfirmationMessage);
         }
 
+        if (user.Status is UserStatus.Suspended or UserStatus.Rejected or UserStatus.Deleted)
+        {
+            throw new BusinessException(InvalidConfirmationMessage);
+        }
+
         if (user.EmailConfirmed)
         {
             throw new BusinessException("الحساب مفعل مسبقاً. يرجى التوجه لصفحة تسجيل الدخول.");
@@ -59,6 +64,15 @@ public class ConfirmEmailService(
                 throw new BusinessException(InvalidConfirmationMessage);
             }
 
+            var roles = await userManager.GetRolesAsync(user);
+            if (roles.Contains("Lawyer"))
+            {
+                user.Status = UserStatus.PendingReview;
+            }
+            else
+            {
+                user.Status = UserStatus.Active;
+            }
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
