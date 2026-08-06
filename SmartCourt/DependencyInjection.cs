@@ -44,7 +44,7 @@ using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
-using SmartCourt.Features.Notifications.Services;
+
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
@@ -109,6 +109,7 @@ public static class DependencyInjection
         services.AddControllers();
         services.AddHealthChecks();
         services.AddSignalR();
+
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();
         services.AddEndpointsApiExplorer();
@@ -170,11 +171,9 @@ public static class DependencyInjection
         services.AddScoped<
             IOutboxEventHandler,
             ContractConversationIntegrationOutboxHandler>();
-        services.AddScoped<
-            IOutboxEventHandler,
-            ContractNotificationOutboxHandler>();
 
-        services.AddScoped<INotificationsService, NotificationsService>();
+
+
         services.AddScoped<
             IOutboxEventHandler,
             ContractCaseLifecycleOutboxHandler>();
@@ -467,7 +466,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAuthHelperService, AuthHelperService>();
         services.AddScoped<ILoginService, LoginService>();
-        services.AddScoped<SmartCourt.Features.Auth.GoogleLogin.IGoogleLoginService, SmartCourt.Features.Auth.GoogleLogin.GoogleLoginService>();
+
         services.AddScoped<IConfirmEmailService, ConfirmEmailService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegisterClientService, RegisterClientService>();

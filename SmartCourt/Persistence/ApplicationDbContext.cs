@@ -132,7 +132,6 @@ public class ApplicationDbContext
     public DbSet<IdempotencyRecord> IdempotencyRecords =>
         Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-    public DbSet<Notification> Notifications => Set<Notification>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

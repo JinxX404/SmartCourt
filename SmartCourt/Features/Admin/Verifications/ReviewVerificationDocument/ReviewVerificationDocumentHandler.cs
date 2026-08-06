@@ -18,8 +18,7 @@ public sealed class ReviewVerificationDocumentHandler(
     ApplicationDbContext context,
     ICurrentUserService currentUserService,
     UserManager<ApplicationUser> userManager,
-    IValidator<ReviewVerificationDocumentCommand> validator,
-    SmartCourt.Features.Notifications.Services.INotificationsService notificationsService)
+    IValidator<ReviewVerificationDocumentCommand> validator)
     : IRequestHandler<ReviewVerificationDocumentCommand, ApiResponse<ReviewVerificationDocumentResponse>>
 {
     public async Task<ApiResponse<ReviewVerificationDocumentResponse>> Handle(
@@ -118,33 +117,7 @@ public sealed class ReviewVerificationDocumentHandler(
         var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
             document.User.VerificationDocuments, today, isLawyer);
 
-        // Send notification
-        var docNameAr = document.DocumentType switch
-        {
-            VerificationDocumentType.NationalIdFront => "صورة البطاقة (الأمام)",
-            VerificationDocumentType.NationalIdBack => "صورة البطاقة (الخلف)",
-            VerificationDocumentType.BarAssociationCardFront => "كارنيه النقابة (الأمام)",
-            VerificationDocumentType.BarAssociationCardBack => "كارنيه النقابة (الخلف)",
-            VerificationDocumentType.SelfieWithId => "الصورة الشخصية مع البطاقة",
-            _ => "المستند"
-        };
 
-        if (request.Decision == VerificationReviewDecision.Approve)
-        {
-            await notificationsService.SendNotificationAsync(
-                document.UserId,
-                "تم قبول المستند",
-                $"تم قبول {docNameAr} الخاص بك بنجاح.",
-                cancellationToken);
-        }
-        else
-        {
-            await notificationsService.SendNotificationAsync(
-                document.UserId,
-                "تم رفض المستند",
-                $"تم رفض {docNameAr} الخاص بك. السبب: {request.RejectionReason}",
-                cancellationToken);
-        }
 
         return ApiResponse<ReviewVerificationDocumentResponse>.Ok(new ReviewVerificationDocumentResponse
         {
