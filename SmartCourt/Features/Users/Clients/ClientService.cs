@@ -120,10 +120,16 @@ public class ClientService(
             }
 
             user.Address = request.Address;
+            user.DateOfBirth = request.DateOfBirth;
 
             if (user.ClientProfile == null)
             {
                 user.ClientProfile = new ClientProfile { UserId = user.Id };
+            }
+
+            if (user.Status == UserStatus.Active)
+            {
+                user.Status = UserStatus.PendingReview;
             }
 
             var updateResult = await _userManager.UpdateAsync(user);

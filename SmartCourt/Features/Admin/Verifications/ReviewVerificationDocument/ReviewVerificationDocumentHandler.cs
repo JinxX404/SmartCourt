@@ -18,7 +18,8 @@ public sealed class ReviewVerificationDocumentHandler(
     ApplicationDbContext context,
     ICurrentUserService currentUserService,
     UserManager<ApplicationUser> userManager,
-    IValidator<ReviewVerificationDocumentCommand> validator)
+    IValidator<ReviewVerificationDocumentCommand> validator,
+    SmartCourt.Features.Notifications.Services.INotificationsService notificationsService)
     : IRequestHandler<ReviewVerificationDocumentCommand, ApiResponse<ReviewVerificationDocumentResponse>>
 {
     public async Task<ApiResponse<ReviewVerificationDocumentResponse>> Handle(
@@ -39,7 +40,7 @@ public sealed class ReviewVerificationDocumentHandler(
 
         // Use NotFoundException instead of ApiResponse.Fail so ExceptionHandlingMiddleware
         // renders a consistent 404 ApiResponse<string> shape.
-        if (document is null || !await userManager.IsInRoleAsync(document.User, "Lawyer"))
+        if (document is null)
         {
             throw new NotFoundException("Verification document was not found.");
         }
@@ -49,18 +50,17 @@ public sealed class ReviewVerificationDocumentHandler(
             throw new ConflictException("Only the current version of a document can be reviewed.");
         }
 
-        if (document.Status != VerificationDocumentStatus.Pending)
-        {
-            throw new ConflictException("Only pending documents can be reviewed.");
-        }
+        // Admin can review current documents (Pending or previously Verified/Rejected)
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         if (document.ExpirationDate <= today)
         {
             document.Status = VerificationDocumentStatus.Expired;
+            var isLawyerExpired = await userManager.IsInRoleAsync(document.User, "Lawyer");
             document.User.Status = VerificationStatusEvaluator.ResolveAccountStatus(
                 document.User.VerificationDocuments,
-                today);
+                today,
+                isLawyerExpired);
             await context.SaveChangesAsync(cancellationToken);
 
             throw new ConflictException("The document has expired and must be submitted again.");
@@ -94,9 +94,12 @@ public sealed class ReviewVerificationDocumentHandler(
             previousVersion.IsCurrent = false;
         }
 
+        var isLawyer = await userManager.IsInRoleAsync(document.User, "Lawyer");
+
         document.User.Status = VerificationStatusEvaluator.ResolveAccountStatus(
             document.User.VerificationDocuments,
-            today);
+            today,
+            isLawyer);
 
         try
         {
@@ -107,13 +110,41 @@ public sealed class ReviewVerificationDocumentHandler(
             // Two admins reviewed the same document concurrently.
             // The first writer wins; the second gets a 409 with a clear message.
             throw new ConflictException(
-                "This document was already reviewed by another administrator. Please refresh and try again.");
+                "تم مراجعة هذا المستند بالفعل من قبل مسؤول آخر. يرجى تحديث الصفحة.");
         }
 
         // Fix: derive IsFullyVerified from actual document state, not account status.
         // An Active seeded lawyer with zero documents would otherwise report as fully verified.
         var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
-            document.User.VerificationDocuments, today);
+            document.User.VerificationDocuments, today, isLawyer);
+
+        // Send notification
+        var docNameAr = document.DocumentType switch
+        {
+            VerificationDocumentType.NationalIdFront => "صورة البطاقة (الأمام)",
+            VerificationDocumentType.NationalIdBack => "صورة البطاقة (الخلف)",
+            VerificationDocumentType.BarAssociationCardFront => "كارنيه النقابة (الأمام)",
+            VerificationDocumentType.BarAssociationCardBack => "كارنيه النقابة (الخلف)",
+            VerificationDocumentType.SelfieWithId => "الصورة الشخصية مع البطاقة",
+            _ => "المستند"
+        };
+
+        if (request.Decision == VerificationReviewDecision.Approve)
+        {
+            await notificationsService.SendNotificationAsync(
+                document.UserId,
+                "تم قبول المستند",
+                $"تم قبول {docNameAr} الخاص بك بنجاح.",
+                cancellationToken);
+        }
+        else
+        {
+            await notificationsService.SendNotificationAsync(
+                document.UserId,
+                "تم رفض المستند",
+                $"تم رفض {docNameAr} الخاص بك. السبب: {request.RejectionReason}",
+                cancellationToken);
+        }
 
         return ApiResponse<ReviewVerificationDocumentResponse>.Ok(new ReviewVerificationDocumentResponse
         {

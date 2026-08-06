@@ -46,7 +46,7 @@ public class ConfirmEmailService(
 
         if (user.EmailConfirmed)
         {
-            return;
+            throw new BusinessException("الحساب مفعل مسبقاً. يرجى التوجه لصفحة تسجيل الدخول.");
         }
 
         await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -58,6 +58,7 @@ public class ConfirmEmailService(
             {
                 throw new BusinessException(InvalidConfirmationMessage);
             }
+
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

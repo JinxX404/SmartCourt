@@ -10,7 +10,7 @@ public class UpdateClientProfileRequestValidator : AbstractValidator<UpdateClien
     {
         RuleFor(x => x.PhoneNumber)
             .NotEmpty().WithMessage("رقم الهاتف مطلوب")
-            .Matches(@"^\+20\d{10}$").WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
+            .Matches(@"^(\+20|0)1[0125]\d{8}$").WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح (مثال: 011xxxxxxxx أو +2011xxxxxxxx)");
 
         RuleFor(x => x.Address)
             .MaximumLength(500).WithMessage("يجب ألا يتجاوز العنوان 500 حرف");

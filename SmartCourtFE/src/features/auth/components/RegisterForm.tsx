@@ -10,7 +10,8 @@ import {
   LuShieldCheck,
   LuGavel,
   LuLoader,
-  LuCheck
+  LuEye,
+  LuEyeOff
 } from "react-icons/lu";
 
 export const RegisterForm = () => {
@@ -19,9 +20,36 @@ export const RegisterForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [terms, setTerms] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Resend verification states
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    setResendLoading(true);
+    setResendSuccess(null);
+    setResendError(null);
+    try {
+      const response = await AuthApi.resendVerification(email);
+      if (response.success) {
+        setResendSuccess(response.message || "تم إعادة إرسال رابط التفعيل بنجاح. يرجى مراجعة بريدك الإلكتروني.");
+      } else {
+        setResendError(response.message || "فشل إعادة إرسال رابط التفعيل.");
+      }
+    } catch (error: any) {
+      const apiError = error.response?.data;
+      setResendError(apiError?.message || "حدث خطأ أثناء محاولة إعادة إرسال الرابط. يرجى المحاولة لاحقاً.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   // Client Register Mutation
   const clientMutation = useMutation({
@@ -185,19 +213,59 @@ export const RegisterForm = () => {
           <div className="w-full border-t border-gray-100 dark:border-gray-800 mb-6"></div>
 
           {successMsg ? (
-            /* Premium Success Message Card */
-            <div className="flex flex-col items-center justify-center text-center p-8 bg-green-50/50 dark:bg-green-950/10 rounded-2xl border border-green-200/50 dark:border-green-900/30 my-4">
-              <LuCheck className="w-16 h-16 text-green-500 mb-4 animate-bounce" />
-              <h3 className="text-xl font-bold text-navy dark:text-white mb-2">تم التسجيل بنجاح!</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6">
-                {successMsg}
+            /* Clean, Minimal Success View */
+            <div className="flex flex-col items-center justify-center text-center w-full py-2 animate-unroll">
+              {/* Elegant Mail Icon */}
+              <div className="relative w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-gold/40 animate-spin-slow"></div>
+                <div className="w-12 h-12 rounded-full bg-gold/10 flex items-center justify-center shadow-inner">
+                  <LuMail className="w-6 h-6 text-gold animate-pulse" />
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-navy dark:text-gold mb-2">تأكيد البريد الإلكتروني</h3>
+
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3 max-w-sm mx-auto">
+                تم تسجيل حسابك بنجاح! يرجى تفعيل الحساب عبر الرابط المرسل إلى:
               </p>
-              <Link
-                to="/login"
-                className="bg-gold hover:bg-gold-hover text-white font-bold py-3 px-8 rounded transition-colors duration-200 shadow-premium"
-              >
-                الذهاب لتسجيل الدخول
-              </Link>
+
+              <div className="inline-flex items-center justify-center bg-gray-50 dark:bg-navy/40 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 mb-4 max-w-full">
+                <span className="font-mono font-bold text-navy dark:text-white text-sm select-all">
+                  {email}
+                </span>
+              </div>
+
+              {resendSuccess && (
+                <div className="w-full max-w-sm mb-4 p-2.5 bg-green-50/80 dark:bg-green-950/20 border border-green-200/50 dark:border-green-900/40 rounded-lg text-green-700 dark:text-green-400 text-xs font-bold text-center">
+                  {resendSuccess}
+                </div>
+              )}
+
+              {resendError && (
+                <div className="w-full max-w-sm mb-4 p-2.5 bg-red-50/80 dark:bg-red-950/20 border border-red-200/50 dark:border-red-900/40 rounded-lg text-red-700 dark:text-red-400 text-xs font-bold text-center">
+                  {resendError}
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-3 w-full justify-center max-w-md mx-auto mt-2">
+
+
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resendLoading}
+                  className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-navy dark:text-white font-bold py-2.5 px-6 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm w-full disabled:opacity-50"
+                >
+                  {resendLoading ? (
+                    <>
+                      <LuLoader className="w-4 h-4 animate-spin" />
+                      <span>جاري...</span>
+                    </>
+                  ) : (
+                    <span>إعادة إرسال الرابط</span>
+                  )}
+                </button>
+              </div>
             </div>
           ) : (
             <>
@@ -270,15 +338,23 @@ export const RegisterForm = () => {
                     <input
                       id="password"
                       name="password"
-                      type="password"
+                      type={showPassword ? "text" : "password"}
                       dir="ltr"
                       required
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={isPending}
-                      className="block w-full pl-3 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow disabled:opacity-50"
+                      className="block w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow disabled:opacity-50"
                     />
+                    {/* Password Visibility Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gold transition-colors focus:outline-none cursor-pointer"
+                    >
+                      {showPassword ? <LuEyeOff className="w-5 h-5" /> : <LuEye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
 
@@ -294,15 +370,23 @@ export const RegisterForm = () => {
                     <input
                       id="confirm_password"
                       name="confirm_password"
-                      type="password"
+                      type={showConfirmPassword ? "text" : "password"}
                       dir="ltr"
                       required
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={isPending}
-                      className="block w-full pl-3 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow disabled:opacity-50"
+                      className="block w-full pl-12 pr-10 py-3 bg-gray-50 dark:bg-transparent text-navy dark:text-white border border-gray-200 dark:border-gray-750 rounded focus:border-gold focus:ring-1 focus:ring-gold outline-none text-right transition-shadow disabled:opacity-50"
                     />
+                    {/* Confirm Password Visibility Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400 dark:text-gray-500 hover:text-gold transition-colors focus:outline-none cursor-pointer"
+                    >
+                      {showConfirmPassword ? <LuEyeOff className="w-5 h-5" /> : <LuEye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
 

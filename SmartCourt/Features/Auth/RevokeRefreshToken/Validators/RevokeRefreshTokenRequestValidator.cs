@@ -8,12 +8,7 @@ public class RevokeRefreshTokenRequestValidator : AbstractValidator<RevokeRefres
 {
     public RevokeRefreshTokenRequestValidator()
     {
-        RuleFor(x => x.Token)
-            .NotEmpty()
-            .WithMessage("رمز الوصول مطلوب.");
-
-        RuleFor(x => x.RefreshToken)
-            .NotEmpty()
-            .WithMessage("رمز التحديث مطلوب.");
+        // Rules removed: Token and RefreshToken can be sent via cookies or headers.
+        // Validation for presence is handled in the controller.
     }
 }

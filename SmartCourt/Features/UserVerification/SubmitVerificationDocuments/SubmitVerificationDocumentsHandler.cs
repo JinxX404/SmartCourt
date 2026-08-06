@@ -8,6 +8,7 @@ using SmartCourt.Entities;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments.DTOs;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
+using SmartCourt.Features.Auth.Enums;
 using Supabase.Gotrue;
 
 namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
@@ -47,7 +48,9 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
                     .Fail(validationResult.Errors.Select(e => e.ErrorMessage).ToList(), 400);
 
-            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            var user = await _context.Users
+                .Include(u => u.VerificationDocuments)
+                .SingleOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
             if (user is null)
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
@@ -71,7 +74,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                     {
                         FileName = string.Empty,
                         Error = "Document is null.",
-                        Type = VerificationDocumentType.other
+                        Type = VerificationDocumentType.Other
                     });
 
                     continue;
@@ -113,17 +116,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                     continue;
                 }
 
-                if(pendingTypes.Contains(document.Type))
-                {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = document.File.FileName,
-                        Error = "You already uploaded this document before. Wait untill admin verifies your document",
-                        Type = document.Type
-                    });
-
-                    continue;
-                }
+                // Allowed replacing documents anytime
                 
                 try
                 {
@@ -137,6 +130,9 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                         VerificationDocumentType.BarAssociationCardBack 
                         => "bar-membership",
                 
+                        VerificationDocumentType.SelfieWithId => "selfie",
+                        VerificationDocumentType.Other => "other",
+
                         _ => throw new InvalidOperationException("Unsupported verification document type.")
                     };
                 
@@ -181,6 +177,13 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                         Status = VerificationDocumentStatus.Pending
                     };
 
+                    foreach (var previousVersion in user.VerificationDocuments.Where(d => 
+                                 d.DocumentType == document.Type && 
+                                 d.IsCurrent))
+                    {
+                        previousVersion.IsCurrent = false;
+                    }
+
                     _context.UserVerificationDocuments.Add(verificationDocument);
                 }
                 catch (Exception ex)
@@ -196,8 +199,14 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
 
             try
             {
+                if (responseDto.UploadedDocuments.Count > 0)
+                {
+                    user.Status = UserStatus.PendingReview;
+                    _context.Users.Update(user);
+                }
+
                 if(_context.ChangeTracker.HasChanges())
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
             {

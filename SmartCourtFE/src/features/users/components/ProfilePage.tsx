@@ -3,23 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "../../auth/store/useAuthStore";
 import { UsersApi } from "../api/usersApi";
-import type { ClientProfile, LawyerProfile } from "../api/usersApi";
+import type { LawyerProfile } from "../api/usersApi";
 import { AuthApi } from "../../auth/api/authApi";
+import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LuUser,
-  LuMail,
-  LuPhone,
-  LuMapPin,
-  LuCalendar,
-  LuBriefcase,
-  LuAward,
   LuPencil,
   LuKey,
   LuTrash2,
-  LuShieldCheck,
   LuLoader,
   LuX,
-  LuTriangleAlert
+  LuTriangleAlert,
+  LuEye,
+  LuEyeOff
 } from "react-icons/lu";
 
 const parseApiError = (err: any, defaultMsg: string) => {
@@ -44,8 +41,8 @@ export const ProfilePage = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState<"info" | "security">("info");
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const [isEditing, setIsEditing] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
@@ -62,12 +59,14 @@ export const ProfilePage = () => {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   // Delete account state
   const [deletePassword, setDeletePassword] = useState("");
 
-  // Status & Feedback messages
-  const [statusMsg, setStatusMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
 
   const isLawyer = user?.role === "Lawyer";
 
@@ -91,21 +90,25 @@ export const ProfilePage = () => {
     enabled: !!user,
   });
 
-  // Populate edit form when profile is loaded or edit modal opens
-  const handleOpenEditModal = () => {
-    if (profile) {
-      setPhoneNumber(profile.phoneNumber || "");
-      setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "");
-      setAddress(profile.address || "");
-      if (isLawyer) {
-        const lawyerProf = profile as LawyerProfile;
-        setBio(lawyerProf.bio || "");
-        setYearsOfExperience(lawyerProf.yearsOfExperience || 1);
-        setLevel(lawyerProf.level || 1);
-        setSpecializationId(lawyerProf.specializationId || "");
+  // Populate edit form when edit mode opens
+  const handleEditToggle = () => {
+    if (isEditing) {
+      setIsEditing(false); // cancel edit
+    } else {
+      if (profile) {
+        setPhoneNumber(profile.phoneNumber || "");
+        setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "");
+        setAddress(profile.address || "");
+        if (isLawyer) {
+          const lawyerProf = profile as LawyerProfile;
+          setBio(lawyerProf.bio || "");
+          setYearsOfExperience(lawyerProf.yearsOfExperience || 1);
+          setLevel(lawyerProf.level || 1);
+          setSpecializationId(lawyerProf.specializationId || "");
+        }
       }
+      setIsEditing(true);
     }
-    setIsEditModalOpen(true);
   };
 
   // Update Profile Mutation
@@ -131,11 +134,11 @@ export const ProfilePage = () => {
     },
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-      setIsEditModalOpen(false);
-      setStatusMsg({ type: "success", text: res?.message || "تم تحديث الملف الشخصي بنجاح" });
+      setIsEditing(false);
+      toast.success(res?.message || "تم تحديث الملف الشخصي بنجاح");
     },
     onError: (err: any) => {
-      setStatusMsg({ type: "error", text: parseApiError(err, "فشل تحديث البيانات") });
+      toast.error(parseApiError(err, "فشل تحديث البيانات"));
     }
   });
 
@@ -147,10 +150,10 @@ export const ProfilePage = () => {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmNewPassword("");
-      setStatusMsg({ type: "success", text: res?.message || "تم تغيير كلمة المرور بنجاح" });
+      toast.success(res?.message || "تم تغيير كلمة المرور بنجاح");
     },
     onError: (err: any) => {
-      setStatusMsg({ type: "error", text: parseApiError(err, "فشل تغيير كلمة المرور") });
+      toast.error(parseApiError(err, "فشل تغيير كلمة المرور"));
     }
   });
 
@@ -168,24 +171,9 @@ export const ProfilePage = () => {
       window.location.href = "/login";
     },
     onError: (err: any) => {
-      setStatusMsg({ type: "error", text: parseApiError(err, "فشل حذف الحساب") });
+      toast.error(parseApiError(err, "فشل حذف الحساب"));
     }
   });
-
-  const getLawyerLevelTitle = (lvl?: number) => {
-    switch (lvl) {
-      case 1:
-        return "جدول عام (محامي تحت التمرين)";
-      case 2:
-        return "محاكم ابتدائية";
-      case 3:
-        return "محاكم استئناف";
-      case 4:
-        return "محكمة النقض";
-      default:
-        return "محامي ممارس";
-    }
-  };
 
   if (isLoading) {
     return (
@@ -198,28 +186,11 @@ export const ProfilePage = () => {
     );
   }
 
-  const clientProf = profile as ClientProfile;
-  const lawyerProf = profile as LawyerProfile;
-
   return (
     <div className="min-h-screen bg-surface dark:bg-navy py-10 px-4 sm:px-8 transition-colors duration-300">
       <div className="max-w-5xl mx-auto space-y-8">
 
-        {/* Global Toast Message */}
-        {statusMsg && (
-          <div
-            className={`p-4 rounded-xl flex items-center justify-between border ${
-              statusMsg.type === "success"
-                ? "bg-green-50 dark:bg-green-950/40 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
-                : "bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300"
-            }`}
-          >
-            <span className="text-sm font-bold">{statusMsg.text}</span>
-            <button onClick={() => setStatusMsg(null)} className="cursor-pointer">
-              <LuX className="w-5 h-5" />
-            </button>
-          </div>
-        )}
+
 
         {/* Cover Header Banner Card */}
         <div className="relative bg-white dark:bg-[#1a1d23] rounded-3xl overflow-hidden border border-border-primary shadow-premium">
@@ -248,423 +219,204 @@ export const ProfilePage = () => {
             </div>
 
             {/* Quick Actions */}
-            <button
-              onClick={handleOpenEditModal}
-              className="w-full sm:w-auto h-11 px-6 bg-gold hover:bg-gold-hover text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <LuPencil className="w-4.5 h-4.5" />
-              <span>تعديل الملف الشخصي</span>
-            </button>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex border-t border-border-primary px-8">
-            <button
-              onClick={() => setActiveTab("info")}
-              className={`py-4 px-6 font-bold text-sm border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "info"
-                  ? "border-gold text-gold"
-                  : "border-transparent text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <LuUser className="w-4.5 h-4.5" />
-              <span>البيانات الشخصية</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab("security")}
-              className={`py-4 px-6 font-bold text-sm border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
-                activeTab === "security"
-                  ? "border-gold text-gold"
-                  : "border-transparent text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <LuShieldCheck className="w-4.5 h-4.5" />
-              <span>الأمان والحساب</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Tab Content: Personal Info */}
-        {activeTab === "info" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Basic Info Card */}
-            <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-border-primary shadow-xs space-y-6">
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2.5 pb-3 border-b border-border-primary">
-                <LuUser className="text-gold w-5 h-5" />
-                <span>المعلومات الأساسية</span>
-              </h3>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-secondary">
-                    <LuMail className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">البريد الإلكتروني</p>
-                    <p className="text-sm font-semibold text-text-primary">{profile?.email || user?.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-secondary">
-                    <LuPhone className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">رقم الهاتف</p>
-                    <p className="text-sm font-semibold text-text-primary dir-ltr text-right">
-                      {profile?.phoneNumber || "غير محدد"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-secondary">
-                    <LuCalendar className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">تاريخ الميلاد</p>
-                    <p className="text-sm font-semibold text-text-primary">
-                      {profile?.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "غير محدد"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-text-secondary">
-                    <LuMapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">العنوان / المحافظة</p>
-                    <p className="text-sm font-semibold text-text-primary">
-                      {profile?.address || "غير محدد"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Role Specific Details Card */}
-            <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-border-primary shadow-xs space-y-6">
-              <h3 className="text-lg font-bold text-text-primary flex items-center gap-2.5 pb-3 border-b border-border-primary">
-                <LuBriefcase className="text-gold w-5 h-5" />
-                <span>{isLawyer ? "البيانات المهنية والتنقيب" : "حالة الحساب والمستندات"}</span>
-              </h3>
-
-              {isLawyer ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold">
-                      <LuAward className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-text-secondary">التخصص الرئيسي</p>
-                      <p className="text-sm font-semibold text-text-primary">
-                        {lawyerProf?.specializationName || "محاماة عامة"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold">
-                      <LuBriefcase className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-text-secondary">سنوات الخبرة</p>
-                      <p className="text-sm font-semibold text-text-primary">
-                        {lawyerProf?.yearsOfExperience || 1} سنوات
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-gold/10 flex items-center justify-center text-gold">
-                      <LuShieldCheck className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-text-secondary">درجة التقاضي المقيد بها</p>
-                      <p className="text-sm font-semibold text-text-primary">
-                        {getLawyerLevelTitle(lawyerProf?.level)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {lawyerProf?.bio && (
-                    <div className="pt-2 border-t border-border-primary">
-                      <p className="text-xs text-text-secondary mb-1">نبذة عن المحامي</p>
-                      <p className="text-sm text-text-primary leading-relaxed bg-surface dark:bg-navy p-3 rounded-xl">
-                        {lawyerProf.bio}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-surface dark:bg-navy border border-border-primary">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-text-secondary">حالة الحساب:</span>
-                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-green-500/20 text-green-500">
-                        {clientProf?.status || "نشط (Active)"}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-text-secondary leading-relaxed">
-                    حسابك كموكل يتيح لك استعراض كافة المحامين المعتمَدين، ورفع القضايا والاستشارات القانونية مباشرة بكل أمان.
-                  </p>
-                </div>
-              )}
-            </div>
-
-          </div>
-        )}
-
-        {/* Tab Content: Security Settings */}
-        {activeTab === "security" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Change Password Card */}
-            <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-border-primary shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-border-primary">
-                <h3 className="text-lg font-bold text-text-primary flex items-center gap-2.5">
-                  <LuKey className="text-gold w-5 h-5" />
-                  <span>تغيير كلمة المرور</span>
-                </h3>
-              </div>
-              <p className="text-xs text-text-secondary leading-relaxed">
-                ينصح بتغيير كلمة المرور بشكل دوري للحفاظ على أمان حسابك وقضاياك.
-              </p>
-
-              <button
-                onClick={() => setIsPasswordModalOpen(true)}
-                className="w-full h-11 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
-              >
-                <LuKey className="w-4.5 h-4.5" />
-                <span>تغيير كلمة المرور الآن</span>
-              </button>
-            </div>
-
-            {/* Danger Zone: Delete Account */}
-            <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-red-200 dark:border-red-950 shadow-xs space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-950">
-                <h3 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2.5">
-                  <LuTriangleAlert className="w-5 h-5" />
-                  <span>منطقة الخطر (حذف الحساب)</span>
-                </h3>
-              </div>
-              <p className="text-xs text-red-500/80 leading-relaxed">
-                عند حذف حسابك، سيتم تعطيل وصولك لكافة القضايا والاستشارات نهائياً وإبطال أجهزة الجلسات المفتوحة.
-              </p>
-
-              <button
-                onClick={() => setIsDeleteModalOpen(true)}
-                className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
-              >
-                <LuTrash2 className="w-4.5 h-4.5" />
-                <span>حذف الحساب نهائياً</span>
-              </button>
-            </div>
-
-          </div>
-        )}
-
-      </div>
-
-      {/* EDIT PROFILE MODAL */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-[#1a1d23]/95 backdrop-blur-xl w-full max-w-xl rounded-2xl p-8 shadow-premium dark:shadow-2xl border-t-4 border-gold space-y-6 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
-              <h3 className="text-xl font-bold text-navy dark:text-gold flex items-center gap-2">
-                <LuPencil className="w-6 h-6" />
-                <span>تحديث بيانات الملف الشخصي</span>
-              </h3>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
-                <LuX className="w-6 h-6" />
-              </button>
-            </div>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                updateProfileMutation.mutate();
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">رقم الهاتف</label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="010xxxxxxxx"
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">تاريخ الميلاد</label>
-                <input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">العنوان / المحافظة</label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="القاهرة، مصر"
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
-              </div>
-
-              {isLawyer && (
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3">
+              {isEditing ? (
                 <>
-                  <div>
-                    <label className="block text-xs font-bold text-text-primary mb-1">سنوات الخبرة</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={yearsOfExperience}
-                      onChange={(e) => setYearsOfExperience(Number(e.target.value))}
-                      className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-text-primary mb-1">درجة التقاضي</label>
-                    <select
-                      value={level}
-                      onChange={(e) => setLevel(Number(e.target.value))}
-                      className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                    >
-                      <option value={1}>جدول عام (محامي تحت التمرين)</option>
-                      <option value={2}>محاكم ابتدائية</option>
-                      <option value={3}>محاكم استئناف</option>
-                      <option value={4}>محكمة النقض</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-text-primary mb-1">نبذة عنك (Bio)</label>
-                    <textarea
-                      rows={3}
-                      value={bio}
-                      onChange={(e) => setBio(e.target.value)}
-                      placeholder="اكتب نبذة مختصرة عن خبراتك وقضاياك..."
-                      className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                    />
-                  </div>
+                  <button
+                    onClick={handleEditToggle}
+                    className="w-full sm:w-auto h-11 px-6 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-navy dark:text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    onClick={() => updateProfileMutation.mutate()}
+                    disabled={updateProfileMutation.isPending}
+                    className="w-full sm:w-auto h-11 px-6 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {updateProfileMutation.isPending && <LuLoader className="w-4 h-4 animate-spin" />}
+                    <span>حفظ التعديلات</span>
+                  </button>
                 </>
+              ) : (
+                <button
+                  onClick={handleEditToggle}
+                  className="w-full sm:w-auto h-11 px-6 bg-gold hover:bg-gold-hover text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LuPencil className="w-4.5 h-4.5" />
+                  <span>تعديل الملف الشخصي</span>
+                </button>
               )}
-
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 dark:border-gray-800 mt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm font-bold text-navy dark:text-gray-200 transition-colors cursor-pointer"
-                >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateProfileMutation.isPending}
-                  className="px-6 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-white text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs"
-                >
-                  {updateProfileMutation.isPending && <LuLoader className="w-4 h-4 animate-spin" />}
-                  <span>حفظ التغييرات</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* CHANGE PASSWORD MODAL */}
-      {isPasswordModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white dark:bg-[#1a1d23]/95 backdrop-blur-xl w-full max-w-md rounded-2xl p-8 shadow-premium dark:shadow-2xl border-t-4 border-gold space-y-6 relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4">
-              <h3 className="text-xl font-bold text-navy dark:text-gold flex items-center gap-2">
-                <LuKey className="w-6 h-6" />
-                <span>تغيير كلمة المرور</span>
-              </h3>
-              <button onClick={() => setIsPasswordModalOpen(false)} className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer">
-                <LuX className="w-6 h-6" />
-              </button>
             </div>
+          </div>
 
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (newPassword !== confirmNewPassword) {
-                  setStatusMsg({ type: "error", text: "كلمة المرور وتأكيد كلمة المرور غير متطابقتين" });
-                  return;
-                }
-                changePasswordMutation.mutate({ currentPassword, newPassword, confirmNewPassword });
-              }}
-              className="space-y-4"
-            >
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">كلمة المرور الحالية</label>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
+
+        </div>
+
+        {/* Main Content Area: Security & Account */}
+        <div className="w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start animate-fade-in">
+
+              {/* Change Password Card */}
+              <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-border-primary shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border-primary">
+                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2.5">
+                    <LuKey className="text-gold w-5 h-5" />
+                    <span>تغيير كلمة المرور</span>
+                  </h3>
+                </div>
+                <p className="text-xs text-text-secondary leading-relaxed">
+                  ينصح بتغيير كلمة المرور بشكل دوري للحفاظ على أمان حسابك وقضاياك.
+                </p>
+
+                <AnimatePresence mode="wait">
+                  {isPasswordModalOpen ? (
+                    <motion.form
+                      key="form"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        if (newPassword !== confirmNewPassword) {
+                          toast.error("كلمة المرور وتأكيد كلمة المرور غير متطابقتين");
+                          return;
+                        }
+                        changePasswordMutation.mutate({ currentPassword, newPassword, confirmNewPassword });
+                      }}
+                      className="space-y-4 pt-2 overflow-hidden"
+                    >
+                      <div>
+                        <label className="block text-xs font-bold text-text-primary mb-1">كلمة المرور الحالية</label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            required
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="w-full p-2.5 pl-10 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition-colors cursor-pointer"
+                          >
+                            {showCurrentPassword ? <LuEyeOff className="w-5 h-5" /> : <LuEye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-text-primary mb-1">كلمة المرور الجديدة</label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full p-2.5 pl-10 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition-colors cursor-pointer"
+                          >
+                            {showNewPassword ? <LuEyeOff className="w-5 h-5" /> : <LuEye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-text-primary mb-1">تأكيد كلمة المرور الجديدة</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmNewPassword ? "text" : "password"}
+                            required
+                            value={confirmNewPassword}
+                            onChange={(e) => setConfirmNewPassword(e.target.value)}
+                            className="w-full p-2.5 pl-10 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gold transition-colors cursor-pointer"
+                          >
+                            {showConfirmNewPassword ? <LuEyeOff className="w-5 h-5" /> : <LuEye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPasswordModalOpen(false);
+                            setCurrentPassword("");
+                            setNewPassword("");
+                            setConfirmNewPassword("");
+                          }}
+                          className="flex-1 h-10 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm font-bold text-navy dark:text-gray-200 transition-colors cursor-pointer"
+                        >
+                          إلغاء
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={changePasswordMutation.isPending}
+                          className="flex-1 h-10 rounded-xl bg-gold hover:bg-gold-hover text-white text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                        >
+                          {changePasswordMutation.isPending && <LuLoader className="w-4 h-4 animate-spin" />}
+                          <span>تأكيد التغيير</span>
+                        </button>
+                      </div>
+                    </motion.form>
+                  ) : (
+                    <motion.div
+                      key="button"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden mt-4"
+                    >
+                      <button
+                        onClick={() => setIsPasswordModalOpen(true)}
+                        className="w-full h-11 bg-gold hover:bg-gold-hover text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <LuKey className="w-4.5 h-4.5" />
+                        <span>تغيير كلمة المرور الآن</span>
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">كلمة المرور الجديدة</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
-              </div>
+              {/* Danger Zone: Delete Account */}
+              <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-red-200 dark:border-red-950 shadow-xs space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-950">
+                  <h3 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2.5">
+                    <LuTriangleAlert className="w-5 h-5" />
+                    <span>منطقة الخطر (حذف الحساب)</span>
+                  </h3>
+                </div>
+                <p className="text-xs text-red-500/80 leading-relaxed">
+                  عند حذف حسابك، سيتم تعطيل وصولك لكافة القضايا والاستشارات نهائياً وإبطال أجهزة الجلسات المفتوحة.
+                </p>
 
-              <div>
-                <label className="block text-xs font-bold text-text-primary mb-1">تأكيد كلمة المرور الجديدة</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                  className="w-full p-3 bg-surface dark:bg-navy border border-border-primary rounded-xl text-sm outline-none focus:border-gold"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100 dark:border-gray-800 mt-4">
                 <button
-                  type="button"
-                  onClick={() => setIsPasswordModalOpen(false)}
-                  className="px-6 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-sm font-bold text-navy dark:text-gray-200 transition-colors cursor-pointer"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
                 >
-                  إلغاء
-                </button>
-                <button
-                  type="submit"
-                  disabled={changePasswordMutation.isPending}
-                  className="px-6 py-2.5 rounded-xl bg-gold hover:bg-gold-hover text-white text-sm font-bold flex items-center gap-2 cursor-pointer shadow-xs"
-                >
-                  {changePasswordMutation.isPending && <LuLoader className="w-4 h-4 animate-spin" />}
-                  <span>تأكيد التغيير</span>
+                  <LuTrash2 className="w-4.5 h-4.5" />
+                  <span>حذف الحساب نهائياً</span>
                 </button>
               </div>
-            </form>
+
+            </div>
           </div>
         </div>
-      )}
+
+
+
 
       {/* DELETE ACCOUNT MODAL */}
       {isDeleteModalOpen && (

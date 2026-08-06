@@ -1,8 +1,14 @@
 import { apiClient } from '../../../api/apiClient';
 
+
 export interface LoginRequest {
   email: string;
   password?: string;
+}
+
+export interface GoogleLoginRequest {
+  idToken: string;
+  role?: string;
 }
 
 export interface RegisterClientRequest {
@@ -30,12 +36,29 @@ export interface RevokeTokenRequest {
   refreshToken: string;
 }
 
+export interface SubmitVerificationRequest {
+  userId: string;
+  documents: {
+    file: File;
+    expirationDate: string;
+    type: number;
+  }[];
+}
+
 export class AuthApi {
   /**
    * Authenticates a user and returns tokens.
    */
   static async login(data: LoginRequest) {
     const response = await apiClient.post('/api/auth/login', data);
+    return response.data;
+  }
+
+  /**
+   * Authenticates a user via Google ID Token.
+   */
+  static async googleLogin(data: GoogleLoginRequest) {
+    const response = await apiClient.post('/api/auth/google', data);
     return response.data;
   }
 
@@ -111,5 +134,42 @@ export class AuthApi {
   static async resendVerification(email: string) {
     const response = await apiClient.post('/api/auth/resend-verification', { email });
     return response.data;
+  }
+
+  /**
+   * Submits user verification documents.
+   */
+  static async submitVerificationDocuments(data: SubmitVerificationRequest) {
+    const formData = new FormData();
+    formData.append('UserId', data.userId);
+    
+    data.documents.forEach((doc, index) => {
+      formData.append(`Documents[${index}].File`, doc.file);
+      formData.append(`Documents[${index}].ExpirationDate`, doc.expirationDate);
+      formData.append(`Documents[${index}].Type`, doc.type.toString());
+    });
+
+    const response = await apiClient.post('/api/UserVerification/submit-verification-documents', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+    return response.data;
+  }
+
+  /**
+   * Gets user verification documents.
+   */
+  static async getUserVerificationDocuments(userId: string) {
+    const response = await apiClient.get(`/api/UserVerification/${userId}`);
+    return response.data;
+  }
+
+  /**
+   * Helper to generate the URL for the user's document image
+   */
+  static getDocumentImageUrl(documentId: string) {
+    const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:5049';
+    return `${baseUrl}/api/UserVerification/documents/${documentId}/content`;
   }
 }

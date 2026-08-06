@@ -40,6 +40,7 @@
     --border-primary: #eeeeee;
     --card-bg: #ffffff;
     --card-border: #eeeeee;
+    /* --bg-hero: #ffffff; */
     --bg-hero: #f0ece8;
     /* --bg-hero: #efe6dd; */
     /* f0ece8 */
@@ -111,4 +112,18 @@
 .animate-unroll {
   animation: unroll 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top;
+}
+
+/* Slow Spin Animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
 }

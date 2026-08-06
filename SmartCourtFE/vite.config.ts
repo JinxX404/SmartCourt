@@ -8,7 +8,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://smartcourt.runasp.net',
+        target: 'http://localhost:5049',
+        changeOrigin: true,
+        secure: false,
+        cookieDomainRewrite: 'localhost',
+      },
+      '/hubs': {
+        target: 'http://localhost:5049',
+        ws: true,
         changeOrigin: true,
         secure: false,
         cookieDomainRewrite: 'localhost',

@@ -12,6 +12,8 @@ public class LawyerProfileResponse
     public Gender? Gender { get; set; }
     public DateOnly? DateOfBirth { get; set; }
     public SmartCourt.Common.Enums.LawyerLevel Level { get; set; }
+    public int YearsOfExperience { get; set; }
+    public string? SpecializationName { get; set; }
     public string? Bio { get; set; }
     public string? Address { get; set; }
     public string Status { get; set; } = string.Empty;

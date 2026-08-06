@@ -13,7 +13,7 @@ export interface ClientProfile {
 
 export interface UpdateClientProfileRequest {
   phoneNumber: string;
-  dateOfBirth: string;
+  dateOfBirth?: string;
   address?: string;
 }
 
@@ -39,10 +39,10 @@ export interface LawyerProfile {
 
 export interface UpdateLawyerProfileRequest {
   phoneNumber: string;
-  dateOfBirth: string;
-  specializationId: string;
-  yearsOfExperience: number;
-  level: number;
+  dateOfBirth?: string;
+  specializationId?: string;
+  yearsOfExperience?: number;
+  level?: number;
   bio?: string;
   address?: string;
 }

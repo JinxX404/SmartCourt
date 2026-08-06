@@ -29,21 +29,8 @@ public sealed class GetPendingVerificationsHandler(
             };
         }
 
-        var lawyerRoleId = await context.Roles
-            .Where(role => role.Name == "Lawyer")
-            .Select(role => role.Id)
-            .SingleOrDefaultAsync(cancellationToken);
-
-        if (lawyerRoleId == Guid.Empty)
-        {
-            return PagedResponse<IReadOnlyList<PendingVerificationListItemDto>>.OkPaged(
-                [], request.PageNumber, request.PageSize, 0, 0);
-        }
-
         var query = context.Users
             .AsNoTracking()
-            .Where(user => context.UserRoles.Any(userRole =>
-                userRole.UserId == user.Id && userRole.RoleId == lawyerRoleId))
             .Where(VerificationQueueFilter.HasCurrentDocumentWithStatus(request.Status));
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -70,7 +57,10 @@ public sealed class GetPendingVerificationsHandler(
                 RejectedDocumentCount = user.VerificationDocuments.Count(document =>
                     document.IsCurrent &&
                     (document.Status == VerificationDocumentStatus.Rejected ||
-                     document.Status == VerificationDocumentStatus.Expired))
+                     document.Status == VerificationDocumentStatus.Expired)),
+                Role = context.UserRoles.Where(ur => ur.UserId == user.Id)
+                    .Join(context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 

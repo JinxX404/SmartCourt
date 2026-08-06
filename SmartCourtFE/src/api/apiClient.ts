@@ -1,45 +1,28 @@
 import axios from 'axios';
 
-// In-memory storage for Access Token (secure from XSS)
-let _accessToken: string | null = null;
-
-export const setAccessToken = (token: string | null) => {
-  _accessToken = token;
-};
-
-export const getAccessToken = () => _accessToken;
-
 // Base API Client
+// Authentication is handled via HttpOnly cookies set by the server.
+// The browser automatically sends cookies with every request thanks to withCredentials: true.
 export const apiClient = axios.create({
-  baseURL: import.meta.env.DEV ? '' : 'http://smartcourt.runasp.net',
-  withCredentials: true, // Crucial: automatically sends/receives cookies (like HttpOnly refresh token)
+  baseURL: import.meta.env.DEV ? '' : 'http://localhost:5049',
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request Interceptor: Automatically inject Bearer Token from memory
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = getAccessToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+// No request interceptor needed – cookies are sent automatically by the browser.
 
 // Flag to prevent multiple refresh calls simultaneously
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: any) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve();
     }
   });
   failedQueue = [];
@@ -64,8 +47,8 @@ apiClient.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+          .then(() => {
+            // Cookie was refreshed by the server, just retry
             return apiClient(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -75,36 +58,27 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Call refresh endpoint with credentials (sends HttpOnly refresh token cookie automatically)
+        // Call refresh endpoint – both refresh token (cookie) and new access token (cookie)
+        // are handled by the server automatically.
         const refreshUrl = import.meta.env.DEV
           ? '/api/auth/refresh'
-          : 'http://smartcourt.runasp.net/api/auth/refresh';
-        const response = await axios.post(
+          : 'http://localhost:5049/api/auth/refresh';
+        await axios.post(
           refreshUrl,
-          {}, // No body needed because refreshToken is in HttpOnly cookie
+          {},
           { withCredentials: true }
         );
 
-        if (response.data?.success && response.data?.data) {
-          const newAccessToken = response.data.data.accessToken || response.data.data.token;
-
-          // Store new token in memory
-          setAccessToken(newAccessToken);
-
-          apiClient.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-
-          processQueue(null, newAccessToken);
-          isRefreshing = false;
-
-          return apiClient(originalRequest);
-        }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(null);
         isRefreshing = false;
 
-        // Refresh token failed/expired: clear memory token and trigger logout
-        setAccessToken(null);
+        // Retry the original request – the new access token cookie is already set
+        return apiClient(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError);
+        isRefreshing = false;
+
+        // Refresh token failed/expired: trigger logout
         window.dispatchEvent(new Event('auth:logout'));
         return Promise.reject(refreshError);
       }

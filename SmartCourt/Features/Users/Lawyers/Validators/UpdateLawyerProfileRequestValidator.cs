@@ -11,8 +11,8 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
     {
          RuleFor(x => x.PhoneNumber)
          .NotEmpty()
-         .Matches(@"^\+20\d{10}$")
-         .WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
+         .Matches(@"^(\+20|0)1[0125]\d{8}$")
+         .WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح (مثال: 011xxxxxxxx أو +2011xxxxxxxx)");
 
          RuleFor(x => x.Level)
          .IsInEnum()

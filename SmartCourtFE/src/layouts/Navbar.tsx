@@ -9,9 +9,11 @@ import {
   LuX,
   LuUser,
   LuLogOut,
-  LuChevronDown
+  LuChevronDown,
+  LuLayoutDashboard
 } from "react-icons/lu";
 import { useAuthStore } from "../features/auth/store/useAuthStore";
+import { UserStatusBadge } from "../features/auth/components/UserStatusBadge";
 
 interface NavbarProps {
   theme: "light" | "dark";
@@ -24,6 +26,8 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const { user, isAuthenticated, logout } = useAuthStore();
+  
+  console.log('Current User in Navbar:', user);
   const navigate = useNavigate();
 
   // Close dropdown on outside click
@@ -112,46 +116,54 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2 lg:gap-3 p-1.5 pr-2.5 lg:pr-3 rounded-xl border border-border-primary hover:border-gold/50 bg-bg-primary transition-all cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold text-text-primary hover:text-gold hover:bg-gold/5 transition-all cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-lg bg-gold/20 text-gold font-bold flex items-center justify-center text-xs lg:text-sm border border-gold/40">
-                  {user.fullName ? user.fullName.charAt(0).toUpperCase() : <LuUser className="w-4 h-4" />}
+                <div className="relative w-8 h-8 rounded-full bg-gold/15 text-gold flex items-center justify-center text-sm shrink-0">
+                  <LuUser className="w-4.5 h-4.5" />
+                  {user.status === 'Unverified' && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 border-2 border-white dark:border-[#1a1d23] rounded-full animate-pulse"></span>
+                  )}
+                  {user.status === 'PendingReview' && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 border-2 border-white dark:border-[#1a1d23] rounded-full animate-pulse"></span>
+                  )}
+                  {user.status === 'Rejected' && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-rose-500 border-2 border-white dark:border-[#1a1d23] rounded-full animate-pulse"></span>
+                  )}
                 </div>
-                <div className="flex flex-col items-start text-right">
-                  <span className="text-xs font-bold text-text-primary line-clamp-1 max-w-[100px] lg:max-w-[120px]">
-                    {user.fullName}
-                  </span>
-                  <span className="text-[10px] text-gold font-semibold">
-                    {getRoleLabel(user.role)}
-                  </span>
-                </div>
-                <LuChevronDown className={`w-3.5 h-3.5 lg:w-4 lg:h-4 text-text-secondary transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`} />
+                <span dir="auto" className="hidden md:inline font-bold">
+                  {user.fullName ? user.fullName.split(' ')[0] : 'مرحباً'}
+                </span>
+                <LuChevronDown className={`w-4 h-4 text-text-secondary transition-transform duration-200 hidden md:block ${userMenuOpen ? "rotate-180" : ""}`} />
               </button>
 
               {/* User Dropdown */}
               {userMenuOpen && (
-                <div className="absolute left-0 mt-2 w-56 bg-bg-secondary border border-border-primary rounded-2xl shadow-xl py-2 z-50 animate-fade-in">
-                  <div className="px-4 py-3 border-b border-border-primary">
-                    <p className="text-sm font-bold text-text-primary truncate">{user.fullName}</p>
-                    <p className="text-xs text-text-secondary truncate">{user.email}</p>
+                <div className="absolute left-0 top-full mt-3 w-64 bg-white dark:bg-[#1a1d23] border border-border-primary rounded-2xl shadow-premium py-2 z-50 animate-unroll overflow-hidden">
+                  <div className="px-5 py-4 border-b border-border-primary bg-gray-50/50 dark:bg-navy/20">
+                    <p className="text-base font-bold text-text-primary truncate" dir="auto">{user.fullName}</p>
+                    <div className="mt-2">
+                      <UserStatusBadge status={user.status} role={user.role} />
+                    </div>
                   </div>
 
-                  <Link
-                    to="/profile"
-                    onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-primary hover:bg-gold/10 hover:text-gold transition-colors"
-                  >
-                    <LuUser className="w-4.5 h-4.5 text-gold" />
-                    <span>الملف الشخصي</span>
-                  </Link>
+                  <div className="p-2">
+                    <Link
+                      to="/dashboard"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-text-primary hover:bg-gold/10 hover:text-gold transition-colors"
+                    >
+                      <LuLayoutDashboard className="w-5 h-5 text-gold" />
+                      <span>لوحة التحكم</span>
+                    </Link>
 
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer border-t border-border-primary mt-1"
-                  >
-                    <LuLogOut className="w-4.5 h-4.5" />
-                    <span>تسجيل الخروج</span>
-                  </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer mt-1"
+                    >
+                      <LuLogOut className="w-5 h-5" />
+                      <span>تسجيل الخروج</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -231,7 +243,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                 </button>
               </div>
 
-              <div className="flex flex-col gap-4 grow">
+              <div className="flex flex-col gap-2">
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className="font-bold text-base text-gold py-3 border-b border-border-primary">الرئيسية</Link>
                 <a href="#services" onClick={() => setMobileMenuOpen(false)} className="font-bold text-base text-text-primary hover:text-gold py-3 border-b border-border-primary">الخدمات</a>
                 <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="font-bold text-base text-text-primary hover:text-gold py-3 border-b border-border-primary">كيف يعمل</a>
@@ -239,12 +251,15 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                 <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="font-bold text-base text-text-primary hover:text-gold py-3">من نحن</Link>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-border-primary">
+              <div className="mt-6 pt-6 border-t border-border-primary">
                 {isAuthenticated && user ? (
                   <div className="flex flex-col gap-3">
                     <div className="flex items-center gap-3 p-3 bg-bg-primary rounded-xl border border-border-primary mb-2">
-                      <div className="w-10 h-10 rounded-lg bg-gold/20 text-gold font-bold flex items-center justify-center text-base border border-gold/40">
+                      <div className="relative w-10 h-10 rounded-lg bg-gold/20 text-gold font-bold flex items-center justify-center text-base border border-gold/40">
                         {user.fullName ? user.fullName.charAt(0).toUpperCase() : <LuUser className="w-5 h-5" />}
+                        {user.status === 'Unverified' && (
+                          <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-bg-primary rounded-full animate-pulse"></span>
+                        )}
                       </div>
                       <div className="flex flex-col text-right">
                         <span className="text-sm font-bold text-text-primary">{user.fullName}</span>
@@ -252,12 +267,12 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                       </div>
                     </div>
                     <Link 
-                      to="/profile" 
+                      to="/dashboard" 
                       onClick={() => setMobileMenuOpen(false)}
                       className="h-12 border border-border-primary rounded-xl flex items-center justify-center gap-2 font-bold text-sm text-text-primary bg-bg-primary"
                     >
-                      <LuUser className="w-4.5 h-4.5 text-gold" />
-                      <span>الملف الشخصي</span>
+                      <LuLayoutDashboard className="w-4.5 h-4.5 text-gold" />
+                      <span>لوحة التحكم</span>
                     </Link>
                     <button 
                       onClick={handleLogout}

@@ -41,6 +41,8 @@ public class LawyerService(
                 Address = u.Address,
                 Status = u.Status.ToString(),
                 Level = u.LawyerProfile != null ? u.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
+                YearsOfExperience = u.LawyerProfile != null && u.LawyerProfile.Specializations.Any() ? u.LawyerProfile.Specializations.First().YearsOfExperience : 1,
+                SpecializationName = u.LawyerProfile != null && u.LawyerProfile.Specializations.Any() ? u.LawyerProfile.Specializations.First().Specialization.ToString() : "محاماة عامة",
                 Bio = u.LawyerProfile != null ? u.LawyerProfile.Bio : null,
                 IsAvailable = u.LawyerProfile != null && u.LawyerProfile.IsAvailable,
                 ProfilePictureUrl = u.ProfilePictureUrl
@@ -137,6 +139,7 @@ public class LawyerService(
         var userId = _currentUserService.UserId;
         var user = await _userManager.Users
             .Include(u => u.LawyerProfile)
+                .ThenInclude(lp => lp.Specializations)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
@@ -154,6 +157,7 @@ public class LawyerService(
             }
 
             user.Address = request.Address;
+            user.DateOfBirth = request.DateOfBirth;
 
             if (user.LawyerProfile == null)
             {
@@ -162,6 +166,30 @@ public class LawyerService(
 
             user.LawyerProfile.Level = request.Level;
             user.LawyerProfile.Bio = request.Bio;
+
+            if (request.YearsOfExperience > 0)
+            {
+                var spec = user.LawyerProfile.Specializations.FirstOrDefault();
+                if (spec == null)
+                {
+                    spec = new LawyerSpecialization
+                    {
+                        LawyerProfileUserId = user.Id,
+                        Specialization = SmartCourt.Common.Enums.Specialization.CivilLaw,
+                        YearsOfExperience = request.YearsOfExperience
+                    };
+                    user.LawyerProfile.Specializations.Add(spec);
+                }
+                else
+                {
+                    spec.YearsOfExperience = request.YearsOfExperience;
+                }
+            }
+
+            if (user.Status == UserStatus.Active)
+            {
+                user.Status = UserStatus.PendingReview;
+            }
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { setAccessToken } from '../../../api/apiClient';
+import axios from 'axios';
 
 export interface User {
   id: string;
   email: string;
   fullName: string;
   role: 'Client' | 'Lawyer' | 'Admin';
+  status: 'Active' | 'Unverified' | 'PendingReview' | 'Suspended' | 'Deleted' | 'Rejected';
 }
 
 interface AuthState {
@@ -16,9 +17,24 @@ interface AuthState {
   initialize: () => void;
 }
 
+const getInitialState = () => {
+  if (typeof window === 'undefined') return { user: null, isAuthenticated: false };
+  const savedUser = localStorage.getItem('user');
+  if (savedUser) {
+    try {
+      return { user: JSON.parse(savedUser), isAuthenticated: true };
+    } catch {
+      localStorage.removeItem('user');
+    }
+  }
+  return { user: null, isAuthenticated: false };
+};
+
+const initialState = getInitialState();
+
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
+  user: initialState.user,
+  isAuthenticated: initialState.isAuthenticated,
   login: (user) => {
     // Persist only minimal user details locally for fast application boot
     localStorage.setItem('user', JSON.stringify(user));
@@ -27,7 +43,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     // Clear user state from store and local storage
     localStorage.removeItem('user');
-    setAccessToken(null);
+    
+    // Fire and forget revoke request to clear HttpOnly cookies on the server
+    try {
+      const revokeUrl = import.meta.env.DEV ? '/api/auth/revoke' : 'http://localhost:5049/api/auth/revoke';
+      axios.post(revokeUrl, {}, { withCredentials: true }).catch(() => {});
+    } catch {}
+
     set({ user: null, isAuthenticated: false });
   },
   initialize: () => {

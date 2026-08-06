@@ -22,16 +22,13 @@ public sealed class GetVerificationDetailsHandler(
         var lawyer = await context.Users
             .Include(user => user.VerificationDocuments.Where(document => document.IsCurrent))
             .ThenInclude(document => document.StoredFile)
+            .Include(user => user.LawyerProfile)
+            .ThenInclude(lp => lp!.Specializations)
             .SingleOrDefaultAsync(user => user.Id == request.LawyerId, cancellationToken);
 
         if (lawyer is null)
         {
-            throw new NotFoundException("Lawyer was not found.");
-        }
-
-        if (!await userManager.IsInRoleAsync(lawyer, "Lawyer"))
-        {
-            throw new NotFoundException("Lawyer was not found.");
+            throw new NotFoundException("User was not found.");
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -52,11 +49,15 @@ public sealed class GetVerificationDetailsHandler(
             })
             .ToList();
 
-        // Fix: compute IsFullyVerified from actual document state.
-        // Deriving this from UserStatus.Active is incorrect — an Active seeded
-        // lawyer with no documents would be reported as fully verified.
+        var roles = await userManager.GetRolesAsync(lawyer);
+        var primaryRole = roles.FirstOrDefault();
+        var isLawyer = primaryRole == "Lawyer";
+
         var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
-            lawyer.VerificationDocuments, today);
+            lawyer.VerificationDocuments, today, isLawyer);
+
+        var spec = lawyer.LawyerProfile?.Specializations.FirstOrDefault();
+        string? specName = spec?.Specialization.ToString();
 
         return ApiResponse<VerificationDetailsDto>.Ok(new VerificationDetailsDto
         {
@@ -64,8 +65,16 @@ public sealed class GetVerificationDetailsHandler(
             FullName = lawyer.FullName,
             Email = lawyer.Email ?? string.Empty,
             PhoneNumber = lawyer.PhoneNumber,
+            NationalNumber = lawyer.NationalNumber,
+            Address = lawyer.Address,
+            DateOfBirth = lawyer.DateOfBirth,
             AccountStatus = lawyer.Status.ToString(),
             IsFullyVerified = isFullyVerified,
+            Role = primaryRole,
+            Level = lawyer.LawyerProfile != null ? (int)lawyer.LawyerProfile.Level : null,
+            SpecializationName = specName,
+            YearsOfExperience = spec?.YearsOfExperience,
+            Bio = lawyer.LawyerProfile?.Bio,
             Documents = documents
         });
     }

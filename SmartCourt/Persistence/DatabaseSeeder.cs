@@ -60,6 +60,28 @@ public static class DatabaseSeeder
             }
         }
 
+        var kokkerEmail = "kokker@gmail.com";
+        var kokkerUser = await userManager.FindByEmailAsync(kokkerEmail);
+
+        if (kokkerUser == null)
+        {
+            kokkerUser = new ApplicationUser
+            {
+                UserName = kokkerEmail,
+                Email = kokkerEmail,
+                FullName = "Ahmed Kokker",
+                NationalNumber = "00000000000099",
+                Status = UserStatus.Active,
+                EmailConfirmed = true
+            };
+
+            var kokkerResult = await userManager.CreateAsync(kokkerUser, "Kokker@123");
+            if (kokkerResult.Succeeded)
+            {
+                await userManager.AddToRoleAsync(kokkerUser, "Admin");
+            }
+        }
+
         var moatazEmail = "moatazmohammed2392003@gmail.com";
         var moatazUser = await userManager.FindByEmailAsync(moatazEmail);
 
