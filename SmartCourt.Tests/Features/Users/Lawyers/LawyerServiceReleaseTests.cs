@@ -7,6 +7,8 @@ using SmartCourt.Features.Users.Lawyers;
 using SmartCourt.Features.Users.Lawyers.DTOs;
 using SmartCourt.Interfaces;
 using SmartCourt.Tests.Features.Auth;
+using SmartCourt.Interfaces.Providers;
+using SmartCourt.Common.Models;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Users.Lawyers;
@@ -78,7 +80,8 @@ public sealed class LawyerServiceReleaseTests
             testContext.UserManager,
             testContext.DbContext,
             new TestCurrentUserService(userId),
-            new TestAuthHelperService());
+            new TestAuthHelperService(),
+            new TestFileStorageService());
     }
 
     private static async Task AddLawyerProfileAsync(
@@ -100,7 +103,6 @@ public sealed class LawyerServiceReleaseTests
     {
         return new UpdateLawyerProfileRequest
         {
-            PhoneNumber = "+201012345678",
             Level = LawyerLevel.GeneralRegistration,
             Address = "Cairo"
         };
@@ -130,5 +132,15 @@ public sealed class LawyerServiceReleaseTests
 
         public void RevokeAllActiveRefreshTokens(ApplicationUser applicationUser)
             => throw new NotSupportedException();
+    }
+
+    private sealed class TestFileStorageService : IFileStorageService
+    {
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, string? contentType, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+        public Task<byte[]> DownloadAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task DeleteAsync(string filePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<bool> ExistsAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult("url");
     }
 }

@@ -1,4 +1,4 @@
-﻿# Profile Endpoints API Test Report
+# Profile Endpoints API Test Report
 
 ### 1. Register Client
 
@@ -6,16 +6,16 @@
 
 **Body:**
 {
-    "Email":  "client_test_473390105@test.com",
-    "FullName":  "Test Client",
-    "ConfirmPassword":  "Password123!",
-    "Password":  "Password123!"
+  "Email": "client_test_37823556@test.com",
+  "FullName": "Test Client",
+  "Password": "Password123!",
+  "ConfirmPassword": "Password123!"
 }
 
 **Response Status:** 201
 
 **Response Body:**
-{"success":true,"data":{"userId":"de689c5a-7adb-4689-810d-08def2e76edd","email":"client_test_473390105@test.com","fullName":"Test Client","role":"Client"},"message":"تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني","errors":null,"statusCode":201}
+{"success":true,"data":{"userId":"c6b495a5-0c2e-4147-f788-08def48f6968","email":"client_test_37823556@test.com","fullName":"Test Client","role":"Client"},"message":"تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني","errors":null,"statusCode":201}
 ---
 
 ### 2. Register Lawyer
@@ -24,23 +24,23 @@
 
 **Body:**
 {
-    "Email":  "lawyer_test_1969577504@test.com",
-    "FullName":  "Test Lawyer",
-    "ConfirmPassword":  "Password123!",
-    "Password":  "Password123!"
+  "Email": "lawyer_test_1099231217@test.com",
+  "FullName": "Test Lawyer",
+  "Password": "Password123!",
+  "ConfirmPassword": "Password123!"
 }
 
 **Response Status:** 201
 
 **Response Body:**
-{"success":true,"data":{"userId":"6f7fd4e7-244f-4bd9-810e-08def2e76edd","email":"lawyer_test_1969577504@test.com","fullName":"Test Lawyer","role":"Lawyer"},"message":"تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني","errors":null,"statusCode":201}
+{"success":true,"data":{"userId":"7ebaeb4b-e06e-48f7-f789-08def48f6968","email":"lawyer_test_1099231217@test.com","fullName":"Test Lawyer","role":"Lawyer"},"message":"تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني","errors":null,"statusCode":201}
 ---
 
-Found confirmation URL for client_test_473390105@test.com: http://localhost:5173/verify-email?userId=de689c5a-7adb-4689-810d-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4UVpid28yVCtvdGlRNWRTTVo1Zy9mTGZhV2l0L2tHQ3REQ09aN2pBc1JsWmJ5eis3Q2xXZ1dZTWV2V1o4eGZuZ0Q2YURXRld1UE1wWnIvN3R3R2xNaDVCSGYrSGdaS2wxR1VKam5QZTJhYm1nV0JtNDhiRXhXMFJnQUNDTXFoNTlOQU1MZGZWVWQyMyt6aGZhbzlKTkhaWXEvZGVzWFprTk8wTHJHdnIrc1g5cXlYOFFUeCtVelJ1TzZESnBFd3lrZVpuQWtBODYyb1N1L25najBGeDZqQll3YldRYlRzTXFwTkxlNjVzZGdiZz09
+Found confirmation URL for client_test_37823556@test.com: http://localhost:5173/verify-email?userId=c6b495a5-0c2e-4147-f788-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrQXdzZ2c1YS8zTEVrc1hJYW1xdHpiMTEyampMc3NaYnVNOHNYd2NURTZ1TjJoM0hEaXZ5bHk0WkdMZ1F0RWx5MCtVazRubVdqNmpXd0NjeVFuU3A1U0ZncG16c3hCVVFOc3U5QVU5and2V1NlOTB1dHJaYWtONGM4L2NmeVZDWHh5U21GSXlNT3M5Qlh1Vk9WQ3p4bjY4dXI1UkhIcFdKeTczRW1GUE1Db3ZkVWpZWXZNbUNkTk1GaHpVa3dBQkExbUpDL0ZycGVEaTdEcHY0ZExvM2doMHlVam1idHptMmUyVGRQdEFYTlVLdz09
 
-### Confirm Email for client_test_473390105@test.com
+### Confirm Email for client_test_37823556@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=de689c5a-7adb-4689-810d-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4UVpid28yVCtvdGlRNWRTTVo1Zy9mTGZhV2l0L2tHQ3REQ09aN2pBc1JsWmJ5eis3Q2xXZ1dZTWV2V1o4eGZuZ0Q2YURXRld1UE1wWnIvN3R3R2xNaDVCSGYrSGdaS2wxR1VKam5QZTJhYm1nV0JtNDhiRXhXMFJnQUNDTXFoNTlOQU1MZGZWVWQyMyt6aGZhbzlKTkhaWXEvZGVzWFprTk8wTHJHdnIrc1g5cXlYOFFUeCtVelJ1TzZESnBFd3lrZVpuQWtBODYyb1N1L25najBGeDZqQll3YldRYlRzTXFwTkxlNjVzZGdiZz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=c6b495a5-0c2e-4147-f788-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrQXdzZ2c1YS8zTEVrc1hJYW1xdHpiMTEyampMc3NaYnVNOHNYd2NURTZ1TjJoM0hEaXZ5bHk0WkdMZ1F0RWx5MCtVazRubVdqNmpXd0NjeVFuU3A1U0ZncG16c3hCVVFOc3U5QVU5and2V1NlOTB1dHJaYWtONGM4L2NmeVZDWHh5U21GSXlNT3M5Qlh1Vk9WQ3p4bjY4dXI1UkhIcFdKeTczRW1GUE1Db3ZkVWpZWXZNbUNkTk1GaHpVa3dBQkExbUpDL0ZycGVEaTdEcHY0ZExvM2doMHlVam1idHptMmUyVGRQdEFYTlVLdz09
 
 **Response Status:** 200
 
@@ -48,11 +48,11 @@ Found confirmation URL for client_test_473390105@test.com: http://localhost:5173
 {"success":true,"message":"تم تأكيد البريد الإلكتروني بنجاح.","errors":null,"statusCode":200}
 ---
 
-Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:5173/verify-email?userId=6f7fd4e7-244f-4bd9-810e-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5cXVFeWUxVGdmRWcyRlM3SVBYbE9hL3RPUStsbnhjMENKZ0pLUGg0d09RZmlZYlZtTG1iUFlJZjF1VWVuQUh0S2dHcCs4TTI3Zmx1Q0hOMklrcGF1aXkzM3FuNDVaS0VRemMyQWpJTzZ1MzdGaXRpc0djMGoxS25pYTA0eFNLQktGa3c5ZFR2V0J1RnZPeVNya2tmakxRWGJ3TjBtTW1jZWkvTnJnZGFDMm5FL0N2bnZ1SWZWVWd5dTl6bE1yTmNadXBjcWRYQWVieGNYbytFWVltM2pOK3BVSWtZN2VqRXd0ejVpMmw1UjEvQT09
+Found confirmation URL for lawyer_test_1099231217@test.com: http://localhost:5173/verify-email?userId=7ebaeb4b-e06e-48f7-f789-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5ZFRJM3ZwcHFsY1BXaGxQbjNva2tMWVRPa0F2Uys5Ym1wUUgyQlZDL1d0dmw1ejdCZ1Z5MzZLY3dVNm5Qdm15SWd3YTBIV1h1VFc4V0oyL0g3KzNmSXV0Qk5jYUZvdWtHNjhsdmFUZm1iZ2ZGMk56SERoSVJ6alJkWlZCMzYrWUpTZkdncmZBL1BLM3Vna3B0bGU2Q2prTVF3QkNPK2NsSlFwQ0RIWWFHZWUvY0xVWXI3N0lUSlpDTzVNaGFHVFB2Uk1qVi81TjN1aWR1ekUrbEJkRFFHaVZQb0hWeGNFUjhmSzd5aWRaVVczZz09
 
-### Confirm Email for lawyer_test_1969577504@test.com
+### Confirm Email for lawyer_test_1099231217@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=6f7fd4e7-244f-4bd9-810e-08def2e76edd&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5cXVFeWUxVGdmRWcyRlM3SVBYbE9hL3RPUStsbnhjMENKZ0pLUGg0d09RZmlZYlZtTG1iUFlJZjF1VWVuQUh0S2dHcCs4TTI3Zmx1Q0hOMklrcGF1aXkzM3FuNDVaS0VRemMyQWpJTzZ1MzdGaXRpc0djMGoxS25pYTA0eFNLQktGa3c5ZFR2V0J1RnZPeVNya2tmakxRWGJ3TjBtTW1jZWkvTnJnZGFDMm5FL0N2bnZ1SWZWVWd5dTl6bE1yTmNadXBjcWRYQWVieGNYbytFWVltM2pOK3BVSWtZN2VqRXd0ejVpMmw1UjEvQT09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=7ebaeb4b-e06e-48f7-f789-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5ZFRJM3ZwcHFsY1BXaGxQbjNva2tMWVRPa0F2Uys5Ym1wUUgyQlZDL1d0dmw1ejdCZ1Z5MzZLY3dVNm5Qdm15SWd3YTBIV1h1VFc4V0oyL0g3KzNmSXV0Qk5jYUZvdWtHNjhsdmFUZm1iZ2ZGMk56SERoSVJ6alJkWlZCMzYrWUpTZkdncmZBL1BLM3Vna3B0bGU2Q2prTVF3QkNPK2NsSlFwQ0RIWWFHZWUvY0xVWXI3N0lUSlpDTzVNaGFHVFB2Uk1qVi81TjN1aWR1ekUrbEJkRFFHaVZQb0hWeGNFUjhmSzd5aWRaVVczZz09
 
 **Response Status:** 200
 
@@ -66,14 +66,14 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 
 **Body:**
 {
-    "Password":  "Password123!",
-    "Email":  "client_test_473390105@test.com"
+  "Email": "client_test_37823556@test.com",
+  "Password": "Password123!"
 }
 
 **Response Status:** 200
 
 **Response Body:**
-{"success":true,"data":{"user":{"id":"de689c5a-7adb-4689-810d-08def2e76edd","email":"client_test_473390105@test.com","fullName":"Test Client","role":"Client"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZTY4OWM1YS03YWRiLTQ2ODktODEwZC0wOGRlZjJlNzZlZGQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImRlNjg5YzVhLTdhZGItNDY4OS04MTBkLTA4ZGVmMmU3NmVkZCIsImVtYWlsIjoiY2xpZW50X3Rlc3RfNDczMzkwMTA1QHRlc3QuY29tIiwibmFtZSI6IlRlc3QgQ2xpZW50Iiwic2VjdXJpdHlfc3RhbXAiOiIzUUVXV0k1S09YSFNUTk41WEdZUDdWREk3TE5CQjdWRCIsImp0aSI6ImNkOGZhNTM1LTE2OTAtNDJlNy1hYWNiLWNkOTY1NmQ5MzEzZSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNsaWVudCIsIm5iZiI6MTc4NTkzMDQ5OCwiZXhwIjoxNzg1OTM0MDk4LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.xjayfUuKpcraPKsN43-PnAbZOSDrz6UIoo1HKSCQDpY","expiresIn":3600,"refreshToken":"zJ3L6tS7ffNiNxDY0E84mOoklY8o2koU5tqzw5ePVEkNCI9+AfkXgLoj4Nj8P5H4CUN1QiG0okn8Cm+/MVyWqA==","refreshTokenExpiration":"2026-08-12T11:48:18.8924967Z"},"message":null,"errors":null,"statusCode":200}
+{"success":true,"data":{"user":{"id":"c6b495a5-0c2e-4147-f788-08def48f6968","email":"client_test_37823556@test.com","fullName":"Test Client","role":"Client","status":"Unverified","rejectionReason":null},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNmI0OTVhNS0wYzJlLTQxNDctZjc4OC0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImM2YjQ5NWE1LTBjMmUtNDE0Ny1mNzg4LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoiY2xpZW50X3Rlc3RfMzc4MjM1NTZAdGVzdC5jb20iLCJuYW1lIjoiVGVzdCBDbGllbnQiLCJzZWN1cml0eV9zdGFtcCI6IlJBNU1QU081MkpJRjRDNlBaRklKVE1PNFlISjJEUFJSIiwianRpIjoiN2M5MmYzYWUtMDBhMy00ODhhLThmY2QtYzgwZWVhODAzYTMzIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQ2xpZW50IiwibmJmIjoxNzg2MTEzNzQwLCJleHAiOjE3ODYxMTQ2NDAsImlzcyI6IlNtYXJ0Q291cnRBUEkiLCJhdWQiOiJTbWFydENvdXJ0Q2xpZW50In0.7gak88UJmltumludC65LBBTs6NuBZwJp0akZd788Kkw","expiresIn":900,"refreshToken":"w2g1Gm+iYFYzNQiB5Gtk8wk+FxGxw6JdG0rXYFcfFxhaJW0ER6QAjYl/ZdOABk+bbc/wErL8u9/5ojpypVoiFA==","refreshTokenExpiration":"2026-08-14T14:42:20.4636091Z"},"message":null,"errors":null,"statusCode":200}
 ---
 
 ### 4. Login Lawyer
@@ -82,67 +82,14 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 
 **Body:**
 {
-    "Password":  "Password123!",
-    "Email":  "lawyer_test_1969577504@test.com"
+  "Email": "lawyer_test_1099231217@test.com",
+  "Password": "Password123!"
 }
 
 **Response Status:** 200
 
 **Response Body:**
-{"success":true,"data":{"user":{"id":"6f7fd4e7-244f-4bd9-810e-08def2e76edd","email":"lawyer_test_1969577504@test.com","fullName":"Test Lawyer","role":"Lawyer"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjdmZDRlNy0yNDRmLTRiZDktODEwZS0wOGRlZjJlNzZlZGQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjZmN2ZkNGU3LTI0NGYtNGJkOS04MTBlLTA4ZGVmMmU3NmVkZCIsImVtYWlsIjoibGF3eWVyX3Rlc3RfMTk2OTU3NzUwNEB0ZXN0LmNvbSIsIm5hbWUiOiJUZXN0IExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiUlRIWU9OTVBaT0hLUElLV0FPUEs3NDVGSDVJWktITUEiLCJqdGkiOiIyNDZmMjBhNy1lMDk1LTQ5MGUtODFkOC1mYzc1YWJhZTNhNTkiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODU5MzA0OTksImV4cCI6MTc4NTkzNDA5OSwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.wXWvDCztXdz3o-WX7Yih4JgYRAW2rpPYJY9OhKeaA0E","expiresIn":3600,"refreshToken":"lOidKPJljNYPAm/bQ2Q2oI4l3n3W/9R2hl+H8kDdI/WCkMF9Bypcqt7GH0krH+5FVZ3WQ4J4UUFCf1AvDeaPUw==","refreshTokenExpiration":"2026-08-12T11:48:19.0855744Z"},"message":null,"errors":null,"statusCode":200}
----
-
-### 5. Client Complete Profile - Missing Phone Number
-
-**Request:** POST http://localhost:5049/api/clients/profile/complete
-
-**Body:**
-{
-    "DateOfBirth":  "1990-01-01",
-    "Gender":  "Male",
-    "Address":  "Test Address"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"PhoneNumber":["رقم الهاتف مطلوب","رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX"]},"traceId":"00-36732241bc415e3d1b7f085486f8b9d5-c79275b60301de05-00"}
----
-
-### 6. Client Complete Profile - Invalid Phone Format (Needs +20)
-
-**Request:** POST http://localhost:5049/api/clients/profile/complete
-
-**Body:**
-{
-    "DateOfBirth":  "1990-01-01",
-    "PhoneNumber":  "01000000000",
-    "Gender":  "Male",
-    "Address":  "Test Address"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"PhoneNumber":["رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX"]},"traceId":"00-4322a7cbe423033ccd04bbeecbcb8852-b1cfc8742227fcdd-00"}
----
-
-### 7. Client Complete Profile - Future DOB
-
-**Request:** POST http://localhost:5049/api/clients/profile/complete
-
-**Body:**
-{
-    "DateOfBirth":  "2050-01-01",
-    "PhoneNumber":  "+201000000000",
-    "Gender":  "Male",
-    "Address":  "Test Address"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"DateOfBirth":["تاريخ الميلاد يجب أن يكون في الماضي"]},"traceId":"00-b377bf28af6145fae7ff8d94d3b0b390-46cf06323cce5407-00"}
+{"success":true,"data":{"user":{"id":"7ebaeb4b-e06e-48f7-f789-08def48f6968","email":"lawyer_test_1099231217@test.com","fullName":"Test Lawyer","role":"Lawyer","status":"Unverified","rejectionReason":null},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZWJhZWI0Yi1lMDZlLTQ4ZjctZjc4OS0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjdlYmFlYjRiLWUwNmUtNDhmNy1mNzg5LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoibGF3eWVyX3Rlc3RfMTA5OTIzMTIxN0B0ZXN0LmNvbSIsIm5hbWUiOiJUZXN0IExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiVkVDUUpNUE1IUTZMWjRIVk80U1dVWDdVTjJaTUFMNzQiLCJqdGkiOiIwM2U1ZTk5MS1kZWM5LTRhYmQtOGM1Yy1kMmQyMWRlOGQxNDEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYxMTM3NDAsImV4cCI6MTc4NjExNDY0MCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.XdLwuzB7Ic75lObvTWON9l6z2WDcc0cE7pBbJrDDIzg","expiresIn":900,"refreshToken":"qPUPq9n0sbyYcE6O1UV+VeOqHfMHqfl9hy5dF/tn9UsWYrb6UG+Yu0EQnw4sxU3njlwhFao1LVxrPZiaI8uJlA==","refreshTokenExpiration":"2026-08-14T14:42:20.6258491Z"},"message":null,"errors":null,"statusCode":200}
 ---
 
 ### 8. Client Complete Profile - Valid Data
@@ -151,10 +98,11 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 
 **Body:**
 {
-    "DateOfBirth":  "1990-01-01",
-    "PhoneNumber":  "+201000000000",
-    "Gender":  "Male",
-    "Address":  "Test Address"
+  "Address": "Test Address",
+  "NationalNumber": "29001014304533",
+  "PhoneNumber": "+201000000000",
+  "DateOfBirth": "1990-01-01",
+  "Gender": 1
 }
 
 **Response Status:** 200
@@ -163,126 +111,20 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 {"success":true,"message":"تم استكمال الملف الشخصي بنجاح.","errors":null,"statusCode":200}
 ---
 
-### 9. Client Complete Profile - Try Again After Completion
-
-**Request:** POST http://localhost:5049/api/clients/profile/complete
-
-**Body:**
-{
-    "DateOfBirth":  "1990-01-01",
-    "PhoneNumber":  "+201000000000",
-    "Gender":  "Male",
-    "Address":  "Test Address"
-}
-
-**Response Status:** 401
-
-**Response Body:**
-
----
-
 ### 9b. Re-Login Client
 
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
 {
-    "Password":  "Password123!",
-    "Email":  "client_test_473390105@test.com"
+  "Email": "client_test_37823556@test.com",
+  "Password": "Password123!"
 }
 
 **Response Status:** 200
 
 **Response Body:**
-{"success":true,"data":{"user":{"id":"de689c5a-7adb-4689-810d-08def2e76edd","email":"client_test_473390105@test.com","fullName":"Test Client","role":"Client"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkZTY4OWM1YS03YWRiLTQ2ODktODEwZC0wOGRlZjJlNzZlZGQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImRlNjg5YzVhLTdhZGItNDY4OS04MTBkLTA4ZGVmMmU3NmVkZCIsImVtYWlsIjoiY2xpZW50X3Rlc3RfNDczMzkwMTA1QHRlc3QuY29tIiwibmFtZSI6IlRlc3QgQ2xpZW50Iiwic2VjdXJpdHlfc3RhbXAiOiJTTzdCN01HSFlXTFpDVTdYSVZQVFM0SDdEUlBURVRRVCIsImp0aSI6IjE3MzJmYTE5LWU5MjgtNDQ1Ni05NGJlLTc0ODk3OGU4YTZhNSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNsaWVudCIsIm5iZiI6MTc4NTkzMDQ5OSwiZXhwIjoxNzg1OTM0MDk5LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.ugHSNtBCCaeEoe5vqS9smxrptfungwC4OSIG-OAnZ8U","expiresIn":3600,"refreshToken":"evYjxTnM8IAn+0vdg/7fl+dVHx/w3FbbeHJ2YDXvTm1bL1IvK7nx1QezXxxhnRwICQfLp1cO8MG+FtmPnkhn7w==","refreshTokenExpiration":"2026-08-12T11:48:19.7248119Z"},"message":null,"errors":null,"statusCode":200}
----
-
-### 10. Client Update Profile - Valid Data
-
-**Request:** PUT http://localhost:5049/api/clients/profile
-
-**Body:**
-{
-    "Address":  "Updated Address",
-    "PhoneNumber":  "+201111111111"
-}
-
-**Response Status:** 200
-
-**Response Body:**
-{"success":true,"message":"تم تحديث الملف الشخصي بنجاح.","errors":null,"statusCode":200}
----
-
-### 11. Client Update Profile - Invalid Phone Number
-
-**Request:** PUT http://localhost:5049/api/clients/profile
-
-**Body:**
-{
-    "Address":  "Updated Address",
-    "PhoneNumber":  "123"
-}
-
-**Response Status:** 401
-
-**Response Body:**
-
----
-
-### 12. Lawyer Complete Profile - Missing National Number
-
-**Request:** POST http://localhost:5049/api/lawyers/profile/complete
-
-**Body:**
-{
-    "Level":  1,
-    "DateOfBirth":  "1990-01-01",
-    "PhoneNumber":  "+201000000000",
-    "Gender":  "Male"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"NationalNumber":["'National Number' must not be empty.","الرقم القومي يجب أن يتكون من 14 رقم."]},"traceId":"00-145ab17d0ffde0f4b0a71db10146c373-f60e4b02965e4ed6-00"}
----
-
-### 13. Lawyer Complete Profile - Invalid National Number Length
-
-**Request:** POST http://localhost:5049/api/lawyers/profile/complete
-
-**Body:**
-{
-    "Level":  1,
-    "Gender":  "Male",
-    "NationalNumber":  "123456",
-    "PhoneNumber":  "+201000000000",
-    "DateOfBirth":  "1990-01-01"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"NationalNumber":["الرقم القومي يجب أن يتكون من 14 رقم."]},"traceId":"00-32283d3692f661249dd6ad496ec5b1d8-e7060e0180531cc9-00"}
----
-
-### 14. Lawyer Complete Profile - Invalid Lawyer Level
-
-**Request:** POST http://localhost:5049/api/lawyers/profile/complete
-
-**Body:**
-{
-    "Level":  999,
-    "Gender":  "Male",
-    "NationalNumber":  "12345678901234",
-    "PhoneNumber":  "+201000000000",
-    "DateOfBirth":  "1990-01-01"
-}
-
-**Response Status:** 400
-
-**Response Body:**
-{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"One or more validation errors occurred.","status":400,"errors":{"request":["The request field is required."],"$.Level":["The JSON value could not be converted to SmartCourt.Common.Enums.LawyerLevel. Path: $.Level | LineNumber: 1 | BytePositionInLine: 17."]},"traceId":"00-e64cc3e9c81af9b037dd063e478ef13a-13d2fdf07d0ab6b8-00"}
+{"success":true,"data":{"user":{"id":"c6b495a5-0c2e-4147-f788-08def48f6968","email":"client_test_37823556@test.com","fullName":"Test Client","role":"Client","status":"PendingReview","rejectionReason":null},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjNmI0OTVhNS0wYzJlLTQxNDctZjc4OC0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImM2YjQ5NWE1LTBjMmUtNDE0Ny1mNzg4LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoiY2xpZW50X3Rlc3RfMzc4MjM1NTZAdGVzdC5jb20iLCJuYW1lIjoiVGVzdCBDbGllbnQiLCJzZWN1cml0eV9zdGFtcCI6IkhCRVo0SFdTWlo3MkZBUFVPSVU0QzRQMllUTkZNVklMIiwianRpIjoiYTZmZDk1M2QtYWJiYS00M2VmLWJjMmItNmNmMjgwYjA5ZjM1IiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQ2xpZW50IiwibmJmIjoxNzg2MTEzNzQxLCJleHAiOjE3ODYxMTQ2NDEsImlzcyI6IlNtYXJ0Q291cnRBUEkiLCJhdWQiOiJTbWFydENvdXJ0Q2xpZW50In0._usmUvX5bB7eV-zmr78yxKi-qSB8PBMWWhBQi3tUVgs","expiresIn":900,"refreshToken":"lUYRHZOE32/IwjB5uRGOLO06yM5N1KowWdYMyi0eIPCK/yWY9yaoHf1h1qDiWR+W3kcKfNa/M5REeR1cSNcCNw==","refreshTokenExpiration":"2026-08-14T14:42:21.4787775Z"},"message":null,"errors":null,"statusCode":200}
 ---
 
 ### 15. Lawyer Complete Profile - Valid Data
@@ -291,13 +133,20 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 
 **Body:**
 {
-    "PhoneNumber":  "+201000000000",
-    "DateOfBirth":  "1990-01-01",
-    "Level":  1,
-    "NationalNumber":  "29001012454929",
-    "Address":  "Law Firm 1",
-    "Bio":  "Hello I am a lawyer",
-    "Gender":  "Male"
+  "PhoneNumber": "+201000000000",
+  "DateOfBirth": "1990-01-01",
+  "Gender": 1,
+  "Level": 1,
+  "NationalNumber": "29001011347387",
+  "Bio": "Hello I am a lawyer",
+  "Specializations": [
+    {
+      "YearsOfExperience": 5,
+      "Specialization": 1,
+      "CasesHandled": 10
+    }
+  ],
+  "Address": "Law Firm 1"
 }
 
 **Response Status:** 200
@@ -306,96 +155,39 @@ Found confirmation URL for lawyer_test_1969577504@test.com: http://localhost:517
 {"success":true,"message":"تم استكمال البيانات بنجاح","errors":null,"statusCode":200}
 ---
 
-### 16. Lawyer Complete Profile - Try Again After Completion
-
-**Request:** POST http://localhost:5049/api/lawyers/profile/complete
-
-**Body:**
-{
-    "PhoneNumber":  "+201000000000",
-    "DateOfBirth":  "1990-01-01",
-    "Level":  1,
-    "NationalNumber":  "29001012454929",
-    "Address":  "Law Firm 1",
-    "Bio":  "Hello I am a lawyer",
-    "Gender":  "Male"
-}
-
-**Response Status:** 401
-
-**Response Body:**
-
----
-
 ### 16b. Re-Login Lawyer
 
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
 {
-    "Password":  "Password123!",
-    "Email":  "lawyer_test_1969577504@test.com"
+  "Email": "lawyer_test_1099231217@test.com",
+  "Password": "Password123!"
 }
 
 **Response Status:** 200
 
 **Response Body:**
-{"success":true,"data":{"user":{"id":"6f7fd4e7-244f-4bd9-810e-08def2e76edd","email":"lawyer_test_1969577504@test.com","fullName":"Test Lawyer","role":"Lawyer"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2ZjdmZDRlNy0yNDRmLTRiZDktODEwZS0wOGRlZjJlNzZlZGQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjZmN2ZkNGU3LTI0NGYtNGJkOS04MTBlLTA4ZGVmMmU3NmVkZCIsImVtYWlsIjoibGF3eWVyX3Rlc3RfMTk2OTU3NzUwNEB0ZXN0LmNvbSIsIm5hbWUiOiJUZXN0IExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiTUpWSUNUSkxORjJETzRCM0o2SkhRNUdJTVBXVVBDWUYiLCJqdGkiOiIxMjdkNzljNi0xNmMwLTRkZTItOTcwMC00ZGJiNzQwNGU5ZmUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODU5MzA1MDAsImV4cCI6MTc4NTkzNDEwMCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.a6NqGSxFG85QILWXsDUgCoeg-BGl9OOYA_Yly-MZqkY","expiresIn":3600,"refreshToken":"D/ZAz/rxOhC2CzPQgTat9gYl9ExPgpOrkME1AoruAvaB8uSVsFSLMZwhy7QWRW/WIhlZg5nlvPxv8C3ZEWC1XA==","refreshTokenExpiration":"2026-08-12T11:48:20.5546466Z"},"message":null,"errors":null,"statusCode":200}
----
-
-### 17. Lawyer Update Profile - Valid Data
-
-**Request:** PUT http://localhost:5049/api/lawyers/profile
-
-**Body:**
-{
-    "Bio":  "Updated Bio",
-    "Level":  2,
-    "PhoneNumber":  "+201111111111",
-    "Address":  "Updated Address"
-}
-
-**Response Status:** 200
-
-**Response Body:**
-{"success":true,"message":"تم تحديث البيانات بنجاح","errors":null,"statusCode":200}
----
-
-### 18. Lawyer Update Profile - Invalid Bio Length
-
-**Request:** PUT http://localhost:5049/api/lawyers/profile
-
-**Body:**
-{
-    "Bio":  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "Level":  2,
-    "PhoneNumber":  "+201111111111",
-    "Address":  "Updated Address"
-}
-
-**Response Status:** 401
-
-**Response Body:**
-
+{"success":true,"data":{"user":{"id":"7ebaeb4b-e06e-48f7-f789-08def48f6968","email":"lawyer_test_1099231217@test.com","fullName":"Test Lawyer","role":"Lawyer","status":"PendingReview","rejectionReason":null},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3ZWJhZWI0Yi1lMDZlLTQ4ZjctZjc4OS0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjdlYmFlYjRiLWUwNmUtNDhmNy1mNzg5LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoibGF3eWVyX3Rlc3RfMTA5OTIzMTIxN0B0ZXN0LmNvbSIsIm5hbWUiOiJUZXN0IExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiRE9FNzZYUVBFN1o3RENBSkI0UUNXNk9PNU1ZUVpTSTciLCJqdGkiOiI0ZGQzODFkYy04MzQxLTRhYTktOTY2Ny1hNjU4MjFhNjA3NmUiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYxMTM3NDIsImV4cCI6MTc4NjExNDY0MiwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.VqBTbnSTwyngrF_ktWlE8V6BQwgc8Nn3CmHLk4NwNvk","expiresIn":900,"refreshToken":"pCSa6B7jR5j0Sfbe794c9WEi3hiqVUAZ1v0IbpZQcptrc0HWscl+YxFldmGqMfCPwJB+zFjzpjm/hhXzD8Qj5A==","refreshTokenExpiration":"2026-08-14T14:42:22.0173433Z"},"message":null,"errors":null,"statusCode":200}
 ---
 
 ### 19. Client GET Profile - Ensure fields are correct
 
 **Request:** GET http://localhost:5049/api/clients/profile
 
-**Response Status:** 401
+**Response Status:** 200
 
 **Response Body:**
-
+{"success":true,"data":{"id":"c6b495a5-0c2e-4147-f788-08def48f6968","name":"Test Client","email":"client_test_37823556@test.com","phoneNumber":"+201000000000","nationalNumber":"29001014304533","gender":1,"dateOfBirth":"1990-01-01","address":"Test Address","governorate":null,"city":null,"status":"PendingReview","rejectionReason":null},"message":null,"errors":null,"statusCode":200}
 ---
 
 ### 20. Lawyer GET Profile - Ensure fields are correct
 
 **Request:** GET http://localhost:5049/api/lawyers/profile
 
-**Response Status:** 401
+**Response Status:** 200
 
 **Response Body:**
-
+{"success":true,"data":{"id":"7ebaeb4b-e06e-48f7-f789-08def48f6968","name":"Test Lawyer","email":"lawyer_test_1099231217@test.com","phoneNumber":"+201000000000","nationalNumber":"29001011347387","gender":1,"dateOfBirth":"1990-01-01","level":1,"yearsOfExperience":5,"specializationName":"CivilLaw","bio":"Hello I am a lawyer","address":"Law Firm 1","governorate":null,"city":null,"status":"PendingReview","isAvailable":true,"profilePictureUrl":null,"rejectionReason":null,"specializations":[{"specialization":1,"yearsOfExperience":5,"casesHandled":10}]},"message":null,"errors":null,"statusCode":200}
 ---
 

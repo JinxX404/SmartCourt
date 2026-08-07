@@ -44,6 +44,7 @@ using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
+
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
@@ -108,6 +109,7 @@ public static class DependencyInjection
         services.AddControllers();
         services.AddHealthChecks();
         services.AddSignalR();
+
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();
         services.AddEndpointsApiExplorer();
@@ -169,9 +171,9 @@ public static class DependencyInjection
         services.AddScoped<
             IOutboxEventHandler,
             ContractConversationIntegrationOutboxHandler>();
-        services.AddScoped<
-            IOutboxEventHandler,
-            ContractNotificationOutboxHandler>();
+
+
+
         services.AddScoped<
             IOutboxEventHandler,
             ContractCaseLifecycleOutboxHandler>();
@@ -413,12 +415,21 @@ public static class DependencyInjection
             {
                 OnMessageReceived = context =>
                 {
+                    // 1. SignalR passes token via query string
                     var accessToken = context.Request.Query["access_token"];
                     var path = context.HttpContext.Request.Path;
                     if (!string.IsNullOrWhiteSpace(accessToken)
-                        && path.StartsWithSegments("/hubs/chat"))
+                        && (path.StartsWithSegments("/hubs/chat") || path.StartsWithSegments("/hubs/notifications")))
                     {
                         context.Token = accessToken;
+                        return Task.CompletedTask;
+                    }
+
+                    // 2. Read from HttpOnly cookie (primary auth mechanism)
+                    var cookieToken = context.Request.Cookies["accessToken"];
+                    if (!string.IsNullOrWhiteSpace(cookieToken))
+                    {
+                        context.Token = cookieToken;
                     }
 
                     return Task.CompletedTask;
@@ -455,6 +466,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAuthHelperService, AuthHelperService>();
         services.AddScoped<ILoginService, LoginService>();
+
         services.AddScoped<IConfirmEmailService, ConfirmEmailService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IRegisterClientService, RegisterClientService>();

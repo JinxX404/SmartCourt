@@ -55,15 +55,15 @@ namespace SmartCourt.Providers.FileStorage
                 file.Name.Equals(fileName, StringComparison.Ordinal));
         }
 
-        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default)
+        public async Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
 
-            var url = _client.Storage
+            var url = await _client.Storage
                 .From(_options.Bucket)
-                .GetPublicUrl(filePath);
+                .CreateSignedUrl(filePath, 3600); // URL valid for 1 hour
 
-            return Task.FromResult(url);
+            return url;
         }
 
         public Task<FileUploadResult> UploadAsync(

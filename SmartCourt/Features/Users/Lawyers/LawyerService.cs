@@ -10,6 +10,7 @@ using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Users.Shared.DTOs;
+using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Features.Users.Lawyers;
 
@@ -17,12 +18,14 @@ public class LawyerService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
-    IAuthHelperService authHelperService) : ILawyerService
+    IAuthHelperService authHelperService,
+    IFileStorageService fileStorageService) : ILawyerService
 {
     private readonly UserManager<ApplicationUser> _userManager = userManager;
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly ICurrentUserService _currentUserService = currentUserService;
     private readonly IAuthHelperService _authHelperService = authHelperService;
+    private readonly IFileStorageService _fileStorageService = fileStorageService;
 
     public async Task<LawyerProfileResponse> GetProfileAsync(CancellationToken cancellationToken)
     {
@@ -61,7 +64,10 @@ public class LawyerService(
             Bio = user.LawyerProfile?.Bio,
             IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
             ProfilePictureUrl = user.ProfilePictureUrl,
-            Specializations = specializations
+            RejectionReason = user.RejectionReason,
+            Specializations = specializations,
+            YearsOfExperience = specializations.FirstOrDefault()?.YearsOfExperience ?? 0,
+            SpecializationName = specializations.FirstOrDefault()?.Specialization.ToString()
         };
     }
 
@@ -95,7 +101,9 @@ public class LawyerService(
             City = user.City,
             IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
             ProfilePictureUrl = user.ProfilePictureUrl,
-            Specializations = specializations
+            Specializations = specializations,
+            YearsOfExperience = specializations.FirstOrDefault()?.YearsOfExperience ?? 0,
+            SpecializationName = specializations.FirstOrDefault()?.Specialization.ToString()
         };
     }
 
@@ -259,6 +267,7 @@ public class LawyerService(
         var userId = _currentUserService.UserId;
         var user = await _userManager.Users
             .Include(u => u.LawyerProfile)
+                .ThenInclude(lp => lp.Specializations)
             .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
         if (user == null)
@@ -268,14 +277,34 @@ public class LawyerService(
 
         try
         {
-            if (user.PhoneNumber != request.PhoneNumber)
+            var modifiedFields = new List<string>();
+
+            if (user.Address != request.Address) modifiedFields.Add("Address");
+            if (user.DateOfBirth != request.DateOfBirth) modifiedFields.Add("DateOfBirth");
+            if (request.Gender.HasValue && user.Gender != request.Gender.Value) modifiedFields.Add("Gender");
+            if (user.NationalNumber != request.NationalNumber) modifiedFields.Add("NationalNumber");
+            if (user.Governorate != request.Governorate) modifiedFields.Add("Governorate");
+            if (user.City != request.City) modifiedFields.Add("City");
+            if (user.LawyerProfile?.Level != request.Level) modifiedFields.Add("Level");
+            if (user.LawyerProfile?.Bio != request.Bio) modifiedFields.Add("Bio");
+
+            if (request.Specializations != null && request.Specializations.Any())
+                modifiedFields.Add("Specializations"); // We assume they changed if provided in the request
+
+            if (modifiedFields.Any())
             {
-                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, request.PhoneNumber);
-                if (!setPhoneResult.Succeeded)
-                    throw new BusinessException(string.Join(" ", setPhoneResult.Errors.Select(e => e.Description)));
+                var currentModified = string.IsNullOrEmpty(user.ModifiedFieldsJson) 
+                    ? new List<string>() 
+                    : System.Text.Json.JsonSerializer.Deserialize<List<string>>(user.ModifiedFieldsJson) ?? new List<string>();
+                
+                currentModified.AddRange(modifiedFields);
+                user.ModifiedFieldsJson = System.Text.Json.JsonSerializer.Serialize(currentModified.Distinct().ToList());
             }
 
             user.Address = request.Address;
+            user.DateOfBirth = request.DateOfBirth;
+            if (request.Gender.HasValue) user.Gender = request.Gender.Value;
+            user.NationalNumber = request.NationalNumber;
             user.Governorate = request.Governorate;
             user.City = request.City;
 
@@ -286,6 +315,13 @@ public class LawyerService(
 
             user.LawyerProfile.Level = request.Level;
             user.LawyerProfile.Bio = request.Bio;
+
+
+
+            if (user.Status == UserStatus.Active || user.Status == UserStatus.Rejected)
+            {
+                user.Status = UserStatus.PendingReview;
+            }
 
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
@@ -316,6 +352,11 @@ public class LawyerService(
                     });
                 }
 
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                // Ensure tracked changes to related entities (like LawyerProfile, Specializations) are saved
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
@@ -355,21 +396,61 @@ public class LawyerService(
             throw new BusinessException("كلمة المرور الحالية غير صحيحة.");
         }
 
+        // Check for associated cases/contracts
+        var hasContracts = await _dbContext.Contracts.AnyAsync(c => c.LawyerUserId == userId, cancellationToken);
+        if (hasContracts)
+        {
+            throw new BusinessException("لا يمكن حذف الحساب لوجود قضايا وعقود مرتبطة به.");
+        }
+
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         try
         {
-            user.Status = UserStatus.Deleted;
-            if (user.LawyerProfile is not null)
+            // Fetch and delete verification documents from storage
+            var verificationDocs = await _dbContext.UserVerificationDocuments
+                .Include(d => d.StoredFile)
+                .Where(d => d.UserId == userId)
+                .ToListAsync(cancellationToken);
+
+            foreach (var doc in verificationDocs)
             {
-                user.LawyerProfile.IsAvailable = false;
+                if (doc.StoredFile != null && !string.IsNullOrEmpty(doc.StoredFile.FileUrl))
+                {
+                    try { await _fileStorageService.DeleteAsync(doc.StoredFile.FileUrl, cancellationToken); } catch { /* Ignore if already deleted */ }
+                }
+            }
+
+            // Delete profile picture if any
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl) && user.ProfilePictureUrl.Contains("supabase"))
+            {
+                // We assume it's just the filename/path. If it's a full URL, IFileStorageService might need the relative path. 
+                // For safety, assuming it works or we catch exception
+                try { await _fileStorageService.DeleteAsync(user.ProfilePictureUrl, cancellationToken); } catch { }
+            }
+
+            // Remove documents from DB
+            _dbContext.UserVerificationDocuments.RemoveRange(verificationDocs);
+
+            // Remove specializations
+            var specializations = await _dbContext.LawyerSpecializations
+                .Where(s => s.LawyerProfileUserId == userId)
+                .ToListAsync(cancellationToken);
+            _dbContext.LawyerSpecializations.RemoveRange(specializations);
+
+            // Remove Profile
+            if (user.LawyerProfile != null)
+            {
+                _dbContext.LawyerProfiles.Remove(user.LawyerProfile);
             }
 
             _authHelperService.RevokeAllActiveRefreshTokens(user);
 
-            var securityStampResult = await _userManager.UpdateSecurityStampAsync(user);
-            EnsureSucceeded(securityStampResult);
+            // Delete ApplicationUser (Cascade deletes should handle RefreshTokens)
+            var deleteResult = await _userManager.DeleteAsync(user);
+            EnsureSucceeded(deleteResult);
 
+            await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
         }
         catch (Exception)

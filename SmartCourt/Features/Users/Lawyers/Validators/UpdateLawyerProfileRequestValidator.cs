@@ -9,10 +9,11 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
 {
     public UpdateLawyerProfileRequestValidator()
     {
-         RuleFor(x => x.PhoneNumber)
+
+         RuleFor(x => x.NationalNumber)
          .NotEmpty()
-         .Matches(@"^\+20\d{10}$")
-         .WithMessage("رقم الهاتف يجب أن يكون بالتنسيق المصري +20XXXXXXXXXX");
+         .Matches(@"^\d{14}$")
+         .WithMessage("الرقم القومي يجب أن يتكون من 14 رقم بالضبط.");
 
          RuleFor(x => x.Level)
          .IsInEnum()
@@ -50,6 +51,10 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
                      .GreaterThanOrEqualTo(0)
                      .WithMessage("عدد القضايا المنجزة يجب أن يكون 0 أو أكثر.");
              });
+
+             RuleFor(x => x.Specializations)
+                 .Must(specs => specs!.Select(s => s.Specialization).Distinct().Count() == specs!.Count)
+                 .WithMessage("لا يمكن تكرار نفس التخصص للمحامي.");
          });
     }
 }

@@ -8,7 +8,7 @@ using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.Entities;
-using SmartCourt.Features.Notifications.Integration;
+
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Persistence;
@@ -112,83 +112,6 @@ public sealed class ContractIntegrationOutboxHandlerTests
         Assert.Equal(state.Milestone.Id, delivered.RelatedEntityId);
     }
 
-    [Fact]
-    public async Task NotificationHandler_SendsDisputeAssignmentToAllRecipients()
-    {
-        await using var context = CreateContext();
-        var state = AddContractAndMilestone(context);
-        var moderatorUserId = Guid.NewGuid();
-        var dispute = new Dispute(
-            Guid.NewGuid(),
-            state.Contract.Id,
-            state.Milestone.Id,
-            state.Contract.ClientUserId,
-            DisputeCategory.DeliverableQuality,
-            "نزاع على التسليم",
-            "وصف واضح للنزاع القائم على المرحلة.",
-            DisputeRequestedOutcome.Refund,
-            UtcNow)
-        {
-            AssignedModeratorUserId = moderatorUserId,
-            Status = DisputeStatus.Assigned
-        };
-        context.Add(dispute);
-        await context.SaveChangesAsync();
-        var notifications = new RecordingNotificationService();
-        var handler = new ContractNotificationOutboxHandler(
-            context,
-            [notifications]);
-        var eventId = Guid.NewGuid();
-        var message = CreateMessage(
-            eventId,
-            ContractPaymentEventTypes.DisputeAssigned,
-            "Dispute",
-            dispute.Id,
-            new ContractPaymentAggregateEventPayload(dispute.Id));
-
-        await handler.HandleAsync(message, CancellationToken.None);
-
-        Assert.Equal(3, notifications.Notifications.Count);
-        Assert.Equal(
-            new[]
-            {
-                state.Contract.ClientUserId,
-                state.Contract.LawyerUserId,
-                moderatorUserId
-            }.Order(),
-            notifications.Notifications
-                .Select(item => item.RecipientUserId)
-                .Order());
-        Assert.All(
-            notifications.Notifications,
-            notification =>
-            {
-                Assert.Equal(eventId, notification.EventId);
-                Assert.Equal(
-                    ContractNotificationType.DisputeAssigned,
-                    notification.Type);
-                Assert.Equal("Dispute", notification.RelatedEntityType);
-                Assert.Equal(dispute.Id, notification.RelatedEntityId);
-            });
-    }
-
-    [Fact]
-    public async Task NotificationHandler_MissingOwnerServiceFailsForRetry()
-    {
-        await using var context = CreateContext();
-        var handler = new ContractNotificationOutboxHandler(context, []);
-        var message = CreateMessage(
-            Guid.NewGuid(),
-            ContractPaymentEventTypes.ContractCreated,
-            "Contract",
-            Guid.NewGuid(),
-            new ContractPaymentAggregateEventPayload(Guid.NewGuid()));
-
-        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => handler.HandleAsync(message, CancellationToken.None));
-
-        Assert.Contains("سيعاد إرسال الحدث تلقائيًا", exception.Message);
-    }
 
     [Fact]
     public async Task CaseLifecycleHandler_ForwardsCompletionWithoutCaseMutation()
@@ -312,20 +235,6 @@ public sealed class ContractIntegrationOutboxHandlerTests
         }
     }
 
-    private sealed class RecordingNotificationService
-        : IContractNotificationService
-    {
-        public List<ContractNotification> Notifications { get; } = [];
-
-        public Task PublishAsync(
-            ContractNotification notification,
-            CancellationToken cancellationToken)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            Notifications.Add(notification);
-            return Task.CompletedTask;
-        }
-    }
 
     private sealed class RecordingCaseLifecycleService
         : IContractCaseLifecycleService

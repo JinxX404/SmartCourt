@@ -240,6 +240,17 @@ if ($documentId2) {
 $patch19 = @{ Decision = 1; RejectionReason = $null } | ConvertTo-Json
 Invoke-Api -title "19. Update - PATCH non-existent DocumentId" -method "PATCH" -endpoint "/api/admin/verifications/documents/$([guid]::NewGuid())" -body $patch19 -token $adminToken -reportFile $reportFile | Out-Null
 
+# --- 20. ADMIN APPROVE USER ACCOUNT ---
+if ($lawyerId) {
+    Invoke-Api -title "20. Admin Approve User Account" -method "PATCH" -endpoint "/api/admin/verifications/$lawyerId/approve-account" -body "{}" -token $adminToken -reportFile $reportFile | Out-Null
+}
+
+# --- 21. ADMIN REJECT USER ACCOUNT ---
+if ($lawyerId) {
+    $rejectAccountBody = @{ RejectionReason = "Incomplete profile information." } | ConvertTo-Json
+    Invoke-Api -title "21. Admin Reject User Account" -method "PATCH" -endpoint "/api/admin/verifications/$lawyerId/reject-account" -body $rejectAccountBody -token $adminToken -reportFile $reportFile | Out-Null
+}
+
 if (Test-Path $tempFilePath) { Remove-Item $tempFilePath -Force }
 
 "Tests complete. Results saved to $reportFile`n" | Write-Host

@@ -9,4 +9,5 @@ public sealed class PendingVerificationListItemDto
     public int PendingDocumentCount { get; init; }
     public int VerifiedDocumentCount { get; init; }
     public int RejectedDocumentCount { get; init; }
+    public string? Role { get; init; }
 }

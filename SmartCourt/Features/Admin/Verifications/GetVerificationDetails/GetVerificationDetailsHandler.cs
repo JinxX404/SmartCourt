@@ -22,16 +22,13 @@ public sealed class GetVerificationDetailsHandler(
         var lawyer = await context.Users
             .Include(user => user.VerificationDocuments.Where(document => document.IsCurrent))
             .ThenInclude(document => document.StoredFile)
+            .Include(user => user.LawyerProfile)
+            .ThenInclude(lp => lp!.Specializations)
             .SingleOrDefaultAsync(user => user.Id == request.LawyerId, cancellationToken);
 
         if (lawyer is null)
         {
-            throw new NotFoundException("Lawyer was not found.");
-        }
-
-        if (!await userManager.IsInRoleAsync(lawyer, "Lawyer"))
-        {
-            throw new NotFoundException("Lawyer was not found.");
+            throw new NotFoundException("User was not found.");
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -52,11 +49,24 @@ public sealed class GetVerificationDetailsHandler(
             })
             .ToList();
 
-        // Fix: compute IsFullyVerified from actual document state.
-        // Deriving this from UserStatus.Active is incorrect — an Active seeded
-        // lawyer with no documents would be reported as fully verified.
+        var roles = await userManager.GetRolesAsync(lawyer);
+        var primaryRole = roles.FirstOrDefault();
+        var isLawyer = primaryRole == "Lawyer";
+
         var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
-            lawyer.VerificationDocuments, today);
+            lawyer.VerificationDocuments, today, isLawyer);
+
+        var specializations = lawyer.LawyerProfile?.Specializations.Select(s => new LawyerSpecializationDto
+        {
+            Specialization = (int)s.Specialization,
+            SpecializationName = s.Specialization.ToString(),
+            YearsOfExperience = s.YearsOfExperience,
+            CasesHandled = s.CasesHandled
+        }).ToList() ?? new List<LawyerSpecializationDto>();
+
+        var modifiedFields = string.IsNullOrEmpty(lawyer.ModifiedFieldsJson)
+            ? new List<string>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<string>>(lawyer.ModifiedFieldsJson) ?? new List<string>();
 
         return ApiResponse<VerificationDetailsDto>.Ok(new VerificationDetailsDto
         {
@@ -64,9 +74,20 @@ public sealed class GetVerificationDetailsHandler(
             FullName = lawyer.FullName,
             Email = lawyer.Email ?? string.Empty,
             PhoneNumber = lawyer.PhoneNumber,
+            NationalNumber = lawyer.NationalNumber,
+            Address = lawyer.Address,
+            Governorate = lawyer.Governorate,
+            City = lawyer.City,
+            Gender = lawyer.Gender?.ToString(),
+            DateOfBirth = lawyer.DateOfBirth,
             AccountStatus = lawyer.Status.ToString(),
             IsFullyVerified = isFullyVerified,
-            Documents = documents
+            Role = primaryRole,
+            Level = lawyer.LawyerProfile != null ? (int)lawyer.LawyerProfile.Level : null,
+            Specializations = specializations,
+            Bio = lawyer.LawyerProfile?.Bio,
+            Documents = documents,
+            ModifiedFields = modifiedFields
         });
     }
 }

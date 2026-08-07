@@ -1,7 +1,7 @@
 using SmartCourt.Features.Cases.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Files.Integration;
-using SmartCourt.Features.Notifications.Integration;
+
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
 
@@ -97,16 +97,3 @@ public sealed class FakeContractFileAccessService : IContractFileAccessService
     }
 }
 
-public sealed class FakeContractNotificationService : IContractNotificationService
-{
-    public List<ContractNotification> Notifications { get; } = [];
-
-    public async Task PublishAsync(
-        ContractNotification notification,
-        CancellationToken cancellationToken)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-        Notifications.Add(notification);
-        await Task.CompletedTask;
-    }
-}

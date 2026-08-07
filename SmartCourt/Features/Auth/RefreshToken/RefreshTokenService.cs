@@ -77,6 +77,7 @@ public class RefreshTokenService : IRefreshTokenService
 
         return new RefreshTokenResponse(
              newAccessToken.Token,
+             newAccessToken.ExpiresInSeconds,
              newRefreshToken,
              DateTime.UtcNow.AddDays(_refreshTokenExpiryDays));
     }

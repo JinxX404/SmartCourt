@@ -73,6 +73,9 @@ namespace SmartCourt.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("ModifiedFieldsJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("NationalNumber")
                         .HasMaxLength(14)
                         .HasColumnType("varchar(14)");
@@ -96,6 +99,9 @@ namespace SmartCourt.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("ProfilePictureUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RejectionReason")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SecurityStamp")

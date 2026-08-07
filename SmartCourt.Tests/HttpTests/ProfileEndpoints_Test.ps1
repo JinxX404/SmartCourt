@@ -128,15 +128,15 @@ $body = @{ DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test Address" } | 
 Invoke-Api -title "5. Client Complete Profile - Missing Phone Number" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken
 
 # Test 6: Client Complete - Invalid Phone Number Format
-$body = @{ PhoneNumber = "01000000000"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test Address" } | ConvertTo-Json
+$body = @{ PhoneNumber = "01000000000"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test Address"; NationalNumber = "29001014304533" } | ConvertTo-Json
 Invoke-Api -title "6. Client Complete Profile - Invalid Phone Format (Needs +20)" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken
 
 # Test 7: Client Complete - Future Date of Birth
-$body = @{ PhoneNumber = "+201000000000"; DateOfBirth = "2050-01-01"; Gender = 1; Address = "Test Address" } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201000000000"; DateOfBirth = "2050-01-01"; Gender = 1; Address = "Test Address"; NationalNumber = "29001014304533" } | ConvertTo-Json
 Invoke-Api -title "7. Client Complete Profile - Future DOB" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken
 
 # Test 8: Client Complete - Valid Data
-$body = @{ PhoneNumber = "+201000000000"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test Address" } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201000000000"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test Address"; NationalNumber = "29001014304533" } | ConvertTo-Json
 Invoke-Api -title "8. Client Complete Profile - Valid Data" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken
 
 # Test 9: Client Complete - Try Again (Should Fail)
@@ -160,11 +160,11 @@ $body = @{ PhoneNumber = "+201000000000"; DateOfBirth = "1990-01-01"; Gender = 1
 Invoke-Api -title "12. Lawyer Complete Profile - Missing National Number" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken
 
 # Test 13: Lawyer Complete - Invalid National Number length
-$body = @{ PhoneNumber = "+201000000000"; NationalNumber = "123456"; DateOfBirth = "1990-01-01"; Gender = 1; Level = 1 } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201000000000"; NationalNumber = "123456"; DateOfBirth = "1990-01-01"; Gender = 1; Level = 1; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "13. Lawyer Complete Profile - Invalid National Number Length" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken
 
 # Test 14: Lawyer Complete - Invalid Level (Not in Enum)
-$body = @{ PhoneNumber = "+201000000000"; NationalNumber = "12345678901234"; DateOfBirth = "1990-01-01"; Gender = 1; Level = 999 } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201000000000"; NationalNumber = "12345678901234"; DateOfBirth = "1990-01-01"; Gender = 1; Level = 999; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "14. Lawyer Complete Profile - Invalid Lawyer Level" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken
 
 # Generate random 14-digit National Number
@@ -173,7 +173,7 @@ $nationalNumSuffix = Get-Random -Minimum 1000000 -Maximum 9999999
 $nationalNum = "$nationalNumPrefix$nationalNumSuffix"
 
 # Test 15: Lawyer Complete - Valid Data
-$body = @{ Bio = "Hello I am a lawyer"; Level = 1; DateOfBirth = "1990-01-01"; Gender = 1; PhoneNumber = "+201000000000"; NationalNumber = $nationalNum; Address = "Law Firm 1" } | ConvertTo-Json
+$body = @{ Bio = "Hello I am a lawyer"; Level = 1; DateOfBirth = "1990-01-01"; Gender = 1; PhoneNumber = "+201000000000"; NationalNumber = $nationalNum; Address = "Law Firm 1"; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "15. Lawyer Complete Profile - Valid Data" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken
 
 # Test 16: Lawyer Complete - Try Again (Should Fail)

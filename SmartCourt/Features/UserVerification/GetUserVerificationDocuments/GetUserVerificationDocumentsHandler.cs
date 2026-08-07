@@ -46,12 +46,13 @@ namespace SmartCourt.Features.UserVerification.GetUserVerificationDocuments
                 .Where(d => d.UserId == request.UserId)
                 .Select(d => new UserVerificationDocumentDto
                 {
-                    DocumentId = d.StoredFileId,
+                    DocumentId = d.Id,
                     DocumentType = d.DocumentType,
                     Status = d.Status,
                     ExpirationDate = d.ExpirationDate,
                     IsCurrent = d.IsCurrent,
-                    FileName = d.StoredFile.OriginalFileName
+                    FileName = d.StoredFile.OriginalFileName,
+                    RejectionReason = d.RejectionReason
                 })
                 .ToListAsync();
 

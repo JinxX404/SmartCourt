@@ -73,21 +73,22 @@ $massiveBody = @{ FullName = "CPU Test"; Email = "cpu_${randomNum}@test.com"; Pa
 Invoke-Api -title "10a. CPU Exhaustion (15,000 char password)" -method "POST" -endpoint "/api/auth/register/client" -body $massiveBody -reportFile $reportFile | Out-Null
 
 $massiveBio = "a" * 60000
-$massiveBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = $massiveBio } | ConvertTo-Json
+$nationalNum = "2900101" + (Get-Random -Minimum 1000000 -Maximum 9999999)
+$massiveBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = $massiveBio; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "10b. Massive Payload (60,000 char Address)" -method "POST" -endpoint "/api/clients/profile/complete" -body $massiveBody -token $clientToken -reportFile $reportFile | Out-Null
 
 # 11. Type Mismatch & Impossible Dates
-$invalidBody = '{ "PhoneNumber": "+201011111111", "DateOfBirth": "1990-01-01", "Gender": "NotAnInteger", "Address": "Test" }'
+$invalidBody = '{ "PhoneNumber": "+201011111111", "DateOfBirth": "1990-01-01", "Gender": "NotAnInteger", "Address": "Test", "NationalNumber": "29001012345678" }'
 Invoke-Api -title "11a. Type Mismatch (Gender string instead of enum/int)" -method "POST" -endpoint "/api/clients/profile/complete" -body $invalidBody -token $clientToken -reportFile $reportFile | Out-Null
 
-$invalidBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "3000-01-01"; Gender = 1; Address = "Test" } | ConvertTo-Json
+$invalidBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "3000-01-01"; Gender = 1; Address = "Test"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "11b. Impossible Date (Year 3000)" -method "POST" -endpoint "/api/clients/profile/complete" -body $invalidBody -token $clientToken -reportFile $reportFile | Out-Null
 
-$invalidBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = (Get-Date).AddYears(-2).ToString("yyyy-MM-dd"); Gender = 1; Address = "Test" } | ConvertTo-Json
+$invalidBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = (Get-Date).AddYears(-2).ToString("yyyy-MM-dd"); Gender = 1; Address = "Test"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "11c. Impossible Date (2 Years Old)" -method "POST" -endpoint "/api/clients/profile/complete" -body $invalidBody -token $clientToken -reportFile $reportFile | Out-Null
 
 # Complete Profile Properly to proceed
-$validBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test" } | ConvertTo-Json
+$validBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Test"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "Setup: Complete Client Profile" -method "POST" -endpoint "/api/clients/profile/complete" -body $validBody -token $clientToken -reportFile $reportFile | Out-Null
 
 # 12. Double Profile Completion

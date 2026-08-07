@@ -81,7 +81,9 @@ public class LoginService : ILoginService
             user.Id.ToString(),
             user.Email ?? string.Empty,
             user.FullName,
-            roles.FirstOrDefault() ?? "User"
+            roles.FirstOrDefault() ?? "User",
+            user.Status.ToString(),
+            user.RejectionReason
         );
 
         return new LoginResponse(

@@ -10,7 +10,7 @@ public static class ApplicationUserExtensions
     public static bool IsAccessEligible(this ApplicationUser user)
     {
         return user.EmailConfirmed
-            && user.Status is UserStatus.Active or UserStatus.PendingReview;
+            && user.Status is UserStatus.Active or UserStatus.PendingReview or UserStatus.Unverified or UserStatus.Rejected;
     }
 
     public static bool HasValidSecurityStamp(this ApplicationUser user, ClaimsPrincipal principal)
