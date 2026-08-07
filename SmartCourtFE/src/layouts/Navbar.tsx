@@ -68,7 +68,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
         {/* Right Section: Logo */}
         <div className="flex items-center">
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="flex items-center justify-center w-10 h-10 bg-gold/10 border border-gold/40 rounded-xl transition-all duration-300 group-hover:bg-gold/20">
+            <div className="flex items-center justify-center w-10 h-10 bg-gold/10 border border-gold/40 rounded-lg transition-all duration-300 group-hover:bg-gold/20">
               <LuScale className="w-5.5 h-5.5 text-gold" />
             </div>
             <span className="font-bold text-2xl tracking-tight text-text-primary">
@@ -101,7 +101,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
           {/* Theme Toggle Button */}
           <button 
             onClick={toggleTheme} 
-            className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center border border-border-primary hover:bg-bg-primary text-text-secondary hover:text-text-primary transition-all cursor-pointer shrink-0"
+            className="w-9 h-9 lg:w-10 lg:h-10 rounded-lg flex items-center justify-center border border-border-primary hover:bg-bg-primary text-text-secondary hover:text-text-primary transition-all cursor-pointer shrink-0"
             aria-label="Toggle Theme"
           >
             {theme === "light" ? (
@@ -116,7 +116,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
             <div className="relative" ref={userMenuRef}>
               <button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-bold text-text-primary hover:text-gold hover:bg-gold/5 transition-all cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-bold text-text-primary hover:text-gold hover:bg-gold/5 transition-all cursor-pointer"
               >
                 <div className="relative w-8 h-8 rounded-full bg-gold/15 text-gold flex items-center justify-center text-sm shrink-0">
                   <LuUser className="w-4.5 h-4.5" />
@@ -150,7 +150,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                     <Link
                       to="/dashboard"
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-text-primary hover:bg-gold/10 hover:text-gold transition-colors"
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-text-primary hover:bg-gold/10 hover:text-gold transition-colors"
                     >
                       <LuLayoutDashboard className="w-5 h-5 text-gold" />
                       <span>لوحة التحكم</span>
@@ -158,7 +158,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
 
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer mt-1"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer mt-1"
                     >
                       <LuLogOut className="w-5 h-5" />
                       <span>تسجيل الخروج</span>
@@ -179,7 +179,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
 
               <Link 
                 to="/register" 
-                className="h-9 lg:h-11 px-4 lg:px-6 bg-gold hover:bg-gold-hover text-white font-semibold text-xs md:text-sm rounded-xl shadow-xs transition-all duration-200 hover:scale-[1.02] flex items-center justify-center whitespace-nowrap"
+                className="h-9 lg:h-11 px-4 lg:px-6 bg-gold hover:bg-gold-hover text-white font-semibold text-xs md:text-sm rounded-lg shadow-xs transition-all duration-200 flex items-center justify-center whitespace-nowrap"
               >
                 إنشاء حساب
               </Link>
@@ -230,14 +230,14 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
             >
               <div className="flex items-center justify-between mb-8">
                 <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-2 group">
-                  <div className="flex items-center justify-center w-10 h-10 bg-gold/10 border border-gold/40 rounded-xl">
+                  <div className="flex items-center justify-center w-10 h-10 bg-gold/10 border border-gold/40 rounded-lg">
                     <LuScale className="w-5.5 h-5.5 text-gold" />
                   </div>
                   <span className="font-bold text-2xl tracking-tight text-text-primary">مستشار</span>
                 </Link>
                 <button 
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center bg-bg-primary border border-border-primary text-text-primary"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center bg-bg-primary border border-border-primary text-text-primary"
                 >
                   <LuX className="w-5 h-5" />
                 </button>
@@ -254,7 +254,7 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
               <div className="mt-6 pt-6 border-t border-border-primary">
                 {isAuthenticated && user ? (
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-center gap-3 p-3 bg-bg-primary rounded-xl border border-border-primary mb-2">
+                    <div className="flex items-center gap-3 p-3 bg-bg-primary rounded-lg border border-border-primary mb-2">
                       <div className="relative w-10 h-10 rounded-lg bg-gold/20 text-gold font-bold flex items-center justify-center text-base border border-gold/40">
                         {user.fullName ? user.fullName.charAt(0).toUpperCase() : <LuUser className="w-5 h-5" />}
                         {user.status === 'Unverified' && (
@@ -269,14 +269,14 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                     <Link 
                       to="/dashboard" 
                       onClick={() => setMobileMenuOpen(false)}
-                      className="h-12 border border-border-primary rounded-xl flex items-center justify-center gap-2 font-bold text-sm text-text-primary bg-bg-primary"
+                      className="h-12 border border-border-primary rounded-lg flex items-center justify-center gap-2 font-bold text-sm text-text-primary bg-bg-primary"
                     >
                       <LuLayoutDashboard className="w-4.5 h-4.5 text-gold" />
                       <span>لوحة التحكم</span>
                     </Link>
                     <button 
                       onClick={handleLogout}
-                      className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-sm rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                      className="h-12 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold text-sm rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
                       <LuLogOut className="w-4.5 h-4.5" />
                       <span>تسجيل الخروج</span>
@@ -287,14 +287,14 @@ export const Navbar = ({ theme, toggleTheme }: NavbarProps) => {
                     <Link 
                       to="/login" 
                       onClick={() => setMobileMenuOpen(false)}
-                      className="h-12 border border-border-primary bg-bg-primary rounded-xl flex items-center justify-center font-bold text-sm text-text-primary"
+                      className="h-12 border border-border-primary bg-bg-primary rounded-lg flex items-center justify-center font-bold text-sm text-text-primary"
                     >
                       تسجيل الدخول
                     </Link>
                     <Link 
                       to="/register" 
                       onClick={() => setMobileMenuOpen(false)}
-                      className="h-12 bg-gold text-white font-bold text-sm rounded-xl flex items-center justify-center"
+                      className="h-12 bg-gold text-white font-bold text-sm rounded-lg flex items-center justify-center"
                     >
                       إنشاء حساب
                     </Link>

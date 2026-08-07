@@ -7,6 +7,7 @@ export interface User {
   fullName: string;
   role: 'Client' | 'Lawyer' | 'Admin';
   status: 'Active' | 'Unverified' | 'PendingReview' | 'Suspended' | 'Deleted' | 'Rejected';
+  rejectionReason?: string;
 }
 
 interface AuthState {

@@ -31,7 +31,8 @@ public sealed class GetPendingVerificationsHandler(
 
         var query = context.Users
             .AsNoTracking()
-            .Where(VerificationQueueFilter.HasCurrentDocumentWithStatus(request.Status));
+            .Where(VerificationQueueFilter.HasCurrentDocumentWithStatus(request.Status))
+            .Where(u => u.Status != SmartCourt.Features.Auth.Enums.UserStatus.Rejected && u.Status != SmartCourt.Features.Auth.Enums.UserStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {

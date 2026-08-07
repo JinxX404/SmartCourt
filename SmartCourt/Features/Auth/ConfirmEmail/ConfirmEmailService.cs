@@ -64,15 +64,8 @@ public class ConfirmEmailService(
                 throw new BusinessException(InvalidConfirmationMessage);
             }
 
-            var roles = await userManager.GetRolesAsync(user);
-            if (roles.Contains("Lawyer"))
-            {
-                user.Status = UserStatus.PendingReview;
-            }
-            else
-            {
-                user.Status = UserStatus.Active;
-            }
+            // We do not change user.Status here. It should remain Unverified 
+            // until they actually submit their profile data and documents.
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

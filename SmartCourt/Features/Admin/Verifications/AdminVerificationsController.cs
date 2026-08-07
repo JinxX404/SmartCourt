@@ -59,4 +59,15 @@ public sealed class AdminVerificationsController(IMediator mediator) : Controlle
         var result = await mediator.Send(command, cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
+
+    [HttpPatch("{userId:guid}/reject-account")]
+    public async Task<IActionResult> RejectUserAccountAsync(
+        Guid userId, 
+        [FromBody] SmartCourt.Features.Admin.Verifications.RejectUserAccount.RejectUserAccountRequest request, 
+        CancellationToken cancellationToken)
+    {
+        var command = new SmartCourt.Features.Admin.Verifications.RejectUserAccount.RejectUserAccountCommand(userId, request.RejectionReason);
+        var result = await mediator.Send(command, cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
 }

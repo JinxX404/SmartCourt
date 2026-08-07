@@ -163,4 +163,28 @@ export class AuthApi {
     const baseUrl = import.meta.env.DEV ? '' : 'http://localhost:5049';
     return `${baseUrl}/api/UserVerification/documents/${documentId}/content`;
   }
+
+  /**
+   * Gets document content details (including downloadUrl)
+   */
+  static async getDocumentContent(documentId: string) {
+    const response = await apiClient.get(`/api/UserVerification/documents/${documentId}/content`);
+    return response.data;
+  }
+
+  /**
+   * Sends phone verification OTP.
+   */
+  static async sendPhoneVerificationToken(phoneNumber: string) {
+    const response = await apiClient.post('/api/auth/phone/send-token', { phoneNumber });
+    return response.data;
+  }
+
+  /**
+   * Confirms phone verification OTP.
+   */
+  static async confirmPhoneVerification(phoneNumber: string, token: string) {
+    const response = await apiClient.post('/api/auth/phone/confirm', { phoneNumber, token });
+    return response.data;
+  }
 }

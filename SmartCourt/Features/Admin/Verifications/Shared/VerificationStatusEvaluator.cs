@@ -44,8 +44,15 @@ internal static class VerificationStatusEvaluator
     public static UserStatus ResolveAccountStatus(
         IEnumerable<UserVerificationDocument> documents,
         DateOnly today,
-        bool isLawyer)
+        bool isLawyer,
+        bool isPhoneConfirmed,
+        UserStatus currentStatus)
     {
+        // Do not automatically un-reject or un-suspend an account just because a document was reviewed
+        if (currentStatus == UserStatus.Rejected || currentStatus == UserStatus.Suspended)
+        {
+            return currentStatus;
+        }
         var currentDocuments = documents.Where(document => document.IsCurrent).ToList();
         var requiredTypes = GetRequiredDocumentTypes(isLawyer);
 
@@ -60,7 +67,7 @@ internal static class VerificationStatusEvaluator
 
         if (allRequiredDocumentsAreVerified)
         {
-            return UserStatus.Active;
+            return isPhoneConfirmed ? UserStatus.Active : UserStatus.Unverified;
         }
 
         if (currentDocuments.Any(document => document.Status == VerificationDocumentStatus.Pending))

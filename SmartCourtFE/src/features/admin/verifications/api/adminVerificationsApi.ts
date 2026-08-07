@@ -35,6 +35,7 @@ export interface VerificationDetailsDto {
   yearsOfExperience?: number;
   bio?: string;
   documents: VerificationDocumentDto[];
+  modifiedFields: string[];
 }
 
 export const AdminVerificationsApi = {
@@ -70,6 +71,11 @@ export const AdminVerificationsApi = {
   // Approve entire user account profile
   approveUserAccount: async (userId: string) => {
     const response = await apiClient.patch(`/api/admin/verifications/${userId}/approve-account`);
+    return response.data;
+  },
+
+  rejectUserAccount: async (userId: string, rejectionReason: string) => {
+    const response = await apiClient.patch(`/api/admin/verifications/${userId}/reject-account`, { rejectionReason });
     return response.data;
   }
 };

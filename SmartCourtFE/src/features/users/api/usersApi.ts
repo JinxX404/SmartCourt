@@ -9,14 +9,18 @@ export interface ClientProfile {
   gender?: string;
   dateOfBirth?: string;
   address?: string;
+  governorate?: string;
+  city?: string;
   status: string;
 }
 
 export interface UpdateClientProfileRequest {
-  phoneNumber: string;
   nationalNumber?: string;
   dateOfBirth?: string;
   address?: string;
+  governorate?: string;
+  city?: string;
+  gender?: number;
 }
 
 export interface LawyerProfile {
@@ -27,27 +31,36 @@ export interface LawyerProfile {
   nationalNumber?: string;
   gender?: string;
   dateOfBirth?: string;
-  specializationId?: string;
-  specializationName?: string;
-  categoryName?: string;
-  yearsOfExperience?: number;
+  specializations?: Array<{
+    specialization: number;
+    specializationName: string;
+    yearsOfExperience: number;
+    casesHandled: number;
+  }>;
   level?: number; // 1=GeneralRegistration, 2=PrimaryCourt, 3=AppealCourt, 4=CassationCourt
   bio?: string;
   address?: string;
+  governorate?: string;
+  city?: string;
   status: string;
   isAvailable?: boolean;
   profilePictureUrl?: string;
 }
 
 export interface UpdateLawyerProfileRequest {
-  phoneNumber: string;
   nationalNumber?: string;
   dateOfBirth?: string;
-  specializationId?: string;
-  yearsOfExperience?: number;
+  gender?: number; // 0=Male, 1=Female
   level?: number;
   bio?: string;
   address?: string;
+  governorate?: string;
+  city?: string;
+  specializations?: Array<{
+    specialization: number;
+    yearsOfExperience: number;
+    casesHandled: number;
+  }>;
 }
 
 export interface DeleteProfileRequest {

@@ -25,7 +25,19 @@ public sealed class ApproveUserAccountHandler(
             throw new NotFoundException("المستخدم غير موجود");
         }
 
-        user.Status = UserStatus.Active;
+        if (!user.PhoneNumberConfirmed)
+        {
+            throw new BusinessException("لا يمكن اعتماد الحساب حتى يقوم المستخدم بتوثيق رقم هاتفه.");
+        }
+
+        var hasPendingDocs = await context.UserVerificationDocuments
+            .AnyAsync(d => d.UserId == user.Id && d.IsCurrent && d.Status == VerificationDocumentStatus.Pending, cancellationToken);
+
+        if (!hasPendingDocs)
+        {
+            user.Status = UserStatus.Active;
+        }
+        user.ModifiedFieldsJson = null;
         await context.SaveChangesAsync(cancellationToken);
 
 

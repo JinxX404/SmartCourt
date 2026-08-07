@@ -21,5 +21,6 @@ public class LawyerProfileResponse
     public string Status { get; set; } = string.Empty;
     public bool IsAvailable { get; set; }
     public string? ProfilePictureUrl { get; set; }
+    public string? RejectionReason { get; set; }
     public List<LawyerSpecializationDto> Specializations { get; set; } = new();
 }

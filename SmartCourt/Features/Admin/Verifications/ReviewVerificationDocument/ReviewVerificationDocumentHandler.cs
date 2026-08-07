@@ -63,7 +63,9 @@ public sealed class ReviewVerificationDocumentHandler(
             document.User.Status = VerificationStatusEvaluator.ResolveAccountStatus(
                 document.User.VerificationDocuments,
                 today,
-                isLawyerExpired);
+                isLawyerExpired,
+                document.User.PhoneNumberConfirmed,
+                document.User.Status);
             await context.SaveChangesAsync(cancellationToken);
 
             throw new ConflictException("The document has expired and must be submitted again.");
@@ -124,7 +126,9 @@ public sealed class ReviewVerificationDocumentHandler(
         document.User.Status = VerificationStatusEvaluator.ResolveAccountStatus(
             document.User.VerificationDocuments,
             today,
-            isLawyer);
+            isLawyer,
+            document.User.PhoneNumberConfirmed,
+            document.User.Status);
 
         try
         {

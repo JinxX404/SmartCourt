@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminVerificationsApi, type VerificationListDto } from "../api/adminVerificationsApi";
+import { getSpecializationLabel } from "../../../auth/components/VerificationTab";
 import { SecureImage } from "./SecureImage";
 import { LuCheck, LuX, LuEye, LuLoader } from "react-icons/lu";
 import toast from "react-hot-toast";
@@ -10,6 +11,8 @@ export const AdminVerificationsTab = () => {
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectingAccountId, setRejectingAccountId] = useState<string | null>(null);
+  const [accountRejectReason, setAccountRejectReason] = useState("");
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState<string | null>(null);
 
   // Fetch pending verifications list
@@ -57,8 +60,27 @@ export const AdminVerificationsTab = () => {
       }
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "حدث خطأ أثناء اعتماد الحساب");
-    }
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء الاعتماد");
+    },
+  });
+
+  // Mutation to reject entire user account profile
+  const { mutate: rejectAccount, isPending: isRejectingAccount } = useMutation({
+    mutationFn: ({ userId, reason }: { userId: string, reason: string }) => AdminVerificationsApi.rejectUserAccount(userId, reason),
+    onSuccess: (response) => {
+      if (response.success) {
+        toast.success("تم رفض بيانات الحساب بنجاح");
+        setRejectingAccountId(null);
+        setAccountRejectReason("");
+        queryClient.invalidateQueries({ queryKey: ["admin", "verifications", "pending"] });
+        queryClient.invalidateQueries({ queryKey: ["admin", "verifications", "details", selectedLawyerId] });
+      } else {
+        toast.error(response.message || "حدث خطأ");
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "حدث خطأ أثناء الرفض");
+    },
   });
 
   const handleReview = (docId: string, decision: "Approve" | "Reject") => {
@@ -172,70 +194,157 @@ export const AdminVerificationsTab = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {details.accountStatus === 'PendingReview' && !details.documents?.some((doc: any) => doc.status === 'Pending') && (
-                        <button
-                          onClick={() => approveAccount(details.lawyerId)}
-                          disabled={isApprovingAccount}
-                          className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                          title="اعتماد التعديلات الشخصية أو المهنية"
-                        >
-                          {isApprovingAccount ? (
-                            <LuLoader className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <LuCheck className="w-4 h-4" />
+                      {details.accountStatus === 'PendingReview' && (
+                        <div className="flex flex-col gap-2 relative items-end">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setRejectingAccountId(details.lawyerId)}
+                              disabled={isApprovingAccount || isRejectingAccount}
+                              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                              title="رفض التعديلات"
+                            >
+                              <LuX className="w-4 h-4" />
+                              <span>رفض التعديلات</span>
+                            </button>
+                            {details.modifiedFields?.length > 0 && (
+                              <button
+                                onClick={() => approveAccount(details.lawyerId)}
+                                disabled={isApprovingAccount || isRejectingAccount}
+                                className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                                title="اعتماد التعديلات الشخصية أو المهنية"
+                              >
+                                {isApprovingAccount ? (
+                                  <LuLoader className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <LuCheck className="w-4 h-4" />
+                                )}
+                                <span>اعتماد الحساب والتعديلات</span>
+                              </button>
+                            )}
+                          </div>
+                          
+                          {rejectingAccountId === details.lawyerId && (
+                            <div className="absolute top-full mt-2 left-0 w-[300px] z-10 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-xl shadow-lg flex flex-col gap-2">
+                              <input
+                                type="text"
+                                value={accountRejectReason}
+                                onChange={(e) => setAccountRejectReason(e.target.value)}
+                                placeholder="اكتب سبب رفض التعديلات هنا..."
+                                className="w-full text-xs p-2 border border-red-200 dark:border-red-900/50 rounded-lg focus:outline-none focus:border-red-400 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
+                                autoFocus
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => rejectAccount({ userId: details.lawyerId, reason: accountRejectReason })}
+                                  disabled={isRejectingAccount || !accountRejectReason.trim()}
+                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
+                                >
+                                  تأكيد الرفض
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setRejectingAccountId(null);
+                                    setAccountRejectReason("");
+                                  }}
+                                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 rounded-lg text-xs font-bold"
+                                >
+                                  إلغاء
+                                </button>
+                              </div>
+                            </div>
                           )}
-                          <span>اعتماد الحساب والتعديلات</span>
-                        </button>
+                        </div>
                       )}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
-                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                      <span className="text-gray-400 block mb-0.5">رقم الهاتف</span>
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("PhoneNumber") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">رقم الهاتف</span>
                       <span className="font-bold text-gray-800 dark:text-gray-200 dir-ltr block text-right">{details.phoneNumber || "غير محدد"}</span>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                      <span className="text-gray-400 block mb-0.5">الرقم القومي</span>
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("NationalNumber") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">الرقم القومي</span>
                       <span className="font-bold text-gray-800 dark:text-gray-200 dir-ltr block text-right">{details.nationalNumber || "غير محدد"}</span>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                      <span className="text-gray-400 block mb-0.5">تاريخ الميلاد</span>
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("DateOfBirth") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">تاريخ الميلاد</span>
                       <span className="font-bold text-gray-800 dark:text-gray-200">{details.dateOfBirth ? details.dateOfBirth.split("T")[0] : "غير محدد"}</span>
                     </div>
 
-                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                      <span className="text-gray-400 block mb-0.5">العنوان / المحافظة</span>
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("Address") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">العنوان التفصيلي</span>
                       <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">{details.address || "غير محدد"}</span>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("Governorate") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">المحافظة</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">{details.governorate || "غير محدد"}</span>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("City") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">المدينة / المركز</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">{details.city || "غير محدد"}</span>
+                    </div>
+
+                    <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                      {details.modifiedFields?.includes("Gender") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-0.5 pr-3">النوع</span>
+                      <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">{details.gender === "Female" ? "أنثى" : "ذكر"}</span>
                     </div>
 
                     {details.role === "Lawyer" && (
                       <>
-                        <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                          <span className="text-gray-400 block mb-0.5">درجة التقاضي</span>
+                        <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                          {details.modifiedFields?.includes("Level") && <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                          <span className="text-gray-400 block mb-0.5 pr-3">درجة التقاضي</span>
                           <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">
                             {details.level === 1 ? "جدول عام (محامي تحت التمرين)" : details.level === 2 ? "محاكم ابتدائية" : details.level === 3 ? "محاكم استئناف" : details.level === 4 ? "محكمة النقض" : "غير محدد"}
                           </span>
                         </div>
 
-                        <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                          <span className="text-gray-400 block mb-0.5">التخصص الرئيسي</span>
-                          <span className="font-bold text-gray-800 dark:text-gray-200 truncate block">{details.specializationName || "محاماة عامة"}</span>
-                        </div>
-
-                        <div className="bg-white dark:bg-gray-900 p-2.5 rounded-xl border border-gray-200/60 dark:border-gray-800">
-                          <span className="text-gray-400 block mb-0.5">سنوات الخبرة</span>
-                          <span className="font-bold text-gray-800 dark:text-gray-200">{details.yearsOfExperience ? `${details.yearsOfExperience} سنوات` : "1 سنوات"}</span>
+                        <div className="col-span-2 sm:col-span-3 lg:col-span-4 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/60 dark:border-gray-800 relative">
+                          {details.modifiedFields?.includes("Specializations") && <span className="absolute top-3.5 right-3 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                          <span className="text-gray-400 block mb-2 font-bold pr-3">التخصصات والخبرات</span>
+                          
+                          <div className="grid gap-2">
+                            {details.specializations && details.specializations.length > 0 ? (
+                              details.specializations.map((spec: any, idx: number) => (
+                                <div key={idx} className="bg-gray-50 dark:bg-gray-800/50 p-2.5 rounded-lg border border-gray-100 dark:border-gray-700/50 grid grid-cols-3 gap-2 text-xs items-center">
+                                  <div className="font-bold text-gray-800 dark:text-gray-200 border-l border-gray-200 dark:border-gray-700 pl-2">
+                                    {getSpecializationLabel(spec.specialization)}
+                                  </div>
+                                  <div className="text-gray-600 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700 pl-2">
+                                    <span className="opacity-70 ml-1">خبرة:</span>
+                                    <span className="font-bold text-gray-800 dark:text-gray-200">{spec.yearsOfExperience} سنوات</span>
+                                  </div>
+                                  <div className="text-gray-600 dark:text-gray-400">
+                                    <span className="opacity-70 ml-1">قضايا:</span>
+                                    <span className="font-bold text-gray-800 dark:text-gray-200">{spec.casesHandled} قضية</span>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-gray-500 text-xs">لا يوجد تخصصات مضافة</div>
+                            )}
+                          </div>
                         </div>
                       </>
                     )}
                   </div>
 
                   {details.role === "Lawyer" && details.bio && (
-                    <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/60 dark:border-gray-800 text-xs">
-                      <span className="text-gray-400 block mb-1 font-bold">نبذة عن المحامي</span>
+                    <div className="bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/60 dark:border-gray-800 text-xs relative">
+                      {details.modifiedFields?.includes("Bio") && <span className="absolute top-3.5 right-3 w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="تم تعديله مؤخراً"></span>}
+                      <span className="text-gray-400 block mb-1 font-bold pr-4">نبذة عن المحامي</span>
                       <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{details.bio}</p>
                     </div>
                   )}

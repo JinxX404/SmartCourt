@@ -56,8 +56,17 @@ public sealed class GetVerificationDetailsHandler(
         var isFullyVerified = VerificationStatusEvaluator.IsFullyVerified(
             lawyer.VerificationDocuments, today, isLawyer);
 
-        var spec = lawyer.LawyerProfile?.Specializations.FirstOrDefault();
-        string? specName = spec?.Specialization.ToString();
+        var specializations = lawyer.LawyerProfile?.Specializations.Select(s => new LawyerSpecializationDto
+        {
+            Specialization = (int)s.Specialization,
+            SpecializationName = s.Specialization.ToString(),
+            YearsOfExperience = s.YearsOfExperience,
+            CasesHandled = s.CasesHandled
+        }).ToList() ?? new List<LawyerSpecializationDto>();
+
+        var modifiedFields = string.IsNullOrEmpty(lawyer.ModifiedFieldsJson)
+            ? new List<string>()
+            : System.Text.Json.JsonSerializer.Deserialize<List<string>>(lawyer.ModifiedFieldsJson) ?? new List<string>();
 
         return ApiResponse<VerificationDetailsDto>.Ok(new VerificationDetailsDto
         {
@@ -67,15 +76,18 @@ public sealed class GetVerificationDetailsHandler(
             PhoneNumber = lawyer.PhoneNumber,
             NationalNumber = lawyer.NationalNumber,
             Address = lawyer.Address,
+            Governorate = lawyer.Governorate,
+            City = lawyer.City,
+            Gender = lawyer.Gender?.ToString(),
             DateOfBirth = lawyer.DateOfBirth,
             AccountStatus = lawyer.Status.ToString(),
             IsFullyVerified = isFullyVerified,
             Role = primaryRole,
             Level = lawyer.LawyerProfile != null ? (int)lawyer.LawyerProfile.Level : null,
-            SpecializationName = specName,
-            YearsOfExperience = spec?.YearsOfExperience,
+            Specializations = specializations,
             Bio = lawyer.LawyerProfile?.Bio,
-            Documents = documents
+            Documents = documents,
+            ModifiedFields = modifiedFields
         });
     }
 }

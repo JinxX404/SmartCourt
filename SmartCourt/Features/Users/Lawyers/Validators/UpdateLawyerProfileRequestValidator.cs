@@ -9,10 +9,6 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
 {
     public UpdateLawyerProfileRequestValidator()
     {
-         RuleFor(x => x.PhoneNumber)
-         .NotEmpty()
-         .Matches(@"^(\+20|0)1[0125]\d{8}$")
-         .WithMessage("رقم الهاتف يجب أن يكون رقم مصري صحيح (مثال: 011xxxxxxxx أو +2011xxxxxxxx)");
 
          RuleFor(x => x.NationalNumber)
          .NotEmpty()
@@ -55,6 +51,10 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
                      .GreaterThanOrEqualTo(0)
                      .WithMessage("عدد القضايا المنجزة يجب أن يكون 0 أو أكثر.");
              });
+
+             RuleFor(x => x.Specializations)
+                 .Must(specs => specs!.Select(s => s.Specialization).Distinct().Count() == specs!.Count)
+                 .WithMessage("لا يمكن تكرار نفس التخصص للمحامي.");
          });
     }
 }

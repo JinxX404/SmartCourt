@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "../../auth/store/useAuthStore";
 import { UsersApi } from "../api/usersApi";
-import type { LawyerProfile } from "../api/usersApi";
 import { AuthApi } from "../../auth/api/authApi";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LuUser,
-  LuPencil,
   LuKey,
   LuTrash2,
   LuLoader,
   LuX,
   LuTriangleAlert,
   LuEye,
-  LuEyeOff
+  LuEyeOff,
 } from "react-icons/lu";
 
 const parseApiError = (err: any, defaultMsg: string) => {
@@ -37,38 +35,23 @@ const parseApiError = (err: any, defaultMsg: string) => {
 };
 
 export const ProfilePage = () => {
-  const { user, logout } = useAuthStore();
-  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-
-  const [isEditing, setIsEditing] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  // Form states for edit profile
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [address, setAddress] = useState("");
-  const [bio, setBio] = useState("");
-  const [yearsOfExperience, setYearsOfExperience] = useState(1);
-  const [level, setLevel] = useState(1);
-  const [specializationId, setSpecializationId] = useState("");
-
-  // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   // Delete account state
   const [deletePassword, setDeletePassword] = useState("");
-
-
-
-  const isLawyer = user?.role === "Lawyer";
 
   // Redirect to login if user is lost (e.g. token expired or manual URL navigation without auth)
   useEffect(() => {
@@ -79,68 +62,38 @@ export const ProfilePage = () => {
 
   // Fetch Profile Data
   const { data: profile, isLoading } = useQuery({
-    queryKey: ["userProfile", user?.id],
+    queryKey: ["user", "profile", user?.id],
     queryFn: async () => {
-      if (isLawyer) {
+      if (user?.role === "Lawyer") {
         return await UsersApi.getLawyerProfile();
-      } else {
+      } else if (user?.role === "Client") {
         return await UsersApi.getClientProfile();
       }
+      return null;
     },
-    enabled: !!user,
+    enabled: !!user?.id && user?.role !== "Admin",
   });
 
-  // Populate edit form when edit mode opens
-  const handleEditToggle = () => {
-    if (isEditing) {
-      setIsEditing(false); // cancel edit
-    } else {
-      if (profile) {
-        setPhoneNumber(profile.phoneNumber || "");
-        setDateOfBirth(profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "");
-        setAddress(profile.address || "");
-        if (isLawyer) {
-          const lawyerProf = profile as LawyerProfile;
-          setBio(lawyerProf.bio || "");
-          setYearsOfExperience(lawyerProf.yearsOfExperience || 1);
-          setLevel(lawyerProf.level || 1);
-          setSpecializationId(lawyerProf.specializationId || "");
-        }
-      }
-      setIsEditing(true);
-    }
-  };
-
-  // Update Profile Mutation
-  const updateProfileMutation = useMutation({
-    mutationFn: async () => {
-      if (isLawyer) {
-        return await UsersApi.updateLawyerProfile({
-          phoneNumber,
-          dateOfBirth,
-          address,
-          bio,
-          yearsOfExperience: Number(yearsOfExperience),
-          level: Number(level),
-          specializationId: specializationId || "a6b4f7cb-2f0f-4f32-bf5f-08f2a6b3c701"
-        });
-      } else {
-        return await UsersApi.updateClientProfile({
-          phoneNumber,
-          dateOfBirth,
-          address
-        });
-      }
-    },
-    onSuccess: (res) => {
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-      setIsEditing(false);
-      toast.success(res?.message || "تم تحديث الملف الشخصي بنجاح");
-    },
-    onError: (err: any) => {
-      toast.error(parseApiError(err, "فشل تحديث البيانات"));
-    }
+  const { data: documents } = useQuery({
+    queryKey: ["user", "verifications", "documents", user?.id],
+    queryFn: () => AuthApi.getUserVerificationDocuments(user!.id),
+    enabled: !!user?.id && user?.role === 'Lawyer',
   });
+
+  const profilePictureDoc = documents?.data?.documents?.find((d: any) => 
+    (d.documentType === 'OfficialProfilePicture' || d.documentType === 3) && d.isCurrent
+  );
+  const isPictureApproved = profilePictureDoc?.status === 'Verified' || profilePictureDoc?.status === 2;
+  
+  const { data: profilePicContent } = useQuery({
+    queryKey: ["documentContent", profilePictureDoc?.documentId],
+    queryFn: () => AuthApi.getDocumentContent(profilePictureDoc!.documentId),
+    enabled: !!profilePictureDoc?.documentId && isPictureApproved,
+  });
+
+  const profilePictureUrl = isPictureApproved ? (profilePicContent?.data?.downloadUrl || null) : null;
+
+
 
   // Change Password Mutation
   const changePasswordMutation = useMutation({
@@ -160,11 +113,12 @@ export const ProfilePage = () => {
   // Delete Account Mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      if (isLawyer) {
+      if (user?.role === "Lawyer") {
         return await UsersApi.deleteLawyerProfile({ currentPassword: deletePassword });
-      } else {
+      } else if (user?.role === "Client") {
         return await UsersApi.deleteClientProfile({ currentPassword: deletePassword });
       }
+      throw new Error("لا يمكن حذف حساب الإدارة من هنا");
     },
     onSuccess: () => {
       logout();
@@ -201,8 +155,14 @@ export const ProfilePage = () => {
           <div className="px-8 pb-8 pt-0 relative flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6 -mt-16">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 text-center sm:text-right">
               {/* Avatar Initial */}
-              <div className="w-28 h-28 rounded-2xl bg-gold text-white font-bold text-4xl flex items-center justify-center border-4 border-white dark:border-[#1a1d23] shadow-lg">
-                {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <LuUser />}
+              <div className="w-28 h-28 rounded-2xl bg-gold text-white font-bold text-4xl flex items-center justify-center border-4 border-white dark:border-[#1a1d23] shadow-lg overflow-hidden">
+                {profilePictureUrl ? (
+                  <img src={profilePictureUrl} alt={user?.fullName || "Profile"} className="w-full h-full object-cover" />
+                ) : user?.fullName ? (
+                  user.fullName.charAt(0).toUpperCase()
+                ) : (
+                  <LuUser />
+                )}
               </div>
 
               <div className="space-y-1">
@@ -211,45 +171,13 @@ export const ProfilePage = () => {
                     {profile?.name || user?.fullName}
                   </h1>
                   <span className="px-3 py-1 text-xs font-bold rounded-full bg-gold/20 text-gold border border-gold/30">
-                    {isLawyer ? "محامي" : "موكل"}
+                    {user?.role === 'Admin' ? 'مدير' : user?.role === 'Lawyer' ? 'محامي' : 'موكل'}
                   </span>
                 </div>
                 <p className="text-sm text-text-secondary dir-ltr text-right">{profile?.email || user?.email}</p>
               </div>
             </div>
-
-            {/* Quick Actions */}
-            <div className="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleEditToggle}
-                    className="w-full sm:w-auto h-11 px-6 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-navy dark:text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center cursor-pointer"
-                  >
-                    إلغاء
-                  </button>
-                  <button
-                    onClick={() => updateProfileMutation.mutate()}
-                    disabled={updateProfileMutation.isPending}
-                    className="w-full sm:w-auto h-11 px-6 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    {updateProfileMutation.isPending && <LuLoader className="w-4 h-4 animate-spin" />}
-                    <span>حفظ التعديلات</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={handleEditToggle}
-                  className="w-full sm:w-auto h-11 px-6 bg-gold hover:bg-gold-hover text-white font-semibold text-sm rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <LuPencil className="w-4.5 h-4.5" />
-                  <span>تعديل الملف الشخصي</span>
-                </button>
-              )}
-            </div>
           </div>
-
-
         </div>
 
         {/* Main Content Area: Security & Account */}
@@ -391,25 +319,27 @@ export const ProfilePage = () => {
               </div>
 
               {/* Danger Zone: Delete Account */}
-              <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-red-200 dark:border-red-950 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-950">
-                  <h3 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2.5">
-                    <LuTriangleAlert className="w-5 h-5" />
-                    <span>منطقة الخطر (حذف الحساب)</span>
-                  </h3>
-                </div>
-                <p className="text-xs text-red-500/80 leading-relaxed">
-                  عند حذف حسابك، سيتم تعطيل وصولك لكافة القضايا والاستشارات نهائياً وإبطال أجهزة الجلسات المفتوحة.
-                </p>
+              {user?.role !== "Admin" && (
+                <div className="bg-white dark:bg-[#1a1d23] rounded-2xl p-6 border border-red-200 dark:border-red-950 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-red-200 dark:border-red-950">
+                    <h3 className="text-lg font-bold text-red-600 dark:text-red-400 flex items-center gap-2.5">
+                      <LuTriangleAlert className="w-5 h-5" />
+                      <span>منطقة الخطر (حذف الحساب)</span>
+                    </h3>
+                  </div>
+                  <p className="text-xs text-red-500/80 leading-relaxed">
+                    عند حذف حسابك، سيتم تعطيل وصولك لكافة القضايا والاستشارات نهائياً وإبطال أجهزة الجلسات المفتوحة.
+                  </p>
 
-                <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
-                >
-                  <LuTrash2 className="w-4.5 h-4.5" />
-                  <span>حذف الحساب نهائياً</span>
-                </button>
-              </div>
+                  <button
+                    onClick={() => setIsDeleteModalOpen(true)}
+                    className="w-full h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer mt-4"
+                  >
+                    <LuTrash2 className="w-4.5 h-4.5" />
+                    <span>حذف الحساب نهائياً</span>
+                  </button>
+                </div>
+              )}
 
             </div>
           </div>

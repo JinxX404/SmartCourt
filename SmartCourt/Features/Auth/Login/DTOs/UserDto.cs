@@ -5,5 +5,6 @@ public record UserDto(
     string Email,
     string FullName,
     string Role,
-    string Status
+    string Status,
+    string? RejectionReason
 );

@@ -1,10 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthStore } from "../features/auth/store/useAuthStore";
 import { ProfilePage } from "../features/users";
 import { UserStatusBadge } from "../features/auth/components/UserStatusBadge";
 import { VerificationTab } from "../features/auth/components/VerificationTab";
 import { AdminVerificationsTab } from "../features/admin/verifications/components/AdminVerificationsTab";
+import { useQuery } from "@tanstack/react-query";
+import { AuthApi } from "../features/auth/api/authApi";
+import { UsersApi } from "../features/users/api/usersApi";
+import { calculateProfileCompletion } from "../utils/profileCompletion";
 
 import {
   LuScale,
@@ -37,6 +41,64 @@ export const Dashboard = () => {
   const tabFromUrl = searchParams.get("tab") || "cases";
   const [activeTab, setActiveTab] = useState<string>(tabFromUrl);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  const { data: documentsData } = useQuery({
+    queryKey: ["user", "verifications", "documents", user?.id],
+    queryFn: () => AuthApi.getUserVerificationDocuments(user!.id),
+    enabled: !!user?.id && (user?.role === 'Lawyer' || user?.role === 'Client'),
+  });
+
+  const { data: profileData } = useQuery({
+    queryKey: ["user", "profile", user?.id],
+    queryFn: () => user?.role === 'Lawyer' ? UsersApi.getLawyerProfile() : UsersApi.getClientProfile(),
+    enabled: !!user?.id && (user?.role === 'Lawyer' || user?.role === 'Client'),
+  });
+
+  // Calculate actual progress based on profile and documents
+  const targetProgress = useMemo(() => {
+    return calculateProfileCompletion(
+      user, 
+      profileData || null, 
+      documentsData?.data?.documents || []
+    );
+  }, [user, profileData, documentsData]);
+
+  const [displayedProgress, setDisplayedProgress] = useState(0);
+  const [showCompletionText, setShowCompletionText] = useState(false);
+  
+  useEffect(() => {
+    // Reset states when targetProgress changes (or initially)
+    setDisplayedProgress(0);
+    setShowCompletionText(false);
+
+    // Start progress animation after 800ms delay
+    const progressTimer = setTimeout(() => {
+      setDisplayedProgress(targetProgress);
+    }, 800);
+    
+    // Show text after progress animation completes (800ms delay + 1500ms transition)
+    const textTimer = setTimeout(() => {
+      setShowCompletionText(true);
+    }, 2300);
+
+    return () => {
+      clearTimeout(progressTimer);
+      clearTimeout(textTimer);
+    };
+  }, [targetProgress]);
+
+  const profilePictureDoc = documentsData?.data?.documents?.find((d: any) =>
+    (d.documentType === 'OfficialProfilePicture' || d.documentType === 7) && d.isCurrent
+  );
+  const isPictureApproved = profilePictureDoc?.status === 'Verified' || profilePictureDoc?.status === 2;
+
+  const { data: profilePicContent } = useQuery({
+    queryKey: ["documentContent", profilePictureDoc?.documentId],
+    queryFn: () => AuthApi.getDocumentContent(profilePictureDoc!.documentId),
+    enabled: !!profilePictureDoc?.documentId && isPictureApproved,
+  });
+
+  const profilePictureUrl = isPictureApproved ? (profilePicContent?.data?.downloadUrl || null) : null;
 
   useEffect(() => {
     if (!user) {
@@ -58,7 +120,7 @@ export const Dashboard = () => {
   const getRoleLabel = (role?: string) => {
     switch (role) {
       case "Lawyer":
-        return "محامي معتمد";
+        return "محامي ";
       case "Client":
         return "موكل";
       case "Admin":
@@ -74,8 +136,14 @@ export const Dashboard = () => {
       {/* Mobile Header Bar */}
       <div className="md:hidden flex items-center justify-between p-4 bg-[#121620] text-white sticky top-0 z-40 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gold/20 text-gold flex items-center justify-center border border-gold/40 font-bold">
-            {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <LuScale className="w-5 h-5" />}
+          <div className="w-9 h-9 rounded-full bg-gold/20 text-gold flex items-center justify-center border border-gold/40 font-bold overflow-hidden">
+            {profilePictureUrl ? (
+              <img src={profilePictureUrl} alt={user?.fullName || "Profile"} className="w-full h-full object-cover" />
+            ) : user?.fullName ? (
+              user.fullName.charAt(0).toUpperCase()
+            ) : (
+              <LuScale className="w-5 h-5" />
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -107,27 +175,66 @@ export const Dashboard = () => {
         <div className="space-y-6">
 
           {/* Top Profile Avatar Header */}
-          <div className="flex flex-col items-center text-center space-y-3 pt-2 pb-2">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full p-[2px] bg-gradient-to-b from-gold to-gold/20">
-                <div className="w-full h-full rounded-full bg-[#121620] border-2 border-[#121620] flex items-center justify-center overflow-hidden">
-                  {user?.fullName ? (
-                    <span className="text-gold font-bold text-3xl">{user.fullName.charAt(0).toUpperCase()}</span>
-                  ) : (
-                    <LuUser className="w-8 h-8 text-gold" />
-                  )}
-                </div>
+          <div className="flex flex-col items-center text-center pt-2 pb-2">
+
+            {/* Avatar & Progress Wrapper */}
+            <div className="relative w-[140px] h-[140px] flex items-center justify-center mt-2 mb-4">
+
+              {/* SVG Progress Ring */}
+              <svg className="absolute top-0 left-0 w-full h-full -rotate-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.2)]" viewBox="0 0 140 140">
+                <defs>
+                  <linearGradient id="goldGradient" x1="100%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#d4af37" />
+                    <stop offset="100%" stopColor="rgba(212, 175, 55, 0.2)" />
+                  </linearGradient>
+                </defs>
+                {/* Background Track */}
+                <circle
+                  cx="70" cy="70" r="66"
+                  fill="none"
+                  stroke="rgba(212, 175, 55, 0.05)"
+                  strokeWidth="3.5"
+                />
+                {/* Progress Stroke */}
+                <circle
+                  cx="70" cy="70" r="66"
+                  fill="none"
+                  stroke="url(#goldGradient)"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 66}
+                  strokeDashoffset={(2 * Math.PI * 66) * (1 - displayedProgress / 100)}
+                  className="transition-[stroke-dashoffset] duration-[1500ms] ease-out"
+                />
+              </svg>
+
+              {/* Inner Avatar Image */}
+              <div className="w-[124px] h-[124px] rounded-full bg-[#121620] flex items-center justify-center overflow-hidden z-10 relative border-[3px] border-[#121620]">
+                {profilePictureUrl ? (
+                  <img src={profilePictureUrl} alt={user?.fullName || "Profile"} className="w-full h-full object-cover" />
+                ) : user?.fullName ? (
+                  <span className="text-gold font-bold text-5xl">{user.fullName.charAt(0).toUpperCase()}</span>
+                ) : (
+                  <LuUser className="w-12 h-12 text-gold" />
+                )}
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-center gap-2">
+            {/* Account Completion Text */}
+            {(user?.role === 'Lawyer' || user?.role === 'Client') && (
+              <p className={`text-[11px] text-gold font-bold tracking-widest mt-1 mb-2 transition-opacity duration-700 ease-in-out ${showCompletionText ? 'opacity-100' : 'opacity-0'}`}>
+                نسبة اكتمال الحساب {targetProgress}%
+              </p>
+            )}
+
+            <div className="flex flex-col items-center justify-center mt-1 w-full px-2">
+              <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-sm font-bold text-white tracking-wide">
                   {user?.fullName || "مستخدم"}
                 </h2>
                 <UserStatusBadge status={user?.status} role={user?.role} />
               </div>
-              <p className="text-[10px] text-gold font-bold tracking-wider mt-1">
+              <p className="text-xs text-gold font-bold tracking-wide">
                 {getRoleLabel(user?.role)}
               </p>
             </div>
@@ -513,7 +620,7 @@ export const Dashboard = () => {
         )}
 
         {activeTab === "verification" && <VerificationTab />}
-        
+
         {(activeTab === "new-case" || activeTab === "chats") && (
           <div className="min-h-[50vh] flex flex-col items-center justify-center bg-white dark:bg-[#1a1d23] rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800">
             <LuFileText className="w-16 h-16 text-gold mb-4 animate-pulse" />
