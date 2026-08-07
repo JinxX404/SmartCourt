@@ -26,6 +26,7 @@ public sealed class CreateProposalHandler(
     [
         CaseStatus.Submitted,
         CaseStatus.Analyzed,
+        CaseStatus.Matched,
         CaseStatus.FinalSubmitted
     ];
 
@@ -50,11 +51,11 @@ public sealed class CreateProposalHandler(
             return ApiResponse<ProposalDetailDto>.Fail("Only clients can send proposals.", 403);
         }
 
-        var legalCase = await context.LegalCases
+        var legalCase = await context.Cases
             .AsNoTracking()
             .SingleOrDefaultAsync(
                 item => item.Id == request.LegalCaseId
-                    && item.ClientUserId == clientUserId,
+                    && item.ClientId == clientUserId,
                 cancellationToken);
         if (legalCase is null)
         {
