@@ -16,6 +16,7 @@ public class MockSmtpEmailSender : ISmtpEmailSender
         _logger.LogInformation("--- MOCK EMAIL ---");
         _logger.LogInformation("To: {To}", to);
         _logger.LogInformation("Subject: {Subject}", subject);
+        _logger.LogInformation("Body: {Body}", body);
         _logger.LogInformation("------------------");
         
         return Task.FromResult(true);
