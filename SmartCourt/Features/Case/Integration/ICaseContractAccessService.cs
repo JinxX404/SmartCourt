@@ -1,4 +1,4 @@
-namespace SmartCourt.Features.Cases.Integration;
+namespace SmartCourt.Features.Case.Integration;
 
 /// <summary>
 /// Provides case-owned facts required to create a contract.

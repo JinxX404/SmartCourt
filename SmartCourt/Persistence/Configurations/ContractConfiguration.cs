@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Common.Entities;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Proposals.Entities;
 
@@ -57,7 +57,7 @@ public sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
             .WithOne()
             .HasForeignKey<Contract>(contract => contract.ProposalId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne<LegalCase>()
+        builder.HasOne<Case>()
             .WithMany()
             .HasForeignKey(contract => contract.LegalCaseId)
             .OnDelete(DeleteBehavior.Restrict);

@@ -192,7 +192,7 @@ public class ClientService(
         }
 
         // Check for associated cases
-        var hasCases = await _dbContext.LegalCases.AnyAsync(c => c.ClientUserId == userId, cancellationToken);
+        var hasCases = await _dbContext.Cases.AnyAsync(c => c.ClientId == userId, cancellationToken);
         if (hasCases)
         {
             throw new BusinessException("لا يمكن حذف الحساب لوجود قضايا مرتبطة به.");

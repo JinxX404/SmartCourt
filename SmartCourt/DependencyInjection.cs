@@ -45,7 +45,7 @@ using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
 
-using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;

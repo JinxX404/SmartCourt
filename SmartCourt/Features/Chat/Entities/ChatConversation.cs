@@ -1,6 +1,6 @@
 using SmartCourt.Common.Domain;
-using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Proposals.Entities;
+using CaseEntity = SmartCourt.Entities.Case;
 
 namespace SmartCourt.Features.Chat.Entities;
 
@@ -37,7 +37,7 @@ public sealed class ChatConversation
     public DateTime? LastMessageAt { get; internal set; }
     public bool IsClosed { get; internal set; }
     public Proposal Proposal { get; internal set; } = null!;
-    public LegalCase LegalCase { get; internal set; } = null!;
+    public CaseEntity Case { get; internal set; } = null!;
     public ICollection<ChatMessage> Messages { get; internal set; } = [];
 
     public bool HasParticipant(Guid userId)

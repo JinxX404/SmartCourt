@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Proposals.Entities;
 
 namespace SmartCourt.Persistence.Configurations;
@@ -25,7 +25,7 @@ public sealed class ProposalConfiguration
         builder.Property(proposal => proposal.CreatedAt).Utc();
         builder.Property(proposal => proposal.UpdatedAt).Utc();
 
-        builder.HasOne(proposal => proposal.LegalCase)
+        builder.HasOne(proposal => proposal.Case)
             .WithMany()
             .HasForeignKey(proposal => proposal.LegalCaseId)
             .OnDelete(DeleteBehavior.Restrict);

@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Persistence;
 
-namespace SmartCourt.Features.Cases.Integration;
+namespace SmartCourt.Features.Case.Integration;
 
 public sealed class CaseContractAccessService(
     ApplicationDbContext dbContext) : ICaseContractAccessService
@@ -17,14 +17,14 @@ public sealed class CaseContractAccessService(
             return null;
         }
 
-        return await dbContext.LegalCases
+        return await dbContext.Cases
             .AsNoTracking()
-            .Where(legalCase =>
-                legalCase.Id == legalCaseId
-                && legalCase.Status == CaseStatus.Matched)
-            .Select(legalCase => new CaseContractEligibilityFacts(
-                legalCase.Id,
-                legalCase.ClientUserId))
+            .Where(c =>
+                c.Id == legalCaseId
+                && c.Status == CaseStatus.Matched)
+            .Select(c => new CaseContractEligibilityFacts(
+                c.Id,
+                c.ClientId))
             .SingleOrDefaultAsync(cancellationToken);
     }
 }

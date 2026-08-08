@@ -53,7 +53,7 @@ public sealed class GetProposalsHandler(
 
         var query =
             from proposal in context.Proposals.AsNoTracking()
-            join legalCase in context.LegalCases
+            join legalCase in context.Cases
                 on proposal.LegalCaseId equals legalCase.Id
             join client in context.Users
                 on proposal.ClientUserId equals client.Id

@@ -1,6 +1,6 @@
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Proposals.Enums;
+using CaseEntity = SmartCourt.Entities.Case;
 
 namespace SmartCourt.Features.Proposals.Entities;
 
@@ -75,7 +75,7 @@ public sealed class Proposal
     public Guid LegalCaseId { get; internal set; }
     public Guid ClientUserId { get; internal set; }
     public Guid LawyerUserId { get; internal set; }
-    public LegalCase LegalCase { get; internal set; } = null!;
+    public CaseEntity Case { get; internal set; } = null!;
     public string Message { get; internal set; } = string.Empty;
     public ProposalStatus Status { get; internal set; }
     public string? DecisionReason { get; internal set; }

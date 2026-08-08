@@ -43,7 +43,7 @@ public sealed class AcceptProposalHandler(
         }
 
         var proposal = await context.Proposals
-            .Include(item => item.LegalCase)
+            .Include(item => item.Case)
             .SingleOrDefaultAsync(
                 item => item.Id == request.ProposalId,
                 cancellationToken);
@@ -56,8 +56,8 @@ public sealed class AcceptProposalHandler(
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
         proposal.Accept(now);
-        proposal.LegalCase.Status = CaseStatus.Matched;
-        proposal.LegalCase.UpdatedAt = now;
+        proposal.Case.Status = CaseStatus.Matched;
+        proposal.Case.UpdatedAt = now;
         await chatConversationService.EnsureForAcceptedProposalAsync(
             proposal,
             cancellationToken);

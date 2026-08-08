@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Common.Entities;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Proposals.Entities;
 
@@ -25,7 +25,7 @@ public sealed class ChatConversationConfiguration
             .WithOne()
             .HasForeignKey<ChatConversation>(conversation => conversation.ProposalId)
             .OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(conversation => conversation.LegalCase)
+        builder.HasOne(conversation => conversation.Case)
             .WithMany()
             .HasForeignKey(conversation => conversation.LegalCaseId)
             .OnDelete(DeleteBehavior.Restrict);
