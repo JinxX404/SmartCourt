@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 # Ignore local development settings
 appsettings.Development.json
 appsettings.Development.*.json
+
+# Ignore manshurat.org
+docs/Egyptian law/manshurat.org
