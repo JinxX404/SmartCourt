@@ -42,6 +42,10 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         context.Users.AddRange(
             CreateUser(_clientUserId, "contract-client"),
             CreateUser(_lawyerUserId, "contract-lawyer"));
+        context.Set<SmartCourt.Common.Entities.ClientProfile>().Add(
+            new SmartCourt.Common.Entities.ClientProfile { UserId = _clientUserId });
+        context.Set<SmartCourt.Common.Entities.LawyerProfile>().Add(
+            new SmartCourt.Common.Entities.LawyerProfile { UserId = _lawyerUserId });
         await context.SaveChangesAsync();
     }
 
