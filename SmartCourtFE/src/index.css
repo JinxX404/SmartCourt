@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Design Tokens mapped to CSS variables */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-primary: var(--border-primary);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-bg-hero: var(--bg-hero);
+
+  /* Constant Accent Colors */
+  --color-navy: #1a1d23;
+  --color-navy-light: #1f2937;
+  --color-surface: #f8f9fa;
+  --color-gold: #c5a059;
+  --color-gold-hover: #b08d4b;
+  --color-gold-muted: #9a7b4f;
+  --color-gold-muted-hover: #86683f;
+  --color-secondary-gray: #374151;
+
+  /* Premium Box Shadows */
+  --shadow-premium: var(--shadow-val);
+  --shadow-card: var(--shadow-card-val);
+
+  /* Typography */
+  --font-sans: "Cairo", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --text-primary: #1a1d23;
+    --text-secondary: #374151;
+    --border-primary: #eeeeee;
+    --card-bg: #ffffff;
+    --card-border: #eeeeee;
+    /* --bg-hero: #ffffff; */
+    --bg-hero: #f0ece8;
+    /* --bg-hero: #efe6dd; */
+    /* f0ece8 */
+    --shadow-val: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+    --shadow-card-val: 0 4px 20px -2px rgba(0, 0, 0, 0.03), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
+  }
+
+  .dark {
+    --bg-primary: #11141a;
+    --bg-secondary: #1a1d23;
+    --text-primary: #ffffff;
+    --text-secondary: #9ca3af;
+    --border-primary: #1f2937;
+    --card-bg: #1a1d23;
+    --card-border: #1f2937;
+    --bg-hero: #11141a;
+    --shadow-val: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --shadow-card-val: 0 4px 20px -2px rgba(0, 0, 0, 0.2), 0 2px 8px -1px rgba(0, 0, 0, 0.15);
+  }
+
+  body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    direction: rtl;
+    font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+}
+
+/* Custom premium helper classes */
+.timeline-line {
+  background: linear-gradient(180deg, var(--color-gold) 0%, transparent 100%);
+}
+
+/* Premium Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-muted);
+  border-radius: 8px;
+  border: 2px solid var(--bg-primary);
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+/* Scroll Unrolling Animation */
+@keyframes unroll {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.animate-unroll {
+  animation: unroll 2.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transform-origin: top;
+}
+
+/* Slow Spin Animation */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 12s linear infinite;
+}
