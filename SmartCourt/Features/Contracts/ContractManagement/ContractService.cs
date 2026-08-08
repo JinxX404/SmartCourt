@@ -857,7 +857,8 @@ public sealed class ContractService
             milestone.SubmittedAt,
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
-            hold?.NetAmount);
+            hold?.NetAmount,
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"");
     }
 
     private IReadOnlyList<string> GetPermittedActions(Contract contract)

@@ -167,6 +167,97 @@ public sealed class EscrowReleaseServiceTests
         Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
     }
 
+    [Fact]
+    public async Task ForceReleaseMilestone_CompletesBeforeExpiry()
+    {
+        await using var context = CreateContext();
+        var state = await AddAcceptedHoldAsync(
+            context,
+            holdExpiresAt: _utcNow.AddDays(14));
+        var provider =
+            new TestPaymentProvider(ProviderOperationOutcome.Succeeded);
+
+        var result = await CreateService(
+                context,
+                provider)
+            .ForceReleaseMilestoneAsync(
+                state.Milestone.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal("EscrowHoldReleased", result.Reason);
+        Assert.Equal(1, provider.ReleaseCalls);
+        Assert.Equal(EscrowHoldStatus.Released, state.Hold.Status);
+        Assert.Equal(
+            MilestoneStatus.Released,
+            state.Milestone.Status);
+        Assert.Equal(0m, state.Wallet.PendingBalance);
+        Assert.Equal(950m, state.Wallet.AvailableBalance);
+        var releaseTransaction =
+            await context.PaymentTransactions.SingleAsync(
+                item =>
+                    item.OperationType
+                        == PaymentOperationType.Release);
+        Assert.Equal(
+            PaymentTransactionStatus.Completed,
+            releaseTransaction.Status);
+        var settlement =
+            await context.IdempotencyRecords.SingleAsync();
+        Assert.Equal(IdempotencyStatus.Completed, settlement.Status);
+        Assert.Equal(
+            releaseTransaction.Id,
+            settlement.ResultReferenceId);
+        Assert.Equal(
+            state.Hold.ContractId,
+            _completionEvaluator.ContractId);
+        var history =
+            await context.MilestoneStateHistories.SingleAsync();
+        Assert.Equal(
+            MilestoneStatus.AcceptedHold,
+            history.PreviousStatus);
+        Assert.Equal(MilestoneStatus.Released, history.NewStatus);
+        var message = await context.OutboxMessages.SingleAsync(
+            item =>
+                item.EventType
+                    == ContractPaymentEventTypes.FundsReleased);
+        Assert.NotNull(message);
+        Assert.Equal(
+            state.Milestone.Id,
+            JsonSerializer.Deserialize<FundsReleasedEventPayload>(
+                message.Payload,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                })!.MilestoneId);
+    }
+
+    [Fact]
+    public async Task ForceRelease_RequiresAcceptedHold()
+    {
+        await using var context = CreateContext();
+        var state = await AddAcceptedHoldAsync(
+            context,
+            holdExpiresAt: _utcNow.AddDays(14));
+        state.Milestone.Status = MilestoneStatus.FundedInProgress;
+        await context.SaveChangesAsync();
+        var provider =
+            new TestPaymentProvider(ProviderOperationOutcome.Succeeded);
+
+        var result = await CreateService(
+                context,
+                provider)
+            .ForceReleaseMilestoneAsync(
+                state.Milestone.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.NoOp, result.Outcome);
+        Assert.Equal("MilestoneNoLongerInAcceptedHold", result.Reason);
+        Assert.Equal(0, provider.ReleaseCalls);
+        Assert.Empty(await context.PaymentTransactions.ToListAsync());
+        Assert.Empty(await context.IdempotencyRecords.ToListAsync());
+        Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
+    }
+
     [Theory]
     [InlineData(EscrowHoldStatus.Frozen, MilestoneStatus.Disputed)]
     [InlineData(EscrowHoldStatus.Refunded, MilestoneStatus.Refunded)]

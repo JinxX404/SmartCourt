@@ -17,7 +17,8 @@ public sealed record MilestoneDto(
     DateTime? SubmittedAt,
     DateTime? AutoAcceptEligibleAt,
     DateTime? HoldExpiresAt,
-    decimal? NetLawyerAmount)
+    decimal? NetLawyerAmount,
+    string Version)
 {
     public IReadOnlyList<string> PermittedActions { get; init; } = [];
 }

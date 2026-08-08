@@ -125,13 +125,17 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
 
     private static DateTimeOffset EnsureUtc(DateTime runAtUtc)
     {
-        if (runAtUtc.Kind != DateTimeKind.Utc)
+        var utcDate = runAtUtc.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(runAtUtc, DateTimeKind.Utc)
+            : runAtUtc;
+
+        if (utcDate.Kind != DateTimeKind.Utc)
         {
             throw new BusinessException(
                 "يجب جدولة مهام العقود باستخدام توقيت عالمي منسق.");
         }
 
-        return new DateTimeOffset(runAtUtc);
+        return new DateTimeOffset(utcDate);
     }
 
     private static void EnsureId(Guid id, string parameterName)

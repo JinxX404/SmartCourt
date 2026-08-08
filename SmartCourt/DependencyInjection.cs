@@ -291,6 +291,46 @@ public static class DependencyInjection
                     .GetRequiredService<MockPaymentProvider>());
         }
 
+        // =========================================================================
+        // PAYMOB MARKETPLACE: explicit opt-in by setting
+        // "PaymentProvider:ProviderCode" to "PaymobMarketPlace".
+        // The mock stays the default; choosing Paymob overrides the interface resolution.
+        // =========================================================================
+        if (!configuration.GetValue<bool>(
+                $"{PaymentProviderOptions.SectionName}:UseMockProvider")
+            && string.Equals(
+                configuration.GetValue<string>(
+                    $"{PaymentProviderOptions.SectionName}:ProviderCode"),
+                PaymobOptions.ProviderCode,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddOptions<PaymobOptions>()
+                .Bind(configuration.GetSection(
+                    $"{PaymentProviderOptions.SectionName}:{PaymobOptions.SectionName}"))
+                .Validate(
+                    options => Uri.IsWellFormedUriString(
+                        options.BaseUrl,
+                        UriKind.Absolute)
+                        && !string.IsNullOrWhiteSpace(options.WebhookSecret),
+                    "يجب ضبط BaseUrl و WebhookSecret لمزود Paymob لإثبات ملكية الويب هوك.")
+                .ValidateOnStart();
+
+            services.AddHttpClient<PaymobPaymentProvider>(
+                (sp, client) =>
+                {
+                    var options = sp
+                        .GetRequiredService<IOptions<PaymobOptions>>()
+                        .Value;
+                    client.Timeout = TimeSpan.FromSeconds(
+                        options.TimeoutSeconds);
+                });
+
+            services.AddScoped<IPaymentProvider>(
+                sp => sp.GetRequiredService<PaymobPaymentProvider>());
+            services.AddScoped<IPaymentReconciliationProvider>(
+                sp => sp.GetRequiredService<PaymobPaymentProvider>());
+        }
+
         services.AddOptions<MailKitOptions>()
             .Bind(configuration.GetSection("SmtpSettings"))
             //.Validate(options =>

@@ -268,7 +268,8 @@ public sealed class MilestonesControllerTests
                 null,
                 null,
                 null,
-                null);
+                null,
+                "\"dummy-version\"") { PermittedActions = [] };
 
         public IReadOnlyList<MilestoneDto> Milestones { get; }
             = [];

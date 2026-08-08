@@ -127,6 +127,11 @@ public sealed class PaymentContractJobOperationsTests
             Guid escrowHoldId,
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
+
+        public Task<JobExecutionResult> ForceReleaseMilestoneAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
     }
 
     private sealed class UnusedWalletBoundary : IWalletService

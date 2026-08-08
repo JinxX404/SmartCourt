@@ -73,6 +73,28 @@ $loginLawyerResp = Invoke-Api -title "Login Lawyer" -method "POST" -endpoint "/a
 $lawyerToken = $loginLawyerResp.data.accessToken
 $lawyerId = $loginLawyerResp.data.user.id
 
+# Complete Profiles & Verify
+$randomNat = "2900101" + (Get-Random -Minimum 1000000 -Maximum 9999999)
+$clientProfileBody = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Cairo"; NationalNumber = $randomNat } | ConvertTo-Json
+Invoke-Api -title "Setup - Complete Client Profile" -method "POST" -endpoint "/api/clients/profile/complete" -body $clientProfileBody -token $clientToken -reportFile $reportFile | Out-Null
+
+$randomNatLawyer = "2850101" + (Get-Random -Minimum 1000000 -Maximum 9999999)
+$lawyerProfileBody = @{ PhoneNumber = "+201022222222"; DateOfBirth = "1985-01-01"; Gender = 1; Address = "Cairo"; NationalNumber = $randomNatLawyer; Bio = "Expert Lawyer"; Level = 1; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
+Invoke-Api -title "Setup - Complete Lawyer Profile" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $lawyerProfileBody -token $lawyerToken -reportFile $reportFile | Out-Null
+
+$loginBodyAdmin = @{ Email = "admin@smartcourt.com"; Password = "Admin@123" } | ConvertTo-Json
+$loginResAdmin = Invoke-Api -title "Setup - Login Admin" -method "POST" -endpoint "/api/auth/login" -body $loginBodyAdmin -reportFile $reportFile
+$adminToken = $loginResAdmin.Data.AccessToken
+$clientId = $loginClientResp.data.user.id
+Invoke-Api -title "Setup - Admin Approve Lawyer" -method "PATCH" -endpoint "/api/admin/verifications/$lawyerId/approve-account" -body "{}" -token $adminToken -reportFile $reportFile | Out-Null
+Invoke-Api -title "Setup - Admin Approve Client" -method "PATCH" -endpoint "/api/admin/verifications/$clientId/approve-account" -body "{}" -token $adminToken -reportFile $reportFile | Out-Null
+
+$lawyerLoginResp = Invoke-Api -title "Setup - Re-Login Lawyer" -method "POST" -endpoint "/api/auth/login" -body $loginLawyerBody -reportFile $reportFile
+$lawyerToken = $lawyerLoginResp.data.accessToken
+
+$clientLoginResp = Invoke-Api -title "Setup - Re-Login Client" -method "POST" -endpoint "/api/auth/login" -body $loginClientBody -reportFile $reportFile
+$clientToken = $clientLoginResp.data.accessToken
+
 # 2. Exhaustive Case Tests (Client)
 Write-Host "Testing Case endpoints..."
 

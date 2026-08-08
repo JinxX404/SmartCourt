@@ -33,7 +33,7 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
                 request.Message),
             cancellationToken);
 
-        return StatusCode(result.StatusCode, result);
+        return Ok(result);
     }
 
     [HttpGet]

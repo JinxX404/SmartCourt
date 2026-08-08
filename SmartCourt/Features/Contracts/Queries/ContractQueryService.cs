@@ -241,7 +241,8 @@ public sealed class ContractQueryService(
             milestone.SubmittedAt,
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
-            hold?.NetAmount);
+            hold?.NetAmount,
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"");
     }
 
     private static IReadOnlyList<string> GetPermittedActions(

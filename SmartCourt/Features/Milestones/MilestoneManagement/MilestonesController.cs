@@ -30,9 +30,8 @@ public sealed class MilestonesController(
             contractId,
             request,
             cancellationToken);
-        return CreatedAtAction(
-            nameof(ListAsync),
-            new { contractId },
+        return StatusCode(
+            StatusCodes.Status201Created,
             ApiResponse<MilestoneDto>.Created(milestone));
     }
 
@@ -252,9 +251,16 @@ public sealed class MilestonesController(
         CancellationToken cancellationToken)
     {
         var request = new IfMatchRequest(ifMatch ?? string.Empty);
-        await ifMatchValidator.ValidateAndThrowBusinessExceptionAsync(
+        var validationResult = await ifMatchValidator.ValidateAsync(
             request,
             cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            var error = validationResult.Errors.FirstOrDefault()?.ErrorMessage ?? "Invalid If-Match header.";
+            throw new SmartCourt.Common.Exceptions.PreconditionFailedException(error);
+        }
+
         return request.IfMatch;
     }
 }

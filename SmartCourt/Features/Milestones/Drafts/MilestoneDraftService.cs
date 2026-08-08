@@ -282,7 +282,8 @@ public sealed class MilestoneDraftService(
             milestone.SubmittedAt,
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
-            hold?.NetAmount)
+            hold?.NetAmount,
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"")
         {
             PermittedActions = GetPermittedActions(
                 milestone,
@@ -364,7 +365,7 @@ public sealed class MilestoneDraftService(
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new ConflictException(
+            throw new PreconditionFailedException(
                 "تم تعديل المرحلة بواسطة عملية أخرى. يرجى إعادة تحميلها والمحاولة مرة أخرى.");
         }
     }
