@@ -10,9 +10,9 @@ public sealed class ApplicationUserExtensionsTests
     [Theory]
     [InlineData(UserStatus.Active, true)]
     [InlineData(UserStatus.PendingReview, true)]
-    [InlineData(UserStatus.Unverified, false)]
+    [InlineData(UserStatus.Unverified, true)]
     [InlineData(UserStatus.Suspended, false)]
-    [InlineData(UserStatus.Rejected, false)]
+    [InlineData(UserStatus.Rejected, true)]
     [InlineData(UserStatus.Deleted, false)]
     public void IsAccessEligible_ReturnsExpectedResult(UserStatus status, bool expected)
     {

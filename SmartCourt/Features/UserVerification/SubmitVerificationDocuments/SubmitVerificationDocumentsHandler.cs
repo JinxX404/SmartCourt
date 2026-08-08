@@ -8,12 +8,22 @@ using SmartCourt.Entities;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments.DTOs;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
+using SmartCourt.Features.Auth.Enums;
 using Supabase.Gotrue;
 
 namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
 {
     public class SubmitVerificationDocumentsHandler : IRequestHandler<SubmitVerificationDocumentsCommand, ApiResponse<SubmitVerificationDocumentResponseDto>>
     {
+        private record DocumentProcessingResult(
+            bool Success,
+            DocumentUploadErrorDto? Error = null,
+            FileUploadResult? UploadResult = null,
+            StoredFile? File = null,
+            UserVerificationDocument? VerificationDocument = null,
+            UploadedDocumentDto? ResponseItem = null
+        );
+
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IValidator<SubmitVerificationDocumentsCommand> _validator;
@@ -47,7 +57,10 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
                     .Fail(validationResult.Errors.Select(e => e.ErrorMessage).ToList(), 400);
 
-            var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+            var user = await _context.Users
+                .Include(u => u.VerificationDocuments)
+                    .ThenInclude(d => d.StoredFile)
+                .SingleOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
             if (user is null)
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
@@ -63,101 +76,61 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 .Distinct()
                 .ToListAsync();
 
-            foreach (var document in request.Documents)
+            var uploadTasks = request.Documents.Select(async document =>
             {
                 if (document is null)
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = string.Empty,
-                        Error = "Document is null.",
-                        Type = VerificationDocumentType.other
-                    });
-
-                    continue;
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = string.Empty, Error = "Document is null.", Type = VerificationDocumentType.Other });
                 }
-                
-                if(document.File.Length == 0)
+
+                if (document.File.Length == 0)
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = document.File.FileName,
-                        Error = "Document is empty.",
-                        Type = document.Type
-                    });
-
-                    continue;
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = "Document is empty.", Type = document.Type });
                 }
 
-                if(!AllowedImageContentTypes.Contains(document.File.ContentType))
+                if (document.File.Length > 5 * 1024 * 1024)
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = document.File.FileName,
-                        Error = "Only JPEG, PNG, WEBP, HEIC, and HEIF images are allowed.",
-                        Type = document.Type
-                    });
-
-                    continue;
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = "Document size exceeds the maximum allowed limit of 5MB.", Type = document.Type });
                 }
 
-                if(document.ExpirationDate <= DateOnly.FromDateTime(DateTime.Today))
+                if (!AllowedImageContentTypes.Contains(document.File.ContentType))
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = document.File.FileName,
-                        Error = "This document is expired",
-                        Type = document.Type
-                    });
-
-                    continue;
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = "Only JPEG, PNG, WEBP, HEIC, and HEIF images are allowed.", Type = document.Type });
                 }
 
-                if(pendingTypes.Contains(document.Type))
+                var responseItem = new UploadedDocumentDto
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
-                    {
-                        FileName = document.File.FileName,
-                        Error = "You already uploaded this document before. Wait untill admin verifies your document",
-                        Type = document.Type
-                    });
+                    FileName = document.File.FileName,
+                    Type = document.Type
+                };
 
-                    continue;
+                if (document.ExpirationDate <= DateOnly.FromDateTime(DateTime.Today))
+                {
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = "This document is expired", Type = document.Type });
                 }
-                
+
                 try
                 {
                     string folder = document.Type switch
                     {
-                        VerificationDocumentType.NationalIdFront or
-                        VerificationDocumentType.NationalIdBack 
-                        => "national-id",
-                
-                        VerificationDocumentType.BarAssociationCardFront or
-                        VerificationDocumentType.BarAssociationCardBack 
-                        => "bar-membership",
-                
+                        VerificationDocumentType.NationalIdFront or VerificationDocumentType.NationalIdBack => "national-id",
+                        VerificationDocumentType.BarAssociationCardFront or VerificationDocumentType.BarAssociationCardBack => "bar-membership",
+                        VerificationDocumentType.SelfieWithId => "selfie",
+                        VerificationDocumentType.OfficialProfilePicture => "profile-picture",
+                        VerificationDocumentType.Other => "other",
                         _ => throw new InvalidOperationException("Unsupported verification document type.")
                     };
-                
+
                     string fileName = $"{Guid.NewGuid()}{Path.GetExtension(document.File.FileName)}";
                     string filePath = $"{request.UserId}/{folder}/{fileName}";
-                
+
                     await using var stream = document.File.OpenReadStream();
-                
+
                     var uploadResult = await _fileStorageService.UploadAsync(
                         stream,
                         filePath,
                         document.File.FileName,
                         cancellationToken);
-
-                    uploadedPaths.Add(uploadResult.StoragePath);
-
-                    responseDto.UploadedDocuments.Add(new UploadedDocumentDto
-                    {
-                        FileName = document.File.FileName,
-                        Type = document.Type,
-                    });
 
                     StoredFile file = new()
                     {
@@ -169,8 +142,6 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                         FileUrl = uploadResult.StoragePath,
                     };
 
-                    _context.StoredFiles.Add(file);
-
                     UserVerificationDocument verificationDocument = new()
                     {
                         DocumentType = document.Type,
@@ -181,23 +152,61 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                         Status = VerificationDocumentStatus.Pending
                     };
 
-                    _context.UserVerificationDocuments.Add(verificationDocument);
+                    return new DocumentProcessingResult(Success: true, UploadResult: uploadResult, File: file, VerificationDocument: verificationDocument, ResponseItem: responseItem);
                 }
                 catch (Exception ex)
                 {
-                    responseDto.FailedDocuments.Add(new DocumentUploadErrorDto
+                    return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = $"An error occurred while uploading the document: {ex.Message}", Type = document.Type });
+                }
+            }).ToList();
+
+            var results = await Task.WhenAll(uploadTasks);
+
+            foreach (var result in results)
+            {
+                if (!result.Success && result.Error != null)
+                {
+                    responseDto.FailedDocuments.Add(result.Error);
+                }
+                else if (result.Success && result.UploadResult != null && result.ResponseItem != null && result.File != null && result.VerificationDocument != null)
+                {
+                    uploadedPaths.Add(result.UploadResult.StoragePath);
+                    responseDto.UploadedDocuments.Add(result.ResponseItem);
+                    _context.StoredFiles.Add(result.File);
+
+                    foreach (var previousVersion in user.VerificationDocuments.Where(d =>
+                                 d.DocumentType == result.VerificationDocument.DocumentType &&
+                                 d.IsCurrent))
                     {
-                        FileName = document.File.FileName,
-                        Error = $"An error occurred while uploading the document: {ex.Message}",
-                        Type = document.Type
-                    });
+                        if (previousVersion.Status == VerificationDocumentStatus.Rejected)
+                        {
+                            // If it was rejected, we don't need to keep the old file in storage or DB
+                            if (previousVersion.StoredFile != null)
+                            {
+                                await _fileStorageService.DeleteAsync(previousVersion.StoredFile.FileUrl, cancellationToken);
+                                _context.StoredFiles.Remove(previousVersion.StoredFile);
+                            }
+                            _context.UserVerificationDocuments.Remove(previousVersion);
+                        }
+                        else
+                        {
+                            previousVersion.IsCurrent = false; // Mark old approved ones as not current until admin approves the new one
+                        }
+                    }
+                    _context.UserVerificationDocuments.Add(result.VerificationDocument);
                 }
             }
 
             try
             {
+                if (responseDto.UploadedDocuments.Count > 0)
+                {
+                    user.Status = UserStatus.PendingReview;
+                    _context.Users.Update(user);
+                }
+
                 if(_context.ChangeTracker.HasChanges())
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(cancellationToken);
             }
             catch (Exception ex)
             {

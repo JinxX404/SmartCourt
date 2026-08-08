@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 
 namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
 {
@@ -17,6 +17,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
             .Select(d => d.Type)
             .Distinct()
             .Count() == documents.Count)
+            .When(x => x.Documents != null)
             .WithMessage("The same verification document cannot be submitted more than once.");
         }
     }

@@ -21,4 +21,6 @@ public class ApplicationUser : IdentityUser<Guid>
     public ICollection<UserVerificationDocument> VerificationDocuments { get; set; }
         = new List<UserVerificationDocument>();
     public string? ProfilePictureUrl { get; set; }
+    public string? ModifiedFieldsJson { get; set; }
+    public string? RejectionReason { get; set; }
 }

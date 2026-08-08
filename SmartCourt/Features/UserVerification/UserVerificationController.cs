@@ -7,11 +7,14 @@ using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments.DTOs;
+using SmartCourt.Features.UserVerification.GetUserVerificationDocumentContent;
+using SmartCourt.Extensions;
 
 namespace SmartCourt.Features.UserVerification
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Microsoft.AspNetCore.Authorization.Authorize]
     public class UserVerificationController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -38,6 +41,18 @@ namespace SmartCourt.Features.UserVerification
             var result = await _mediator.Send(query);
 
             if(!result.Success)
+                return StatusCode(result.StatusCode, result);
+
+            return Ok(result);
+        }
+
+        [HttpGet("documents/{documentId:guid}/content")]
+        public async Task<ActionResult<ApiResponse>> GetDocumentContentAsync(Guid documentId, CancellationToken cancellationToken)
+        {
+            var userId = Guid.Parse(User.GetUserId());
+            var result = await _mediator.Send(new GetUserVerificationDocumentContentQuery(userId, documentId), cancellationToken);
+
+            if (!result.Success)
                 return StatusCode(result.StatusCode, result);
 
             return Ok(result);

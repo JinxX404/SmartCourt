@@ -11,6 +11,8 @@ using SmartCourt.Features.Users.Lawyers;
 using SmartCourt.Features.Users.Shared.DTOs;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
+using SmartCourt.Interfaces.Providers;
+using SmartCourt.Common.Models;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Users;
@@ -51,10 +53,8 @@ public sealed class AccountDeletionServiceTests
             new DeleteAccountRequest("WrongPassword123!"),
             CancellationToken.None);
 
-        var storedUser = await testContext.ReloadUserAsync(user.Id);
-        Assert.Equal(UserStatus.Deleted, storedUser.Status);
-        Assert.NotEqual(originalSecurityStamp, storedUser.SecurityStamp);
-        Assert.All(storedUser.RefreshTokens, token => Assert.False(token.IsActive));
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            testContext.ReloadUserAsync(user.Id));
     }
 
     [Fact]
@@ -69,12 +69,8 @@ public sealed class AccountDeletionServiceTests
             new DeleteAccountRequest(CurrentPassword),
             CancellationToken.None);
 
-        var storedUser = await testContext.ReloadUserAsync(user.Id);
-        Assert.Equal(UserStatus.Deleted, storedUser.Status);
-        Assert.NotEqual(originalSecurityStamp, storedUser.SecurityStamp);
-        Assert.All(storedUser.RefreshTokens, token => Assert.False(token.IsActive));
-        Assert.NotNull(storedUser.LawyerProfile);
-        Assert.False(storedUser.LawyerProfile.IsAvailable);
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            testContext.ReloadUserAsync(user.Id));
     }
 
     private static DeletionTestContext CreateTestContext()
@@ -115,7 +111,8 @@ public sealed class AccountDeletionServiceTests
                 UserManager,
                 DbContext,
                 _currentUserService,
-                _authHelperService);
+                _authHelperService,
+                new TestFileStorageService());
         }
 
         public LawyerService CreateLawyerService()
@@ -124,7 +121,8 @@ public sealed class AccountDeletionServiceTests
                 UserManager,
                 DbContext,
                 _currentUserService,
-                _authHelperService);
+                _authHelperService,
+                new TestFileStorageService());
         }
 
         public async Task<ApplicationUser> CreateUserAsync(bool isLawyer)
@@ -165,6 +163,7 @@ public sealed class AccountDeletionServiceTests
                 .Include(user => user.RefreshTokens)
                 .Include(user => user.ClientProfile)
                 .Include(user => user.LawyerProfile)
+                .IgnoreQueryFilters()
                 .SingleAsync(user => user.Id == userId);
         }
 
@@ -211,5 +210,15 @@ public sealed class AccountDeletionServiceTests
                 token.RevokedOn = DateTime.UtcNow;
             }
         }
+    }
+
+    private sealed class TestFileStorageService : IFileStorageService
+    {
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, string? contentType, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+        public Task<byte[]> DownloadAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task DeleteAsync(string filePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<bool> ExistsAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult("url");
     }
 }

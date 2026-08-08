@@ -1,4 +1,4 @@
-﻿namespace SmartCourt.Common.Enums
+namespace SmartCourt.Common.Enums
 {
     public enum VerificationDocumentType : byte
     {
@@ -8,6 +8,8 @@
         BarAssociationCardFront = 3,
         BarAssociationCardBack = 4,
 
-        other = 5,
+        SelfieWithId = 5,
+        Other = 6,
+        OfficialProfilePicture = 7
     }
 }

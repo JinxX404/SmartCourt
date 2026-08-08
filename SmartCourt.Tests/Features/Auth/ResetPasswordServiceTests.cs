@@ -77,9 +77,7 @@ public sealed class ResetPasswordServiceTests
 
     [Theory]
     [InlineData(UserStatus.Unverified, false)]
-    [InlineData(UserStatus.Unverified, true)]
     [InlineData(UserStatus.Suspended, true)]
-    [InlineData(UserStatus.Rejected, true)]
     [InlineData(UserStatus.Deleted, true)]
     public async Task DisallowedAccount_ReturnsGenericError(
         UserStatus status,

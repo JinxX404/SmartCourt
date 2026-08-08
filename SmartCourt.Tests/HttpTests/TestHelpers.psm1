@@ -94,9 +94,16 @@ function Invoke-Api {
 function Confirm-EmailFromLog {
     param([string]$email, [string]$reportFile, [string]$apiLogPath)
     
-    Start-Sleep -Seconds 3 # Wait for hangfire job to log the email
-    
-    $fullLog = Get-Content $apiLogPath -Raw -ErrorAction SilentlyContinue
+    $maxRetries = 15
+    $fullLog = $null
+    for ($i = 0; $i -lt $maxRetries; $i++) {
+        $fullLog = Get-Content $apiLogPath -Raw -ErrorAction SilentlyContinue
+        if ($fullLog -match "(?s)To: $([regex]::Escape($email)).*?href='([^']*)'") {
+            break
+        }
+        Start-Sleep -Seconds 1
+    }
+
     if (-not $fullLog) {
         "Failed to read api_log.txt for $email`n" | Out-File $reportFile -Append -Encoding utf8
         return

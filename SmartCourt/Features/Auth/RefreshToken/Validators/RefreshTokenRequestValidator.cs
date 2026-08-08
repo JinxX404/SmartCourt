@@ -8,8 +8,7 @@ public class RefreshTokenRequestValidator : AbstractValidator<RefreshTokenReques
 {
     public RefreshTokenRequestValidator()
     {
-        RuleFor(x => x.RefreshToken)
-            .NotEmpty()
-            .WithMessage("رمز التحديث مطلوب.");
+        // Rule removed: The refresh token can be in the body OR in the HttpOnly cookie.
+        // Validation for its presence is done in the controller.
     }
 }

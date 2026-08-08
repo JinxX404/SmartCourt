@@ -7,18 +7,35 @@ namespace SmartCourt.Features.Admin.Verifications.Shared;
 
 internal static class VerificationStatusEvaluator
 {
-    private static readonly VerificationDocumentType[] RequiredDocumentTypes =
-    [
-        VerificationDocumentType.NationalIdFront,
-        VerificationDocumentType.NationalIdBack,
-        VerificationDocumentType.BarAssociationCardFront,
-        VerificationDocumentType.BarAssociationCardBack
-    ];
+    private static VerificationDocumentType[] GetRequiredDocumentTypes(bool isLawyer)
+    {
+        if (isLawyer)
+        {
+            return
+            [
+                VerificationDocumentType.NationalIdFront,
+                VerificationDocumentType.NationalIdBack,
+                VerificationDocumentType.BarAssociationCardFront,
+                VerificationDocumentType.BarAssociationCardBack,
+                VerificationDocumentType.SelfieWithId,
+                VerificationDocumentType.OfficialProfilePicture
+            ];
+        }
 
-    public static bool IsFullyVerified(IEnumerable<UserVerificationDocument> documents, DateOnly today)
+        return
+        [
+            VerificationDocumentType.NationalIdFront,
+            VerificationDocumentType.NationalIdBack,
+            VerificationDocumentType.SelfieWithId
+        ];
+    }
+
+    public static bool IsFullyVerified(IEnumerable<UserVerificationDocument> documents, DateOnly today, bool isLawyer)
     {
         var currentDocuments = documents.Where(d => d.IsCurrent).ToList();
-        return RequiredDocumentTypes.All(requiredType => currentDocuments.Any(document =>
+        var requiredTypes = GetRequiredDocumentTypes(isLawyer);
+        
+        return requiredTypes.All(requiredType => currentDocuments.Any(document =>
             document.DocumentType == requiredType &&
             document.Status == VerificationDocumentStatus.Verified &&
             document.ExpirationDate > today));
@@ -26,33 +43,38 @@ internal static class VerificationStatusEvaluator
 
     public static UserStatus ResolveAccountStatus(
         IEnumerable<UserVerificationDocument> documents,
-        DateOnly today)
+        DateOnly today,
+        bool isLawyer,
+        bool isPhoneConfirmed,
+        UserStatus currentStatus)
     {
+        // Do not automatically un-reject or un-suspend an account just because a document was reviewed
+        if (currentStatus == UserStatus.Rejected || currentStatus == UserStatus.Suspended)
+        {
+            return currentStatus;
+        }
         var currentDocuments = documents.Where(document => document.IsCurrent).ToList();
+        var requiredTypes = GetRequiredDocumentTypes(isLawyer);
 
-        var hasEveryRequiredDocument = RequiredDocumentTypes.All(requiredType =>
+        var hasEveryRequiredDocument = requiredTypes.All(requiredType =>
             currentDocuments.Any(document => document.DocumentType == requiredType));
 
         var allRequiredDocumentsAreVerified = hasEveryRequiredDocument &&
-            RequiredDocumentTypes.All(requiredType => currentDocuments.Any(document =>
+            requiredTypes.All(requiredType => currentDocuments.Any(document =>
                 document.DocumentType == requiredType &&
                 document.Status == VerificationDocumentStatus.Verified &&
                 document.ExpirationDate > today));
 
         if (allRequiredDocumentsAreVerified)
         {
-            return UserStatus.Active;
+            return isPhoneConfirmed ? UserStatus.Active : UserStatus.Unverified;
         }
 
-        if (currentDocuments.Any(document =>
-                document.Status is VerificationDocumentStatus.Rejected or VerificationDocumentStatus.Expired ||
-                document.ExpirationDate <= today))
+        if (currentDocuments.Any(document => document.Status == VerificationDocumentStatus.Pending))
         {
-            return UserStatus.Rejected;
+            return UserStatus.PendingReview;
         }
 
-        return currentDocuments.Any(document => document.Status == VerificationDocumentStatus.Pending)
-            ? UserStatus.PendingReview
-            : UserStatus.Unverified;
+        return UserStatus.Unverified;
     }
 }

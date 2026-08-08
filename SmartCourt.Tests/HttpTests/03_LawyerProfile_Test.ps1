@@ -27,15 +27,15 @@ $body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1
 Invoke-Api -title "1. Lawyer Complete - Missing NationalNumber & Bio" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 2. Complete Profile - Invalid National Number Length
-$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = "123" } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = "123"; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "2. Lawyer Complete - Invalid National Number Length" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 3. Complete Profile - Invalid Lawyer Level
-$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 999; NationalNumber = $nationalNum } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 999; NationalNumber = $nationalNum; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "3. Lawyer Complete - Invalid Lawyer Level" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 4. Complete Profile - Valid Data
-$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = $nationalNum } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = $nationalNum; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "4. Lawyer Complete - Valid Data" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 5. Re-Login to Get PendingReview Token
@@ -51,11 +51,11 @@ Invoke-Api -title "7. Lawyer GET Public Profile (Anonymous)" -method "GET" -endp
 
 # 8. Update Profile - Bio Exceeds Max Length
 $longBio = "A" * 501
-$body = @{ PhoneNumber = "+201222222222"; Address = "New Address"; Bio = $longBio; Level = 2 } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201222222222"; Address = "New Address"; Bio = $longBio; Level = 2; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "8. Lawyer Update - Bio Exceeds Max Length" -method "PUT" -endpoint "/api/lawyers/profile" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 9. Update Profile - Valid Data
-$body = @{ PhoneNumber = "+201222222222"; Address = "New Address"; Bio = "Updated Bio"; Level = 2 } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201222222222"; Address = "New Address"; Bio = "Updated Bio"; Level = 2; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "9. Lawyer Update - Valid Data" -method "PUT" -endpoint "/api/lawyers/profile" -body $body -token $lawyerToken -reportFile $reportFile
 
 # 9b. Re-Login to Get New Token (Because updating PhoneNumber resets SecurityStamp)

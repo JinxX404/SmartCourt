@@ -1,4 +1,4 @@
-﻿using SmartCourt.Common.Enums;
+using SmartCourt.Common.Enums;
 
 namespace SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs
 {
@@ -10,5 +10,6 @@ namespace SmartCourt.Features.UserVerification.GetUserVerificationDocuments.DTOs
         public DateOnly ExpirationDate { get; init; }
         public bool IsCurrent { get; init; }
         public string FileName { get; init; } = string.Empty;
+        public string? RejectionReason { get; init; }
     }
 }

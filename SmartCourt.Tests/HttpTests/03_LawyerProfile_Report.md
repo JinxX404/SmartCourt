@@ -1,4 +1,4 @@
-﻿# Lawyer Profile CRUD Test Report
+# Lawyer Profile CRUD Test Report
 
 ### 0. Setup - Register Lawyer
 
@@ -7,10 +7,10 @@
 **Body:**
 `json
 {
-    "Email":  "lawyer_crud_374814721@test.com",
-    "FullName":  "Lawyer Crud",
-    "ConfirmPassword":  "Password123!",
-    "Password":  "Password123!"
+  "ConfirmPassword": "Password123!",
+  "FullName": "Lawyer Crud",
+  "Email": "lawyer_crud_2128036412@test.com",
+  "Password": "Password123!"
 }
 ``n
 **Response Status:** 201
@@ -18,35 +18,35 @@
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "userId":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                 "email":  "lawyer_crud_374814721@test.com",
-                 "fullName":  "Lawyer Crud",
-                 "role":  "Lawyer"
-             },
-    "message":  "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني",
-    "errors":  null,
-    "statusCode":  201
+  "success": true,
+  "data": {
+    "userId": "e9c7c453-695b-4164-f779-08def48f6968",
+    "email": "lawyer_crud_2128036412@test.com",
+    "fullName": "Lawyer Crud",
+    "role": "Lawyer"
+  },
+  "message": "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني",
+  "errors": null,
+  "statusCode": 201
 }
 ``n---
 
 
-Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173/verify-email?userId=f4d3a503-c8b2-44cc-4dd6-08def2fabdf7&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4bndFR0NhSzI5eUVId09paVN5WHRTVEE2UEM5V1puS1NRalpiQzl6TS9nbUplNnd6V2NrN1NKaWpTa2t3WitEcUdweFVSWEJuOG9STzRLeTVLRzh3b1JzRmRRZ21iYW91LzU2ME1pMkNaakY3U25xTzRQd0xFWC9pWUQwZ3lSSmtKUjFtWWcxaytXOW1aMGUwTGhIZEk1aVNQeHlSeFVDazBQc3c1ZEMyYm5udWFHR0NZSTNIVkRZN29pc0JMdHE4VTVuUXdsZ3lUN3pGd1hkc0xHdk8xRHFDL0pienNUWmhSYVkvQUxPMkZWdz09
+Found confirmation URL for lawyer_crud_2128036412@test.com: http://localhost:5173/verify-email?userId=e9c7c453-695b-4164-f779-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5WHd3cVNRWGdkMElKNkdMZVEzMXNYZW15RG5YVW5QcnQvdFNmTm1OZmphSHdTUWI2OW5pRWg4TDNUZFo0SjZ2OHJ3OEdmWWdrZFJjdk1QdVpPZlNtMWJNNnc2RUw4NGMxK1E2eU9XYnZ4MjZabG5qaU93UXV2VUxYREdhVnJVTmJoMW5VVVVrdmRGQUIxczgwUVJxSDFLR0lxYVN0a0VYaCtxa3p6MXBzNGtSYUNWRUkyb2xucTZEWlFPV2ZFbmVQOFpPMTN6NUFmejZSTDd1NFVEZzRTSVZFRVpYcCtwY0VFSjRCamplNmczUT09
 
-### Confirm Email for lawyer_crud_374814721@test.com
+### Confirm Email for lawyer_crud_2128036412@test.com
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=f4d3a503-c8b2-44cc-4dd6-08def2fabdf7&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4bndFR0NhSzI5eUVId09paVN5WHRTVEE2UEM5V1puS1NRalpiQzl6TS9nbUplNnd6V2NrN1NKaWpTa2t3WitEcUdweFVSWEJuOG9STzRLeTVLRzh3b1JzRmRRZ21iYW91LzU2ME1pMkNaakY3U25xTzRQd0xFWC9pWUQwZ3lSSmtKUjFtWWcxaytXOW1aMGUwTGhIZEk1aVNQeHlSeFVDazBQc3c1ZEMyYm5udWFHR0NZSTNIVkRZN29pc0JMdHE4VTVuUXdsZ3lUN3pGd1hkc0xHdk8xRHFDL0pienNUWmhSYVkvQUxPMkZWdz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=e9c7c453-695b-4164-f779-08def48f6968&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5WHd3cVNRWGdkMElKNkdMZVEzMXNYZW15RG5YVW5QcnQvdFNmTm1OZmphSHdTUWI2OW5pRWg4TDNUZFo0SjZ2OHJ3OEdmWWdrZFJjdk1QdVpPZlNtMWJNNnc2RUw4NGMxK1E2eU9XYnZ4MjZabG5qaU93UXV2VUxYREdhVnJVTmJoMW5VVVVrdmRGQUIxczgwUVJxSDFLR0lxYVN0a0VYaCtxa3p6MXBzNGtSYUNWRUkyb2xucTZEWlFPV2ZFbmVQOFpPMTN6NUFmejZSTDd1NFVEZzRTSVZFRVpYcCtwY0VFSjRCamplNmczUT09
 
 **Response Status:** 200
 
 **Response Body:**
 `json
 {
-    "success":  true,
-    "message":  "تم تأكيد البريد الإلكتروني بنجاح.",
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "message": "تم تأكيد البريد الإلكتروني بنجاح.",
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -58,8 +58,8 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Password":  "Password123!",
-    "Email":  "lawyer_crud_374814721@test.com"
+  "Email": "lawyer_crud_2128036412@test.com",
+  "Password": "Password123!"
 }
 ``n
 **Response Status:** 200
@@ -67,22 +67,24 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "user":  {
-                              "id":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                              "email":  "lawyer_crud_374814721@test.com",
-                              "fullName":  "Lawyer Crud",
-                              "role":  "Lawyer"
-                          },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNGQzYTUwMy1jOGIyLTQ0Y2MtNGRkNi0wOGRlZjJmYWJkZjciLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImY0ZDNhNTAzLWM4YjItNDRjYy00ZGQ2LTA4ZGVmMmZhYmRmNyIsImVtYWlsIjoibGF3eWVyX2NydWRfMzc0ODE0NzIxQHRlc3QuY29tIiwibmFtZSI6Ikxhd3llciBDcnVkIiwic2VjdXJpdHlfc3RhbXAiOiJCT0ZUTTI3VFZGR0Q3UTdLNEpXVkhJSEZBNFFTVERYQSIsImp0aSI6IjU2ZWUzMDQ3LTk2OTUtNGIxOC1hZWYxLWVjMjI3MmZkMzE5YiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NTkzODgyNSwiZXhwIjoxNzg1OTQyNDI1LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.iCnYsl5WYjMcmpVTNVQOkh4N4-8u8ZIUDHFdEkwNsNw",
-                 "expiresIn":  3600,
-                 "refreshToken":  "1+kJsEUJ6CWtwkHnQMddJlF0SZD8PUGo0pT8Sx2nFyhP8J/iSfdj/BN1a1ZQeP7Txr/jS2e1enOzAk71kzIzaw==",
-                 "refreshTokenExpiration":  "2026-08-12T14:07:05.5562811Z"
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "data": {
+    "user": {
+      "id": "e9c7c453-695b-4164-f779-08def48f6968",
+      "email": "lawyer_crud_2128036412@test.com",
+      "fullName": "Lawyer Crud",
+      "role": "Lawyer",
+      "status": "Unverified",
+      "rejectionReason": null
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOWM3YzQ1My02OTViLTQxNjQtZjc3OS0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImU5YzdjNDUzLTY5NWItNDE2NC1mNzc5LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoibGF3eWVyX2NydWRfMjEyODAzNjQxMkB0ZXN0LmNvbSIsIm5hbWUiOiJMYXd5ZXIgQ3J1ZCIsInNlY3VyaXR5X3N0YW1wIjoiUkpXT0dEU0NaVVpSTURFWjJVTkZKWEZHVEFSUkI3RzUiLCJqdGkiOiJhZWI2MTI0Yy0zZjRiLTQ3ZDgtYmRhOC1mYjM0YTZjMTg5MWMiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYxMTMxNzIsImV4cCI6MTc4NjExNDA3MiwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.CyTAkZB6ka5C7Ufil1MCiBhqey6zfYE9jtyrRdrP6CQ",
+    "expiresIn": 900,
+    "refreshToken": "xWXHYK1tA/yWTDjIw7ROQ8m+xbFBhCCGD6R+ZxHWbHdu/ICjfEpxl+rC9GeVQF0JCU7nwAcupJznWGg7xeVQYw==",
+    "refreshTokenExpiration": "2026-08-14T14:32:52.4162727Z"
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -94,10 +96,10 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "DateOfBirth":  "1990-01-01",
-    "PhoneNumber":  "+201011111111",
-    "Gender":  1,
-    "Address":  "Law Firm 1"
+  "Gender": 1,
+  "PhoneNumber": "+201011111111",
+  "Address": "Law Firm 1",
+  "DateOfBirth": "1990-01-01"
 }
 ``n
 **Response Status:** 400
@@ -105,19 +107,22 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "type":  "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-    "title":  "One or more validation errors occurred.",
-    "status":  400,
-    "errors":  {
-                   "Level":  [
-                                 "مستوى المحامي غير صالح."
-                             ],
-                   "NationalNumber":  [
-                                          "\u0027National Number\u0027 must not be empty.",
-                                          "الرقم القومي يجب أن يتكون من 14 رقم."
-                                      ]
-               },
-    "traceId":  "00-4460b72534e3da00a6fddb2b0441c415-567741b6b9871f9b-00"
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Level": [
+      "مستوى المحامي غير صالح."
+    ],
+    "NationalNumber": [
+      "'National Number' must not be empty.",
+      "الرقم القومي يجب أن يتكون من 14 رقم."
+    ],
+    "Specializations": [
+      "يجب إدخال تخصص واحد على الأقل."
+    ]
+  },
+  "traceId": "00-72f3951479110c01667db61c734dcb3d-f658b4509f47b960-00"
 }
 ``n---
 
@@ -129,13 +134,20 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Level":  1,
-    "DateOfBirth":  "1990-01-01",
-    "Gender":  1,
-    "Address":  "Law Firm 1",
-    "NationalNumber":  "123",
-    "Bio":  "Hello",
-    "PhoneNumber":  "+201011111111"
+  "Level": 1,
+  "Address": "Law Firm 1",
+  "NationalNumber": "123",
+  "PhoneNumber": "+201011111111",
+  "Gender": 1,
+  "Specializations": [
+    {
+      "YearsOfExperience": 5,
+      "CasesHandled": 10,
+      "Specialization": 1
+    }
+  ],
+  "Bio": "Hello",
+  "DateOfBirth": "1990-01-01"
 }
 ``n
 **Response Status:** 400
@@ -143,15 +155,15 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "type":  "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-    "title":  "One or more validation errors occurred.",
-    "status":  400,
-    "errors":  {
-                   "NationalNumber":  [
-                                          "الرقم القومي يجب أن يتكون من 14 رقم."
-                                      ]
-               },
-    "traceId":  "00-b4586bc45a383698349a9ceebbb57456-3c701077037a26a0-00"
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "NationalNumber": [
+      "الرقم القومي يجب أن يتكون من 14 رقم."
+    ]
+  },
+  "traceId": "00-8738f8236d167a5bb8122896540da79a-bd09fdda83131dff-00"
 }
 ``n---
 
@@ -163,13 +175,20 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Level":  999,
-    "DateOfBirth":  "1990-01-01",
-    "Gender":  1,
-    "Address":  "Law Firm 1",
-    "NationalNumber":  "29001013035641",
-    "Bio":  "Hello",
-    "PhoneNumber":  "+201011111111"
+  "Level": 999,
+  "Address": "Law Firm 1",
+  "NationalNumber": "29001014304533",
+  "PhoneNumber": "+201011111111",
+  "Gender": 1,
+  "Specializations": [
+    {
+      "YearsOfExperience": 5,
+      "CasesHandled": 10,
+      "Specialization": 1
+    }
+  ],
+  "Bio": "Hello",
+  "DateOfBirth": "1990-01-01"
 }
 ``n
 **Response Status:** 400
@@ -177,18 +196,18 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "type":  "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-    "title":  "One or more validation errors occurred.",
-    "status":  400,
-    "errors":  {
-                   "request":  [
-                                   "The request field is required."
-                               ],
-                   "$.Level":  [
-                                   "The JSON value could not be converted to SmartCourt.Common.Enums.LawyerLevel. Path: $.Level | LineNumber: 1 | BytePositionInLine: 17."
-                               ]
-               },
-    "traceId":  "00-c8ee58e5a3b0f8c82a1c007a6ca9debd-20e627f9e1d11bf5-00"
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "request": [
+      "The request field is required."
+    ],
+    "$.Level": [
+      "The JSON value could not be converted to SmartCourt.Common.Enums.LawyerLevel. Path: $.Level | LineNumber: 1 | BytePositionInLine: 14."
+    ]
+  },
+  "traceId": "00-d791934bc2b4506132e09d8d4cf18c5f-709d03c65834f7b0-00"
 }
 ``n---
 
@@ -200,13 +219,20 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Level":  1,
-    "DateOfBirth":  "1990-01-01",
-    "Gender":  1,
-    "Address":  "Law Firm 1",
-    "NationalNumber":  "29001013035641",
-    "Bio":  "Hello",
-    "PhoneNumber":  "+201011111111"
+  "Level": 1,
+  "Address": "Law Firm 1",
+  "NationalNumber": "29001014304533",
+  "PhoneNumber": "+201011111111",
+  "Gender": 1,
+  "Specializations": [
+    {
+      "YearsOfExperience": 5,
+      "CasesHandled": 10,
+      "Specialization": 1
+    }
+  ],
+  "Bio": "Hello",
+  "DateOfBirth": "1990-01-01"
 }
 ``n
 **Response Status:** 200
@@ -214,10 +240,10 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "message":  "تم استكمال البيانات بنجاح",
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "message": "تم استكمال البيانات بنجاح",
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -229,8 +255,8 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Password":  "Password123!",
-    "Email":  "lawyer_crud_374814721@test.com"
+  "Email": "lawyer_crud_2128036412@test.com",
+  "Password": "Password123!"
 }
 ``n
 **Response Status:** 200
@@ -238,22 +264,24 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "user":  {
-                              "id":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                              "email":  "lawyer_crud_374814721@test.com",
-                              "fullName":  "Lawyer Crud",
-                              "role":  "Lawyer"
-                          },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNGQzYTUwMy1jOGIyLTQ0Y2MtNGRkNi0wOGRlZjJmYWJkZjciLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImY0ZDNhNTAzLWM4YjItNDRjYy00ZGQ2LTA4ZGVmMmZhYmRmNyIsImVtYWlsIjoibGF3eWVyX2NydWRfMzc0ODE0NzIxQHRlc3QuY29tIiwibmFtZSI6Ikxhd3llciBDcnVkIiwic2VjdXJpdHlfc3RhbXAiOiJSVk5JWUJQRFRRMzRUVkw1WlVUQUtFSTJLUTJBU0FNUCIsImp0aSI6Ijc4YTlhZGRhLWU0YWMtNDYyNC1iNTBiLTExODgyMjcxOTAzNCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NTkzODgyNiwiZXhwIjoxNzg1OTQyNDI2LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.1AFbm4haFKKQD3fj0NFqeJLVKys-qW9Rx4UuXAKP0AM",
-                 "expiresIn":  3600,
-                 "refreshToken":  "LGORKSkfhrdEVEUkEaiRN7/1EHQ9lSIXqcpKTB7FpZMSo0bDCaldO4Q7tf8CIIJTUawEcFa2FYjFw4mhWKB+7Q==",
-                 "refreshTokenExpiration":  "2026-08-12T14:07:06.09319Z"
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "data": {
+    "user": {
+      "id": "e9c7c453-695b-4164-f779-08def48f6968",
+      "email": "lawyer_crud_2128036412@test.com",
+      "fullName": "Lawyer Crud",
+      "role": "Lawyer",
+      "status": "PendingReview",
+      "rejectionReason": null
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOWM3YzQ1My02OTViLTQxNjQtZjc3OS0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImU5YzdjNDUzLTY5NWItNDE2NC1mNzc5LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoibGF3eWVyX2NydWRfMjEyODAzNjQxMkB0ZXN0LmNvbSIsIm5hbWUiOiJMYXd5ZXIgQ3J1ZCIsInNlY3VyaXR5X3N0YW1wIjoiMkUyUDRGUE9TVEJNNUhBUzRCTkkzTkxJWUhRQUw0VzMiLCJqdGkiOiJlNzI4MzU2Ny0wODA5LTQ5MTgtOWFiNS03Y2MyNTUzMGU5Y2YiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYxMTMxNzQsImV4cCI6MTc4NjExNDA3NCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.mN2sDzQXcK1yALDiwDnPNQbupfdeaKLUgaAsUWmThBk",
+    "expiresIn": 900,
+    "refreshToken": "UeYGPQliuwAzHQJT1hH1uxJjcH3Rsa0TJmIyCwDs3XYsYiqfHmKW5+LVM0AiSXsrw56TI0sIoDUEn3C5Sjmf0w==",
+    "refreshTokenExpiration": "2026-08-14T14:32:54.9335667Z"
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -267,43 +295,55 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "id":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                 "name":  "Lawyer Crud",
-                 "email":  "lawyer_crud_374814721@test.com",
-                 "phoneNumber":  "+201011111111",
-                 "nationalNumber":  "29001013035641",
-                 "gender":  1,
-                 "dateOfBirth":  "1990-01-01",
-                 "level":  1,
-                 "bio":  "Hello",
-                 "address":  "Law Firm 1",
-                 "status":  "PendingReview",
-                 "isAvailable":  true,
-                 "profilePictureUrl":  null
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "data": {
+    "id": "e9c7c453-695b-4164-f779-08def48f6968",
+    "name": "Lawyer Crud",
+    "email": "lawyer_crud_2128036412@test.com",
+    "phoneNumber": "+201011111111",
+    "nationalNumber": "29001014304533",
+    "gender": 1,
+    "dateOfBirth": "1990-01-01",
+    "level": 1,
+    "yearsOfExperience": 5,
+    "specializationName": "CivilLaw",
+    "bio": "Hello",
+    "address": "Law Firm 1",
+    "governorate": null,
+    "city": null,
+    "status": "PendingReview",
+    "isAvailable": true,
+    "profilePictureUrl": null,
+    "rejectionReason": null,
+    "specializations": [
+      {
+        "specialization": 1,
+        "yearsOfExperience": 5,
+        "casesHandled": 10
+      }
+    ]
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
 
 ### 7. Lawyer GET Public Profile (Anonymous)
 
-**Request:** GET http://localhost:5049/api/lawyers/public/f4d3a503-c8b2-44cc-4dd6-08def2fabdf7
+**Request:** GET http://localhost:5049/api/lawyers/public/e9c7c453-695b-4164-f779-08def48f6968
 
 **Response Status:** 404
 
 **Response Body:**
 `json
 {
-    "success":  false,
-    "data":  null,
-    "message":  "المحامي غير موجود",
-    "errors":  null,
-    "statusCode":  404
+  "success": false,
+  "data": null,
+  "message": "المحامي غير موجود",
+  "errors": null,
+  "statusCode": 404
 }
 ``n---
 
@@ -315,10 +355,11 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Bio":  "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
-    "Level":  2,
-    "PhoneNumber":  "+201222222222",
-    "Address":  "New Address"
+  "Level": 2,
+  "NationalNumber": "29001014304533",
+  "Address": "New Address",
+  "PhoneNumber": "+201222222222",
+  "Bio": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 }
 ``n
 **Response Status:** 400
@@ -326,15 +367,15 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "type":  "https://tools.ietf.org/html/rfc9110#section-15.5.1",
-    "title":  "One or more validation errors occurred.",
-    "status":  400,
-    "errors":  {
-                   "Bio":  [
-                               "يجب ألا تتجاوز السيرة الذاتية 500 حرف."
-                           ]
-               },
-    "traceId":  "00-aabdffe28896e9d4721f1b0bfb2f701e-6cb3ac23a7698edb-00"
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Bio": [
+      "يجب ألا تتجاوز السيرة الذاتية 500 حرف."
+    ]
+  },
+  "traceId": "00-dc12603d898fc72db2fdccf166f8b69b-5bf392274aa82c3e-00"
 }
 ``n---
 
@@ -346,10 +387,11 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Bio":  "Updated Bio",
-    "Level":  2,
-    "PhoneNumber":  "+201222222222",
-    "Address":  "New Address"
+  "Level": 2,
+  "NationalNumber": "29001014304533",
+  "Address": "New Address",
+  "PhoneNumber": "+201222222222",
+  "Bio": "Updated Bio"
 }
 ``n
 **Response Status:** 200
@@ -357,10 +399,10 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "message":  "تم تحديث البيانات بنجاح",
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "message": "تم تحديث البيانات بنجاح",
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -372,8 +414,8 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "Password":  "Password123!",
-    "Email":  "lawyer_crud_374814721@test.com"
+  "Email": "lawyer_crud_2128036412@test.com",
+  "Password": "Password123!"
 }
 ``n
 **Response Status:** 200
@@ -381,22 +423,24 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "user":  {
-                              "id":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                              "email":  "lawyer_crud_374814721@test.com",
-                              "fullName":  "Lawyer Crud",
-                              "role":  "Lawyer"
-                          },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJmNGQzYTUwMy1jOGIyLTQ0Y2MtNGRkNi0wOGRlZjJmYWJkZjciLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImY0ZDNhNTAzLWM4YjItNDRjYy00ZGQ2LTA4ZGVmMmZhYmRmNyIsImVtYWlsIjoibGF3eWVyX2NydWRfMzc0ODE0NzIxQHRlc3QuY29tIiwibmFtZSI6Ikxhd3llciBDcnVkIiwic2VjdXJpdHlfc3RhbXAiOiJVNTZXNUpDSlZLUUVKUU5CTTZaMlVCVUVTS1JGUjQ3QSIsImp0aSI6IjlkZGFjN2JkLWIwYWYtNGU2Mi04YzA4LTA5OWQwOWFhNTg0YSIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NTkzODgyNywiZXhwIjoxNzg1OTQyNDI3LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.znVC6so1_a4CUlytLcZ5IL40Pp2FrOE3UGHLgB-SPmA",
-                 "expiresIn":  3600,
-                 "refreshToken":  "POtTQzbuFKCkDohGJsFQdyilvqlkm7QMm452TR92RuWufYaKJTAq/6cf1MenNKQfALW3Nz7rMFTt0A0UqTtJEA==",
-                 "refreshTokenExpiration":  "2026-08-12T14:07:07.5197302Z"
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "data": {
+    "user": {
+      "id": "e9c7c453-695b-4164-f779-08def48f6968",
+      "email": "lawyer_crud_2128036412@test.com",
+      "fullName": "Lawyer Crud",
+      "role": "Lawyer",
+      "status": "PendingReview",
+      "rejectionReason": null
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlOWM3YzQ1My02OTViLTQxNjQtZjc3OS0wOGRlZjQ4ZjY5NjgiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImU5YzdjNDUzLTY5NWItNDE2NC1mNzc5LTA4ZGVmNDhmNjk2OCIsImVtYWlsIjoibGF3eWVyX2NydWRfMjEyODAzNjQxMkB0ZXN0LmNvbSIsIm5hbWUiOiJMYXd5ZXIgQ3J1ZCIsInNlY3VyaXR5X3N0YW1wIjoiMkUyUDRGUE9TVEJNNUhBUzRCTkkzTkxJWUhRQUw0VzMiLCJqdGkiOiJiMTlmMDY4MS0wNWNjLTQxZjktYjlmMC1iMGYzNzFlMjdiNzkiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYxMTMxNzYsImV4cCI6MTc4NjExNDA3NiwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.2PxY1e7soY6fRpkpoVv2cFWQWAl09eRTSQXCND95wDg",
+    "expiresIn": 900,
+    "refreshToken": "HA22jiZDw+UQbnorIg8LVEH+rx2SDBg4UajwQdt8kzg0NHtMPvbIz3pqQsFW7AVZfeWvV9MBttNr45Yqlx0ZXw==",
+    "refreshTokenExpiration": "2026-08-14T14:32:56.1507608Z"
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -410,25 +454,37 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "id":  "f4d3a503-c8b2-44cc-4dd6-08def2fabdf7",
-                 "name":  "Lawyer Crud",
-                 "email":  "lawyer_crud_374814721@test.com",
-                 "phoneNumber":  "+201222222222",
-                 "nationalNumber":  "29001013035641",
-                 "gender":  1,
-                 "dateOfBirth":  "1990-01-01",
-                 "level":  2,
-                 "bio":  "Updated Bio",
-                 "address":  "New Address",
-                 "status":  "PendingReview",
-                 "isAvailable":  true,
-                 "profilePictureUrl":  null
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "data": {
+    "id": "e9c7c453-695b-4164-f779-08def48f6968",
+    "name": "Lawyer Crud",
+    "email": "lawyer_crud_2128036412@test.com",
+    "phoneNumber": "+201011111111",
+    "nationalNumber": "29001014304533",
+    "gender": 1,
+    "dateOfBirth": null,
+    "level": 2,
+    "yearsOfExperience": 5,
+    "specializationName": "CivilLaw",
+    "bio": "Updated Bio",
+    "address": "New Address",
+    "governorate": null,
+    "city": null,
+    "status": "PendingReview",
+    "isAvailable": true,
+    "profilePictureUrl": null,
+    "rejectionReason": null,
+    "specializations": [
+      {
+        "specialization": 1,
+        "yearsOfExperience": 5,
+        "casesHandled": 10
+      }
+    ]
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
@@ -440,7 +496,7 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "CurrentPassword":  "WrongPassword!"
+  "CurrentPassword": "WrongPassword!"
 }
 ``n
 **Response Status:** 400
@@ -448,11 +504,11 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  false,
-    "data":  null,
-    "message":  "كلمة المرور الحالية غير صحيحة.",
-    "errors":  null,
-    "statusCode":  400
+  "success": false,
+  "data": null,
+  "message": "كلمة المرور الحالية غير صحيحة.",
+  "errors": null,
+  "statusCode": 400
 }
 ``n---
 
@@ -464,7 +520,7 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Body:**
 `json
 {
-    "CurrentPassword":  "Password123!"
+  "CurrentPassword": "Password123!"
 }
 ``n
 **Response Status:** 200
@@ -472,28 +528,28 @@ Found confirmation URL for lawyer_crud_374814721@test.com: http://localhost:5173
 **Response Body:**
 `json
 {
-    "success":  true,
-    "message":  "تم حذف الحساب بنجاح",
-    "errors":  null,
-    "statusCode":  200
+  "success": true,
+  "message": "تم حذف الحساب بنجاح",
+  "errors": null,
+  "statusCode": 200
 }
 ``n---
 
 
 ### 13. Lawyer GET Public Profile (After Delete)
 
-**Request:** GET http://localhost:5049/api/lawyers/public/f4d3a503-c8b2-44cc-4dd6-08def2fabdf7
+**Request:** GET http://localhost:5049/api/lawyers/public/e9c7c453-695b-4164-f779-08def48f6968
 
 **Response Status:** 404
 
 **Response Body:**
 `json
 {
-    "success":  false,
-    "data":  null,
-    "message":  "المحامي غير موجود",
-    "errors":  null,
-    "statusCode":  404
+  "success": false,
+  "data": null,
+  "message": "المحامي غير موجود",
+  "errors": null,
+  "statusCode": 404
 }
 ``n---
 
