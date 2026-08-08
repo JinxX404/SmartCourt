@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -19,6 +20,7 @@ namespace SmartCourt.Features.Case
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CaseController : ControllerBase
     {
         private readonly IMediator _mediator;
