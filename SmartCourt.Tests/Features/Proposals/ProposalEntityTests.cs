@@ -1,5 +1,5 @@
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
@@ -61,17 +61,9 @@ public sealed class ProposalEntityTests
             "Please review this proposal.",
             new DateTime(2026, 7, 30, 9, 0, 0, DateTimeKind.Utc));
 
-        proposal.LegalCase = new LegalCase(
-            caseId,
-            proposal.ClientUserId,
-            "Case title",
-            "Case description",
-            null,
-            new DateTime(2026, 7, 30, 8, 0, 0, DateTimeKind.Utc))
-        {
-            Status = CaseStatus.Submitted
-        };
+        proposal.Case = new SmartCourt.Entities.Case { Id = caseId, ClientId = proposal.ClientUserId, Title = "Case title", Description = "Case description", City = null, SubmittedAt = new DateTime(2026, 7, 30, 8, 0, 0, DateTimeKind.Utc), Status = CaseStatus.Submitted };
 
         return proposal;
     }
 }
+

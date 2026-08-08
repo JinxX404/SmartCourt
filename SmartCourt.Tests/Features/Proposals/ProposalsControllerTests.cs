@@ -32,11 +32,9 @@ public sealed class ProposalsControllerTests
 
         var action = await controller.CreateAsync(request, CancellationToken.None);
 
-        var result = Assert.IsType<CreatedAtActionResult>(
-            Convert(action));
+        var result = Assert.IsType<ObjectResult>(Convert(action));
         var response = Assert.IsType<ApiResponse<ProposalDetailDto>>(result.Value);
         Assert.Equal(StatusCodes.Status201Created, result.StatusCode);
-        Assert.Equal(nameof(ProposalsController.GetAsync), result.ActionName);
         Assert.True(response.Success);
         Assert.Same(mediator.Detail, response.Data);
         Assert.Equal(request.LegalCaseId, mediator.CreateCommand!.LegalCaseId);
@@ -238,3 +236,4 @@ public sealed class ProposalsControllerTests
 
     }
 }
+

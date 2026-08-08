@@ -59,6 +59,7 @@ public sealed record ContractDetailDto(
     DateTime? CompletedAt,
     DateTime? TerminatedAt,
     decimal CurrentMilestoneTotal,
+    string Version,
     IReadOnlyList<ContractMilestoneDto> Milestones,
     IReadOnlyList<ContractPaymentDto> Payments,
     IReadOnlyList<string> PermittedActions);

@@ -180,6 +180,7 @@ public sealed class ContractQueryService(
             contract.CompletedAt,
             contract.TerminatedAt,
             currentTotal,
+            $"\"{Convert.ToBase64String(contract.RowVersion)}\"",
             milestoneDtos,
             paymentDtos,
             GetPermittedActions(contract, GetActorUserId()));

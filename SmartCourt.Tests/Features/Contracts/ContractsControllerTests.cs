@@ -36,12 +36,10 @@ public sealed class ContractsControllerTests
             request,
             CancellationToken.None);
 
-        var result = Assert.IsType<CreatedAtActionResult>(
-            ConvertAction(action));
+        var result = Assert.IsType<ObjectResult>(ConvertAction(action));
         var response =
             Assert.IsType<ApiResponse<ContractDetailDto>>(result.Value);
         Assert.Equal(StatusCodes.Status201Created, result.StatusCode);
-        Assert.Equal(nameof(ContractsController.GetAsync), result.ActionName);
         Assert.True(response.Success);
         Assert.Equal(StatusCodes.Status201Created, response.StatusCode);
         Assert.Same(service.ContractDetail, response.Data);
@@ -376,9 +374,11 @@ public sealed class ContractsControllerTests
                 null,
                 null,
                 0m,
+                string.Empty,
                 [],
                 [],
                 []);
         }
     }
 }
+

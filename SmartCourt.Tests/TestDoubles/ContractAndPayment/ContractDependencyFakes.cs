@@ -1,4 +1,4 @@
-using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Files.Integration;
 

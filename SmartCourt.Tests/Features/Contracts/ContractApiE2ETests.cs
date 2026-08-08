@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.DTOs;
@@ -54,16 +54,7 @@ public class ContractApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var legalCase = new LegalCase(
-            legalCaseId,
-            clientId,
-            "قضية عقارية",
-            "نزاع ملكية عقارية",
-            "القاهرة",
-            DateTime.UtcNow)
-        {
-            Status = CaseStatus.Matched
-        };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية عقارية", Description = "نزاع ملكية عقارية", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
 
         var proposal = new Proposal(
             proposalId,
@@ -75,7 +66,7 @@ public class ContractApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory
             Status = ProposalStatus.Accepted
         };
 
-        db.LegalCases.Add(legalCase);
+        db.Cases.Add(caseEntity);
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
 

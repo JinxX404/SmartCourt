@@ -33,15 +33,7 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
                 request.Message),
             cancellationToken);
 
-        if (!result.Success)
-        {
-            return StatusCode(result.StatusCode, result);
-        }
-
-        return CreatedAtAction(
-            nameof(GetAsync),
-            new { proposalId = result.Data!.Id },
-            result);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet]

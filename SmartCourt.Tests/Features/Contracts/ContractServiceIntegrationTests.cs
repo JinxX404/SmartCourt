@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
@@ -852,17 +852,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         Guid proposalId,
         Guid legalCaseId)
     {
-        var legalCase = new LegalCase(
-            legalCaseId,
-            _clientUserId,
-            "قضية اختبار العقد",
-            "قضية مؤهلة لاختبار دورة حياة العقد.",
-            "القاهرة",
-            _utcNow.AddDays(-2))
-        {
-            Status = CaseStatus.Matched,
-            FinalSubmittedAt = _utcNow.AddDays(-2)
-        };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = _clientUserId, Title = "قضية اختبار العقد", Description = "قضية مؤهلة لاختبار دورة حياة العقد.", City = "القاهرة", SubmittedAt = _utcNow.AddDays(-2), Status = CaseStatus.Matched };
         var proposal = new Proposal(
             proposalId,
             legalCaseId,
@@ -872,7 +862,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         {
             Status = ProposalStatus.Accepted
         };
-        context.AddRange(legalCase, proposal);
+        context.AddRange(caseEntity, proposal);
         await context.SaveChangesAsync();
     }
 
@@ -1036,3 +1026,4 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         }
     }
 }
+

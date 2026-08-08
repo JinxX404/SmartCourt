@@ -819,6 +819,7 @@ public sealed class ContractService
             contract.CompletedAt,
             contract.TerminatedAt,
             currentTotal,
+            $"\"{Convert.ToBase64String(contract.RowVersion)}\"",
             milestoneDtos,
             paymentDtos,
             GetPermittedActions(contract));
