@@ -47,7 +47,7 @@ public class LoginService : ILoginService
 
         if (!user.EmailConfirmed)
         {
-            throw new ForbiddenAccessException("يرجى تأكيد البريد الإلكتروني أولاً");
+            throw new ForbiddenAccessException("يرجى تأكيد البريد الإلكتروني أولاً أو طلب رابط تفعيل جديد.");
         }
 
         if (user.Status == UserStatus.Suspended)

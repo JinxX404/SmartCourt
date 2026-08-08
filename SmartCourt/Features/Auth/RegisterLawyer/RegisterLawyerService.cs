@@ -31,6 +31,10 @@ public class RegisterLawyerService : IRegisterLawyerService
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser != null)
         {
+            if (!existingUser.EmailConfirmed)
+            {
+                throw new ConflictException("البريد الإلكتروني مسجل بالفعل ولكنه غير مفعل. يرجى مراجعة بريدك الإلكتروني لتفعيل الحساب أو طلب رابط تفعيل جديد.");
+            }
             throw new ConflictException("البريد الإلكتروني مسجل بالفعل.");
         }
 
