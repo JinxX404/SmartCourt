@@ -12,5 +12,5 @@ public class UpdateCaseCommand : IRequest<ApiResponse<UpdateCaseResponse>>
     public string Description { get; set; }
     public string? Governorate { get; set; }
     public string? City { get; set; }
-    public IReadOnlyCollection<IFormFile> Documents { get; set; }
+    public IReadOnlyCollection<IFormFile>? Documents { get; set; }
 }
