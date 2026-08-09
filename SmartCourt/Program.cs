@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using SmartCourt.Extensions;
 using SmartCourt.Features.Chat.Hubs;
 using SmartCourt.Features.Notifications.Hubs;
+using SmartCourt.Features.Proposals.Expiration;
 
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Middleware;
@@ -70,6 +71,9 @@ namespace SmartCourt
                         .GetRequiredService<
                             SmartCourt.Infrastructure.Providers.Jobs
                                 .IContractRecurringJobRegistrar>()
+                        .RegisterAsync(app.Lifetime.ApplicationStopping);
+                    await scope.ServiceProvider
+                        .GetRequiredService<IProposalRecurringJobRegistrar>()
                         .RegisterAsync(app.Lifetime.ApplicationStopping);
                 }
 

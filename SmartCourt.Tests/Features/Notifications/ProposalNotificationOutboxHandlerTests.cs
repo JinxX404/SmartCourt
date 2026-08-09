@@ -16,6 +16,9 @@ public sealed class ProposalNotificationOutboxHandlerTests
     [InlineData(ContractPaymentEventTypes.ProposalCreated, "proposal.created", "Information", true)]
     [InlineData(ContractPaymentEventTypes.ProposalAccepted, "proposal.accepted", "Success", false)]
     [InlineData(ContractPaymentEventTypes.ProposalRejected, "proposal.rejected", "Warning", false)]
+    [InlineData(ContractPaymentEventTypes.ProposalCancelled, "proposal.cancelled", "Information", true)]
+    [InlineData(ContractPaymentEventTypes.ProposalExpired, "proposal.expired", "Warning", false)]
+    [InlineData(ContractPaymentEventTypes.ProposalSuperseded, "proposal.superseded", "Information", true)]
     public async Task HandleAsync_MapsAndPersistsProposalNotification(
         string eventType,
         string expectedType,
@@ -47,6 +50,33 @@ public sealed class ProposalNotificationOutboxHandlerTests
         Assert.Equal(message.Id, saved.SourceEventId);
         Assert.Equal($"/proposals/{proposalId}", saved.ActionUrl);
         Assert.Single(notifier.Created);
+    }
+
+    [Fact]
+    public async Task HandleAsync_TerminationNotifiesOtherParticipant()
+    {
+        await using var context = CreateContext();
+        var notifier = new RecordingNotifier();
+        var clientId = Guid.NewGuid();
+        var lawyerId = Guid.NewGuid();
+        var proposalId = Guid.NewGuid();
+        var message = CreateMessage(
+            ContractPaymentEventTypes.ProposalTerminated,
+            proposalId,
+            new ProposalEventPayload(
+                proposalId,
+                Guid.NewGuid(),
+                clientId,
+                lawyerId,
+                clientId,
+                "No agreement"));
+
+        await new ProposalNotificationOutboxHandler(context, notifier)
+            .HandleAsync(message, CancellationToken.None);
+
+        var saved = await context.Notifications.SingleAsync();
+        Assert.Equal(lawyerId, saved.RecipientUserId);
+        Assert.Equal("proposal.terminated", saved.Type);
     }
 
     [Fact]

@@ -23,7 +23,11 @@ public sealed class ProposalNotificationOutboxHandler(
     [
         ContractPaymentEventTypes.ProposalCreated,
         ContractPaymentEventTypes.ProposalAccepted,
-        ContractPaymentEventTypes.ProposalRejected
+        ContractPaymentEventTypes.ProposalRejected,
+        ContractPaymentEventTypes.ProposalCancelled,
+        ContractPaymentEventTypes.ProposalExpired,
+        ContractPaymentEventTypes.ProposalTerminated,
+        ContractPaymentEventTypes.ProposalSuperseded
     ];
 
     public async Task HandleAsync(

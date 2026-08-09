@@ -9,6 +9,7 @@ using SmartCourt.Features.Contracts.Domain;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
@@ -35,6 +36,7 @@ public sealed class ContractService
     private readonly IContractUserEligibilityService _userEligibilityService;
     private readonly IOutboxWriter _outboxWriter;
     private readonly IContractQueryService _contractQueryService;
+    private readonly IContractCaseAssignmentService _caseAssignmentService;
     private readonly IReadOnlyCollection<IContractTerminationSettlementService>
         _terminationSettlementServices;
     private readonly TimeProvider _timeProvider;
@@ -46,6 +48,7 @@ public sealed class ContractService
         IContractUserEligibilityService userEligibilityService,
         IContractQueryService contractQueryService,
         IOutboxWriter outboxWriter,
+        IContractCaseAssignmentService caseAssignmentService,
         IEnumerable<IContractTerminationSettlementService>
             terminationSettlementServices,
         TimeProvider timeProvider)
@@ -56,6 +59,7 @@ public sealed class ContractService
         _userEligibilityService = userEligibilityService;
         _contractQueryService = contractQueryService;
         _outboxWriter = outboxWriter;
+        _caseAssignmentService = caseAssignmentService;
         _terminationSettlementServices =
             terminationSettlementServices.ToArray();
         _timeProvider = timeProvider;
@@ -684,6 +688,16 @@ public sealed class ContractService
         {
             return false;
         }
+
+        await _caseAssignmentService.AssignAsync(
+            new ContractCaseAssignment(
+                contract.Id,
+                contract.ProposalId,
+                contract.LegalCaseId,
+                contract.ClientUserId,
+                contract.LawyerUserId,
+                new DateTimeOffset(now)),
+            cancellationToken);
 
         ContractTransitionGuard.EnsureCanTransition(
             ContractStatus.Draft,
