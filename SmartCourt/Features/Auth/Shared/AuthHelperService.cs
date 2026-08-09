@@ -55,6 +55,10 @@ public class AuthHelperService : IAuthHelperService
 
     public async Task SendConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken = default)
     {
+        // Rotate the SecurityStamp so any previously issued confirmation tokens
+        // are immediately invalidated. Only the link in the most recent email will work.
+        await _userManager.UpdateSecurityStampAsync(user);
+
         var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
         var confirmationUrl = QueryHelpers.AddQueryString(
