@@ -261,7 +261,6 @@ public static class DependencyInjection
             PaymentContractJobOperations>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
-        services.AddScoped<SmartCourt.Features.Case.GetUserCases.IGetUserCasesService, SmartCourt.Features.Case.GetUserCases.GetUserCasesService>();
 
 
         services.AddOptions<PaymentProviderOptions>()
