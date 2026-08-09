@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Common.Exceptions;
@@ -28,6 +29,9 @@ namespace SmartCourt.Tests.Features.Contracts;
 
 public sealed class ContractServiceIntegrationTests : IAsyncLifetime
 {
+    private static readonly JsonSerializerOptions EventJsonOptions = new(
+        JsonSerializerDefaults.Web);
+
     private readonly string _databaseName =
         $"SmartCourtContractServiceTests_{Guid.NewGuid():N}";
     private readonly DateTime _utcNow =
@@ -166,6 +170,17 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         var saved = await context.Contracts.SingleAsync();
         Assert.Null(saved.AcceptedByClientAt);
         Assert.Null(saved.AcceptedByLawyerAt);
+        var draftUpdatedEvent = Assert.Single(
+            await context.OutboxMessages.Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractDraftUpdated)
+                .ToListAsync());
+        Assert.Equal(1, draftUpdatedEvent.EventVersion);
+        var draftUpdatedPayload = JsonSerializer.Deserialize<
+            ContractDraftUpdatedEventPayload>(
+                draftUpdatedEvent.Payload,
+                EventJsonOptions);
+        Assert.Equal(contract.Id, draftUpdatedPayload!.ContractId);
 
         var exception = await Assert.ThrowsAsync<ConflictException>(() =>
             service.UpdateDraftAsync(
@@ -240,6 +255,25 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     item.EventType
                     == ContractPaymentEventTypes.ContractActivated)
                 .ToListAsync());
+        var acceptanceEvents = await context.OutboxMessages
+            .Where(item =>
+                item.EventType == ContractPaymentEventTypes.ContractAccepted)
+            .OrderBy(item => item.CreatedAt)
+            .ToListAsync();
+        Assert.Equal(2, acceptanceEvents.Count);
+        Assert.All(acceptanceEvents, item => Assert.Equal(2, item.EventVersion));
+        var acceptancePayloads = acceptanceEvents.Select(item =>
+                JsonSerializer.Deserialize<
+                    ContractAcceptanceRecordedEventPayload>(
+                        item.Payload,
+                        EventJsonOptions)!)
+            .ToArray();
+        Assert.Contains(acceptancePayloads, payload =>
+            payload.AcceptedByUserId == _clientUserId
+            && payload.RequiresCounterpartyAcceptance);
+        Assert.Contains(acceptancePayloads, payload =>
+            payload.AcceptedByUserId == _lawyerUserId
+            && !payload.RequiresCounterpartyAcceptance);
         Assert.Empty(await context.PaymentTransactions.ToListAsync());
         Assert.Empty(await context.EscrowHolds.ToListAsync());
 
@@ -626,6 +660,17 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             contract.LegalCaseId.ToString(),
             terminationEvent.Payload,
             StringComparison.OrdinalIgnoreCase);
+        var requestEvent = Assert.Single(
+            await context.OutboxMessages.Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractTerminationRequested)
+                .ToListAsync());
+        var requestPayload = JsonSerializer.Deserialize<
+            ContractTerminationRequestedEventPayload>(
+                requestEvent.Payload,
+                EventJsonOptions);
+        Assert.Equal(contract.Id, requestPayload!.ContractId);
+        Assert.Equal(_clientUserId, requestPayload.RequestedByUserId);
     }
 
     [Fact]
@@ -671,6 +716,16 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(_clientUserId, contract.TerminatedByUserId);
         Assert.NotNull(contract.TerminationReason);
         Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+        Assert.Single(
+            await context.OutboxMessages.Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractTerminationRequested)
+                .ToListAsync());
+        Assert.Empty(
+            await context.OutboxMessages.Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractTerminated)
+                .ToListAsync());
     }
 
     [Fact]

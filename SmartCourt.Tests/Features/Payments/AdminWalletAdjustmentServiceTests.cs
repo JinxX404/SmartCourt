@@ -9,6 +9,7 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using Xunit;
@@ -63,6 +64,15 @@ public sealed class AdminWalletAdjustmentServiceTests
         Assert.Equal(adjustment.Id, ledger.ReferenceId);
         Assert.Equal(adjustment.LedgerEntryId, ledger.Id);
         Assert.True(idempotency.Completed);
+        var outbox = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(ContractPaymentEventTypes.WalletAdjusted, outbox.EventType);
+        var payload = JsonSerializer.Deserialize<WalletAdjustedEventPayload>(
+            outbox.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(payload);
+        Assert.Equal(adjustment.Id, payload.WalletAdjustmentId);
+        Assert.Equal(state.Contract.LawyerUserId, payload.LawyerUserId);
+        Assert.Equal(state.Contract.Id, payload.ContractId);
     }
 
     [Fact]
@@ -98,6 +108,7 @@ public sealed class AdminWalletAdjustmentServiceTests
         Assert.Equal(first, replay);
         Assert.Single(await context.WalletAdjustments.ToListAsync());
         Assert.Single(await context.EscrowLedgerEntries.ToListAsync());
+        Assert.Single(await context.OutboxMessages.ToListAsync());
         Assert.Equal(225m, state.Wallet.AvailableBalance);
     }
 
@@ -125,6 +136,7 @@ public sealed class AdminWalletAdjustmentServiceTests
                 CancellationToken.None));
         Assert.Empty(await context.WalletAdjustments.ToListAsync());
         Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
+        Assert.Empty(await context.OutboxMessages.ToListAsync());
     }
 
     [Fact]
@@ -152,6 +164,7 @@ public sealed class AdminWalletAdjustmentServiceTests
         Assert.Equal(500m, state.Wallet.PendingBalance);
         Assert.Empty(await context.WalletAdjustments.ToListAsync());
         Assert.Empty(await context.EscrowLedgerEntries.ToListAsync());
+        Assert.Empty(await context.OutboxMessages.ToListAsync());
     }
 
     private static AdminWalletAdjustmentService CreateService(
@@ -173,6 +186,7 @@ public sealed class AdminWalletAdjustmentServiceTests
                     CanActAsFinanceAdministrator: true,
                     CanActAsSuperAdministrator: isSuperAdministrator)),
             idempotencyService,
+            new OutboxWriter(context, new FixedTimeProvider()),
             new FixedTimeProvider());
     }
 

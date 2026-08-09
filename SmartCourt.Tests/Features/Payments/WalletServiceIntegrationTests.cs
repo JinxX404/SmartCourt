@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
@@ -106,6 +108,17 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(
             IdempotencyStatus.Completed,
             (await context.IdempotencyRecords.SingleAsync()).Status);
+        var completedEvent = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.WithdrawalCompleted,
+            completedEvent.EventType);
+        var completedPayload = JsonSerializer.Deserialize<
+            WithdrawalOutcomeEventPayload>(
+                completedEvent.Payload,
+                new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(completedPayload);
+        Assert.Equal(withdrawal.Id, completedPayload.WithdrawalId);
+        Assert.Equal(_lawyerUserId, completedPayload.LawyerUserId);
     }
 
     [Fact]
@@ -136,6 +149,10 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(
             IdempotencyStatus.Failed,
             (await context.IdempotencyRecords.SingleAsync()).Status);
+        var failedEvent = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.WithdrawalFailed,
+            failedEvent.EventType);
 
         await Assert.ThrowsAsync<BusinessException>(() =>
             service.WithdrawAsync(
@@ -208,6 +225,9 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
             600m,
             (await context.LawyerWallets.SingleAsync())
                 .AvailableBalance);
+        Assert.Equal(
+            ContractPaymentEventTypes.WithdrawalCompleted,
+            (await context.OutboxMessages.SingleAsync()).EventType);
     }
 
     [Fact]
@@ -247,11 +267,15 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(
             600m,
             (await context.LawyerWallets.SingleAsync()).AvailableBalance);
+        Assert.Equal(
+            ContractPaymentEventTypes.WithdrawalDelayed,
+            (await context.OutboxMessages.SingleAsync()).EventType);
 
         var replay = await reconciliationService
             .ReconcilePendingWithdrawalsAsync(CancellationToken.None);
         Assert.Equal(JobExecutionOutcome.NoOp, replay.Outcome);
         Assert.Equal(1, logger.CriticalCount);
+        Assert.Single(await context.OutboxMessages.ToListAsync());
     }
 
     [Fact]
@@ -364,6 +388,7 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
                 context,
                 new CanonicalIdempotencyRequestHasher(),
                 timeProvider),
+            new OutboxWriter(context, timeProvider),
             timeProvider,
             Options.Create(new PaymentProviderOptions()),
             logger ?? NullLogger<WalletService>.Instance);

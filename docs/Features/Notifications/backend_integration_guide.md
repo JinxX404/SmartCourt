@@ -45,9 +45,9 @@ The Notifications slice currently consumes version `1` of these existing proposa
 
 | Source event | Recipient | Notification type | Severity | Title | Body |
 |---|---|---|---|---|---|
-| `ProposalCreated` | `LawyerUserId` | `proposal.created` | `Information` | `New proposal` | `A client sent you a new proposal.` |
-| `ProposalAccepted` | `ClientUserId` | `proposal.accepted` | `Success` | `Proposal accepted` | `A lawyer accepted your proposal.` |
-| `ProposalRejected` | `ClientUserId` | `proposal.rejected` | `Warning` | `Proposal rejected` | `A lawyer rejected your proposal.` |
+| `ProposalCreated` | `LawyerUserId` | `proposal.created` | `Information` | `عرض جديد` | `أرسل إليك موكل عرضًا جديدًا لمراجعته.` |
+| `ProposalAccepted` | `ClientUserId` | `proposal.accepted` | `Success` | `تم قبول العرض` | `وافق المحامي على عرضك.` |
+| `ProposalRejected` | `ClientUserId` | `proposal.rejected` | `Warning` | `تم رفض العرض` | `رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.` |
 
 All three mappings use:
 
@@ -56,16 +56,72 @@ All three mappings use:
 - source event ID: the persisted outbox message ID;
 - creation time: the outbox message's UTC creation time.
 
-The implementation is in `Features/Notifications/Events/ProposalNotificationOutboxHandler.cs` and `ProposalNotificationMapper.cs`.
+The event-specific implementation is in `Features/Notifications/Events/ProposalNotificationEventMapper.cs`. The shared `NotificationOutboxHandler.cs` owns idempotent persistence and SignalR delivery for every registered notification mapper.
+
+The Contracts integration currently consumes these semantic facts:
+
+| Source event | Recipient | Notification type | Severity | Arabic title |
+|---|---|---|---|---|
+| `ContractCreated` V1 | Client | `contract.created` | `Information` | `مسودة عقد جديدة` |
+| `ContractDraftUpdated` V1 | Client | `contract.draft-updated` | `Warning` | `تم تحديث مسودة العقد` |
+| `ContractAccepted` V2, first participant only | Other participant | `contract.acceptance-recorded` | `Information` | `موافقة جديدة على العقد` |
+| `ContractActivated` V1 | Client and Lawyer | `contract.activated` | `Success` | `تم تفعيل العقد` |
+| `ContractCompleted` V1 | Client and Lawyer | `contract.completed` | `Success` | `اكتمل العقد` |
+| `ContractTerminationRequested` V1 | Counterparty; requester also while settlement remains pending | `contract.termination-requested` | `Warning` | `تم طلب إنهاء العقد` |
+| `ContractTerminated` V1 | Client and Lawyer | `contract.terminated` | `Warning` | `تم إنهاء العقد` |
+
+Every Contract notification has `actionUrl: null` until the frontend team approves a Contract route. Its `data` contains string GUID values for `contractId`, `proposalId`, and `legalCaseId`. Historical `ContractAccepted` V1 messages are consumed as safe no-ops because they did not record the accepting actor; guessing a recipient from current state could notify the wrong participant.
+
+The Milestones integration consumes these version `1` semantic facts:
+
+| Source event | Recipient | Notification type | Severity |
+|---|---|---|---|
+| `MilestoneCreated` | Other participant | `milestone.created` | `Information` |
+| `MilestoneDraftUpdated` | Other participant | `milestone.draft-updated` | `Warning` |
+| `MilestoneAcceptanceRecorded` | Participant whose approval is still required | `milestone.acceptance-recorded` | `Information` |
+| `MilestoneApproved` | Client and Lawyer | `milestone.approved` | `Success` |
+| `MilestoneReadyForFunding` | Client | `milestone.ready-for-funding` | `Information` |
+| `MilestoneSubmitted` | Client | `milestone.submitted` | `Information` |
+| `MilestoneChangesRequested` | Lawyer | `milestone.changes-requested` | `Warning` |
+| `MilestoneAccepted` | Lawyer | `milestone.accepted` | `Success` |
+| `MilestoneAutoAccepted` | Client / Lawyer | `milestone.auto-accepted` | `Warning` / `Success` |
+| `MilestoneChangeRequestCreated` | Other participant | `milestone.change-request-created` | `Information` |
+| `MilestoneChangeRequestApproved` | Requester | `milestone.change-request-approved` | `Success` |
+| `MilestoneChangeRequestRejected` | Requester | `milestone.change-request-rejected` | `Warning` |
+| `MilestoneChangeRequestCancelled` | Other participant | `milestone.change-request-cancelled` | `Information` |
+
+Every Milestone notification has `actionUrl: null` and string GUID values for `milestoneId`, `contractId`, `proposalId`, and `legalCaseId`; formal change-request items additionally contain `changeRequestId`. `MilestoneNotificationEventMapper` gets recipient and relationship facts through the Milestones-owned `IMilestoneNotificationContextReader`. It never trusts a request-provided recipient and never copies milestone descriptions, notes, reasons, amounts, or file identifiers into the notification.
+
+For new Milestone actions, follow the same small extension pattern: emit or reuse a semantic outbox fact inside the existing Milestone transaction, then extend `MilestoneNotificationEventMapper`. Do not call the notification service from `MilestoneService`, and do not add notification code to a controller. The implemented draft and participant-approval events are the reference examples when an existing lifecycle event is not sufficient.
+
+The Payments/Wallet integration consumes these version `1` facts:
+
+| Source event | Recipient | Notification type | Severity |
+|---|---|---|---|
+| `MilestoneFundingStarted` | Lawyer | `milestone.funding-started` | `Information` |
+| `MilestoneFunded` | Client and Lawyer | `milestone.funded` | `Success` |
+| `MilestoneFundingFailed` | Client | `milestone.funding-failed` | `Critical` |
+| `FundsReleased` | Client and Lawyer | `funds.released` | `Success` |
+| `FundsRefunded` | Client / Lawyer | `funds.refunded` | `Success` / `Information` |
+| `WithdrawalCompleted` | Lawyer | `wallet.withdrawal-completed` | `Success` |
+| `WithdrawalFailed` | Lawyer | `wallet.withdrawal-failed` | `Warning` |
+| `WithdrawalDelayed` | Lawyer | `wallet.withdrawal-delayed` | `Warning` |
+| `WalletAdjusted` | Lawyer | `wallet.adjusted` | `Warning` |
+
+`PaymentNotificationEventMapper` reuses `IMilestoneNotificationContextReader` for funding and settlement relationships and uses the Payments-owned `IPaymentNotificationContextReader` for withdrawals and adjustments. The reader resolves recipients from committed authoritative rows; payload recipient IDs are checked against those rows rather than trusted. Existing funding/release/refund events require no producer change. `WalletService` emits withdrawal outcomes only at real completed, failed, or SLA-delayed transitions, while `AdminWalletAdjustmentService` emits `WalletAdjusted` inside its existing serializable transaction.
+
+All Payments/Wallet notifications use `actionUrl: null`. Funding data is `milestoneId`, `contractId`, `proposalId`, and `legalCaseId`; settlement data additionally contains `escrowHoldId` and `paymentTransactionId`; withdrawal data contains only `withdrawalId`; adjustment data contains `walletAdjustmentId` and `contractId`. Amounts, currency, payment/destination references, provider identifiers, failure details, administrative reasons, and idempotency keys are never copied into the inbox payload.
 
 ## Quick start: add notifications for your slice
+
+Before adding a trigger, check the [Notification Opportunity Catalog](./notification_opportunity_catalog.md). It records the agreed candidate story, recipient, priority, proposed type, and whether an existing event can be reused. The catalog is analysis, so selecting a story for implementation still requires inclusion in an approved integration plan.
 
 For a normal slice integration, the team member changes **two areas only**:
 
 | Area | What to add |
 |---|---|
 | Your owning slice | A small business event payload and one `IOutboxWriter.EnqueueAsync(...)` call inside the existing business transaction. Skip this when a suitable outbox event already exists. |
-| `Features/Notifications/Events` | A mapper/handler that converts that event into an in-app notification, plus one DI registration. |
+| `Features/Notifications/Events` | One `INotificationEventMapper` that converts the event into one or more in-app notification drafts, plus one DI registration. |
 
 You do **not** add or change a notification controller, hub, entity, migration, REST endpoint, or frontend file for each slice.
 
@@ -117,102 +173,88 @@ await dbContext.SaveChangesAsync(cancellationToken);
 
 `correlationId` should be the operation's existing correlation ID when one is available; otherwise create it once for the operation. Do not create a different correlation ID for every related event.
 
-#### Step 3: add the Notifications-side mapping
+#### Step 3: add one Notifications-side event mapper
 
-Create `Features/Notifications/Events/CaseReviewNotificationMapper.cs`. This file owns recipient selection and user-visible copy:
+Create `Features/Notifications/Events/CaseReviewNotificationEventMapper.cs`. This file owns payload validation, recipient selection, and user-visible Arabic copy. It does not persist or broadcast anything:
 
 ```csharp
-internal static class CaseReviewNotificationMapper
+internal sealed class CaseReviewNotificationEventMapper
+    : INotificationEventMapper
 {
-    public static CaseReviewNotificationDefinition Map(
-        CaseReviewCompletedV1 payload)
+    public IReadOnlyCollection<string> EventTypes =>
+        [CaseReviewEventTypes.Completed];
+
+    public Task<IReadOnlyCollection<NotificationDraft>> MapAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken)
     {
-        return new CaseReviewNotificationDefinition(
+        if (message.EventVersion != 1)
+        {
+            throw new InvalidOperationException(
+                $"Case review notification event version {message.EventVersion} is unsupported.");
+        }
+
+        var payload = JsonSerializer.Deserialize<CaseReviewCompletedV1>(
+            message.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException(
+                "Case review notification payload is invalid.");
+
+        if (payload.CaseReviewId == Guid.Empty
+            || payload.CaseReviewId != message.AggregateId)
+        {
+            throw new InvalidOperationException(
+                "Case review aggregate and payload identifiers do not match.");
+        }
+
+        NotificationDraft draft = new(
             RecipientUserId: payload.ClientUserId,
             Type: "case-review.completed",
             Severity: NotificationSeverity.Success,
-            Title: "Case review completed",
-            Body: "Your case review is ready.",
-            ActionUrl: $"/case-reviews/{payload.CaseReviewId}",
+            Title: "اكتملت مراجعة القضية",
+            Body: "مراجعة قضيتك جاهزة الآن.",
+            ActionUrl: null,
             Data: new Dictionary<string, string>
             {
                 ["caseReviewId"] = payload.CaseReviewId.ToString()
             });
+
+        return Task.FromResult<IReadOnlyCollection<NotificationDraft>>([draft]);
     }
 }
-
-internal sealed record CaseReviewNotificationDefinition(
-    Guid RecipientUserId,
-    string Type,
-    NotificationSeverity Severity,
-    string Title,
-    string Body,
-    string ActionUrl,
-    IReadOnlyDictionary<string, string> Data);
 ```
 
-The example text and route are illustrative; use product-approved plain text and a real frontend route. Never accept title, body, severity, or action URL directly from the HTTP request.
+The example text is illustrative. SmartCourt notification titles and bodies are Arabic by default; machine contracts such as event types, notification types, and `data` keys remain English. Leave `ActionUrl` as `null` until the frontend team confirms a real route. Never accept title, body, severity, or action URL directly from the HTTP request.
 
-#### Step 4: add the outbox handler
+#### What is stored, and when the mapper runs
 
-Create `Features/Notifications/Events/CaseReviewNotificationOutboxHandler.cs`. The fastest safe approach is to copy `ProposalNotificationOutboxHandler` and change only:
+The mapper runs once when the outbox dispatcher handles the committed source event. Its Arabic `Title` and `Body` are materialized into the `Notifications` row at that time. REST reads and SignalR recovery read that persisted snapshot; they do not rerun the mapper.
 
-- `EventTypes` to `CaseReviewEventTypes.Completed`;
-- payload type to `CaseReviewCompletedV1`;
-- payload/aggregate validation to `CaseReviewId`;
-- mapping call to `CaseReviewNotificationMapper.Map(payload)`.
+The following values intentionally remain English because they are machine contracts, not display copy:
 
-The resulting handler must retain this materialization pattern:
+- outbox `EventType`, such as `ContractCompleted`;
+- notification `Type`, such as `contract.completed`;
+- `data` keys, such as `contractId` and `milestoneId`.
 
-```csharp
-var definition = CaseReviewNotificationMapper.Map(payload);
+Changing mapper copy affects only notifications created from subsequently dispatched events. It does not rewrite historical rows. If historical display copy ever needs correction, use an explicit reviewed data migration rather than relying on mapper execution during reads.
 
-var notification = await dbContext.Notifications
-    .SingleOrDefaultAsync(item =>
-        item.SourceEventId == message.Id
-        && item.RecipientUserId == definition.RecipientUserId
-        && item.Type == definition.Type,
-        cancellationToken);
+#### Step 4: register the mapper
 
-if (notification is null)
-{
-    notification = Notification.Create(
-        id: Guid.NewGuid(),
-        recipientUserId: definition.RecipientUserId,
-        sourceEventId: message.Id,
-        type: definition.Type,
-        severity: definition.Severity,
-        title: definition.Title,
-        body: definition.Body,
-        actionUrl: definition.ActionUrl,
-        dataJson: NotificationJson.Serialize(definition.Data),
-        createdAtUtc: DateTime.SpecifyKind(
-            message.CreatedAt,
-            DateTimeKind.Utc));
-
-    dbContext.Notifications.Add(notification);
-    await dbContext.SaveChangesAsync(cancellationToken);
-}
-
-await realtimeNotifier.NotificationCreatedAsync(
-    notification.RecipientUserId,
-    NotificationMapper.ToDto(notification),
-    cancellationToken);
-```
-
-Do not remove the lookup. The outbox can retry, and that lookup plus the database unique key prevents duplicate inbox rows.
-
-#### Step 5: register the handler
-
-Add one scoped registration in `DependencyInjection.cs` next to the existing notification handler:
+Add one scoped mapper registration in `DependencyInjection.cs` next to the Proposal mapper:
 
 ```csharp
 services.AddScoped<
-    IOutboxEventHandler,
-    CaseReviewNotificationOutboxHandler>();
+    INotificationEventMapper,
+    CaseReviewNotificationEventMapper>();
 ```
 
-No controller or hub registration is required for the new notification type.
+Do not add another `IOutboxEventHandler`. The existing shared `NotificationOutboxHandler` automatically advertises all registered mapper event types, materializes each draft using the database uniqueness rule, saves the batch once, and broadcasts the persisted DTOs. It rejects duplicate mapper ownership of the same event type during dependency activation.
+
+#### Step 5: add mapper tests
+
+Cover the supported event/version, exact Arabic copy, authoritative recipient, aggregate/payload mismatch, retry idempotency, and expected `data`. No controller or hub registration is required for a new notification type.
 
 #### Step 6: verify it
 
@@ -234,13 +276,12 @@ For one new notification type, the expected change set is usually:
 SmartCourt/Features/<YourSlice>/Events/<YourSlice>EventTypes.cs
 SmartCourt/Features/<YourSlice>/Events/<YourEvent>V1.cs
 SmartCourt/Features/<YourSlice>/<BusinessServiceOrHandler>.cs
-SmartCourt/Features/Notifications/Events/<YourSlice>NotificationMapper.cs
-SmartCourt/Features/Notifications/Events/<YourSlice>NotificationOutboxHandler.cs
+SmartCourt/Features/Notifications/Events/<YourSlice>NotificationEventMapper.cs
 SmartCourt/DependencyInjection.cs
 SmartCourt.Tests/Features/Notifications/<YourSlice>NotificationTests.cs
 ```
 
-When the semantic event already exists, the first three entries normally require no changes. The slice team adds only the Notifications mapper/handler, registration, and tests.
+When the semantic event already exists, the first three entries normally require no changes. The slice team adds only the Notifications mapper, registration, and tests.
 
 ### When this quick path is not appropriate
 
@@ -298,21 +339,18 @@ Required ordering:
 
 If the operation uses an explicit transaction and multiple saves, ensure both the business mutation and outbox row are inside that transaction. A rollback must remove both.
 
-### 3. Map and consume the event inside Notifications
+### 3. Map the event inside Notifications
 
-Add a Notifications-owned mapper and an `IOutboxEventHandler` implementation. The handler must:
+Add one Notifications-owned `INotificationEventMapper`. The mapper must:
 
 1. advertise its supported event types through `EventTypes`;
 2. reject unsupported event versions;
 3. deserialize with the repository JSON conventions;
 4. validate required IDs and aggregate/payload consistency;
-5. resolve a trusted recipient from authoritative event data or database state;
-6. map the event to server-owned plain text, severity, safe relative route, and small metadata;
-7. look up the unique `(SourceEventId, RecipientUserId, Type)` materialization;
-8. insert only when that row does not exist;
-9. broadcast the persisted `NotificationDto` after the row exists.
+5. resolve trusted recipients from authoritative event data or database state;
+6. return zero, one, or several `NotificationDraft` values containing server-owned Arabic plain text, severity, an optional safe relative route, and small metadata.
 
-Register the handler as an `IOutboxEventHandler` in `DependencyInjection.cs`. Do not register it as a MediatR request/notification handler.
+Register it as `INotificationEventMapper` in `DependencyInjection.cs`. The shared `NotificationOutboxHandler` owns the unique `(SourceEventId, RecipientUserId, Type)` lookup, insertion, one-batch save, and post-persistence SignalR broadcast. Do not reproduce that infrastructure in a slice mapper and do not register a MediatR request/notification handler.
 
 ### 4. Add tests before enabling the mapping
 
@@ -448,5 +486,7 @@ A later approved increment may add server-owned fallback policies and delivery-a
 ## Related documentation
 
 - [Architecture Decision](./architecture.md)
+- [Notification Opportunity Catalog](./notification_opportunity_catalog.md)
 - [Frontend/API Contract](./frontend_integration_guide.md)
 - [Implemented Plan and Verification](./implementation_plan.md)
+- [Milestones Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/MilestonesNotifications_Report.md)

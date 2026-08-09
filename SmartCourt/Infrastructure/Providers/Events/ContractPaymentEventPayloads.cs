@@ -20,6 +20,10 @@ public sealed record MilestoneAcceptanceEventPayload(
     Guid MilestoneId,
     Guid EscrowHoldId);
 
+public sealed record MilestoneParticipantEventPayload(
+    Guid MilestoneId,
+    Guid ActorUserId);
+
 public sealed record FundsReleasedEventPayload(
     Guid MilestoneId,
     Guid EscrowHoldId,
@@ -33,6 +37,15 @@ public sealed record FundsRefundedEventPayload(
     Guid PaymentTransactionId,
     decimal ClientRefundAmount);
 
+public sealed record WithdrawalOutcomeEventPayload(
+    Guid WithdrawalId,
+    Guid LawyerUserId);
+
+public sealed record WalletAdjustedEventPayload(
+    Guid WalletAdjustmentId,
+    Guid LawyerUserId,
+    Guid ContractId);
+
 public sealed record MilestoneChangeRequestEventPayload(
     Guid MilestoneId,
     Guid ChangeRequestId,
@@ -40,6 +53,18 @@ public sealed record MilestoneChangeRequestEventPayload(
 
 public sealed record ContractPaymentAggregateEventPayload(
     Guid EntityId);
+
+public sealed record ContractDraftUpdatedEventPayload(
+    Guid ContractId);
+
+public sealed record ContractAcceptanceRecordedEventPayload(
+    Guid ContractId,
+    Guid AcceptedByUserId,
+    bool RequiresCounterpartyAcceptance);
+
+public sealed record ContractTerminationRequestedEventPayload(
+    Guid ContractId,
+    Guid RequestedByUserId);
 
 public sealed record ContractActivationRequestedEventPayload(
     Guid ContractId,

@@ -140,6 +140,7 @@ public sealed class ContractService
         CancellationToken cancellationToken)
     {
         var actorUserId = GetActorUserId();
+        var correlationId = Guid.NewGuid();
         await using var transaction =
             await _dbContext.Database.BeginTransactionAsync(
                 cancellationToken);
@@ -164,6 +165,10 @@ public sealed class ContractService
         contract.AcceptedByClientAt = null;
         contract.AcceptedByLawyerAt = null;
         contract.UpdatedAt = UtcNow;
+        await EnqueueContractDraftUpdatedEventAsync(
+            contract.Id,
+            correlationId,
+            cancellationToken);
         await SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return await MapDetailAsync(contract, cancellationToken);
@@ -213,9 +218,9 @@ public sealed class ContractService
         }
 
         contract.UpdatedAt = now;
-        await EnqueueContractEventAsync(
-            ContractPaymentEventTypes.ContractAccepted,
-            contract.Id,
+        await EnqueueContractAcceptanceEventAsync(
+            contract,
+            actorUserId,
             correlationId,
             cancellationToken);
         await TryActivateAsync(
@@ -435,7 +440,8 @@ public sealed class ContractService
                 "لا يمكن إنهاء عقد مكتمل أو منتهٍ.");
         }
 
-        if (contract.TerminatedByUserId.HasValue
+        var isFirstTerminationRequest = !contract.TerminatedByUserId.HasValue;
+        if (!isFirstTerminationRequest
             && (contract.TerminatedByUserId != actorUserId
                 || !string.Equals(
                     contract.TerminationReason,
@@ -449,6 +455,14 @@ public sealed class ContractService
         contract.TerminationReason = request.Reason;
         contract.TerminatedByUserId = actorUserId;
         contract.UpdatedAt = UtcNow;
+        if (isFirstTerminationRequest)
+        {
+            await EnqueueContractTerminationRequestedEventAsync(
+                contract.Id,
+                actorUserId,
+                correlationId,
+                cancellationToken);
+        }
         await SaveChangesAsync(cancellationToken);
 
         var settlement = await SettleTerminationIfRequiredAsync(
@@ -1021,6 +1035,62 @@ public sealed class ContractService
                     actorUserId),
                 "Contract",
                 contract.Id,
+                correlationId),
+            cancellationToken);
+    }
+
+    private async Task EnqueueContractDraftUpdatedEventAsync(
+        Guid contractId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.ContractDraftUpdated,
+                1,
+                new ContractDraftUpdatedEventPayload(contractId),
+                "Contract",
+                contractId,
+                correlationId),
+            cancellationToken);
+    }
+
+    private async Task EnqueueContractAcceptanceEventAsync(
+        Contract contract,
+        Guid actorUserId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.ContractAccepted,
+                2,
+                new ContractAcceptanceRecordedEventPayload(
+                    contract.Id,
+                    actorUserId,
+                    !contract.AcceptedByClientAt.HasValue
+                    || !contract.AcceptedByLawyerAt.HasValue),
+                "Contract",
+                contract.Id,
+                correlationId),
+            cancellationToken);
+    }
+
+    private async Task EnqueueContractTerminationRequestedEventAsync(
+        Guid contractId,
+        Guid actorUserId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.ContractTerminationRequested,
+                1,
+                new ContractTerminationRequestedEventPayload(
+                    contractId,
+                    actorUserId),
+                "Contract",
+                contractId,
                 correlationId),
             cancellationToken);
     }

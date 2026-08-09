@@ -30,6 +30,7 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Events;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Providers.Jobs;
 using SmartCourt.Providers.Payments;
@@ -40,10 +41,12 @@ using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Milestones.Integration;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
+using SmartCourt.Features.Contracts.Integration;
 
 using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
@@ -176,7 +179,11 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
-        services.AddScoped<IOutboxEventHandler, ProposalNotificationOutboxHandler>();
+        services.AddScoped<INotificationEventMapper, ProposalNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, ContractNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
+        services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<
             INotificationRealtimeNotifier,
@@ -227,11 +234,17 @@ public static class DependencyInjection
             ContractService>();
         services.AddScoped<IContractQueryService, ContractQueryService>();
         services.AddScoped<
+            IContractNotificationContextReader,
+            ContractNotificationContextReader>();
+        services.AddScoped<
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IMilestoneDraftService, MilestoneDraftService>();
         services.AddScoped<IMilestoneChangeRequestService, MilestoneChangeRequestService>();
+        services.AddScoped<
+            IMilestoneNotificationContextReader,
+            MilestoneNotificationContextReader>();
         services.AddScoped<
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
@@ -240,6 +253,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<
+            IPaymentNotificationContextReader,
+            PaymentNotificationContextReader>();
         services.AddScoped<
             IAdminWalletAdjustmentService,
             AdminWalletAdjustmentService>();

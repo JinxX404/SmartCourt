@@ -111,8 +111,8 @@ public sealed class NotificationApiTests(
             Guid.NewGuid(),
             "proposal.created",
             NotificationSeverity.Information,
-            "New proposal",
-            "A client sent you a new proposal.",
+            "عرض جديد",
+            "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
             $"/proposals/{Guid.NewGuid()}",
             "{\"proposalId\":\"test\"}",
             now);
