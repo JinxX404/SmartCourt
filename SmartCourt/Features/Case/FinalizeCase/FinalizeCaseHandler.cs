@@ -47,17 +47,18 @@ public class FinalizeCaseHandler(
             throw new ForbiddenAccessException("ليس لديك صلاحية لإتمام هذه القضية.");
         }
 
+        if (caseEntity.Status != CaseStatus.Submitted &&
+            caseEntity.Status != CaseStatus.Reviewed &&
+            caseEntity.Status != CaseStatus.Matched)
+        {
+            throw new BusinessException("لا يمكن إتمام القضية إلا إذا كانت في حالة التقديم أو المراجعة.");
+        }
+
         // Idempotency: if case is already Matched, return existing recommendations
         if (caseEntity.Status == CaseStatus.Matched)
         {
             var existingResult = await _matchingService.GetRecommendationsAsync(request.CaseId, currentUserId, cancellationToken);
             return ApiResponse<FinalizeResultDto>.Ok(existingResult);
-        }
-
-        // Precondition: Case must be in Reviewed status
-        if (caseEntity.Status != CaseStatus.Reviewed)
-        {
-            throw new BusinessException("لا يمكن إتمام القضية. يجب أن تكون القضية في حالة تم مراجعتها (Reviewed).");
         }
 
         // Execute orchestration pipeline within a transaction
