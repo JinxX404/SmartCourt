@@ -14,6 +14,8 @@ namespace SmartCourt.Entities
         public ClientProfile ClientProfile { get; set; } = null!;
         public CaseStatus Status { get; set; }
         public DateTime? SubmittedAt { get; set; }
+        public Guid? LawyerId { get; set; }
+        public LawyerProfile? LawyerProfile { get; set; }
         public ICollection<CaseDocument> Documents { get; set; } = new List<CaseDocument>();
         public CaseProfile? CaseProfile { get; set; }
         public ICollection<CaseReviewReport> ReviewReports { get; set; } = new List<CaseReviewReport>();

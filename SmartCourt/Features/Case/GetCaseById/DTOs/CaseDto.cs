@@ -6,6 +6,7 @@ namespace SmartCourt.Features.Case.GetCaseById.DTOs
     {
         public Guid Id { get; set; }
         public Guid ClientId { get; set; }
+        public Guid? LawyerId { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
         public string? Governorate { get; set; }

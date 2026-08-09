@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
 using SmartCourt.Persistence;
 using SmartCourt.Features.Case.GetCaseById.DTOs;
+using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Proposals.Enums;
 
 namespace SmartCourt.Features.Case.GetCaseById;
 
@@ -25,10 +27,19 @@ public class GetCaseByIdHandler : IRequestHandler<GetCaseByIdQuery, ApiResponse<
         if (existing == null)
             return ApiResponse<CaseDto>.Fail(new List<string>{"Case not found"}, 404);
 
+        var lawyerId = existing.LawyerId ?? await _context.Contracts
+            .Where(ct => ct.LegalCaseId == existing.Id && ct.Status != ContractStatus.Terminated)
+            .Select(ct => (Guid?)ct.LawyerUserId)
+            .FirstOrDefaultAsync(cancellationToken) ?? await _context.Proposals
+            .Where(p => p.LegalCaseId == existing.Id && p.Status == ProposalStatus.Accepted)
+            .Select(p => (Guid?)p.LawyerUserId)
+            .FirstOrDefaultAsync(cancellationToken);
+
         var dto = new CaseDto
         {
             Id = existing.Id,
             ClientId = existing.ClientId,
+            LawyerId = lawyerId,
             Title = existing.Title,
             Description = existing.Description,
             Governorate = existing.Governorate,
