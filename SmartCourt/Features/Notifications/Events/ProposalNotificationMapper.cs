@@ -42,8 +42,51 @@ internal static class ProposalNotificationMapper
                 "A lawyer rejected your proposal.",
                 actionUrl,
                 data),
+            ContractPaymentEventTypes.ProposalCancelled => new(
+                payload.LawyerUserId,
+                "proposal.cancelled",
+                NotificationSeverity.Information,
+                "Proposal cancelled",
+                "A client cancelled a pending proposal.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalExpired => new(
+                payload.ClientUserId,
+                "proposal.expired",
+                NotificationSeverity.Warning,
+                "Proposal expired",
+                "A lawyer did not respond to your proposal within three days.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalTerminated => new(
+                GetOtherParticipant(payload),
+                "proposal.terminated",
+                NotificationSeverity.Warning,
+                "Negotiation ended",
+                "The proposal negotiation was ended by the other participant.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalSuperseded => new(
+                payload.LawyerUserId,
+                "proposal.superseded",
+                NotificationSeverity.Information,
+                "Proposal closed",
+                "The client activated another contract for this case.",
+                actionUrl,
+                data),
             _ => throw new InvalidOperationException(
                 $"Proposal notification event type '{eventType}' is unsupported.")
+        };
+    }
+
+    private static Guid GetOtherParticipant(ProposalEventPayload payload)
+    {
+        return payload.ActorUserId switch
+        {
+            var actor when actor == payload.ClientUserId => payload.LawyerUserId,
+            var actor when actor == payload.LawyerUserId => payload.ClientUserId,
+            _ => throw new InvalidOperationException(
+                "A terminated proposal event requires a valid participant actor.")
         };
     }
 }

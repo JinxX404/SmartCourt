@@ -10,54 +10,33 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
-namespace SmartCourt.Features.Proposals.RejectProposal;
+namespace SmartCourt.Features.Proposals.CancelProposal;
 
-public sealed class RejectProposalHandler(
+public sealed class CancelProposalHandler(
     ApplicationDbContext context,
     ICurrentUserService currentUserService,
     TimeProvider timeProvider,
     IOutboxWriter outboxWriter,
-    IValidator<RejectProposalCommand> validator)
-    : IRequestHandler<RejectProposalCommand, ApiResponse<ProposalDetailDto>>
+    IValidator<CancelProposalCommand> validator)
+    : IRequestHandler<CancelProposalCommand, ApiResponse<ProposalDetailDto>>
 {
     public async Task<ApiResponse<ProposalDetailDto>> Handle(
-        RejectProposalCommand request,
+        CancelProposalCommand request,
         CancellationToken cancellationToken)
     {
-        var validationResult = await validator.ValidateAsync(
-            request,
+        var validation = await validator.ValidateAsync(request, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return ApiResponse<ProposalDetailDto>.Fail(
+                validation.Errors.Select(error => error.ErrorMessage).ToList());
+        }
+
+        var clientUserId = ProposalAccess.GetRequiredUserId(currentUserService);
+        var proposal = await context.Proposals.SingleOrDefaultAsync(
+            item => item.Id == request.ProposalId
+                && item.ClientUserId == clientUserId,
             cancellationToken);
-        if (!validationResult.IsValid)
-        {
-            return ApiResponse<ProposalDetailDto>.Fail(
-                validationResult.Errors
-                    .Select(error => error.ErrorMessage)
-                    .ToList());
-        }
-
-        if (request.ProposalId == Guid.Empty)
-        {
-            return ApiResponse<ProposalDetailDto>.Fail(
-                "Proposal ID is required.");
-        }
-
-        var lawyerUserId = ProposalAccess.GetRequiredUserId(currentUserService);
-        if (!await ProposalAccess.HasRoleAsync(
-                context,
-                lawyerUserId,
-                "Lawyer",
-                cancellationToken))
-        {
-            return ApiResponse<ProposalDetailDto>.Fail(
-                "Only lawyers can reject proposals.",
-                403);
-        }
-
-        var proposal = await context.Proposals
-            .SingleOrDefaultAsync(
-                item => item.Id == request.ProposalId,
-                cancellationToken);
-        if (proposal is null || proposal.LawyerUserId != lawyerUserId)
+        if (proposal is null)
         {
             return ApiResponse<ProposalDetailDto>.Fail(
                 "Proposal was not found.",
@@ -83,20 +62,25 @@ public sealed class RejectProposalHandler(
                     409);
             }
             return ApiResponse<ProposalDetailDto>.Fail(
-                "The proposal expired before it was rejected.",
+                "The proposal has already expired.",
                 409);
         }
 
-        proposal.Reject(request.Reason, now);
+        if (proposal.Status != ProposalStatus.Pending)
+        {
+            return ApiResponse<ProposalDetailDto>.Fail(
+                "Only a pending proposal can be cancelled.",
+                409);
+        }
 
+        proposal.Cancel(request.Reason, clientUserId, now);
         await ProposalOutbox.EnqueueAsync(
             outboxWriter,
-            ContractPaymentEventTypes.ProposalRejected,
+            ContractPaymentEventTypes.ProposalCancelled,
             proposal,
-            lawyerUserId,
+            clientUserId,
             request.Reason,
             cancellationToken);
-
         if (!await ProposalPersistence.TrySaveAsync(context, cancellationToken))
         {
             return ApiResponse<ProposalDetailDto>.Fail(
@@ -107,7 +91,7 @@ public sealed class RejectProposalHandler(
         var detail = await ProposalReadModel.FindDetailAsync(
             context,
             proposal.Id,
-            lawyerUserId,
+            clientUserId,
             cancellationToken);
         return ApiResponse<ProposalDetailDto>.Ok(detail!);
     }

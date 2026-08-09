@@ -114,7 +114,7 @@ public class GetCasesHandlerTests
     }
 
     [Fact]
-    public async Task Handle_GetCases_ReturnsLawyerIdFromAcceptedProposalWhenCaseLawyerIdIsNull()
+    public async Task Handle_GetCases_DoesNotTreatNegotiatingLawyerAsAssigned()
     {
         // Arrange
         var options = CreateSQLiteOptions();
@@ -175,7 +175,7 @@ public class GetCasesHandlerTests
             Assert.True(response.Success);
             Assert.NotNull(response.Data);
             var item = Assert.Single(response.Data);
-            Assert.Equal(lawyerId, item.LawyerId);
+            Assert.Null(item.LawyerId);
         }
     }
 

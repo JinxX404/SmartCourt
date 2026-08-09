@@ -67,6 +67,10 @@ public sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
             .HasDatabaseName("UX_Contracts_ProposalId");
         builder.HasIndex(contract => contract.Status)
             .HasDatabaseName("IX_Contracts_Status");
+        builder.HasIndex(contract => contract.LegalCaseId)
+            .HasFilter("[Status] = 1")
+            .IsUnique()
+            .HasDatabaseName("UX_Contracts_ActiveCase");
 
         builder.HasCheckConstraint(
             "CK_Contracts_Currency_EGP",

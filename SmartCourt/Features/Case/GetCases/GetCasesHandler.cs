@@ -6,7 +6,6 @@ using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using SmartCourt.Features.Case.GetCases.DTOs;
 using SmartCourt.Features.Contracts.Enums;
-using SmartCourt.Features.Proposals.Enums;
 
 namespace SmartCourt.Features.Case.GetCases;
 
@@ -58,11 +57,8 @@ public class GetCasesHandler : IRequestHandler<GetCasesQuery, ApiResponse<List<C
             c.CreatedAt,
             DocumentCount = c.Documents.Count(),
             LawyerId = c.LawyerId ?? _context.Contracts
-                .Where(ct => ct.LegalCaseId == c.Id && ct.Status != ContractStatus.Terminated)
+                .Where(ct => ct.LegalCaseId == c.Id && ct.Status == ContractStatus.Active)
                 .Select(ct => (Guid?)ct.LawyerUserId)
-                .FirstOrDefault() ?? _context.Proposals
-                .Where(p => p.LegalCaseId == c.Id && p.Status == ProposalStatus.Accepted)
-                .Select(p => (Guid?)p.LawyerUserId)
                 .FirstOrDefault()
         }).ToListAsync(cancellationToken);
 

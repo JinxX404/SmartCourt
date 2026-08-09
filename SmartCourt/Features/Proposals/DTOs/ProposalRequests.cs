@@ -6,3 +6,7 @@ public sealed record CreateProposalRequest(
     string Message);
 
 public sealed record RejectProposalRequest(string Reason);
+
+public sealed record CancelProposalRequest(string Reason);
+
+public sealed record TerminateProposalRequest(string Reason);

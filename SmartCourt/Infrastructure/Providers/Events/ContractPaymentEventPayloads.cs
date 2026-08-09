@@ -4,7 +4,9 @@ public sealed record ProposalEventPayload(
     Guid ProposalId,
     Guid LegalCaseId,
     Guid ClientUserId,
-    Guid LawyerUserId);
+    Guid LawyerUserId,
+    Guid? ActorUserId = null,
+    string? Reason = null);
 
 public sealed record MilestoneSubmissionEventPayload(
     Guid MilestoneId,

@@ -8,6 +8,7 @@ using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
+using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments;
@@ -822,6 +823,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             eligibility,
             queryService,
             new OutboxWriter(context, timeProvider),
+            new NoOpCaseAssignmentService(),
             terminationSettlementServices
                 ?? Array.Empty<IContractTerminationSettlementService>(),
             timeProvider);
@@ -956,6 +958,18 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             cancellationToken.ThrowIfCancellationRequested();
             Results.TryGetValue(userId, out var result);
             return Task.FromResult(result);
+        }
+    }
+
+    private sealed class NoOpCaseAssignmentService
+        : IContractCaseAssignmentService
+    {
+        public Task AssignAsync(
+            ContractCaseAssignment assignment,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.CompletedTask;
         }
     }
 

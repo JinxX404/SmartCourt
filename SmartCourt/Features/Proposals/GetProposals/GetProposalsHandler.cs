@@ -100,6 +100,9 @@ public sealed class GetProposalsHandler(
                 item.proposal.Status,
                 item.proposal.CreatedAt,
                 item.proposal.RespondedAt,
+                item.proposal.ExpiresAt,
+                item.proposal.ClosedAt,
+                item.proposal.ClosedByUserId,
                 ConversationId = item.conversation == null
                     ? null
                     : (Guid?)item.conversation.Id
@@ -117,7 +120,10 @@ public sealed class GetProposalsHandler(
             item.Status.ToString(),
             item.CreatedAt,
             item.RespondedAt,
-            item.ConversationId)).ToList();
+            item.ConversationId,
+            item.ExpiresAt,
+            item.ClosedAt,
+            item.ClosedByUserId)).ToList();
 
         var page = new ProposalPageDto(
             items,
