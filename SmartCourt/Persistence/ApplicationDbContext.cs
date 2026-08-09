@@ -8,6 +8,7 @@ using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Milestones.Entities;
+using SmartCourt.Features.Notifications.Entities;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Infrastructure.Persistence.Entities;
@@ -130,6 +131,7 @@ public class ApplicationDbContext
     public DbSet<IdempotencyRecord> IdempotencyRecords =>
         Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

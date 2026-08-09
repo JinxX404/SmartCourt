@@ -21,6 +21,7 @@ using Microsoft.IdentityModel.Tokens;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Extensions;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Features.Notifications.Entities;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
@@ -29,6 +30,8 @@ namespace SmartCourt.Tests.Common;
 
 public class SqliteRowVersionInterceptor : SaveChangesInterceptor
 {
+    private static long _notificationSequence;
+
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
@@ -41,6 +44,14 @@ public class SqliteRowVersionInterceptor : SaveChangesInterceptor
 
             foreach (var entry in entries)
             {
+                if (entry.Entity is Notification notification
+                    && notification.Sequence <= 0)
+                {
+                    notification.Sequence = Interlocked.Increment(
+                        ref _notificationSequence);
+                    entry.Property(nameof(Notification.Sequence)).IsTemporary = false;
+                }
+
                 var rowVersionProp = entry.Properties.FirstOrDefault(p => p.Metadata.Name == "RowVersion");
                 if (rowVersionProp != null)
                 {
@@ -75,7 +86,8 @@ public class SmartCourtWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:ExpiresInMinutes"] = "120",
                 ["PaymentProvider:WebhookAllowedIpRanges:0"] = "127.0.0.1/32",
                 ["PaymentProvider:WebhookAllowedIpRanges:1"] = "::1/128",
-                ["PaymentProvider:WebhookMaximumBodySizeBytes"] = "65536"
+                ["PaymentProvider:WebhookMaximumBodySizeBytes"] = "65536",
+                ["OutboxDispatch:Enabled"] = "false"
             });
         });
 

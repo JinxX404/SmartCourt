@@ -49,6 +49,9 @@ using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Notifications;
+using SmartCourt.Features.Notifications.Events;
+using SmartCourt.Features.Notifications.Realtime;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.Files.Integration;
@@ -73,6 +76,7 @@ using SmartCourt.Providers.Embedding;
 using SmartCourt.Providers.PdfParser;
 using SmartCourt.Features.LawIngestion;
 using Qdrant.Client;
+using SmartCourt.Common.Configuration;
 
 namespace SmartCourt;
 
@@ -149,6 +153,16 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddSingleton(TimeProvider.System);
+        services.AddOptions<OutboxDispatchOptions>()
+            .Bind(configuration.GetSection(OutboxDispatchOptions.SectionName))
+            .Validate(options => options.BatchSize is >= 1 and <= 1_000,
+                "OutboxDispatch:BatchSize must be between 1 and 1000.")
+            .Validate(options => options.IdleDelayMilliseconds is >= 100 and <= 60_000,
+                "OutboxDispatch:IdleDelayMilliseconds must be between 100 and 60000.")
+            .Validate(options => options.ErrorDelayMilliseconds is >= 100 and <= 300_000,
+                "OutboxDispatch:ErrorDelayMilliseconds must be between 100 and 300000.")
+            .ValidateOnStart();
+        services.AddHostedService<OutboxDispatchBackgroundService>();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? configuration.GetConnectionString("LocalConnection")
@@ -162,6 +176,11 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
+        services.AddScoped<IOutboxEventHandler, ProposalNotificationOutboxHandler>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<
+            INotificationRealtimeNotifier,
+            SignalRNotificationRealtimeNotifier>();
         services.AddScoped<
             IOutboxEventHandler,
             ContractActivationOutboxHandler>();
