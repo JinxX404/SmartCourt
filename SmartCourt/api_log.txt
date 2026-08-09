@@ -15118,3 +15118,96 @@ Body: <!DOCTYPE html>
 </html>
 
 ------------------
+
+--- MOCK EMAIL ---
+To: abdelrahmanmohammed1992003@gmail.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Abdelrahman Mohammed Mekhemar،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=65fe3e75-6e08-4c78-28ea-08def602fd1d&amp;token=Q2ZESjhPNXpQSmRGK0NWT3Z5RWxYSTRjQmNMN3R4OUZtTVFodDRaZGdodjRoQVl6NUp0eUFLZ3l1bHFoY1RxZ1Bod2FWdXFHT1dtUEFhSVZVWWtYQU1HaFNaMUNxSEo3UHB6ZWJNZXNla3p0eXhyUWZ1Y1VTR0NOcnVBVHlPTlJ0Qm5USUFwcllMYjBoc3o0ZWJBVDlycFRSUmVyRGN0clVPajJsVUY4REJuSWNQbDR3MXhWZWpxM25pTU10eVpUQkxCZHlyTE9TYWlTL2w5bXJVQzZHR3czcDlZVVlHR0dOTktJWnZxV3BHaUZRZ3VxcE9xMjNNL2UrTWxVN3hDYXJjdkJMQT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
