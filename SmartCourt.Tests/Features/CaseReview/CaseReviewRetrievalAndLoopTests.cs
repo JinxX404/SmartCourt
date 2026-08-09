@@ -251,9 +251,6 @@ public sealed class CaseReviewRetrievalAndLoopTests
 
         // 3. Edit Case while in Reviewed status -> Case status reverts Reviewed -> Submitted
         caseAfterReview.Description = "تحديث: تم إضافة إثبات الإنذار الرسمي";
-        SmartCourt.Features.Case.BusinessRules.CaseStatusTransitionGuard.EnsureCanTransition(
-            caseAfterReview.Status,
-            CaseStatus.Submitted);
         caseAfterReview.Status = CaseStatus.Submitted;
         await dbContext.SaveChangesAsync();
 

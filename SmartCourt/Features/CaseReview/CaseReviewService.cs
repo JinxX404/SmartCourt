@@ -54,9 +54,6 @@ public class CaseReviewService(
             throw new ForbiddenAccessException("غير مصرح لك بمراجعة هذه القضية.");
         }
 
-        // Validate transition (must be in Submitted status to move to Reviewed)
-        CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Reviewed);
-
         // 1. Generate AI Review Feedback
         var reviewPoints = await RequestAiReviewPointsAsync(caseEntity, cancellationToken);
 

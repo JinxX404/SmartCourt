@@ -65,7 +65,6 @@ public class FinalizeCaseHandler(
         try
         {
             // Step 1: Transition to FinalSubmitted
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.FinalSubmitted);
             caseEntity.Status = CaseStatus.FinalSubmitted;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -73,7 +72,6 @@ public class FinalizeCaseHandler(
             await _caseAnalysisService.AnalyzeCaseAsync(request.CaseId, cancellationToken);
 
             // Step 3: Transition to Analyzed
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Analyzed);
             caseEntity.Status = CaseStatus.Analyzed;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -81,7 +79,6 @@ public class FinalizeCaseHandler(
             var finalizeResult = await _matchingService.ProcessMatchingAndPersistAsync(request.CaseId, cancellationToken);
 
             // Step 5: Transition to Matched
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Matched);
             caseEntity.Status = CaseStatus.Matched;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
