@@ -54,6 +54,11 @@ public class CaseReviewService(
             throw new ForbiddenAccessException("غير مصرح لك بمراجعة هذه القضية.");
         }
 
+        if (caseEntity.Status != CaseStatus.Submitted)
+        {
+            throw new BusinessException("لا يمكن مراجعة القضية إلا إذا كانت في حالة التقديم.");
+        }
+
         // 1. Generate AI Review Feedback
         var reviewPoints = await RequestAiReviewPointsAsync(caseEntity, cancellationToken);
 
