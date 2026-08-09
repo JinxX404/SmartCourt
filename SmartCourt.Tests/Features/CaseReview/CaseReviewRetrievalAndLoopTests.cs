@@ -30,98 +30,6 @@ public sealed class CaseReviewRetrievalAndLoopTests
     }
 
     [Fact]
-    public async Task GetReviewReports_ReturnsAllOrderedByCreatedAtDesc()
-    {
-        // Arrange
-        var dbOptions = CreateInMemoryOptions();
-        await using var dbContext = new ApplicationDbContext(dbOptions);
-
-        var userId = Guid.NewGuid();
-        var caseId = Guid.NewGuid();
-
-        var caseEntity = new CaseEntity
-        {
-            Id = caseId,
-            Title = "نزاع ملكية",
-            Description = "نزاع حول قطعة أرض",
-            ClientId = userId,
-            Status = CaseStatus.Reviewed
-        };
-        dbContext.Cases.Add(caseEntity);
-
-        var report1 = new CaseReviewReport
-        {
-            Id = Guid.NewGuid(),
-            CaseId = caseId,
-            IsLatest = false,
-            CreatedAt = DateTime.UtcNow.AddHours(-2)
-        };
-        var report2 = new CaseReviewReport
-        {
-            Id = Guid.NewGuid(),
-            CaseId = caseId,
-            IsLatest = true,
-            CreatedAt = DateTime.UtcNow.AddHours(-1)
-        };
-
-        dbContext.CaseReviewReports.AddRange(report1, report2);
-        await dbContext.SaveChangesAsync();
-
-        // Explicitly set distinct CreatedAt timestamps to test ordering
-        report1.CreatedAt = DateTime.UtcNow.AddMinutes(-10);
-        report2.CreatedAt = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync();
-
-        var currentUserService = new TestCurrentUserService { UserId = userId };
-        var service = new CaseReviewService(
-            dbContext,
-            currentUserService,
-            new TestChatModelProvider(),
-            NullLogger<CaseReviewService>.Instance);
-
-        // Act
-        var reports = await service.GetReviewReportsAsync(caseId);
-
-        // Assert
-        Assert.Equal(2, reports.Count);
-        Assert.Equal(report2.Id, reports[0].Id);
-        Assert.Equal(report1.Id, reports[1].Id);
-    }
-
-    [Fact]
-    public async Task GetReviewReports_NonOwner_ThrowsForbiddenAccessException()
-    {
-        // Arrange
-        var dbOptions = CreateInMemoryOptions();
-        await using var dbContext = new ApplicationDbContext(dbOptions);
-
-        var ownerId = Guid.NewGuid();
-        var callerId = Guid.NewGuid();
-        var caseId = Guid.NewGuid();
-
-        var caseEntity = new CaseEntity
-        {
-            Id = caseId,
-            Title = "دعوى إخلاء",
-            Description = "عدم سداد الإيجار",
-            ClientId = ownerId,
-            Status = CaseStatus.Reviewed
-        };
-        dbContext.Cases.Add(caseEntity);
-        await dbContext.SaveChangesAsync();
-
-        var currentUserService = new TestCurrentUserService { UserId = callerId };
-        var service = new CaseReviewService(
-            dbContext,
-            currentUserService,
-            new TestChatModelProvider(),
-            NullLogger<CaseReviewService>.Instance);
-
-        // Act & Assert
-        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.GetReviewReportsAsync(caseId));
-    }
-
-    [Fact]
     public async Task GetLatestReviewReport_ReturnsOnlyIsLatestReport()
     {
         // Arrange
@@ -208,6 +116,39 @@ public sealed class CaseReviewRetrievalAndLoopTests
     }
 
     [Fact]
+    public async Task GetLatestReviewReport_NonOwner_ThrowsForbiddenAccessException()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var ownerId = Guid.NewGuid();
+        var callerId = Guid.NewGuid();
+        var caseId = Guid.NewGuid();
+
+        var caseEntity = new CaseEntity
+        {
+            Id = caseId,
+            Title = "دعوى إخلاء",
+            Description = "عدم سداد الإيجار",
+            ClientId = ownerId,
+            Status = CaseStatus.Reviewed
+        };
+        dbContext.Cases.Add(caseEntity);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = callerId };
+        var service = new CaseReviewService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            NullLogger<CaseReviewService>.Instance);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.GetLatestReviewReportAsync(caseId));
+    }
+
+    [Fact]
     public async Task FullReReviewLoop_Create_Submit_Review_Edit_Resubmit_ReReview()
     {
         // Arrange
@@ -266,11 +207,15 @@ public sealed class CaseReviewRetrievalAndLoopTests
         Assert.True(report2.IsLatest);
         Assert.NotEqual(report1.Id, report2.Id);
 
-        var allReports = await reviewService.GetReviewReportsAsync(caseId);
-        Assert.Equal(2, allReports.Count);
-        Assert.Equal(report2.Id, allReports[0].Id);
-        Assert.True(allReports[0].IsLatest);
-        Assert.False(allReports[1].IsLatest);
+        var reportsInDb = await dbContext.CaseReviewReports
+            .Where(r => r.CaseId == caseId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
+        Assert.Equal(2, reportsInDb.Count);
+        Assert.Equal(report2.Id, reportsInDb[0].Id);
+        Assert.True(reportsInDb[0].IsLatest);
+        Assert.False(reportsInDb[1].IsLatest);
 
         var latestReport = await reviewService.GetLatestReviewReportAsync(caseId);
         Assert.Equal(report2.Id, latestReport.Id);
