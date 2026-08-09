@@ -54,8 +54,10 @@ public class CaseReviewService(
             throw new ForbiddenAccessException("غير مصرح لك بمراجعة هذه القضية.");
         }
 
-        // Validate transition (must be in Submitted status to move to Reviewed)
-        CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Reviewed);
+        if (caseEntity.Status != CaseStatus.Submitted)
+        {
+            throw new BusinessException("لا يمكن مراجعة القضية إلا إذا كانت في حالة التقديم.");
+        }
 
         // 1. Generate AI Review Feedback
         var reviewPoints = await RequestAiReviewPointsAsync(caseEntity, cancellationToken);
@@ -87,39 +89,6 @@ public class CaseReviewService(
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return MapToDto(newReport);
-    }
-
-    public async Task<List<CaseReviewReportDto>> GetReviewReportsAsync(Guid caseId, CancellationToken cancellationToken = default)
-    {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
-
-        var caseEntity = await _dbContext.Cases
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == caseId, cancellationToken);
-
-        if (caseEntity == null)
-        {
-            throw new NotFoundException("القضية غير موجودة.");
-        }
-
-        if (caseEntity.ClientId != currentUserId)
-        {
-            throw new ForbiddenAccessException("غير مصرح لك بالوصول لمراجعات هذه القضية.");
-        }
-
-        var reports = await _dbContext.CaseReviewReports
-            .AsNoTracking()
-            .Where(r => r.CaseId == caseId)
-            .OrderByDescending(r => r.CreatedAt)
-            .Include(r => r.ReviewPoints)
-            .ToListAsync(cancellationToken);
-
-        return reports.Select(MapToDto).ToList();
     }
 
     public async Task<CaseReviewReportDto> GetLatestReviewReportAsync(Guid caseId, CancellationToken cancellationToken = default)

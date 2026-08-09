@@ -25,15 +25,6 @@ public class CaseReviewController(ICaseReviewService caseReviewService) : Contro
         return Ok(ApiResponse<CaseReviewReportDto>.Ok(result));
     }
 
-    [HttpGet("{id}/reviews")]
-    public async Task<ActionResult<ApiResponse<List<CaseReviewReportDto>>>> GetReviews(
-        [FromRoute] Guid id,
-        CancellationToken cancellationToken)
-    {
-        var result = await _caseReviewService.GetReviewReportsAsync(id, cancellationToken);
-        return Ok(ApiResponse<List<CaseReviewReportDto>>.Ok(result));
-    }
-
     [HttpGet("{id}/reviews/latest")]
     public async Task<ActionResult<ApiResponse<CaseReviewReportDto>>> GetLatestReview(
         [FromRoute] Guid id,

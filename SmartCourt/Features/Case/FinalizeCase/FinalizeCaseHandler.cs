@@ -47,6 +47,13 @@ public class FinalizeCaseHandler(
             throw new ForbiddenAccessException("ليس لديك صلاحية لإتمام هذه القضية.");
         }
 
+        if (caseEntity.Status != CaseStatus.Submitted &&
+            caseEntity.Status != CaseStatus.Reviewed &&
+            caseEntity.Status != CaseStatus.Matched)
+        {
+            throw new BusinessException("لا يمكن إتمام القضية إلا إذا كانت في حالة التقديم أو المراجعة.");
+        }
+
         // Idempotency: if case is already Matched, return existing recommendations
         if (caseEntity.Status == CaseStatus.Matched)
         {
@@ -54,18 +61,11 @@ public class FinalizeCaseHandler(
             return ApiResponse<FinalizeResultDto>.Ok(existingResult);
         }
 
-        // Precondition: Case must be in Reviewed status
-        if (caseEntity.Status != CaseStatus.Reviewed)
-        {
-            throw new BusinessException("لا يمكن إتمام القضية. يجب أن تكون القضية في حالة تم مراجعتها (Reviewed).");
-        }
-
         // Execute orchestration pipeline within a transaction
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
         try
         {
             // Step 1: Transition to FinalSubmitted
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.FinalSubmitted);
             caseEntity.Status = CaseStatus.FinalSubmitted;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -73,7 +73,6 @@ public class FinalizeCaseHandler(
             await _caseAnalysisService.AnalyzeCaseAsync(request.CaseId, cancellationToken);
 
             // Step 3: Transition to Analyzed
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Analyzed);
             caseEntity.Status = CaseStatus.Analyzed;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -81,7 +80,6 @@ public class FinalizeCaseHandler(
             var finalizeResult = await _matchingService.ProcessMatchingAndPersistAsync(request.CaseId, cancellationToken);
 
             // Step 5: Transition to Matched
-            CaseStatusTransitionGuard.EnsureCanTransition(caseEntity.Status, CaseStatus.Matched);
             caseEntity.Status = CaseStatus.Matched;
             await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -20,7 +20,9 @@ namespace SmartCourt.Common.Enums
         /// <summary>Matching complete. Recommendations available.</summary>
         Matched = 5,
 
+        Assigned = 6,
+
         /// <summary>Case lifecycle ended.</summary>
-        Closed = 6,
+        Closed = 7,
     }
 }

@@ -209,6 +209,23 @@ public sealed class ChatFeatureIntegrationTests
     private async Task<ChatConversation> SeedConversationAsync(
         ApplicationDbContext context)
     {
+        var legalCase = new SmartCourt.Entities.Case
+        {
+            Id = _legalCaseId,
+            ClientId = _clientUserId,
+            Title = "Case title",
+            Description = "Case description",
+            Status = CaseStatus.Matched,
+            SubmittedAt = _utcNow.AddHours(-2)
+        };
+        var proposal = new Proposal(
+            _proposalId,
+            _legalCaseId,
+            _clientUserId,
+            _lawyerUserId,
+            "Please help.",
+            _utcNow.AddHours(-2));
+        proposal.Accept(_utcNow.AddHours(-1));
         var conversation = new ChatConversation(
             Guid.NewGuid(),
             _proposalId,
@@ -216,7 +233,7 @@ public sealed class ChatFeatureIntegrationTests
             _clientUserId,
             _lawyerUserId,
             _utcNow.AddMinutes(-15));
-        context.ChatConversations.Add(conversation);
+        context.AddRange(legalCase, proposal, conversation);
         await context.SaveChangesAsync();
         return conversation;
     }

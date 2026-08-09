@@ -50,12 +50,14 @@ using SmartCourt.Features.Contracts.Integration;
 
 using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
+using SmartCourt.Features.Chat.Events;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Notifications;
 using SmartCourt.Features.Notifications.Events;
 using SmartCourt.Features.Notifications.Realtime;
 using SmartCourt.Features.Proposals.Integration;
+using SmartCourt.Features.Proposals.Expiration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.Files.Integration;
 using SmartCourt.Features.Disputes;
@@ -184,6 +186,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
         services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
+        services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<
             INotificationRealtimeNotifier,
@@ -220,6 +223,10 @@ public static class DependencyInjection
         services.AddScoped<
             ICaseContractAccessService,
             CaseContractAccessService>();
+        services.AddScoped<
+            IContractCaseAssignmentService,
+            ContractCaseAssignmentService>();
+        services.AddScoped<IProposalExpirationService, ProposalExpirationService>();
         services.AddScoped<
             IContractUserEligibilityService,
             ContractUserEligibilityService>();
@@ -277,6 +284,7 @@ public static class DependencyInjection
             PaymentContractJobOperations>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
+
 
         services.AddOptions<PaymentProviderOptions>()
             .Bind(configuration.GetSection(PaymentProviderOptions.SectionName))
@@ -426,6 +434,9 @@ public static class DependencyInjection
         services.AddScoped<
             IContractRecurringJobRegistrar,
             ContractRecurringJobRegistrar>();
+        services.AddScoped<
+            IProposalRecurringJobRegistrar,
+            ProposalRecurringJobRegistrar>();
 
         services.Configure<SupabaseOptions>(configuration.GetSection("Supabase"));
         services.AddScoped<IFileStorageService, SupabaseFileStorageService>();

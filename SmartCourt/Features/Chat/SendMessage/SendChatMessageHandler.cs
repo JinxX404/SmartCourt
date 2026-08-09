@@ -6,6 +6,7 @@ using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -34,6 +35,7 @@ public sealed class SendChatMessageHandler(
 
         var actorUserId = ChatAccess.GetRequiredUserId(currentUserService);
         var conversation = await context.ChatConversations
+            .Include(item => item.Proposal)
             .SingleOrDefaultAsync(
                 item => item.Id == request.ConversationId,
                 cancellationToken);
@@ -44,7 +46,8 @@ public sealed class SendChatMessageHandler(
                 404);
         }
 
-        if (conversation.IsClosed)
+        if (conversation.IsClosed
+            || conversation.Proposal.Status != ProposalStatus.Accepted)
         {
             return ApiResponse<ChatMessageDto>.Fail(
                 "Conversation is closed.",

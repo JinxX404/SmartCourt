@@ -82,13 +82,30 @@ public sealed class ChatMessage
         Guid relatedEntityId,
         DateTime createdAt)
     {
+        return CreateSystemMessage(
+            id,
+            conversationId,
+            messageType.ToString(),
+            ChatSystemMessageText.For(messageType),
+            relatedEntityId,
+            createdAt);
+    }
+
+    internal static ChatMessage CreateSystemMessage(
+        Guid id,
+        Guid conversationId,
+        string systemCode,
+        string content,
+        Guid relatedEntityId,
+        DateTime createdAt)
+    {
         return new ChatMessage(
             id,
             conversationId,
             senderUserId: null,
             ChatMessageType.System,
-            ChatSystemMessageText.For(messageType),
-            messageType.ToString(),
+            content,
+            systemCode,
             relatedEntityId,
             createdAt);
     }

@@ -157,7 +157,7 @@ public sealed class CaseReviewServiceTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<BusinessException>(() => service.CreateReviewReportAsync(caseId));
-        Assert.Contains("Invalid case status transition", ex.Message);
+        Assert.Contains("في حالة التقديم", ex.Message);
     }
 
     [Fact]

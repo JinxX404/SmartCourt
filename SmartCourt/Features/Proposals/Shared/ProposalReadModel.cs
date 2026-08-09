@@ -40,6 +40,9 @@ internal static class ProposalReadModel
                 proposal.DecisionReason,
                 proposal.CreatedAt,
                 proposal.RespondedAt,
+                proposal.ExpiresAt,
+                proposal.ClosedAt,
+                proposal.ClosedByUserId,
                 proposal.UpdatedAt,
                 ConversationId = conversation == null
                     ? null
@@ -63,6 +66,9 @@ internal static class ProposalReadModel
                 row.CreatedAt,
                 row.RespondedAt,
                 row.UpdatedAt,
-                row.ConversationId);
+                row.ConversationId,
+                row.ExpiresAt,
+                row.ClosedAt,
+                row.ClosedByUserId);
     }
 }

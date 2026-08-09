@@ -5,6 +5,10 @@ public static class ContractPaymentEventTypes
     public const string ProposalCreated = "ProposalCreated";
     public const string ProposalAccepted = "ProposalAccepted";
     public const string ProposalRejected = "ProposalRejected";
+    public const string ProposalCancelled = "ProposalCancelled";
+    public const string ProposalExpired = "ProposalExpired";
+    public const string ProposalTerminated = "ProposalTerminated";
+    public const string ProposalSuperseded = "ProposalSuperseded";
     public const string ContractCreated = "ContractCreated";
     public const string ContractDraftUpdated = "ContractDraftUpdated";
     public const string ContractAccepted = "ContractAccepted";

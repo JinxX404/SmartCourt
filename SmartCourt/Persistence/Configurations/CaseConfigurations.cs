@@ -13,6 +13,11 @@ namespace SmartCourt.Persistence.Configurations
                 .HasForeignKey(c => c.ClientId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasOne(c => c.LawyerProfile)
+                .WithMany()
+                .HasForeignKey(c => c.LawyerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Property(c => c.Governorate)
                 .HasMaxLength(100);
 

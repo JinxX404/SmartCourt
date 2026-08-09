@@ -65,9 +65,6 @@ public class UpdateCaseHandler : IRequestHandler<UpdateCaseCommand, ApiResponse<
 
         if (existing.Status == SmartCourt.Common.Enums.CaseStatus.Reviewed)
         {
-            SmartCourt.Features.Case.BusinessRules.CaseStatusTransitionGuard.EnsureCanTransition(
-                existing.Status,
-                SmartCourt.Common.Enums.CaseStatus.Submitted);
             existing.Status = SmartCourt.Common.Enums.CaseStatus.Submitted;
         }
 
