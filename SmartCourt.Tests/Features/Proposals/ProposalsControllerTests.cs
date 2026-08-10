@@ -51,11 +51,22 @@ public sealed class ProposalsControllerTests
         var mediator = new RecordingMediator();
         var controller = new ProposalsController(mediator);
         var proposalId = Guid.NewGuid();
-        var query = new GetProposalsQuery(
-            null,
-            "search");
+        var caseId = Guid.NewGuid();
+        var filter = new ProposalListFilter
+        {
+            Statuses = [ProposalStatus.Pending, ProposalStatus.Accepted],
+            Search = "search",
+            Page = 2,
+            PageSize = 5
+        };
 
-        var listAction = await controller.ListAsync(query, CancellationToken.None);
+        var lawyerListAction = await controller.ListLawyerProposalsAsync(
+            filter,
+            CancellationToken.None);
+        var caseListAction = await controller.ListCaseProposalsAsync(
+            caseId,
+            filter,
+            CancellationToken.None);
         var getAction = await controller.GetAsync(proposalId, CancellationToken.None);
         var acceptAction = await controller.AcceptAsync(proposalId, CancellationToken.None);
         var rejectAction = await controller.RejectAsync(
@@ -71,13 +82,22 @@ public sealed class ProposalsControllerTests
             new TerminateProposalRequest("Negotiation ended"),
             CancellationToken.None);
 
-        AssertWrappedOk(listAction, mediator.Page);
+        AssertWrappedOk(lawyerListAction, mediator.Page);
+        AssertWrappedOk(caseListAction, mediator.Page);
         AssertWrappedOk(getAction, mediator.Detail);
         AssertWrappedOk(acceptAction, mediator.Detail);
         AssertWrappedOk(rejectAction, mediator.Detail);
         AssertWrappedOk(cancelAction, mediator.Detail);
         AssertWrappedOk(terminateAction, mediator.Detail);
-        Assert.Same(query, mediator.ListQuery);
+        Assert.Equal(2, mediator.ListQueries.Count);
+        Assert.Equal(ProposalListScope.LawyerInbox, mediator.ListQueries[0].Scope);
+        Assert.Null(mediator.ListQueries[0].LegalCaseId);
+        Assert.Equal(ProposalListScope.ClientCase, mediator.ListQueries[1].Scope);
+        Assert.Equal(caseId, mediator.ListQueries[1].LegalCaseId);
+        Assert.Equal(filter.Statuses, mediator.ListQueries[1].Statuses);
+        Assert.Equal(filter.Search, mediator.ListQueries[1].Search);
+        Assert.Equal(filter.Page, mediator.ListQueries[1].Page);
+        Assert.Equal(filter.PageSize, mediator.ListQueries[1].PageSize);
         Assert.Equal(proposalId, mediator.GetQuery!.ProposalId);
         Assert.Equal(proposalId, mediator.AcceptCommand!.ProposalId);
         Assert.Equal(proposalId, mediator.RejectCommand!.ProposalId);
@@ -95,10 +115,15 @@ public sealed class ProposalsControllerTests
             null,
             "Client");
         AssertEndpoint(
-            nameof(ProposalsController.ListAsync),
+            nameof(ProposalsController.ListLawyerProposalsAsync),
             typeof(HttpGetAttribute),
-            null,
-            "Client,Lawyer");
+            "lawyer",
+            "Lawyer");
+        AssertEndpoint(
+            nameof(ProposalsController.ListCaseProposalsAsync),
+            typeof(HttpGetAttribute),
+            "cases/{legalCaseId:guid}",
+            "Client");
         AssertEndpoint(
             nameof(ProposalsController.GetAsync),
             typeof(HttpGetAttribute),
@@ -169,7 +194,7 @@ public sealed class ProposalsControllerTests
     private sealed class RecordingMediator : IMediator
     {
         private readonly ProposalDetailDto _detail = CreateDetail();
-        private readonly ProposalPageDto _page = new([], 1, 10, 0, false);
+        private readonly ProposalPageDto _page = new([], 1, 5, 0, false);
 
         public ProposalDetailDto Detail => _detail;
         public ProposalPageDto Page => _page;
@@ -177,7 +202,7 @@ public sealed class ProposalsControllerTests
         public ApiResponse<ProposalDetailDto> DetailResponse { get; }
         public ApiResponse<ProposalPageDto> PageResponse { get; }
         public CreateProposalCommand? CreateCommand { get; private set; }
-        public GetProposalsQuery? ListQuery { get; private set; }
+        public List<GetProposalsQuery> ListQueries { get; } = [];
         public GetProposalQuery? GetQuery { get; private set; }
         public AcceptProposalCommand? AcceptCommand { get; private set; }
         public RejectProposalCommand? RejectCommand { get; private set; }
@@ -201,7 +226,7 @@ public sealed class ProposalsControllerTests
                     CreateCommand = command;
                     return Task.FromResult((TResponse)(object)CreatedDetail);
                 case GetProposalsQuery query:
-                    ListQuery = query;
+                    ListQueries.Add(query);
                     return Task.FromResult((TResponse)(object)PageResponse);
                 case GetProposalQuery query:
                     GetQuery = query;
@@ -266,6 +291,15 @@ public sealed class ProposalsControllerTests
                 "Message",
                 ProposalStatus.Pending.ToString(),
                 null,
+                "Matched",
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                ["Cancel"],
                 new DateTime(2026, 7, 30, 9, 0, 0, DateTimeKind.Utc),
                 null,
                 new DateTime(2026, 7, 30, 9, 0, 0, DateTimeKind.Utc));

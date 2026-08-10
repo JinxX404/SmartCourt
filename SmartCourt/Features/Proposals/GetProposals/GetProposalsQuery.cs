@@ -5,8 +5,16 @@ using SmartCourt.Features.Proposals.Enums;
 
 namespace SmartCourt.Features.Proposals.GetProposals;
 
+public enum ProposalListScope : byte
+{
+    LawyerInbox = 1,
+    ClientCase = 2
+}
+
 public sealed record GetProposalsQuery(
-    ProposalStatus? Status = null,
+    ProposalListScope Scope,
+    Guid? LegalCaseId = null,
+    IReadOnlyCollection<ProposalStatus>? Statuses = null,
     string? Search = null,
     int Page = 1,
-    int PageSize = 10) : IRequest<ApiResponse<ProposalPageDto>>;
+    int PageSize = 5) : IRequest<ApiResponse<ProposalPageDto>>;
