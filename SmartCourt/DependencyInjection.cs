@@ -588,8 +588,8 @@ public static class DependencyInjection
         services.AddScoped<IVectorStoreProvider, QdrantVectorStoreProvider>();
 
         // --- RAG Pipeline: Embedding ---
-        services.Configure<GeminiEmbeddingOptions>(configuration.GetSection(GeminiEmbeddingOptions.SectionName));
-        services.AddHttpClient<IEmbeddingProvider, GeminiEmbeddingProvider>();
+        services.Configure<AlibabaEmbeddingOptions>(configuration.GetSection(AlibabaEmbeddingOptions.SectionName));
+        services.AddHttpClient<IEmbeddingProvider, AlibabaEmbeddingProvider>();
 
 
         // --- RAG Pipeline: PDF Parser ---
