@@ -611,6 +611,9 @@ public static class DependencyInjection
         // --- Feature: Case Analysis ---
         services.AddScoped<SmartCourt.Features.CaseAnalysis.ICaseAnalysisService, SmartCourt.Features.CaseAnalysis.CaseAnalysisService>();
 
+        // --- Feature: Chat Agent ---
+        services.AddScoped<SmartCourt.Features.ChatAgent.IChatAgentService, SmartCourt.Features.ChatAgent.ChatAgentService>();
+
         // --- Feature: Matching ---
         services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();
 

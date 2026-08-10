@@ -20,12 +20,15 @@ public class MatchingController(
     private readonly ICurrentUserService _currentUserService = currentUserService;
 
     [HttpGet("{id:guid}/recommendations")]
-    public async Task<ActionResult<ApiResponse<FinalizeResultDto>>> GetRecommendations(Guid id, CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<FinalizeResultDto>>> GetRecommendations(
+        [FromRoute] Guid id,
+        [FromQuery] PagedRequest request,
+        CancellationToken cancellationToken)
     {
         var currentUserId = _currentUserService.UserId
             ?? throw new UnauthorizedAccessException("المستخدم غير مصرح له.");
 
-        var result = await _matchingService.GetRecommendationsAsync(id, currentUserId, cancellationToken);
-        return Ok(ApiResponse<FinalizeResultDto>.Ok(result));
+        var result = await _matchingService.GetRecommendationsAsync(id, currentUserId, request, cancellationToken);
+        return Ok(result);
     }
 }

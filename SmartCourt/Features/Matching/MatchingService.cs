@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Models;
 using SmartCourt.Entities;
 using SmartCourt.Features.Case.BusinessRules;
 using SmartCourt.Features.Matching.DTOs;
@@ -84,7 +85,7 @@ public class MatchingService(
         return MatchingEngine.RankCandidates(candidates, caseEntity.Governorate, strategy);
     }
 
-    public async Task<FinalizeResultDto> ProcessMatchingAndPersistAsync(Guid caseId, CancellationToken cancellationToken = default)
+    public async Task<FinalizeResultDto> ProcessMatchingAndPersistAsync(Guid caseId, PagedRequest? pagedRequest = null, CancellationToken cancellationToken = default)
     {
         var caseEntity = await _dbContext.Cases
             .FirstOrDefaultAsync(c => c.Id == caseId, cancellationToken);
@@ -122,8 +123,11 @@ public class MatchingService(
         var newRecommendations = new List<CaseRecommendation>();
         foreach (var c in scoredCandidates)
         {
-            var exp = explanations.GetValueOrDefault(c.Candidate.LawyerId)
-                ?? $"تم ترشيح المحامي {c.Candidate.LawyerName} بحصوله على الترتيب #{c.Rank} بنتيجة إجمالية {c.TotalScore}.";
+            var exp = explanations.GetValueOrDefault(c.Candidate.LawyerId);
+            if (string.IsNullOrWhiteSpace(exp))
+            {
+                exp = BuildTailoredFallbackExplanation(c, caseEntity.Governorate);
+            }
 
             newRecommendations.Add(new CaseRecommendation
             {
@@ -147,11 +151,26 @@ public class MatchingService(
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
+        pagedRequest ??= new PagedRequest();
+        var pageNumber = pagedRequest.PageNumber < 1 ? 1 : pagedRequest.PageNumber;
+        var pageSize = pagedRequest.PageSize < 1 ? 10 : pagedRequest.PageSize;
+
+        var totalRecords = scoredCandidates.Count;
+        var totalPages = totalRecords == 0 ? 0 : (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var pagedCandidates = scoredCandidates
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
         return new FinalizeResultDto
         {
             CaseId = caseId,
-            TotalEligibleLawyers = scoredCandidates.Count,
-            Recommendations = scoredCandidates.Select(c => new CaseRecommendationDto
+            TotalEligibleLawyers = totalRecords,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalPages = totalPages,
+            Recommendations = pagedCandidates.Select(c => new CaseRecommendationDto
             {
                 LawyerId = c.Candidate.LawyerId,
                 LawyerName = c.Candidate.LawyerName,
@@ -160,13 +179,13 @@ public class MatchingService(
                 ExperienceScore = c.ExperienceScore,
                 RatingScore = c.RatingScore,
                 ResponseTimeScore = c.ResponseTimeScore,
-                Explanation = explanations.GetValueOrDefault(c.Candidate.LawyerId) ?? string.Empty,
+                Explanation = explanations.GetValueOrDefault(c.Candidate.LawyerId) ?? BuildTailoredFallbackExplanation(c, caseEntity.Governorate),
                 Rank = c.Rank
             }).ToList()
         };
     }
 
-    public async Task<FinalizeResultDto> GetRecommendationsAsync(Guid caseId, Guid currentUserId, CancellationToken cancellationToken = default)
+    public async Task<PagedResponse<FinalizeResultDto>> GetRecommendationsAsync(Guid caseId, Guid currentUserId, PagedRequest? pagedRequest = null, CancellationToken cancellationToken = default)
     {
         var caseEntity = await _dbContext.Cases
             .AsNoTracking()
@@ -187,18 +206,33 @@ public class MatchingService(
             throw new BusinessException("Recommendations are not available. The case has not been matched yet.");
         }
 
+        pagedRequest ??= new PagedRequest();
+        var pageNumber = pagedRequest.PageNumber < 1 ? 1 : pagedRequest.PageNumber;
+        var pageSize = pagedRequest.PageSize < 1 ? 10 : pagedRequest.PageSize;
+
+        var totalRecords = await _dbContext.CaseRecommendations
+            .Where(cr => cr.CaseId == caseId)
+            .CountAsync(cancellationToken);
+
+        var totalPages = totalRecords == 0 ? 0 : (int)Math.Ceiling(totalRecords / (double)pageSize);
+
         var recs = await _dbContext.CaseRecommendations
             .Include(cr => cr.LawyerProfile)
             .ThenInclude(lp => lp.User)
             .AsNoTracking()
             .Where(cr => cr.CaseId == caseId)
             .OrderBy(cr => cr.Rank)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(cancellationToken);
 
-        return new FinalizeResultDto
+        var dto = new FinalizeResultDto
         {
             CaseId = caseId,
-            TotalEligibleLawyers = recs.Count,
+            TotalEligibleLawyers = totalRecords,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalPages = totalPages,
             Recommendations = recs.Select(r => new CaseRecommendationDto
             {
                 LawyerId = r.LawyerId,
@@ -212,6 +246,8 @@ public class MatchingService(
                 Rank = r.Rank
             }).ToList()
         };
+
+        return PagedResponse<FinalizeResultDto>.OkPaged(dto, pageNumber, pageSize, totalRecords, totalPages);
     }
 
     private async Task<Dictionary<Guid, string>> GenerateExplanationsAsync(
@@ -225,12 +261,22 @@ public class MatchingService(
 
         var systemPrompt = """
             You are an expert Egyptian Law AI legal advisor.
-            Explain why each lawyer was matched to the client's case based on their qualifications and scores.
+            Your task is to generate a UNIQUE, INDIVIDUALIZED, and HIGHLY TAILORED recommendation explanation for EACH lawyer candidate matched to the client's case.
 
-            Return ONLY a valid JSON object mapping each lawyer's ID to a clear, concise Arabic explanation (1-2 sentences).
+            CRITICAL DIRECTIVES FOR TAILORED EXPLANATIONS:
+            - Write a distinct, natural, and informative Arabic explanation (1-2 sentences) tailored specifically to each lawyer's background, strengths, and candidate details.
+            - Focus on each lawyer's individual standout traits:
+              * If the lawyer is located in the case governorate, mention their physical presence and local court familiarity.
+              * If the lawyer has high experience years or handles high case volume, emphasize their specialized track record.
+              * If the lawyer has high client ratings, mention client satisfaction and service quality.
+              * If the lawyer has fast response times, mention prompt communication and responsiveness.
+            - DO NOT use generic boilerplate sentences that repeat identical phrasing for every candidate.
+            - DO NOT mention any internal algorithm numbers, raw score calculations, matrix weights, parameters, or ranks (such as Total Score, Location Score, 0.85, #1, etc.).
+
+            Return ONLY a valid JSON object mapping each lawyer's ID to their custom tailored Arabic explanation.
             Format:
             {
-              "lawyer_guid_here": "سبب الترشيح والتميز بالعربية...",
+              "lawyer_guid_here": "سبب الترشيح المخصص والمميز لكل محامي بالعربية...",
               ...
             }
             """;
@@ -285,11 +331,66 @@ public class MatchingService(
         {
             if (!explanations.TryGetValue(c.Candidate.LawyerId, out var exp) || string.IsNullOrWhiteSpace(exp))
             {
-                explanations[c.Candidate.LawyerId] = $"تم ترشيح المحامي {c.Candidate.LawyerName} بحصوله على الترتيب #{c.Rank} بنتيجة إجمالية {c.TotalScore} بناءً على ملاءمة التخصص والموقع الجغرافي وخبرته العملية.";
+                explanations[c.Candidate.LawyerId] = BuildTailoredFallbackExplanation(c, caseEntity.Governorate);
             }
         }
 
         return explanations;
+    }
+
+    private static string BuildTailoredFallbackExplanation(ScoredLawyerCandidate candidate, string? caseGovernorate)
+    {
+        var c = candidate.Candidate;
+        var traits = new List<string>();
+
+        if (candidate.LocationScore >= 1.0 && !string.IsNullOrWhiteSpace(c.Governorate))
+        {
+            traits.Add($"تواجده وممارسته المباشرة بالمحاكم في محافظة {c.Governorate}");
+        }
+        else if (candidate.LocationScore >= 0.5 && !string.IsNullOrWhiteSpace(c.Governorate))
+        {
+            traits.Add($"موقعه الجغرافي القريب بمحافظة {c.Governorate}");
+        }
+
+        if (c.SpecializationYearsOfExperience > 0 && c.SpecializationCasesHandled > 0)
+        {
+            traits.Add($"خبرته العملية الممتدة لـ {c.SpecializationYearsOfExperience} سنوات وتعامله مع {c.SpecializationCasesHandled} قضية متخصصة");
+        }
+        else if (c.SpecializationYearsOfExperience > 0)
+        {
+            traits.Add($"خبرته في مجال التخصص البالغة {c.SpecializationYearsOfExperience} سنوات");
+        }
+        else if (c.SpecializationCasesHandled > 0)
+        {
+            traits.Add($"سجله في نظر {c.SpecializationCasesHandled} قضية متخصصة");
+        }
+
+        if (c.AverageRating >= 4.5m)
+        {
+            traits.Add($"تقييمه الممتاز من العملاء ({c.AverageRating:0.0} من 5)");
+        }
+        else if (c.AverageRating > 0m)
+        {
+            traits.Add($"تقييمه الإيجابي من العملاء ({c.AverageRating:0.0} من 5)");
+        }
+
+        if (c.AverageResponseTimeHours > 0 && c.AverageResponseTimeHours <= 12)
+        {
+            traits.Add("سرعة الاستجابة والتواصل الفعال");
+        }
+
+        if (traits.Count == 0)
+        {
+            return $"تم ترشيح المحامي {c.LawyerName} لتناسب درجات قيده وخبرته مع متطلبات قضيتك.";
+        }
+
+        if (traits.Count == 1)
+        {
+            return $"تم ترشيح المحامي {c.LawyerName} لـ{traits[0]}.";
+        }
+
+        var joinedTraits = string.Join("، و", traits);
+        return $"تم ترشيح المحامي {c.LawyerName} بناءً على {joinedTraits}.";
     }
 
     private static string CleanJsonResponse(string raw)
@@ -307,6 +408,15 @@ public class MatchingService(
         {
             cleaned = cleaned[..^3];
         }
-        return cleaned.Trim();
+        cleaned = cleaned.Trim();
+
+        var firstBrace = cleaned.IndexOf('{');
+        var lastBrace = cleaned.LastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace)
+        {
+            cleaned = cleaned.Substring(firstBrace, lastBrace - firstBrace + 1);
+        }
+
+        return cleaned;
     }
 }

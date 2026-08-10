@@ -26,7 +26,7 @@ public sealed class ContractsController(
         var contract = await contractService.CreateAsync(
             request,
             cancellationToken);
-        return Ok(ApiResponse<ContractDetailDto>.Created(contract));
+        return StatusCode(StatusCodes.Status201Created, ApiResponse<ContractDetailDto>.Created(contract));
     }
 
     [HttpGet]
