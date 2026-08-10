@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.Entities;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Proposals.Shared;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
@@ -64,23 +65,44 @@ public sealed class RejectProposalHandler(
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (proposal.Status == ProposalStatus.Pending
+            && proposal.ExpiresAt <= now)
+        {
+            proposal.Expire(now);
+            await ProposalOutbox.EnqueueAsync(
+                outboxWriter,
+                ContractPaymentEventTypes.ProposalExpired,
+                proposal,
+                actorUserId: null,
+                reason: null,
+                cancellationToken);
+            if (!await ProposalPersistence.TrySaveAsync(context, cancellationToken))
+            {
+                return ApiResponse<ProposalDetailDto>.Fail(
+                    "The proposal changed while it was being processed.",
+                    409);
+            }
+            return ApiResponse<ProposalDetailDto>.Fail(
+                "The proposal expired before it was rejected.",
+                409);
+        }
+
         proposal.Reject(request.Reason, now);
 
-        await outboxWriter.EnqueueAsync(
-            new OutboxEvent(
-                ContractPaymentEventTypes.ProposalRejected,
-                1,
-                new ProposalEventPayload(
-                    proposal.Id,
-                    proposal.LegalCaseId,
-                    proposal.ClientUserId,
-                    proposal.LawyerUserId),
-                nameof(Proposal),
-                proposal.Id,
-                Guid.NewGuid()),
+        await ProposalOutbox.EnqueueAsync(
+            outboxWriter,
+            ContractPaymentEventTypes.ProposalRejected,
+            proposal,
+            lawyerUserId,
+            request.Reason,
             cancellationToken);
 
-        await context.SaveChangesAsync(cancellationToken);
+        if (!await ProposalPersistence.TrySaveAsync(context, cancellationToken))
+        {
+            return ApiResponse<ProposalDetailDto>.Fail(
+                "The proposal changed while it was being processed.",
+                409);
+        }
 
         var detail = await ProposalReadModel.FindDetailAsync(
             context,
@@ -89,4 +111,5 @@ public sealed class RejectProposalHandler(
             cancellationToken);
         return ApiResponse<ProposalDetailDto>.Ok(detail!);
     }
+
 }

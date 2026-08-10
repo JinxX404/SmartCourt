@@ -13,7 +13,10 @@ public sealed record ProposalListItemDto(
     string Status,
     DateTime CreatedAt,
     DateTime? RespondedAt,
-    Guid? ConversationId = null);
+    Guid? ConversationId = null,
+    DateTime? ExpiresAt = null,
+    DateTime? ClosedAt = null,
+    Guid? ClosedByUserId = null);
 
 public sealed record ProposalDetailDto(
     Guid Id,
@@ -29,7 +32,10 @@ public sealed record ProposalDetailDto(
     DateTime CreatedAt,
     DateTime? RespondedAt,
     DateTime UpdatedAt,
-    Guid? ConversationId = null);
+    Guid? ConversationId = null,
+    DateTime? ExpiresAt = null,
+    DateTime? ClosedAt = null,
+    Guid? ClosedByUserId = null);
 
 public sealed record ProposalPageDto(
     IReadOnlyList<ProposalListItemDto> Items,
@@ -37,6 +43,13 @@ public sealed record ProposalPageDto(
     int PageSize,
     int TotalCount,
     bool HasNextPage);
+
+public sealed record ProposalSlotAvailabilityDto(
+    Guid LegalCaseId,
+    int ActiveProposalCount,
+    int ProposalLimit,
+    int AvailableProposalSlots,
+    bool CanSendProposal);
 
 internal static class ProposalMappings
 {
@@ -61,6 +74,9 @@ internal static class ProposalMappings
             proposal.CreatedAt,
             proposal.RespondedAt,
             proposal.UpdatedAt,
-            conversationId);
+            conversationId,
+            proposal.ExpiresAt,
+            proposal.ClosedAt,
+            proposal.ClosedByUserId);
     }
 }

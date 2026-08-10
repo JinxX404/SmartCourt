@@ -283,7 +283,7 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("ClientProfile");
+                    b.ToTable("ClientProfile", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LawDocument", b =>
@@ -357,7 +357,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("LawDocuments");
+                    b.ToTable("LawDocuments", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LawyerProfile", b =>
@@ -389,7 +389,7 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("LawyerProfile");
+                    b.ToTable("LawyerProfile", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LawyerSpecialization", b =>
@@ -420,7 +420,7 @@ namespace SmartCourt.Migrations
                         .IsUnique()
                         .HasDatabaseName("IX_LawyerSpecialization_LawyerId_Specialization");
 
-                    b.ToTable("LawyerSpecializations");
+                    b.ToTable("LawyerSpecializations", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalCategory", b =>
@@ -441,7 +441,7 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LegalCategories");
+                    b.ToTable("LegalCategories", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.LegalSpecialization", b =>
@@ -464,7 +464,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("LegalSpecializations");
+                    b.ToTable("LegalSpecializations", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.Case", b =>
@@ -517,7 +517,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.ToTable("Cases");
+                    b.ToTable("Cases", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.CaseDocument", b =>
@@ -554,7 +554,7 @@ namespace SmartCourt.Migrations
                     b.HasIndex("StoredFileId")
                         .IsUnique();
 
-                    b.ToTable("CaseDocuments");
+                    b.ToTable("CaseDocuments", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.CaseProfile", b =>
@@ -595,7 +595,7 @@ namespace SmartCourt.Migrations
                     b.HasIndex("CaseId")
                         .IsUnique();
 
-                    b.ToTable("CaseProfiles");
+                    b.ToTable("CaseProfiles", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.CaseRecommendation", b =>
@@ -654,7 +654,7 @@ namespace SmartCourt.Migrations
                     b.HasIndex("CaseId", "Rank")
                         .HasDatabaseName("IX_CaseRecommendation_CaseId_Rank");
 
-                    b.ToTable("CaseRecommendations");
+                    b.ToTable("CaseRecommendations", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.CaseReviewReport", b =>
@@ -688,7 +688,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("CaseId");
 
-                    b.ToTable("CaseReviewReports");
+                    b.ToTable("CaseReviewReports", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.ReviewPoint", b =>
@@ -711,7 +711,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("CaseReviewReportId");
 
-                    b.ToTable("ReviewPoints");
+                    b.ToTable("ReviewPoints", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.StoredFile", b =>
@@ -748,7 +748,7 @@ namespace SmartCourt.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("StoredFiles");
+                    b.ToTable("StoredFiles", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Entities.UserVerificationDocument", b =>
@@ -800,55 +800,7 @@ namespace SmartCourt.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserVerificationDocuments");
-                });
-
-            modelBuilder.Entity("SmartCourt.Features.Cases.Entities.LegalCase", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("CaseLocation")
-                        .HasMaxLength(500)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(10000)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("FinalSubmittedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClientUserId", "Status");
-
-                    b.ToTable("LegalCases", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_LegalCases_Status_Range", "[Status] BETWEEN 0 AND 6");
-                        });
+                    b.ToTable("UserVerificationDocuments", (string)null);
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
@@ -1725,6 +1677,95 @@ namespace SmartCourt.Migrations
                     b.ToTable("MilestoneSubmissionAttachments", (string)null);
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.Notifications.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ActionUrl")
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DataJson")
+                        .HasMaxLength(4000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ReadAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RecipientUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<long>("Sequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Sequence"));
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("SourceEventId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Notifications_Sequence");
+
+                    b.HasIndex("RecipientUserId", "Sequence")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Notifications_Recipient_Sequence");
+
+                    b.HasIndex("RecipientUserId", "ReadAtUtc", "Sequence")
+                        .IsDescending(false, false, true)
+                        .HasDatabaseName("IX_Notifications_Recipient_Unread_Sequence")
+                        .HasFilter("[ReadAtUtc] IS NULL");
+
+                    b.HasIndex("SourceEventId", "RecipientUserId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Notifications_Source_Recipient_Type");
+
+                    b.ToTable("Notifications", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Notifications_Severity_Range", "[Severity] BETWEEN 1 AND 4");
+                        });
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.EscrowAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2570,7 +2611,7 @@ namespace SmartCourt.Migrations
 
             modelBuilder.Entity("ApplicationUser", b =>
                 {
-                    b.OwnsMany("SmartCourt.Common.Entities.RefreshToken", "RefreshTokens", b1 =>
+                    b.OwnsMany("ApplicationUser.RefreshTokens#SmartCourt.Common.Entities.RefreshToken", "RefreshTokens", b1 =>
                         {
                             b1.Property<Guid>("UserId")
                                 .HasColumnType("uniqueidentifier");
@@ -2801,15 +2842,6 @@ namespace SmartCourt.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Cases.Entities.LegalCase", b =>
-                {
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
                 {
                     b.HasOne("ApplicationUser", null)
@@ -2824,7 +2856,7 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", "LegalCase")
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
                         .WithMany()
                         .HasForeignKey("LegalCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -2836,7 +2868,7 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("LegalCase");
+                    b.Navigation("Case");
 
                     b.Navigation("Proposal");
                 });
@@ -2871,7 +2903,7 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", null)
+                    b.HasOne("SmartCourt.Entities.Case", null)
                         .WithMany()
                         .HasForeignKey("LegalCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -3099,6 +3131,15 @@ namespace SmartCourt.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.Notifications.Entities.Notification", b =>
+                {
+                    b.HasOne("ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RecipientUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.EscrowAccount", b =>
                 {
                     b.HasOne("SmartCourt.Features.Contracts.Entities.Contract", null)
@@ -3246,13 +3287,13 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("SmartCourt.Features.Cases.Entities.LegalCase", "LegalCase")
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
                         .WithMany()
                         .HasForeignKey("LegalCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("LegalCase");
+                    b.Navigation("Case");
                 });
 
             modelBuilder.Entity("SmartCourt.Infrastructure.Persistence.Entities.IdempotencyRecord", b =>

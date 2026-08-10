@@ -105,6 +105,9 @@ public sealed class MockPaymentProvider
         var behaviorReference = request.ProviderIdempotencyKey
             .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
             ? request.ProviderIdempotencyKey
+            : request.DestinationReference
+                .StartsWith("mock-", StringComparison.OrdinalIgnoreCase)
+                ? request.DestinationReference
             : "mock-success-withdrawal";
         return await ExecuteAsync(
             "withdrawal",

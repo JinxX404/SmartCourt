@@ -7,5 +7,6 @@ namespace SmartCourt.Features.Case.GetCases.DTOs
         public string Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public int DocumentCount { get; set; }
+        public Guid? LawyerId { get; set; }
     }
 }

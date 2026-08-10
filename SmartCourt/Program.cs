@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SmartCourt.Extensions;
 using SmartCourt.Features.Chat.Hubs;
+using SmartCourt.Features.Notifications.Hubs;
+using SmartCourt.Features.Proposals.Expiration;
 
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Middleware;
@@ -51,6 +53,11 @@ namespace SmartCourt
                 app.MapControllers();
                 app.MapHealthChecks("/health");
                 app.MapHub<ChatHub>("/hubs/chat").RequireAuthorization();
+                app.MapHub<NotificationsHub>(
+                        "/hubs/notifications",
+                        options => options.CloseOnAuthenticationExpiration = true)
+                    .RequireAuthorization();
+
 
 
                 // 4. Auto-Migrate Database on Startup
@@ -65,6 +72,9 @@ namespace SmartCourt
                         .GetRequiredService<
                             SmartCourt.Infrastructure.Providers.Jobs
                                 .IContractRecurringJobRegistrar>()
+                        .RegisterAsync(app.Lifetime.ApplicationStopping);
+                    await scope.ServiceProvider
+                        .GetRequiredService<IProposalRecurringJobRegistrar>()
                         .RegisterAsync(app.Lifetime.ApplicationStopping);
                 }
 

@@ -6,9 +6,9 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Contracts.Entities;
-using SmartCourt.Features.Cases.Entities;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Milestones.Entities;
+using SmartCourt.Features.Notifications.Entities;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Infrastructure.Persistence.Entities;
@@ -89,7 +89,6 @@ public class ApplicationDbContext
     public DbSet<LegalSpecialization> LegalSpecializations =>
         Set<LegalSpecialization>();
     public DbSet<LawDocument> LawDocuments => Set<LawDocument>();
-    public DbSet<LegalCase> LegalCases => Set<LegalCase>();
     public DbSet<Proposal> Proposals => Set<Proposal>();
     public DbSet<ChatConversation> ChatConversations =>
         Set<ChatConversation>();
@@ -132,6 +131,7 @@ public class ApplicationDbContext
     public DbSet<IdempotencyRecord> IdempotencyRecords =>
         Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

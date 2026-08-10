@@ -72,6 +72,10 @@ public class ExceptionHandlingMiddleware
                 statusCode = (int)HttpStatusCode.Forbidden;
                 message = string.IsNullOrWhiteSpace(e.Message) ? "Forbidden access." : e.Message;
                 break;
+            case PreconditionFailedException e:
+                statusCode = StatusCodes.Status412PreconditionFailed;
+                message = e.Message;
+                break;
             case TooManyRequestsException e:
                 statusCode = StatusCodes.Status429TooManyRequests;
                 message = e.Message;

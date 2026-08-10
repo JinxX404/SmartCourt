@@ -8,12 +8,15 @@ using System.Reflection;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Proposals;
 using SmartCourt.Features.Proposals.AcceptProposal;
+using SmartCourt.Features.Proposals.CancelProposal;
 using SmartCourt.Features.Proposals.CreateProposal;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Proposals.GetProposal;
+using SmartCourt.Features.Proposals.GetProposalAvailability;
 using SmartCourt.Features.Proposals.GetProposals;
 using SmartCourt.Features.Proposals.RejectProposal;
+using SmartCourt.Features.Proposals.TerminateProposal;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Proposals;
@@ -32,11 +35,9 @@ public sealed class ProposalsControllerTests
 
         var action = await controller.CreateAsync(request, CancellationToken.None);
 
-        var result = Assert.IsType<CreatedAtActionResult>(
-            Convert(action));
+        var result = Assert.IsType<ObjectResult>(Convert(action));
         var response = Assert.IsType<ApiResponse<ProposalDetailDto>>(result.Value);
         Assert.Equal(StatusCodes.Status201Created, result.StatusCode);
-        Assert.Equal(nameof(ProposalsController.GetAsync), result.ActionName);
         Assert.True(response.Success);
         Assert.Same(mediator.Detail, response.Data);
         Assert.Equal(request.LegalCaseId, mediator.CreateCommand!.LegalCaseId);
@@ -62,16 +63,28 @@ public sealed class ProposalsControllerTests
             proposalId,
             new RejectProposalRequest("Not the right fit"),
             CancellationToken.None);
+        var cancelAction = await controller.CancelAsync(
+            proposalId,
+            new CancelProposalRequest("Client cancelled"),
+            CancellationToken.None);
+        var terminateAction = await controller.TerminateAsync(
+            proposalId,
+            new TerminateProposalRequest("Negotiation ended"),
+            CancellationToken.None);
 
         AssertWrappedOk(listAction, mediator.Page);
         AssertWrappedOk(getAction, mediator.Detail);
         AssertWrappedOk(acceptAction, mediator.Detail);
         AssertWrappedOk(rejectAction, mediator.Detail);
+        AssertWrappedOk(cancelAction, mediator.Detail);
+        AssertWrappedOk(terminateAction, mediator.Detail);
         Assert.Same(query, mediator.ListQuery);
         Assert.Equal(proposalId, mediator.GetQuery!.ProposalId);
         Assert.Equal(proposalId, mediator.AcceptCommand!.ProposalId);
         Assert.Equal(proposalId, mediator.RejectCommand!.ProposalId);
         Assert.Equal("Not the right fit", mediator.RejectCommand!.Reason);
+        Assert.Equal("Client cancelled", mediator.CancelCommand!.Reason);
+        Assert.Equal("Negotiation ended", mediator.TerminateCommand!.Reason);
     }
 
     [Fact]
@@ -97,6 +110,21 @@ public sealed class ProposalsControllerTests
             typeof(HttpPostAttribute),
             "{proposalId:guid}/accept",
             "Lawyer");
+        AssertEndpoint(
+            nameof(ProposalsController.CancelAsync),
+            typeof(HttpPostAttribute),
+            "{proposalId:guid}/cancel",
+            "Client");
+        AssertEndpoint(
+            nameof(ProposalsController.TerminateAsync),
+            typeof(HttpPostAttribute),
+            "{proposalId:guid}/terminate",
+            "Client,Lawyer");
+        AssertEndpoint(
+            nameof(ProposalsController.GetAvailabilityAsync),
+            typeof(HttpGetAttribute),
+            "cases/{legalCaseId:guid}/availability",
+            "Client");
         AssertEndpoint(
             nameof(ProposalsController.RejectAsync),
             typeof(HttpPostAttribute),
@@ -154,6 +182,8 @@ public sealed class ProposalsControllerTests
         public GetProposalQuery? GetQuery { get; private set; }
         public AcceptProposalCommand? AcceptCommand { get; private set; }
         public RejectProposalCommand? RejectCommand { get; private set; }
+        public CancelProposalCommand? CancelCommand { get; private set; }
+        public TerminateProposalCommand? TerminateCommand { get; private set; }
 
         public RecordingMediator()
         {
@@ -182,6 +212,12 @@ public sealed class ProposalsControllerTests
                     return Task.FromResult((TResponse)(object)DetailResponse);
                 case RejectProposalCommand command:
                     RejectCommand = command;
+                    return Task.FromResult((TResponse)(object)DetailResponse);
+                case CancelProposalCommand command:
+                    CancelCommand = command;
+                    return Task.FromResult((TResponse)(object)DetailResponse);
+                case TerminateProposalCommand command:
+                    TerminateCommand = command;
                     return Task.FromResult((TResponse)(object)DetailResponse);
                 default:
                     throw new NotSupportedException(request.GetType().Name);
@@ -238,3 +274,4 @@ public sealed class ProposalsControllerTests
 
     }
 }
+

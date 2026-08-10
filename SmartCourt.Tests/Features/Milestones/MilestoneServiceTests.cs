@@ -50,6 +50,17 @@ public sealed class MilestoneServiceTests
         Assert.Equal(1, created.OrderNumber);
         Assert.Contains("2", exception.Message);
         Assert.Single(await context.Milestones.ToListAsync());
+        var createdEvent = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.MilestoneCreated,
+            createdEvent.EventType);
+        var createdPayload = JsonSerializer.Deserialize<
+            MilestoneParticipantEventPayload>(
+            createdEvent.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(createdPayload);
+        Assert.Equal(created.Id, createdPayload.MilestoneId);
+        Assert.Equal(_clientUserId, createdPayload.ActorUserId);
     }
 
     [Fact]
@@ -80,6 +91,17 @@ public sealed class MilestoneServiceTests
         Assert.Null(milestone.AcceptedByClientAt);
         Assert.Null(milestone.AcceptedByLawyerAt);
         Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+        var updatedEvent = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.MilestoneDraftUpdated,
+            updatedEvent.EventType);
+        var updatedPayload = JsonSerializer.Deserialize<
+            MilestoneParticipantEventPayload>(
+            updatedEvent.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(updatedPayload);
+        Assert.Equal(milestone.Id, updatedPayload.MilestoneId);
+        Assert.Equal(_lawyerUserId, updatedPayload.ActorUserId);
     }
 
     [Fact]
@@ -103,6 +125,16 @@ public sealed class MilestoneServiceTests
         Assert.NotNull(milestone.AcceptedByClientAt);
         Assert.Null(milestone.AcceptedByLawyerAt);
         Assert.Empty(await context.MilestoneStateHistories.ToListAsync());
+        var firstApprovalEvent = await context.OutboxMessages.SingleAsync();
+        Assert.Equal(
+            ContractPaymentEventTypes.MilestoneAcceptanceRecorded,
+            firstApprovalEvent.EventType);
+        var firstApprovalPayload = JsonSerializer.Deserialize<
+            MilestoneParticipantEventPayload>(
+            firstApprovalEvent.Payload,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        Assert.NotNull(firstApprovalPayload);
+        Assert.Equal(_clientUserId, firstApprovalPayload.ActorUserId);
 
         currentUser.UserId = _lawyerUserId;
         var lawyerApproval = await service.ApproveAsync(
@@ -116,7 +148,17 @@ public sealed class MilestoneServiceTests
         Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
         Assert.Single(await context.MilestoneStateHistories.ToListAsync());
         Assert.Equal(0, contracts.EvaluateActivationCallCount);
-        var activationRequest = await context.OutboxMessages.SingleAsync();
+        var outboxMessages = await context.OutboxMessages.ToListAsync();
+        Assert.Equal(3, outboxMessages.Count);
+        Assert.Contains(
+            outboxMessages,
+            item => item.EventType
+                == ContractPaymentEventTypes.MilestoneApproved
+                && item.AggregateId == milestone.Id);
+        var activationRequest = Assert.Single(
+            outboxMessages,
+            item => item.EventType
+                == ContractPaymentEventTypes.ContractActivationRequested);
         Assert.Equal(
             ContractPaymentEventTypes.ContractActivationRequested,
             activationRequest.EventType);
@@ -876,6 +918,7 @@ public sealed class MilestoneServiceTests
             context,
             currentUser,
             contracts,
+            new OutboxWriter(context, timeProvider),
             timeProvider);
     }
 
@@ -913,6 +956,7 @@ public sealed class MilestoneServiceTests
                 null,
                 null,
                 0m,
+                string.Empty,
                 [],
                 [],
                 []),

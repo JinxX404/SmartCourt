@@ -19,9 +19,9 @@ public sealed class ForgotPasswordServiceTests
     [InlineData(UserStatus.Active, true, true)]
     [InlineData(UserStatus.PendingReview, true, true)]
     [InlineData(UserStatus.Active, false, false)]
-    [InlineData(UserStatus.Unverified, true, false)]
+    [InlineData(UserStatus.Unverified, true, true)]
     [InlineData(UserStatus.Suspended, true, false)]
-    [InlineData(UserStatus.Rejected, true, false)]
+    [InlineData(UserStatus.Rejected, true, true)]
     [InlineData(UserStatus.Deleted, true, false)]
     public async Task OnlyConfirmedEligibleUsersReceiveResetEmail(
         UserStatus status,

@@ -14,7 +14,7 @@ internal static class ProposalReadModel
     {
         var row = await (
             from proposal in context.Proposals.AsNoTracking()
-            join legalCase in context.LegalCases
+            join legalCase in context.Cases
                 on proposal.LegalCaseId equals legalCase.Id
             join client in context.Users
                 on proposal.ClientUserId equals client.Id
@@ -40,6 +40,9 @@ internal static class ProposalReadModel
                 proposal.DecisionReason,
                 proposal.CreatedAt,
                 proposal.RespondedAt,
+                proposal.ExpiresAt,
+                proposal.ClosedAt,
+                proposal.ClosedByUserId,
                 proposal.UpdatedAt,
                 ConversationId = conversation == null
                     ? null
@@ -63,6 +66,9 @@ internal static class ProposalReadModel
                 row.CreatedAt,
                 row.RespondedAt,
                 row.UpdatedAt,
-                row.ConversationId);
+                row.ConversationId,
+                row.ExpiresAt,
+                row.ClosedAt,
+                row.ClosedByUserId);
     }
 }

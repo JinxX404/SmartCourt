@@ -3,11 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Proposals.AcceptProposal;
+using SmartCourt.Features.Proposals.CancelProposal;
 using SmartCourt.Features.Proposals.CreateProposal;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.GetProposal;
+using SmartCourt.Features.Proposals.GetProposalAvailability;
 using SmartCourt.Features.Proposals.GetProposals;
 using SmartCourt.Features.Proposals.RejectProposal;
+using SmartCourt.Features.Proposals.TerminateProposal;
 
 namespace SmartCourt.Features.Proposals;
 
@@ -33,15 +36,23 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
                 request.Message),
             cancellationToken);
 
-        if (!result.Success)
-        {
-            return StatusCode(result.StatusCode, result);
-        }
+        return StatusCode(result.StatusCode, result);
+    }
 
-        return CreatedAtAction(
-            nameof(GetAsync),
-            new { proposalId = result.Data!.Id },
-            result);
+    [HttpGet("cases/{legalCaseId:guid}/availability")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ProposalSlotAvailabilityDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProposalSlotAvailabilityDto>>>
+        GetAvailabilityAsync(
+            Guid legalCaseId,
+            CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetProposalAvailabilityQuery(legalCaseId),
+            cancellationToken);
+        return StatusCode(result.StatusCode, result);
     }
 
     [HttpGet]
@@ -99,6 +110,38 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
     {
         var result = await mediator.Send(
             new RejectProposalCommand(proposalId, request.Reason),
+            cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{proposalId:guid}/cancel")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ProposalDetailDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProposalDetailDto>>> CancelAsync(
+        Guid proposalId,
+        [FromBody] CancelProposalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new CancelProposalCommand(proposalId, request.Reason),
+            cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("{proposalId:guid}/terminate")]
+    [Authorize(Roles = "Client,Lawyer")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ProposalDetailDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProposalDetailDto>>> TerminateAsync(
+        Guid proposalId,
+        [FromBody] TerminateProposalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new TerminateProposalCommand(proposalId, request.Reason),
             cancellationToken);
         return StatusCode(result.StatusCode, result);
     }

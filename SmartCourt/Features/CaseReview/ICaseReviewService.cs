@@ -9,6 +9,5 @@ namespace SmartCourt.Features.CaseReview;
 public interface ICaseReviewService
 {
     Task<CaseReviewReportDto> CreateReviewReportAsync(Guid caseId, CancellationToken cancellationToken = default);
-    Task<List<CaseReviewReportDto>> GetReviewReportsAsync(Guid caseId, CancellationToken cancellationToken = default);
     Task<CaseReviewReportDto> GetLatestReviewReportAsync(Guid caseId, CancellationToken cancellationToken = default);
 }

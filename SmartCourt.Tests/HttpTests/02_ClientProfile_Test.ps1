@@ -18,6 +18,10 @@ $loginBody = @{ Email = $clientEmail; Password = "Password123!" } | ConvertTo-Js
 $loginRes = Invoke-Api -title "0. Setup - Login Client" -method "POST" -endpoint "/api/auth/login" -body $loginBody -reportFile $reportFile
 $clientToken = $loginRes.Data.AccessToken
 
+$nationalNumPrefix = "2900101"
+$nationalNumSuffix = Get-Random -Minimum 1000000 -Maximum 9999999
+$nationalNum = "$nationalNumPrefix$nationalNumSuffix"
+
 # 1. Complete Profile - Missing Fields (Phone, DateOfBirth)
 $body = @{ Gender = 1; Address = "Cairo" } | ConvertTo-Json
 Invoke-Api -title "1. Client Complete - Missing Phone & DOB" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken -reportFile $reportFile
@@ -32,7 +36,7 @@ $body = @{ PhoneNumber = "+201011111111"; DateOfBirth = $futureDate; Gender = 1;
 Invoke-Api -title "3. Client Complete - Future Date of Birth" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken -reportFile $reportFile
 
 # 4. Complete Profile - Valid Data
-$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Cairo" } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Cairo"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "4. Client Complete - Valid Data" -method "POST" -endpoint "/api/clients/profile/complete" -body $body -token $clientToken -reportFile $reportFile
 
 # 5. Re-Login to Get Active Token
@@ -43,11 +47,11 @@ $clientToken = $loginRes.Data.AccessToken
 Invoke-Api -title "6. Client GET Private Profile" -method "GET" -endpoint "/api/clients/profile" -token $clientToken -reportFile $reportFile
 
 # 7. Update Profile - Invalid Phone
-$body = @{ PhoneNumber = "invalid_phone"; Address = "Alexandria" } | ConvertTo-Json
+$body = @{ PhoneNumber = "invalid_phone"; Address = "Alexandria"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "7. Client Update - Invalid Phone Format" -method "PUT" -endpoint "/api/clients/profile" -body $body -token $clientToken -reportFile $reportFile
 
 # 8. Update Profile - Valid Data
-$body = @{ PhoneNumber = "+201222222222"; Address = "Alexandria" } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201222222222"; Address = "Alexandria"; NationalNumber = $nationalNum } | ConvertTo-Json
 Invoke-Api -title "8. Client Update - Valid Data" -method "PUT" -endpoint "/api/clients/profile" -body $body -token $clientToken -reportFile $reportFile
 
 # 8b. Re-Login to Get New Token (Because updating PhoneNumber resets SecurityStamp)

@@ -30,6 +30,7 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Events;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Providers.Jobs;
 using SmartCourt.Providers.Payments;
@@ -40,16 +41,22 @@ using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Milestones.Integration;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
-
-using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Contracts.Integration;
+using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Chat.Integration;
+using SmartCourt.Features.Chat.Events;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Notifications;
+using SmartCourt.Features.Notifications.Events;
+using SmartCourt.Features.Notifications.Realtime;
 using SmartCourt.Features.Proposals.Integration;
+using SmartCourt.Features.Proposals.Expiration;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.Files.Integration;
 using SmartCourt.Features.Disputes;
@@ -73,6 +80,7 @@ using SmartCourt.Providers.Embedding;
 using SmartCourt.Providers.PdfParser;
 using SmartCourt.Features.LawIngestion;
 using Qdrant.Client;
+using SmartCourt.Common.Configuration;
 
 namespace SmartCourt;
 
@@ -149,6 +157,16 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddSingleton(TimeProvider.System);
+        services.AddOptions<OutboxDispatchOptions>()
+            .Bind(configuration.GetSection(OutboxDispatchOptions.SectionName))
+            .Validate(options => options.BatchSize is >= 1 and <= 1_000,
+                "OutboxDispatch:BatchSize must be between 1 and 1000.")
+            .Validate(options => options.IdleDelayMilliseconds is >= 100 and <= 60_000,
+                "OutboxDispatch:IdleDelayMilliseconds must be between 100 and 60000.")
+            .Validate(options => options.ErrorDelayMilliseconds is >= 100 and <= 300_000,
+                "OutboxDispatch:ErrorDelayMilliseconds must be between 100 and 300000.")
+            .ValidateOnStart();
+        services.AddHostedService<OutboxDispatchBackgroundService>();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? configuration.GetConnectionString("LocalConnection")
@@ -162,6 +180,16 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
+        services.AddScoped<INotificationEventMapper, ProposalNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, ContractNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
+        services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
+        services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<
+            INotificationRealtimeNotifier,
+            SignalRNotificationRealtimeNotifier>();
         services.AddScoped<
             IOutboxEventHandler,
             ContractActivationOutboxHandler>();
@@ -195,6 +223,10 @@ public static class DependencyInjection
             ICaseContractAccessService,
             CaseContractAccessService>();
         services.AddScoped<
+            IContractCaseAssignmentService,
+            ContractCaseAssignmentService>();
+        services.AddScoped<IProposalExpirationService, ProposalExpirationService>();
+        services.AddScoped<
             IContractUserEligibilityService,
             ContractUserEligibilityService>();
         services.AddScoped<
@@ -208,11 +240,17 @@ public static class DependencyInjection
             ContractService>();
         services.AddScoped<IContractQueryService, ContractQueryService>();
         services.AddScoped<
+            IContractNotificationContextReader,
+            ContractNotificationContextReader>();
+        services.AddScoped<
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IMilestoneDraftService, MilestoneDraftService>();
         services.AddScoped<IMilestoneChangeRequestService, MilestoneChangeRequestService>();
+        services.AddScoped<
+            IMilestoneNotificationContextReader,
+            MilestoneNotificationContextReader>();
         services.AddScoped<
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
@@ -221,6 +259,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<
+            IPaymentNotificationContextReader,
+            PaymentNotificationContextReader>();
         services.AddScoped<
             IAdminWalletAdjustmentService,
             AdminWalletAdjustmentService>();
@@ -242,6 +283,7 @@ public static class DependencyInjection
             PaymentContractJobOperations>();
         services.AddScoped<IContractJobService, ContractJobService>();
         services.AddScoped<IContractJobScheduler, HangfireContractJobScheduler>();
+
 
         services.AddOptions<PaymentProviderOptions>()
             .Bind(configuration.GetSection(PaymentProviderOptions.SectionName))
@@ -289,6 +331,46 @@ public static class DependencyInjection
             services.AddScoped<IPaymentReconciliationProvider>(
                 provider => provider
                     .GetRequiredService<MockPaymentProvider>());
+        }
+
+        // =========================================================================
+        // PAYMOB MARKETPLACE: explicit opt-in by setting
+        // "PaymentProvider:ProviderCode" to "PaymobMarketPlace".
+        // The mock stays the default; choosing Paymob overrides the interface resolution.
+        // =========================================================================
+        if (!configuration.GetValue<bool>(
+                $"{PaymentProviderOptions.SectionName}:UseMockProvider")
+            && string.Equals(
+                configuration.GetValue<string>(
+                    $"{PaymentProviderOptions.SectionName}:ProviderCode"),
+                PaymobOptions.ProviderCode,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddOptions<PaymobOptions>()
+                .Bind(configuration.GetSection(
+                    $"{PaymentProviderOptions.SectionName}:{PaymobOptions.SectionName}"))
+                .Validate(
+                    options => Uri.IsWellFormedUriString(
+                        options.BaseUrl,
+                        UriKind.Absolute)
+                        && !string.IsNullOrWhiteSpace(options.WebhookSecret),
+                    "يجب ضبط BaseUrl و WebhookSecret لمزود Paymob لإثبات ملكية الويب هوك.")
+                .ValidateOnStart();
+
+            services.AddHttpClient<PaymobPaymentProvider>(
+                (sp, client) =>
+                {
+                    var options = sp
+                        .GetRequiredService<IOptions<PaymobOptions>>()
+                        .Value;
+                    client.Timeout = TimeSpan.FromSeconds(
+                        options.TimeoutSeconds);
+                });
+
+            services.AddScoped<IPaymentProvider>(
+                sp => sp.GetRequiredService<PaymobPaymentProvider>());
+            services.AddScoped<IPaymentReconciliationProvider>(
+                sp => sp.GetRequiredService<PaymobPaymentProvider>());
         }
 
         services.AddOptions<MailKitOptions>()
@@ -351,6 +433,9 @@ public static class DependencyInjection
         services.AddScoped<
             IContractRecurringJobRegistrar,
             ContractRecurringJobRegistrar>();
+        services.AddScoped<
+            IProposalRecurringJobRegistrar,
+            ProposalRecurringJobRegistrar>();
 
         services.Configure<SupabaseOptions>(configuration.GetSection("Supabase"));
         services.AddScoped<IFileStorageService, SupabaseFileStorageService>();

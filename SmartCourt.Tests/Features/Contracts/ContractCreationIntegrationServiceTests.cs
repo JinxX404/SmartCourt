@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Auth.Enums;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
-using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Proposals.Integration;
@@ -22,28 +22,19 @@ public sealed class ContractCreationIntegrationServiceTests
     public async Task ProposalAndCaseServices_ReturnOnlyEligibleFacts()
     {
         await using var context = CreateContext();
-        var clientUserId = Guid.NewGuid();
+        var ClientId = Guid.NewGuid();
         var lawyerUserId = Guid.NewGuid();
-        var legalCase = new LegalCase(
-            Guid.NewGuid(),
-            clientUserId,
-            "قضية تجارية",
-            "نزاع تجاري يحتاج إلى تمثيل قانوني.",
-            "القاهرة",
-            _utcNow)
-        {
-            Status = CaseStatus.Matched
-        };
+        var caseEntity = new SmartCourt.Entities.Case { Id = Guid.NewGuid(), ClientId = ClientId, Title = "قضية تجارية", Description = "نزاع تجاري يحتاج إلى تمثيل قانوني.", City = "القاهرة", SubmittedAt = _utcNow, Status = CaseStatus.Matched };
         var proposal = new Proposal(
             Guid.NewGuid(),
-            legalCase.Id,
-            clientUserId,
+            caseEntity.Id,
+            ClientId,
             lawyerUserId,
             _utcNow)
         {
             Status = ProposalStatus.Accepted
         };
-        context.LegalCases.Add(legalCase);
+        context.Cases.Add(caseEntity);
         context.Proposals.Add(proposal);
         await context.SaveChangesAsync();
 
@@ -54,35 +45,29 @@ public sealed class ContractCreationIntegrationServiceTests
                     CancellationToken.None);
         var caseFacts = await new CaseContractAccessService(context)
             .FindEligibleForContractAsync(
-                legalCase.Id,
+                caseEntity.Id,
                 CancellationToken.None);
 
         Assert.NotNull(proposalFacts);
-        Assert.Equal(legalCase.Id, proposalFacts.LegalCaseId);
-        Assert.Equal(clientUserId, proposalFacts.ClientUserId);
+        Assert.Equal(caseEntity.Id, proposalFacts.LegalCaseId);
+        Assert.Equal(ClientId, proposalFacts.ClientUserId);
         Assert.Equal(lawyerUserId, proposalFacts.LawyerUserId);
         Assert.NotNull(caseFacts);
-        Assert.Equal(clientUserId, caseFacts.ClientUserId);
+        Assert.Equal(ClientId, caseFacts.ClientUserId);
     }
 
     [Fact]
     public async Task ProposalAndCaseServices_RejectIneligibleStates()
     {
         await using var context = CreateContext();
-        var legalCase = new LegalCase(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "قضية مسودة",
-            "هذه القضية لم تصل إلى المطابقة.",
-            null,
-            _utcNow);
+        var caseEntity = new SmartCourt.Entities.Case { Id = Guid.NewGuid(), ClientId = Guid.NewGuid(), Title = "قضية مسودة", Description = "هذه القضية لم تصل إلى المطابقة.", City = null, SubmittedAt = _utcNow };
         var proposal = new Proposal(
             Guid.NewGuid(),
-            legalCase.Id,
-            legalCase.ClientUserId,
+            caseEntity.Id,
+            caseEntity.ClientId,
             Guid.NewGuid(),
             _utcNow);
-        context.LegalCases.Add(legalCase);
+        context.Cases.Add(caseEntity);
         context.Proposals.Add(proposal);
         await context.SaveChangesAsync();
 
@@ -94,7 +79,7 @@ public sealed class ContractCreationIntegrationServiceTests
         Assert.Null(
             await new CaseContractAccessService(context)
                 .FindEligibleForContractAsync(
-                    legalCase.Id,
+                    caseEntity.Id,
                     CancellationToken.None));
     }
 

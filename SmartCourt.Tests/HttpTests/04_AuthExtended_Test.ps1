@@ -35,7 +35,7 @@ $refreshToken = $loginRes.Data.RefreshToken
 $nationalNumPrefix = "2900101"
 $nationalNumSuffix = Get-Random -Minimum 1000000 -Maximum 9999999
 $nationalNum = "$nationalNumPrefix$nationalNumSuffix"
-$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = $nationalNum } | ConvertTo-Json
+$body = @{ PhoneNumber = "+201011111111"; DateOfBirth = "1990-01-01"; Gender = 1; Address = "Law Firm 1"; Bio = "Hello"; Level = 1; NationalNumber = $nationalNum; Specializations = @(@{ Specialization = 1; YearsOfExperience = 5; CasesHandled = 10 }) } | ConvertTo-Json
 Invoke-Api -title "6. Complete Lawyer Profile" -method "POST" -endpoint "/api/lawyers/profile/complete" -body $body -token $token -reportFile $reportFile | Out-Null
 
 # 6b. Re-Login to Get New Token (Because completing profile resets SecurityStamp)

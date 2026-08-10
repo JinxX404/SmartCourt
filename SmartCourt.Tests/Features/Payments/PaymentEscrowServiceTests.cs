@@ -930,6 +930,7 @@ public sealed class PaymentEscrowServiceTests
             null,
             null,
             1_000m,
+            string.Empty,
             [],
             [],
             []);
@@ -1005,6 +1006,11 @@ public sealed class PaymentEscrowServiceTests
             Guid escrowHoldId,
             CancellationToken cancellationToken)
             => Task.FromResult(JobExecutionResult.NoOp("Unused"));
+
+        public Task<JobExecutionResult> ForceReleaseMilestoneAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
     }
 
     private sealed class RecordingEscrowReleaseService
@@ -1021,6 +1027,11 @@ public sealed class PaymentEscrowServiceTests
             return Task.FromResult(
                 JobExecutionResult.Completed("ReleaseRetried"));
         }
+
+        public Task<JobExecutionResult> ForceReleaseMilestoneAsync(
+            Guid milestoneId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
     }
 
     private sealed class MutableCurrentUser(Guid userId)

@@ -32,7 +32,7 @@ public sealed class ConfirmEmailServiceTests
 
         var storedUser = await testContext.ReloadUserAsync(user.Id);
         Assert.True(storedUser.EmailConfirmed);
-        Assert.Equal(UserStatus.Active, storedUser.Status);
+        Assert.Equal(UserStatus.Unverified, storedUser.Status);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class ConfirmEmailServiceTests
 
         var storedUser = await testContext.ReloadUserAsync(user.Id);
         Assert.True(storedUser.EmailConfirmed);
-        Assert.Equal(UserStatus.PendingReview, storedUser.Status);
+        Assert.Equal(UserStatus.Unverified, storedUser.Status);
     }
 
     [Fact]
@@ -65,13 +65,17 @@ public sealed class ConfirmEmailServiceTests
             role: "Client");
         var token = await testContext.GenerateEncodedEmailConfirmationTokenAsync(user);
         var service = CreateService(testContext);
+        
+        await service.ConfirmEmailAsync(user.Id.ToString(), token, CancellationToken.None);
+        
+        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+            service.ConfirmEmailAsync(user.Id.ToString(), token, CancellationToken.None));
 
-        await service.ConfirmEmailAsync(user.Id.ToString(), token, CancellationToken.None);
-        await service.ConfirmEmailAsync(user.Id.ToString(), token, CancellationToken.None);
+        Assert.Equal("الحساب مفعل مسبقاً. يرجى التوجه لصفحة تسجيل الدخول.", exception.Message);
 
         var storedUser = await testContext.ReloadUserAsync(user.Id);
         Assert.True(storedUser.EmailConfirmed);
-        Assert.Equal(UserStatus.Active, storedUser.Status);
+        Assert.Equal(UserStatus.Unverified, storedUser.Status);
     }
 
     [Theory]

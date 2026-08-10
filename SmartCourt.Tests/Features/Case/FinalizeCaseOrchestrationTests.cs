@@ -215,7 +215,7 @@ public sealed class FinalizeCaseOrchestrationTests
     }
 
     [Fact]
-    public async Task Finalize_WrongStatus_ThrowsBusinessException()
+    public async Task Finalize_DraftStatus_ThrowsBusinessException()
     {
         // Arrange
         var dbOptions = CreateSQLiteOptions();
@@ -230,9 +230,9 @@ public sealed class FinalizeCaseOrchestrationTests
         {
             Id = caseId,
             ClientId = clientId,
-            Title = "قضية جديدة لم تراجع بعد",
+            Title = "مسودة قضية غير مسموح بإتمامها",
             Description = "وصف القضية",
-            Status = CaseStatus.Submitted
+            Status = CaseStatus.Draft
         };
         dbContext.Cases.Add(caseEntity);
         await dbContext.SaveChangesAsync();
@@ -250,7 +250,74 @@ public sealed class FinalizeCaseOrchestrationTests
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<BusinessException>(() => handler.Handle(new FinalizeCaseCommand { CaseId = caseId }, CancellationToken.None));
-        Assert.Contains("Reviewed", ex.Message);
+        Assert.Contains("في حالة التقديم أو المراجعة", ex.Message);
+    }
+
+    [Fact]
+    public async Task Finalize_SubmittedStatus_ExecutesPipelineAndTransitionsToMatched()
+    {
+        // Arrange
+        var dbOptions = CreateSQLiteOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+        await dbContext.Database.EnsureCreatedAsync();
+
+        var clientId = Guid.NewGuid();
+        CreateClientUser(dbContext, clientId);
+
+        var caseId = Guid.NewGuid();
+        var caseEntity = new CaseEntity
+        {
+            Id = caseId,
+            ClientId = clientId,
+            Title = "قضية مقدمة جاهزة للإتمام",
+            Description = "وصف القضية المقدمة",
+            Governorate = "Cairo",
+            Status = CaseStatus.Submitted
+        };
+        dbContext.Cases.Add(caseEntity);
+
+        var lawyerUser = CreateLawyerUser(dbContext, out var lawyerProfile);
+        lawyerProfile.Specializations.Add(new LawyerSpecialization
+        {
+            Specialization = Specialization.CommercialLaw,
+            YearsOfExperience = 7,
+            CasesHandled = 30
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        var chatModelProvider = new TestChatModelProvider
+        {
+            OutputToReturn = $$"""
+                {
+                  "specialization": "CommercialLaw",
+                  "requiredLawyerLevel": "PrimaryCourt",
+                  "complexity": "Standard",
+                  "{{lawyerUser.Id}}": "سبب ترشيح المحامي التجاري بالقاهرة"
+                }
+                """
+        };
+
+        var currentUserService = new TestCurrentUserService { UserId = clientId };
+        var caseAnalysisService = new CaseAnalysisService(dbContext, chatModelProvider, null!, null!, NullLogger<CaseAnalysisService>.Instance);
+        var matchingService = new MatchingService(dbContext, chatModelProvider, NullLogger<MatchingService>.Instance);
+
+        var handler = new FinalizeCaseHandler(
+            dbContext,
+            caseAnalysisService,
+            matchingService,
+            currentUserService,
+            NullLogger<FinalizeCaseHandler>.Instance);
+
+        // Act
+        var result = await handler.Handle(new FinalizeCaseCommand { CaseId = caseId }, CancellationToken.None);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.Success);
+        var updatedCase = await dbContext.Cases.FirstOrDefaultAsync(c => c.Id == caseId);
+        Assert.NotNull(updatedCase);
+        Assert.Equal(CaseStatus.Matched, updatedCase.Status);
     }
 
     [Fact]

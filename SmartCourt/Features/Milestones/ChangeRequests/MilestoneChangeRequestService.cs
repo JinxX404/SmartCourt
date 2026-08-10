@@ -446,8 +446,8 @@ public sealed class MilestoneChangeRequestService(
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new ConflictException(
-                "تم تعديل طلب التعديل بواسطة عملية أخرى. يرجى إعادة تحميله والمحاولة مرة أخرى.");
+            throw new PreconditionFailedException(
+                "تم التعديل بواسطة عملية أخرى. يرجى إعادة تحميل البيانات والمحاولة مرة أخرى.");
         }
     }
 

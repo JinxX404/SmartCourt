@@ -40,7 +40,6 @@ public sealed class ProfileEmailContractTests
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.NotNull(request);
-        Assert.Equal("+201012345678", request.PhoneNumber);
         Assert.Equal(new DateOnly(1990, 1, 1), request.DateOfBirth);
         Assert.Equal("Cairo", request.Address);
     }
@@ -64,7 +63,6 @@ public sealed class ProfileEmailContractTests
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         Assert.NotNull(request);
-        Assert.Equal("+201012345678", request.PhoneNumber);
 
         Assert.Equal("Cairo", request.Address);
     }

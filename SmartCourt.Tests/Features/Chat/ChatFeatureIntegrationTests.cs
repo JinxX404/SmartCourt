@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Entities;
@@ -60,7 +60,7 @@ public sealed class ChatFeatureIntegrationTests
         var conversation = await context.ChatConversations.SingleAsync();
         Assert.Equal(result.Data.ConversationId, conversation.Id);
         Assert.Equal(ProposalStatus.Accepted, (await context.Proposals.SingleAsync()).Status);
-        Assert.Equal(CaseStatus.Matched, (await context.LegalCases.SingleAsync()).Status);
+        Assert.Equal(CaseStatus.Matched, (await context.Cases.SingleAsync()).Status);
     }
 
     [Fact]
@@ -193,17 +193,8 @@ public sealed class ChatFeatureIntegrationTests
 
     private async Task SeedAcceptedProposalAsync(ApplicationDbContext context)
     {
-        context.LegalCases.Add(
-            new LegalCase(
-                _legalCaseId,
-                _clientUserId,
-                "Case title",
-                "Case description",
-                "Cairo",
-                _utcNow.AddHours(-1))
-            {
-                Status = CaseStatus.Submitted
-            });
+        context.Cases.Add(
+            new SmartCourt.Entities.Case { Id = _legalCaseId, ClientId = _clientUserId, Title = "Case title", Description = "Case description", City = "Cairo", SubmittedAt = _utcNow.AddHours(-1), Status = CaseStatus.Submitted });
         context.Proposals.Add(
             new Proposal(
                 _proposalId,
@@ -218,6 +209,23 @@ public sealed class ChatFeatureIntegrationTests
     private async Task<ChatConversation> SeedConversationAsync(
         ApplicationDbContext context)
     {
+        var legalCase = new SmartCourt.Entities.Case
+        {
+            Id = _legalCaseId,
+            ClientId = _clientUserId,
+            Title = "Case title",
+            Description = "Case description",
+            Status = CaseStatus.Matched,
+            SubmittedAt = _utcNow.AddHours(-2)
+        };
+        var proposal = new Proposal(
+            _proposalId,
+            _legalCaseId,
+            _clientUserId,
+            _lawyerUserId,
+            "Please help.",
+            _utcNow.AddHours(-2));
+        proposal.Accept(_utcNow.AddHours(-1));
         var conversation = new ChatConversation(
             Guid.NewGuid(),
             _proposalId,
@@ -225,7 +233,7 @@ public sealed class ChatFeatureIntegrationTests
             _clientUserId,
             _lawyerUserId,
             _utcNow.AddMinutes(-15));
-        context.ChatConversations.Add(conversation);
+        context.AddRange(legalCase, proposal, conversation);
         await context.SaveChangesAsync();
         return conversation;
     }
@@ -288,3 +296,4 @@ public sealed class ChatFeatureIntegrationTests
         }
     }
 }
+

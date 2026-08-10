@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Payments.DTOs;
@@ -66,9 +66,9 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var legalCase = new LegalCase(legalCaseId, clientId, "قضية دفع", "نزاع مالي", "القاهرة", DateTime.UtcNow) { Status = CaseStatus.Matched };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية دفع", Description = "نزاع مالي", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
         var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTime.UtcNow) { Status = ProposalStatus.Accepted };
-        db.LegalCases.Add(legalCase);
+        db.Cases.Add(caseEntity);
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
 

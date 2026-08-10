@@ -30,7 +30,8 @@ public sealed record ContractMilestoneDto(
     DateTime? SubmittedAt,
     DateTime? AutoAcceptEligibleAt,
     DateTime? HoldExpiresAt,
-    decimal? NetLawyerAmount);
+    decimal? NetLawyerAmount,
+    string Version);
 
 public sealed record ContractPaymentDto(
     Guid Id,
@@ -59,6 +60,7 @@ public sealed record ContractDetailDto(
     DateTime? CompletedAt,
     DateTime? TerminatedAt,
     decimal CurrentMilestoneTotal,
+    string Version,
     IReadOnlyList<ContractMilestoneDto> Milestones,
     IReadOnlyList<ContractPaymentDto> Payments,
     IReadOnlyList<string> PermittedActions);

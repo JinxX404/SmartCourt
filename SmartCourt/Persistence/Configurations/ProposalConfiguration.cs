@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Proposals.Entities;
 
 namespace SmartCourt.Persistence.Configurations;
@@ -22,10 +22,14 @@ public sealed class ProposalConfiguration
         builder.Property(proposal => proposal.DecisionReason)
             .NullableUnicode(1_000);
         builder.Property(proposal => proposal.RespondedAt).NullableUtc();
+        builder.Property(proposal => proposal.ExpiresAt).Utc();
+        builder.Property(proposal => proposal.ClosedAt).NullableUtc();
         builder.Property(proposal => proposal.CreatedAt).Utc();
-        builder.Property(proposal => proposal.UpdatedAt).Utc();
+        builder.Property(proposal => proposal.UpdatedAt)
+            .Utc()
+            .IsConcurrencyToken();
 
-        builder.HasOne(proposal => proposal.LegalCase)
+        builder.HasOne(proposal => proposal.Case)
             .WithMany()
             .HasForeignKey(proposal => proposal.LegalCaseId)
             .OnDelete(DeleteBehavior.Restrict);
@@ -36,6 +40,10 @@ public sealed class ProposalConfiguration
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(proposal => proposal.LawyerUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(proposal => proposal.ClosedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(proposal => new
@@ -48,11 +56,13 @@ public sealed class ProposalConfiguration
             proposal.LegalCaseId,
             proposal.LawyerUserId
         }).HasFilter("[Status] IN (0, 1)").IsUnique();
-        builder.HasIndex(proposal => proposal.LegalCaseId)
-            .HasFilter("[Status] = 1")
-            .IsUnique();
+        builder.HasIndex(proposal => new
+        {
+            proposal.Status,
+            proposal.ExpiresAt
+        }).HasDatabaseName("IX_Proposals_Status_ExpiresAt");
         builder.HasCheckConstraint(
             "CK_Proposals_Status_Range",
-            "[Status] BETWEEN 0 AND 2");
+            "[Status] BETWEEN 0 AND 6");
     }
 }

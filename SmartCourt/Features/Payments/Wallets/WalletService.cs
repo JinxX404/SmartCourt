@@ -8,6 +8,7 @@ using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
@@ -22,6 +23,7 @@ public sealed class WalletService(
     IPaymentProvider paymentProvider,
     IPaymentReconciliationProvider reconciliationProvider,
     IIdempotencyService idempotencyService,
+    IOutboxWriter outboxWriter,
     TimeProvider timeProvider,
     IOptions<PaymentProviderOptions> paymentProviderOptions,
     ILogger<WalletService> logger) : IWalletService
@@ -509,6 +511,10 @@ public sealed class WalletService(
         withdrawal.RequiresManualAction = false;
         withdrawal.ManualActionRequiredAt = null;
         withdrawal.ProcessedAt = now;
+        await EnqueueWithdrawalEventAsync(
+            ContractPaymentEventTypes.WithdrawalCompleted,
+            withdrawal,
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return MapAction(withdrawal);
     }
@@ -540,6 +546,10 @@ public sealed class WalletService(
             withdrawal.RequiresManualAction = false;
             withdrawal.ManualActionRequiredAt = null;
             withdrawal.ProcessedAt = now;
+            await EnqueueWithdrawalEventAsync(
+                ContractPaymentEventTypes.WithdrawalFailed,
+                withdrawal,
+                cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
@@ -583,6 +593,10 @@ public sealed class WalletService(
         withdrawal.RequiresManualAction = true;
         withdrawal.ManualActionRequiredAt = now;
         withdrawal.FailureReason = reason;
+        await EnqueueWithdrawalEventAsync(
+            ContractPaymentEventTypes.WithdrawalDelayed,
+            withdrawal,
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogCritical(
             exception,
@@ -598,6 +612,24 @@ public sealed class WalletService(
         var cutoff = UtcNow.AddMinutes(
             -paymentProviderOptions.Value.ProcessingSlaMinutes);
         return withdrawal.RequestedAt <= cutoff;
+    }
+
+    private async Task EnqueueWithdrawalEventAsync(
+        string eventType,
+        WithdrawalRequest withdrawal,
+        CancellationToken cancellationToken)
+    {
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                eventType,
+                1,
+                new WithdrawalOutcomeEventPayload(
+                    withdrawal.Id,
+                    withdrawal.LawyerUserId),
+                nameof(WithdrawalRequest),
+                withdrawal.Id,
+                withdrawal.Id),
+            cancellationToken);
     }
 
     private async Task<PaymentActionResultDto> ReplayAsync(

@@ -25,7 +25,6 @@ public sealed class UpdateLawyerProfileRequestValidatorTests
     {
         return new UpdateLawyerProfileRequest
         {
-            PhoneNumber = "+201012345678",
             Level = LawyerLevel.GeneralRegistration,
             Address = "Cairo"
         };

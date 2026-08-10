@@ -1,5 +1,5 @@
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Features.Cases.Integration;
+using SmartCourt.Features.Case.Integration;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Users.Integration;

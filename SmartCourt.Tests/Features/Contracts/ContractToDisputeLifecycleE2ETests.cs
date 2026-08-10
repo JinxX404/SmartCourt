@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
-using SmartCourt.Features.Cases.Entities;
+using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Disputes.DTOs;
@@ -83,16 +83,7 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var legalCase = new LegalCase(
-                legalCaseId,
-                clientId,
-                "نزاع تجاري وعقاري",
-                "مطالبة بتنفيذ بند شرط جزائي وتصفية حسابات شركة عقارية",
-                "الجيزة",
-                DateTime.UtcNow)
-            {
-                Status = CaseStatus.Matched
-            };
+            var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "نزاع تجاري وعقاري", Description = "مطالبة بتنفيذ بند شرط جزائي وتصفية حسابات شركة عقارية", City = "الجيزة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
 
             var proposal = new Proposal(
                 proposalId,
@@ -123,7 +114,7 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
                 Status = VerificationDocumentStatus.Verified
             };
 
-            db.LegalCases.Add(legalCase);
+            db.Cases.Add(caseEntity);
             db.Proposals.Add(proposal);
             db.StoredFiles.Add(storedFile);
             db.UserVerificationDocuments.Add(verDoc);

@@ -33,6 +33,46 @@ public sealed class EscrowReleaseService(
     private const string ReleaseOperation = "ReleaseExpiredHold";
     private const string ReleaseReferenceType = "MilestoneRelease";
 
+    public async Task<JobExecutionResult> ForceReleaseMilestoneAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken)
+    {
+        if (milestoneId == Guid.Empty)
+        {
+            throw new BusinessException(
+                "معرّف المرحلة مطلوب لتحرير أموالها.");
+        }
+
+        var hold = await dbContext.EscrowHolds
+            .SingleOrDefaultAsync(
+                item => item.MilestoneId == milestoneId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "لم يتم إنشاء حجز ضمان لهذه المرحلة حتى الآن.");
+
+        var milestone = await dbContext.Milestones
+            .SingleOrDefaultAsync(
+                item => item.Id == milestoneId,
+                cancellationToken)
+            ?? throw new BusinessException(
+                "المرحلة المطلوبة غير موجودة.");
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        if (hold.HoldExpiresAt.HasValue
+            && milestone.HoldExpiresAt.HasValue
+            && hold.HoldExpiresAt.Value > now
+            && milestone.HoldExpiresAt.Value > now)
+        {
+            hold.HoldExpiresAt = now;
+            milestone.HoldExpiresAt = now;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return await ReleaseExpiredHoldAsync(
+            hold.Id,
+            cancellationToken);
+    }
+
     public async Task<JobExecutionResult> ReleaseExpiredHoldAsync(
         Guid escrowHoldId,
         CancellationToken cancellationToken)

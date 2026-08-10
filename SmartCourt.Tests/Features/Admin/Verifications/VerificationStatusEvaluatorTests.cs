@@ -19,20 +19,20 @@ public sealed class VerificationStatusEvaluatorTests
     {
         var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
 
-        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today);
+        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today, isLawyer: true, isPhoneConfirmed: true, currentStatus: UserStatus.PendingReview);
 
         Assert.Equal(UserStatus.Active, status);
     }
 
     [Fact]
-    public void ResolveAccountStatus_ReturnsRejected_WhenAnyCurrentRequiredDocumentIsRejected()
+    public void ResolveAccountStatus_ReturnsUnverified_WhenAnyCurrentRequiredDocumentIsRejected()
     {
         var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
         documents[2].Status = VerificationDocumentStatus.Rejected;
 
-        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today);
+        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today, isLawyer: true, isPhoneConfirmed: true, currentStatus: UserStatus.PendingReview);
 
-        Assert.Equal(UserStatus.Rejected, status);
+        Assert.Equal(UserStatus.Unverified, status);
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public sealed class VerificationStatusEvaluatorTests
         var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
         documents[1].Status = VerificationDocumentStatus.Pending;
 
-        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today);
+        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today, isLawyer: true, isPhoneConfirmed: true, currentStatus: UserStatus.PendingReview);
 
         Assert.Equal(UserStatus.PendingReview, status);
     }
@@ -54,7 +54,7 @@ public sealed class VerificationStatusEvaluatorTests
         documents[0].IsCurrent = false;
         documents.Add(CreateDocument(VerificationDocumentType.NationalIdFront, VerificationDocumentStatus.Verified));
 
-        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today);
+        var status = VerificationStatusEvaluator.ResolveAccountStatus(documents, Today, isLawyer: true, isPhoneConfirmed: true, currentStatus: UserStatus.PendingReview);
 
         Assert.Equal(UserStatus.Active, status);
     }
@@ -68,7 +68,7 @@ public sealed class VerificationStatusEvaluatorTests
     {
         var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
 
-        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today, isLawyer: true);
 
         Assert.True(result);
     }
@@ -79,7 +79,7 @@ public sealed class VerificationStatusEvaluatorTests
         // This covers the original bug: an Active seeded lawyer with zero documents
         // was previously reported as IsFullyVerified = true because the code
         // derived it from UserStatus.Active instead of evaluating documents.
-        var result = VerificationStatusEvaluator.IsFullyVerified([], Today);
+        var result = VerificationStatusEvaluator.IsFullyVerified([], Today, isLawyer: true);
 
         Assert.False(result);
     }
@@ -91,7 +91,7 @@ public sealed class VerificationStatusEvaluatorTests
         // Make the first document expire before today
         documents[0].ExpirationDate = Today.AddDays(-1);
 
-        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today, isLawyer: true);
 
         Assert.False(result);
     }
@@ -102,7 +102,7 @@ public sealed class VerificationStatusEvaluatorTests
         var documents = RequiredDocuments(VerificationDocumentStatus.Verified);
         documents[3].Status = VerificationDocumentStatus.Pending;
 
-        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today, isLawyer: true);
 
         Assert.False(result);
     }
@@ -110,16 +110,16 @@ public sealed class VerificationStatusEvaluatorTests
     [Fact]
     public void IsFullyVerified_ReturnsFalse_WhenARequiredDocumentTypeIsMissing()
     {
-        // Only 3 of the 4 required document types present
+        // Only 3 of the 4 required document types present (from old requirements)
         var documents = new List<UserVerificationDocument>
         {
             CreateDocument(VerificationDocumentType.NationalIdFront, VerificationDocumentStatus.Verified),
             CreateDocument(VerificationDocumentType.NationalIdBack, VerificationDocumentStatus.Verified),
             CreateDocument(VerificationDocumentType.BarAssociationCardFront, VerificationDocumentStatus.Verified)
-            // BarAssociationCardBack is missing
+            // Missing others...
         };
 
-        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today);
+        var result = VerificationStatusEvaluator.IsFullyVerified(documents, Today, isLawyer: true);
 
         Assert.False(result);
     }
@@ -135,7 +135,9 @@ public sealed class VerificationStatusEvaluatorTests
             CreateDocument(VerificationDocumentType.NationalIdFront, status),
             CreateDocument(VerificationDocumentType.NationalIdBack, status),
             CreateDocument(VerificationDocumentType.BarAssociationCardFront, status),
-            CreateDocument(VerificationDocumentType.BarAssociationCardBack, status)
+            CreateDocument(VerificationDocumentType.BarAssociationCardBack, status),
+            CreateDocument(VerificationDocumentType.SelfieWithId, status),
+            CreateDocument(VerificationDocumentType.OfficialProfilePicture, status)
         ];
     }
 

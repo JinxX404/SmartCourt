@@ -51,7 +51,7 @@ public sealed class MilestonesControllerTests
             CancellationToken.None);
         var changeRequestResult = ConvertAction(changeRequestAction);
 
-        var addResult = Assert.IsType<CreatedAtActionResult>(
+        var addResult = Assert.IsType<ObjectResult>(
             ConvertAction(addAction));
         AssertWrapped(addResult.Value, service.Milestone);
         Assert.Equal(StatusCodes.Status201Created, addResult.StatusCode);
@@ -142,7 +142,7 @@ public sealed class MilestonesControllerTests
         var service = new RecordingMilestoneStub();
         var controller = CreateController(service);
 
-        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
+        var exception = await Assert.ThrowsAsync<PreconditionFailedException>(() =>
             controller.ApproveAsync(
                 Guid.NewGuid(),
                 ifMatch,
@@ -268,7 +268,8 @@ public sealed class MilestonesControllerTests
                 null,
                 null,
                 null,
-                null);
+                null,
+                "\"dummy-version\"") { PermittedActions = [] };
 
         public IReadOnlyList<MilestoneDto> Milestones { get; }
             = [];

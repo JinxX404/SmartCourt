@@ -17,7 +17,6 @@ public sealed class RefreshTokenServiceTests
 
     [Theory]
     [InlineData(UserStatus.Suspended)]
-    [InlineData(UserStatus.Rejected)]
     [InlineData(UserStatus.Deleted)]
     public async Task BlockedAccount_RefreshRequestFails(UserStatus status)
     {

@@ -31,7 +31,11 @@ public sealed class AuthEmailDeliveryTests
             }),
             new TestWebHostEnvironment());
 
-        await service.SendConfirmationEmailAsync(user, CancellationToken.None);
+        // Reload so the user is tracked before UpdateSecurityStampAsync runs its
+        // internal validator queries — mirrors how production code works (FindByEmailAsync
+        // in ResendVerificationService ensures the user is tracked before this call).
+        var trackedUser = await testContext.UserManager.FindByIdAsync(user.Id.ToString());
+        await service.SendConfirmationEmailAsync(trackedUser!, CancellationToken.None);
 
         var message = Assert.Single(emailProvider.Messages);
         Assert.Contains("&lt;strong&gt;Test User&lt;/strong&gt;", message.Body);
@@ -90,6 +94,50 @@ public sealed class AuthEmailDeliveryTests
                 "Subject",
                 "Body",
                 isHtml: false));
+    }
+
+    [Fact]
+    public async Task ResendInvalidatesPreviousToken()
+    {
+        // Arrange
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var user = await testContext.CreateUserAsync(
+            UserStatus.Unverified,
+            emailConfirmed: false);
+
+        var emailProvider = new CapturingEmailProvider();
+        var authHelperService = new AuthHelperService(
+            testContext.RoleManager,
+            testContext.UserManager,
+            emailProvider,
+            Options.Create(new AuthEmailOptions { PublicBaseUrl = "https://app.example.com" }),
+            new TestWebHostEnvironment());
+        var confirmService = new SmartCourt.Features.Auth.ConfirmEmail.ConfirmEmailService(
+            testContext.UserManager,
+            testContext.DbContext);
+
+        // Act — generate first token, then resend (which rotates SecurityStamp).
+        // Reload so the user is tracked before UpdateSecurityStampAsync runs its
+        // internal validator queries — mirrors how production code works.
+        var firstToken = await testContext.GenerateEncodedEmailConfirmationTokenAsync(user);
+        var trackedUser = await testContext.UserManager.FindByIdAsync(user.Id.ToString());
+        await authHelperService.SendConfirmationEmailAsync(trackedUser!, CancellationToken.None);
+
+        // Extract the second token from the captured email link
+        var secondTokenUrl = ExtractHtmlLink(emailProvider.Messages.Single().Body);
+        var secondToken = QueryHelpers.ParseQuery(new Uri(secondTokenUrl).Query)["token"].ToString();
+
+        // Assert — first token is now invalid (stamp was rotated on resend)
+        var exception = await Assert.ThrowsAsync<SmartCourt.Common.Exceptions.BusinessException>(() =>
+            confirmService.ConfirmEmailAsync(user.Id.ToString(), firstToken, CancellationToken.None));
+        Assert.Equal(
+            "رابط تأكيد البريد الإلكتروني غير صالح أو منتهي الصلاحية.",
+            exception.Message);
+
+        // Assert — second token (from the resend email) still works
+        await confirmService.ConfirmEmailAsync(user.Id.ToString(), secondToken, CancellationToken.None);
+        var storedUser = await testContext.ReloadUserAsync(user.Id);
+        Assert.True(storedUser.EmailConfirmed);
     }
 
     private static string ExtractHtmlLink(string body)

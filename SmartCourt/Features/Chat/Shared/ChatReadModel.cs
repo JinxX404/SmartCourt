@@ -14,7 +14,7 @@ internal static class ChatReadModel
     {
         var row = await (
             from conversation in context.ChatConversations.AsNoTracking()
-            join legalCase in context.LegalCases
+            join legalCase in context.Cases
                 on conversation.LegalCaseId equals legalCase.Id
             join client in context.Users
                 on conversation.ClientUserId equals client.Id

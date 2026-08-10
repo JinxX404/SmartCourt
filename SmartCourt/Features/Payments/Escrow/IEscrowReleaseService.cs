@@ -7,4 +7,8 @@ public interface IEscrowReleaseService
     Task<JobExecutionResult> ReleaseExpiredHoldAsync(
         Guid escrowHoldId,
         CancellationToken cancellationToken);
+
+    Task<JobExecutionResult> ForceReleaseMilestoneAsync(
+        Guid milestoneId,
+        CancellationToken cancellationToken);
 }
