@@ -52,7 +52,6 @@ public sealed class ProposalsControllerTests
         var controller = new ProposalsController(mediator);
         var proposalId = Guid.NewGuid();
         var query = new GetProposalsQuery(
-            ProposalInboxDirection.Received,
             null,
             "search");
 
