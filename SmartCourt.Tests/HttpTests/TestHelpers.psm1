@@ -92,15 +92,21 @@ function Invoke-Api {
 }
 
 function Confirm-EmailFromLog {
-    param([string]$email, [string]$reportFile, [string]$apiLogPath)
+    param([string]$email, [string]$reportFile, [string]$apiLogPath = "$PSScriptRoot\..\..\SmartCourt\api_log.txt")
     
     $maxRetries = 15
-    $fullLog = $null
     for ($i = 0; $i -lt $maxRetries; $i++) {
-        $fullLog = Get-Content $apiLogPath -Raw -ErrorAction SilentlyContinue
-        if ($fullLog -match "(?s)To: $([regex]::Escape($email)).*?href='([^']*)'") {
-            break
-        }
+        try {
+            $fileStream = New-Object System.IO.FileStream($apiLogPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+            $reader = New-Object System.IO.StreamReader($fileStream)
+            $fullLog = $reader.ReadToEnd()
+            $reader.Close()
+            $fileStream.Close()
+            
+            if ($fullLog -match "(?s)To: $([regex]::Escape($email)).*?href='([^']*)'") {
+                break
+            }
+        } catch {}
         Start-Sleep -Seconds 1
     }
 
@@ -126,10 +132,19 @@ function Confirm-EmailFromLog {
 }
 
 function Get-ResetTokenFromLog {
-    param([string]$email, [string]$apiLogPath)
+    param([string]$email, [string]$apiLogPath = "$PSScriptRoot\..\..\SmartCourt\api_log.txt")
     
     Start-Sleep -Seconds 3
-    $fullLog = Get-Content $apiLogPath -Raw -ErrorAction SilentlyContinue
+    try {
+        $fileStream = New-Object System.IO.FileStream($apiLogPath, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $reader = New-Object System.IO.StreamReader($fileStream)
+        $fullLog = $reader.ReadToEnd()
+        $reader.Close()
+        $fileStream.Close()
+    } catch {
+        return ""
+    }
+
     if (-not $fullLog) { return "" }
 
     $escapedEmail = [regex]::Escape($email)
