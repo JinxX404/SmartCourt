@@ -1,31 +1,53 @@
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Models;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Features.Users.Clients;
 using SmartCourt.Features.Users.Clients.DTOs;
 using SmartCourt.Features.Users.Clients.Validators;
 using SmartCourt.Features.Users.Lawyers;
 using SmartCourt.Features.Users.Lawyers.DTOs;
 using SmartCourt.Features.Users.Lawyers.Validators;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Tests.Features.Auth;
+using SmartCourt.Tests.TestDoubles;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Users;
 
 public sealed class CompleteProfileAgeValidationTests
 {
+    private sealed class DummyAuthHelperService : IAuthHelperService
+    {
+        public Task EnsureRoleExistsAsync(string roleName) => Task.CompletedTask;
+        public Task SendConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public string GenerateRefreshToken() => "token";
+        public string HashRefreshToken(string refreshToken) => "hash";
+        public void RevokeAllActiveRefreshTokens(ApplicationUser applicationUser) { }
+    }
+
+    private sealed class DummyFileStorageService : IFileStorageService
+    {
+        public Task DeleteAsync(string filePath, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<byte[]> DownloadAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<byte>());
+        public Task<bool> ExistsAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(true);
+        public Task<string> GetDownloadUrlAsync(string filePath, CancellationToken cancellationToken = default) => Task.FromResult(filePath);
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+        public Task<FileUploadResult> UploadAsync(Stream stream, string filePath, string originalFileName, string? contentType, CancellationToken cancellationToken = default) => Task.FromResult(new FileUploadResult { StoragePath = filePath, OriginalFileName = originalFileName, Size = 0 });
+    }
     [Fact]
     public async Task ClientService_CompleteProfile_Under21_ThrowsBusinessException()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var client = await testContext.CreateUserAsync(UserStatus.PendingVerification, emailConfirmed: true);
+        var client = await testContext.CreateUserAsync(UserStatus.Unverified, emailConfirmed: true);
         var service = new ClientService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(client.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = client.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var under21Dob = today.AddYears(-20);
@@ -51,13 +73,13 @@ public sealed class CompleteProfileAgeValidationTests
     public async Task ClientService_CompleteProfile_21OrOlder_Succeeds()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var client = await testContext.CreateUserAsync(UserStatus.PendingVerification, emailConfirmed: true);
+        var client = await testContext.CreateUserAsync(UserStatus.Unverified, emailConfirmed: true);
         var service = new ClientService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(client.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = client.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var age21Dob = today.AddYears(-21);
@@ -88,9 +110,9 @@ public sealed class CompleteProfileAgeValidationTests
         var service = new ClientService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(client.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = client.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var under21Dob = today.AddYears(-20);
@@ -111,13 +133,13 @@ public sealed class CompleteProfileAgeValidationTests
     public async Task LawyerService_CompleteProfile_Under21_ThrowsBusinessException()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var lawyer = await testContext.CreateUserAsync(UserStatus.PendingVerification, emailConfirmed: true);
+        var lawyer = await testContext.CreateUserAsync(UserStatus.Unverified, emailConfirmed: true);
         var service = new LawyerService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(lawyer.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = lawyer.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var under21Dob = today.AddYears(-20);
@@ -136,7 +158,7 @@ public sealed class CompleteProfileAgeValidationTests
             {
                 new LawyerSpecializationDto
                 {
-                    Specialization = LawyerSpecializationType.CivilLaw,
+                    Specialization = Specialization.CivilLaw,
                     YearsOfExperience = 2,
                     CasesHandled = 5
                 }
@@ -153,13 +175,13 @@ public sealed class CompleteProfileAgeValidationTests
     public async Task LawyerService_CompleteProfile_21OrOlder_Succeeds()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var lawyer = await testContext.CreateUserAsync(UserStatus.PendingVerification, emailConfirmed: true);
+        var lawyer = await testContext.CreateUserAsync(UserStatus.Unverified, emailConfirmed: true);
         var service = new LawyerService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(lawyer.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = lawyer.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var age21Dob = today.AddYears(-21);
@@ -178,7 +200,7 @@ public sealed class CompleteProfileAgeValidationTests
             {
                 new LawyerSpecializationDto
                 {
-                    Specialization = LawyerSpecializationType.CivilLaw,
+                    Specialization = Specialization.CivilLaw,
                     YearsOfExperience = 2,
                     CasesHandled = 5
                 }
@@ -200,9 +222,9 @@ public sealed class CompleteProfileAgeValidationTests
         var service = new LawyerService(
             testContext.UserManager,
             testContext.DbContext,
-            new TestCurrentUserService(lawyer.Id),
-            new TestAuthHelperService(),
-            new TestFileStorageService());
+            new TestCurrentUserService { UserId = lawyer.Id },
+            new DummyAuthHelperService(),
+            new DummyFileStorageService());
 
         var today = DateOnly.FromDateTime(DateTime.Today);
         var under21Dob = today.AddYears(-20);
@@ -275,7 +297,7 @@ public sealed class CompleteProfileAgeValidationTests
             {
                 new LawyerSpecializationDto
                 {
-                    Specialization = LawyerSpecializationType.CivilLaw,
+                    Specialization = Specialization.CivilLaw,
                     YearsOfExperience = 1,
                     CasesHandled = 1
                 }
