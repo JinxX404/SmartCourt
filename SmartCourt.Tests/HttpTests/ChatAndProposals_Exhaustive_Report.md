@@ -1,0 +1,921 @@
+# Chat and Proposals - Exhaustive & Integration Report
+
+Generated at 2026-08-10 12:39:06
+
+
+
+## Phase 1: Zero Assumption Setup
+
+### Register Client 1
+
+**Request:** POST http://localhost:5049/api/auth/register/client
+
+**Body:**
+`json
+{
+  "ConfirmPassword": "Password123!",
+  "FullName": "Client One",
+  "Email": "chatprop_client1_20260810123906@example.com",
+  "Password": "Password123!"
+}
+``n
+**Response Status:** 201
+
+**Response Body:**
+`json
+{
+  "success": true,
+  "data": {
+    "userId": "3f841490-5ad7-4bb4-27d9-08def6c2447f",
+    "email": "chatprop_client1_20260810123906@example.com",
+    "fullName": "Client One",
+    "role": "Client"
+  },
+  "message": "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني",
+  "errors": null,
+  "statusCode": 201
+}
+``n---
+
+
+Could not find confirmation URL for chatprop_client1_20260810123906@example.com in log.
+
+### Login Client 1
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Password123!",
+  "Email": "chatprop_client1_20260810123906@example.com"
+}
+``n
+**Response Status:** 403
+
+**Response Body:**
+`json
+{
+  "success": false,
+  "data": null,
+  "message": "يرجى تأكيد البريد الإلكتروني أولاً",
+  "errors": null,
+  "statusCode": 403
+}
+``n---
+
+
+### Register Client 2
+
+**Request:** POST http://localhost:5049/api/auth/register/client
+
+**Body:**
+`json
+{
+  "ConfirmPassword": "Password123!",
+  "FullName": "Client Two",
+  "Email": "chatprop_client2_20260810123906@example.com",
+  "Password": "Password123!"
+}
+``n
+**Response Status:** 201
+
+**Response Body:**
+`json
+{
+  "success": true,
+  "data": {
+    "userId": "1df9d967-b7cf-4287-27da-08def6c2447f",
+    "email": "chatprop_client2_20260810123906@example.com",
+    "fullName": "Client Two",
+    "role": "Client"
+  },
+  "message": "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني",
+  "errors": null,
+  "statusCode": 201
+}
+``n---
+
+
+Could not find confirmation URL for chatprop_client2_20260810123906@example.com in log.
+
+### Login Client 2
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Password123!",
+  "Email": "chatprop_client2_20260810123906@example.com"
+}
+``n
+**Response Status:** 403
+
+**Response Body:**
+`json
+{
+  "success": false,
+  "data": null,
+  "message": "يرجى تأكيد البريد الإلكتروني أولاً",
+  "errors": null,
+  "statusCode": 403
+}
+``n---
+
+
+### Register Lawyer
+
+**Request:** POST http://localhost:5049/api/auth/register/lawyer
+
+**Body:**
+`json
+{
+  "ConfirmPassword": "Password123!",
+  "FullName": "Lawyer One",
+  "Email": "chatprop_lawyer1_20260810123906@example.com",
+  "Password": "Password123!"
+}
+``n
+**Response Status:** 201
+
+**Response Body:**
+`json
+{
+  "success": true,
+  "data": {
+    "userId": "a4fcab16-0640-4b78-27db-08def6c2447f",
+    "email": "chatprop_lawyer1_20260810123906@example.com",
+    "fullName": "Lawyer One",
+    "role": "Lawyer"
+  },
+  "message": "تم إنشاء الحساب بنجاح. يرجى تأكيد البريد الإلكتروني",
+  "errors": null,
+  "statusCode": 201
+}
+``n---
+
+
+Could not find confirmation URL for chatprop_lawyer1_20260810123906@example.com in log.
+
+### Login Lawyer
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Password123!",
+  "Email": "chatprop_lawyer1_20260810123906@example.com"
+}
+``n
+**Response Status:** 403
+
+**Response Body:**
+`json
+{
+  "success": false,
+  "data": null,
+  "message": "يرجى تأكيد البريد الإلكتروني أولاً",
+  "errors": null,
+  "statusCode": 403
+}
+``n---
+
+
+### Complete Client 1 Profile
+
+**Request:** POST http://localhost:5049/api/clients/profile/complete
+
+**Body:**
+`json
+{
+  "NationalNumber": "2900101f7db84",
+  "PhoneNumber": "+201011111111",
+  "Gender": 1,
+  "DateOfBirth": "1990-01-01",
+  "Address": "Cairo"
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### Complete Lawyer 1 Profile
+
+**Request:** POST http://localhost:5049/api/lawyers/profile/complete
+
+**Body:**
+`json
+{
+  "Gender": 1,
+  "NationalNumber": "2850101a0d40f",
+  "Specializations": [
+    {
+      "YearsOfExperience": 5,
+      "CasesHandled": 10,
+      "Specialization": 1
+    }
+  ],
+  "Level": 1,
+  "Bio": "Expert Lawyer",
+  "DateOfBirth": "1985-01-01",
+  "PhoneNumber": "+201022222222",
+  "Address": "Cairo"
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### Login Admin
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Admin@123",
+  "Email": "admin@smartcourt.com"
+}
+``n
+**Response Status:** 200
+
+**Response Body:**
+`json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": "54af6cd4-a46e-4fc6-34ca-08def604e4b7",
+      "email": "admin@smartcourt.com",
+      "fullName": "System Administrator",
+      "role": "Admin",
+      "status": "Active",
+      "rejectionReason": null
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1NGFmNmNkNC1hNDZlLTRmYzYtMzRjYS0wOGRlZjYwNGU0YjciLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjU0YWY2Y2Q0LWE0NmUtNGZjNi0zNGNhLTA4ZGVmNjA0ZTRiNyIsImVtYWlsIjoiYWRtaW5Ac21hcnRjb3VydC5jb20iLCJuYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJzZWN1cml0eV9zdGFtcCI6IldVS0tLWlBLVFBHTUJINURCTkdYV0VYQkNGVTVPU1g0IiwianRpIjoiODAyOTJmNGItNTIxNS00NjE5LWFiNWYtM2E0YTNiMGIzZTNlIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODYzNTQ3OTMsImV4cCI6MTc4NjM1NTY5MywiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.96_jm7HIzjyNxzjMKPrsBhYaG72zNGAprVOeMYg3rrc",
+    "expiresIn": 900,
+    "refreshToken": "9TFhSoL/gk0DeuivN7yw1rCe62NBkzQjfolELkdHV8QHXQhueFuJMBZKTkVDfKFrGQgLgIvQm3H/G/eDvOytsQ==",
+    "refreshTokenExpiration": "2026-08-17T09:39:53.484724Z"
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
+}
+``n---
+
+
+### Admin Approve Lawyer
+
+**Request:** PATCH http://localhost:5049/api/admin/verifications//approve-account
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Admin Approve Client 1
+
+**Request:** PATCH http://localhost:5049/api/admin/verifications//approve-account
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Re-Login Client 1
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Password123!",
+  "Email": "chatprop_client1_20260810123906@example.com"
+}
+``n
+**Response Status:** 403
+
+**Response Body:**
+`json
+{
+  "success": false,
+  "data": null,
+  "message": "يرجى تأكيد البريد الإلكتروني أولاً",
+  "errors": null,
+  "statusCode": 403
+}
+``n---
+
+
+### Re-Login Lawyer
+
+**Request:** POST http://localhost:5049/api/auth/login
+
+**Body:**
+`json
+{
+  "Password": "Password123!",
+  "Email": "chatprop_lawyer1_20260810123906@example.com"
+}
+``n
+**Response Status:** 403
+
+**Response Body:**
+`json
+{
+  "success": false,
+  "data": null,
+  "message": "يرجى تأكيد البريد الإلكتروني أولاً",
+  "errors": null,
+  "statusCode": 403
+}
+``n---
+
+
+- [FAIL] **Profiles completed and verified** 
+
+
+## Phase 2: Case Initialization
+
+### Create Case
+
+**Request:** POST http://localhost:5049/api/Case
+
+**Body:**
+(multipart/form-data)
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### Finalize Case
+
+**Request:** POST http://localhost:5049/api/Case//finalize
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Case Created & Finalized** 
+
+
+## Phase 3: Proposals - Edge Cases & Validations
+
+### GET Availability Valid
+
+**Request:** GET http://localhost:5049/api/proposals/cases//availability
+
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Availability (Valid Case)** 
+
+### GET Availability 404
+
+**Request:** GET http://localhost:5049/api/proposals/cases/c4499c05-c7a4-42e8-8ed6-8222d516496c/availability
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [OK] **GET Availability (Invalid Case -> 404/400)** 
+
+### GET Availability 401
+
+**Request:** GET http://localhost:5049/api/proposals/cases//availability
+
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Availability (No Token -> 401)** 
+
+### POST Proposal (Empty Message -> 400)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **POST Proposal - Empty Message** 
+
+### POST Proposal (XSS Message -> 201 or 400)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "<script>alert('xss')</script>",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **POST Proposal - XSS Payload Handled** 
+
+### POST Proposal (Massive String -> 400)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **POST Proposal - Massive String** 
+
+### POST Proposal (Invalid Case -> 404/400)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Valid",
+  "LegalCaseId": "c4499c05-c7a4-42e8-8ed6-8222d516496c",
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **POST Proposal - Invalid Case** 
+
+### POST Proposal (Lawyer Role -> 403)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Valid",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [OK] **POST Proposal - Role Lawyer** 
+
+### POST Proposal 1 (Valid)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Cancel me",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **POST Proposal 1 - Created** 
+
+### POST Cancel Proposal (Client 2 -> 403/404)
+
+**Request:** POST http://localhost:5049/api/proposals//cancel
+
+**Body:**
+`json
+{
+  "Reason": "Not mine"
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [OK] **Cancel Proposal - Unauthorized User** 
+
+### POST Cancel Proposal (Client 1 -> 200)
+
+**Request:** POST http://localhost:5049/api/proposals//cancel
+
+**Body:**
+`json
+{
+  "Reason": "Changed mind"
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Cancel Proposal - Success** 
+
+### POST Proposal 2 (Valid)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Reject me",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### POST Reject Proposal (Client 1 -> 403)
+
+**Request:** POST http://localhost:5049/api/proposals//reject
+
+**Body:**
+`json
+{
+  "Reason": "Not lawyer"
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Reject Proposal - Role Client** 
+
+### POST Reject Proposal (Lawyer -> 200)
+
+**Request:** POST http://localhost:5049/api/proposals//reject
+
+**Body:**
+`json
+{
+  "Reason": "Too busy"
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Reject Proposal - Success** 
+
+### POST Proposal 3 (Valid)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Accept me",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### POST Accept Proposal (Lawyer -> 200)
+
+**Request:** POST http://localhost:5049/api/proposals//accept
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Accept Proposal - Success** 
+
+### POST Terminate Proposal (Client 1 -> 200)
+
+**Request:** POST http://localhost:5049/api/proposals//terminate
+
+**Body:**
+`json
+{
+  "Reason": "Never mind"
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Terminate Proposal - Success** 
+
+### POST Proposal 4 (Valid - Final)
+
+**Request:** POST http://localhost:5049/api/proposals
+
+**Body:**
+`json
+{
+  "Message": "Proceed with this one",
+  "LegalCaseId": null,
+  "LawyerUserId": null
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### POST Accept Proposal (Lawyer -> 200)
+
+**Request:** POST http://localhost:5049/api/proposals//accept
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Accept Proposal 4 - Success** 
+
+### GET Proposals Listing
+
+**Request:** GET http://localhost:5049/api/proposals?page=1&pageSize=10
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Proposals Listing** 
+
+### GET Proposal 4 Detail
+
+**Request:** GET http://localhost:5049/api/proposals/
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Proposal Detail** 
+
+### GET Proposal 4 Detail (Client 2 -> 404/403)
+
+**Request:** GET http://localhost:5049/api/proposals/
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Proposal Detail - Cross tenant** 
+
+
+## Phase 4: Contract & Milestones
+
+### Lawyer Creates Contract
+
+**Request:** POST http://localhost:5049/api/contracts
+
+**Body:**
+`json
+{
+  "ProposalId": null,
+  "Title": "Test Contract",
+  "TermsAndConditions": "Terms"
+}
+``n
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Contract Created** 
+
+### Get Contract (Client)
+
+**Request:** GET http://localhost:5049/api/contracts/
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### Client Accepts Contract
+
+**Request:** POST http://localhost:5049/api/contracts//accept
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Get Contract (Lawyer)
+
+**Request:** GET http://localhost:5049/api/contracts/
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+### Lawyer Accepts Contract
+
+**Request:** POST http://localhost:5049/api/contracts//accept
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Create Milestone 1
+
+**Request:** POST http://localhost:5049/api/contracts//milestones
+
+**Body:**
+`json
+{
+  "Description": "Desc",
+  "Title": "Phase 1",
+  "Amount": 1500.0,
+  "DurationDays": 14,
+  "OrderNumber": 1
+}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **Milestone Created** 
+
+### List M1
+
+**Request:** GET http://localhost:5049/api/contracts//milestones
+
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Client Approves M1
+
+**Request:** POST http://localhost:5049/api/milestones//approve
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### List M1 Lawyer
+
+**Request:** GET http://localhost:5049/api/contracts//milestones
+
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+### Lawyer Approves M1
+
+**Request:** POST http://localhost:5049/api/milestones//approve
+
+**Body:**
+`json
+{}
+``n
+**Response Status:** 404
+
+**Response Body:** (Empty)
+---
+
+
+
+## Phase 5: Chat - Edge Cases & Validations
+
+### GET Chat Conversations
+
+**Request:** GET http://localhost:5049/api/chat/conversations
+
+**Response Status:** 401
+
+**Response Body:** (Empty)
+---
+
+
+- [FAIL] **GET Chat Conversations** 
+
+- [FAIL] **Conversation exists** (Failed to resolve conversation ID)
+
+
+## Test Execution Summary
+
+---
+
+**Completed at: 2026-08-10 12:39:55**
+
+Please review the markdown logs above for full JSON requests and responses.
