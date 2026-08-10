@@ -495,3 +495,9 @@ startup-error.txt
 
 # Ignored law documents
 docs/Egyptian law/manshurat.org/
+docs/Egyptian law/exports/
+
+# Ignored script data files
+scripts/chunks/
+scripts/*.json
+scripts/*.jsonl

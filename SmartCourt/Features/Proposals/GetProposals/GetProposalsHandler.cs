@@ -39,15 +39,10 @@ public sealed class GetProposalsHandler(
             "Lawyer",
             cancellationToken);
 
-        var direction = request.Direction
-            ?? (isLawyer && !isClient
-                ? ProposalInboxDirection.Received
-                : ProposalInboxDirection.Sent);
-        if (direction == ProposalInboxDirection.Sent && !isClient
-            || direction == ProposalInboxDirection.Received && !isLawyer)
+        if (!isClient && !isLawyer)
         {
             return ApiResponse<ProposalPageDto>.Fail(
-                "The requested proposal inbox is not available for this account.",
+                "The proposal inbox is not available for this account.",
                 403);
         }
 
@@ -64,7 +59,7 @@ public sealed class GetProposalsHandler(
             from conversation in conversationJoin.DefaultIfEmpty()
             select new { proposal, legalCase, client, lawyer, conversation };
 
-        query = direction == ProposalInboxDirection.Sent
+        query = isClient
             ? query.Where(item => item.proposal.ClientUserId == actorUserId)
             : query.Where(item => item.proposal.LawyerUserId == actorUserId);
 
