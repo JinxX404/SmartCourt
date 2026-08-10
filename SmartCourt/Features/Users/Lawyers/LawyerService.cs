@@ -192,6 +192,12 @@ public class LawyerService(
             throw new BusinessException("تم استكمال الملف الشخصي مسبقاً.");
         }
 
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        if (request.DateOfBirth > today.AddYears(-21))
+        {
+            throw new BusinessException("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
+        }
+
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
         try
@@ -376,6 +382,10 @@ public class LawyerService(
             throw new ValidationException(nameof(request.Level), "مستوى المحامي غير صالح.");
         }
 
+        if (request.DateOfBirth.HasValue && request.DateOfBirth.Value > DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+        {
+            throw new BusinessException("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
+        }
     }
 
     public async Task DeleteProfileAsync(
