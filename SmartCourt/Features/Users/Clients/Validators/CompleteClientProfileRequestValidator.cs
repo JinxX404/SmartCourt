@@ -19,7 +19,7 @@ public class CompleteClientProfileRequestValidator : AbstractValidator<CompleteC
 
         RuleFor(x => x.DateOfBirth)
             .NotEmpty().WithMessage("تاريخ الميلاد مطلوب")
-            .LessThan(DateOnly.FromDateTime(DateTime.Today)).WithMessage("تاريخ الميلاد يجب أن يكون في الماضي");
+            .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today).AddYears(-21)).WithMessage("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
 
         RuleFor(x => x.Gender)
             .NotNull().WithMessage("الجنس مطلوب")

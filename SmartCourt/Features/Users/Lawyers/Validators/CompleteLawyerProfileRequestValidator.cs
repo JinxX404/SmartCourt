@@ -25,8 +25,8 @@ public class CompleteLawyerProfileRequestValidator : AbstractValidator<CompleteL
 
          RuleFor(x => x.DateOfBirth)
          .NotEmpty()
-         .LessThan(DateOnly.FromDateTime(DateTime.Today))
-         .WithMessage("يجب أن يكون تاريخ الميلاد في الماضي.");
+         .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+         .WithMessage("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
 
          RuleFor(x => x.Level)
          .IsInEnum()
