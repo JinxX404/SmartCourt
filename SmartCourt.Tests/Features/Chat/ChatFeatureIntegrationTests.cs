@@ -160,6 +160,52 @@ public sealed class ChatFeatureIntegrationTests
         Assert.False(result.Data.Items[1].IsMine);
     }
 
+    [Theory]
+    [InlineData(ContractConversationMessageType.ContractCompleted)]
+    [InlineData(ContractConversationMessageType.ContractTerminated)]
+    public async Task TerminalContractEvent_ClosesConversationAndBlocksMessages(
+        ContractConversationMessageType messageType)
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var notifier = new RecordingNotifier();
+        var service = new ContractConversationService(
+            context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
+            notifier);
+
+        await service.AppendSystemMessageAsync(
+            new ContractConversationSystemMessage(
+                Guid.NewGuid(),
+                _proposalId,
+                messageType,
+                Guid.NewGuid(),
+                new DateTimeOffset(_utcNow)),
+            CancellationToken.None);
+
+        Assert.True(conversation.IsClosed);
+        Assert.Contains(
+            context.ChatMessages,
+            message => message.SystemCode == messageType.ToString());
+
+        var sendResult = await new SendChatMessageHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            new SendChatMessageCommandValidator(),
+            notifier,
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "This conversation is now read-only."),
+                CancellationToken.None);
+
+        Assert.False(sendResult.Success);
+        Assert.Equal(409, sendResult.StatusCode);
+    }
+
     private async Task SeedUsersAsync(ApplicationDbContext context)
     {
         var clientRole = new IdentityRole<Guid>("Client")

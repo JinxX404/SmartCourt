@@ -28,23 +28,34 @@ public sealed class GetProposalsHandler(
         }
 
         var actorUserId = ProposalAccess.GetRequiredUserId(currentUserService);
-        var isClient = await ProposalAccess.HasRoleAsync(
-            context,
-            actorUserId,
-            "Client",
-            cancellationToken);
-        var isLawyer = await ProposalAccess.HasRoleAsync(
-            context,
-            actorUserId,
-            "Lawyer",
-            cancellationToken);
-
-        if (!isClient && !isLawyer)
+        var requiredRole = request.Scope == ProposalListScope.LawyerInbox
+            ? "Lawyer"
+            : "Client";
+        if (!await ProposalAccess.HasRoleAsync(
+                context,
+                actorUserId,
+                requiredRole,
+                cancellationToken))
         {
             return ApiResponse<ProposalPageDto>.Fail(
                 "The proposal inbox is not available for this account.",
                 403);
         }
+
+        if (request.Scope == ProposalListScope.ClientCase
+            && !await context.Cases.AnyAsync(
+                legalCase => legalCase.Id == request.LegalCaseId
+                    && legalCase.ClientId == actorUserId,
+                cancellationToken))
+        {
+            return ApiResponse<ProposalPageDto>.Fail(
+                "Case was not found.",
+                404);
+        }
+
+        var statuses = request.Statuses is { Count: > 0 }
+            ? request.Statuses.Distinct().ToArray()
+            : [ProposalStatus.Pending];
 
         var query =
             from proposal in context.Proposals.AsNoTracking()
@@ -57,16 +68,24 @@ public sealed class GetProposalsHandler(
             join conversation in context.ChatConversations
                 on proposal.Id equals conversation.ProposalId into conversationJoin
             from conversation in conversationJoin.DefaultIfEmpty()
-            select new { proposal, legalCase, client, lawyer, conversation };
+            join contract in context.Contracts
+                on proposal.Id equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
+            select new
+            {
+                proposal,
+                legalCase,
+                client,
+                lawyer,
+                conversation,
+                contract
+            };
 
-        query = isClient
-            ? query.Where(item => item.proposal.ClientUserId == actorUserId)
-            : query.Where(item => item.proposal.LawyerUserId == actorUserId);
-
-        if (request.Status.HasValue)
-        {
-            query = query.Where(item => item.proposal.Status == request.Status.Value);
-        }
+        query = request.Scope == ProposalListScope.LawyerInbox
+            ? query.Where(item => item.proposal.LawyerUserId == actorUserId)
+            : query.Where(item => item.proposal.ClientUserId == actorUserId
+                && item.proposal.LegalCaseId == request.LegalCaseId);
+        query = query.Where(item => statuses.Contains(item.proposal.Status));
 
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
@@ -93,32 +112,65 @@ public sealed class GetProposalsHandler(
                 item.proposal.LawyerUserId,
                 LawyerName = item.lawyer.FullName,
                 item.proposal.Status,
+                CaseStatus = item.legalCase.Status,
+                AssignedLawyerUserId = item.legalCase.LawyerId,
+                ContractId = item.contract == null
+                    ? null
+                    : (Guid?)item.contract.Id,
+                ContractStatus = item.contract == null
+                    ? null
+                    : (SmartCourt.Features.Contracts.Enums.ContractStatus?)item.contract.Status,
+                ConversationId = item.conversation == null
+                    ? null
+                    : (Guid?)item.conversation.Id,
+                ConversationIsClosed = item.conversation != null
+                    && item.conversation.IsClosed,
                 item.proposal.CreatedAt,
                 item.proposal.RespondedAt,
                 item.proposal.ExpiresAt,
                 item.proposal.ClosedAt,
-                item.proposal.ClosedByUserId,
-                ConversationId = item.conversation == null
-                    ? null
-                    : (Guid?)item.conversation.Id
+                item.proposal.ClosedByUserId
             })
             .ToListAsync(cancellationToken);
 
-        var items = rows.Select(item => new ProposalListItemDto(
-            item.Id,
-            item.LegalCaseId,
-            item.CaseTitle,
-            item.ClientUserId,
-            item.ClientName,
-            item.LawyerUserId,
-            item.LawyerName,
-            item.Status.ToString(),
-            item.CreatedAt,
-            item.RespondedAt,
-            item.ConversationId,
-            item.ExpiresAt,
-            item.ClosedAt,
-            item.ClosedByUserId)).ToList();
+        var items = rows.Select(item =>
+        {
+            var canChat = item.Status == ProposalStatus.Accepted
+                && item.ConversationId.HasValue
+                && !item.ConversationIsClosed;
+            return new ProposalListItemDto(
+                item.Id,
+                item.LegalCaseId,
+                item.CaseTitle,
+                item.ClientUserId,
+                item.ClientName,
+                item.LawyerUserId,
+                item.LawyerName,
+                item.Status.ToString(),
+                item.CaseStatus.ToString(),
+                item.AssignedLawyerUserId,
+                item.AssignedLawyerUserId == item.LawyerUserId,
+                item.ContractId,
+                item.ContractStatus?.ToString(),
+                item.ConversationId,
+                item.ConversationId.HasValue
+                    ? item.ConversationIsClosed ? "Closed" : "Open"
+                    : null,
+                canChat,
+                ProposalPermittedActions.Resolve(
+                    actorUserId,
+                    item.ClientUserId,
+                    item.LawyerUserId,
+                    item.Status,
+                    item.ContractId,
+                    item.ConversationId,
+                    item.ConversationIsClosed),
+                item.CreatedAt,
+                item.RespondedAt,
+                item.ExpiresAt,
+                item.ClosedAt,
+                item.ClosedByUserId);
+        }).ToList();
 
         var page = new ProposalPageDto(
             items,

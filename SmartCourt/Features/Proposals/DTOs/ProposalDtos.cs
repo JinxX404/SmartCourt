@@ -1,5 +1,3 @@
-using SmartCourt.Features.Proposals.Entities;
-
 namespace SmartCourt.Features.Proposals.DTOs;
 
 public sealed record ProposalListItemDto(
@@ -11,9 +9,17 @@ public sealed record ProposalListItemDto(
     Guid LawyerUserId,
     string LawyerName,
     string Status,
+    string CaseStatus,
+    Guid? AssignedLawyerUserId,
+    bool IsAssignedLawyer,
+    Guid? ContractId,
+    string? ContractStatus,
+    Guid? ConversationId,
+    string? ConversationStatus,
+    bool CanChat,
+    IReadOnlyList<string> PermittedActions,
     DateTime CreatedAt,
     DateTime? RespondedAt,
-    Guid? ConversationId = null,
     DateTime? ExpiresAt = null,
     DateTime? ClosedAt = null,
     Guid? ClosedByUserId = null);
@@ -29,10 +35,18 @@ public sealed record ProposalDetailDto(
     string Message,
     string Status,
     string? DecisionReason,
+    string CaseStatus,
+    Guid? AssignedLawyerUserId,
+    bool IsAssignedLawyer,
+    Guid? ContractId,
+    string? ContractStatus,
+    Guid? ConversationId,
+    string? ConversationStatus,
+    bool CanChat,
+    IReadOnlyList<string> PermittedActions,
     DateTime CreatedAt,
     DateTime? RespondedAt,
     DateTime UpdatedAt,
-    Guid? ConversationId = null,
     DateTime? ExpiresAt = null,
     DateTime? ClosedAt = null,
     Guid? ClosedByUserId = null);
@@ -50,33 +64,3 @@ public sealed record ProposalSlotAvailabilityDto(
     int ProposalLimit,
     int AvailableProposalSlots,
     bool CanSendProposal);
-
-internal static class ProposalMappings
-{
-    public static ProposalDetailDto ToDetailDto(
-        Proposal proposal,
-        string caseTitle,
-        string clientName,
-        string lawyerName,
-        Guid? conversationId = null)
-    {
-        return new ProposalDetailDto(
-            proposal.Id,
-            proposal.LegalCaseId,
-            caseTitle,
-            proposal.ClientUserId,
-            clientName,
-            proposal.LawyerUserId,
-            lawyerName,
-            proposal.Message,
-            proposal.Status.ToString(),
-            proposal.DecisionReason,
-            proposal.CreatedAt,
-            proposal.RespondedAt,
-            proposal.UpdatedAt,
-            conversationId,
-            proposal.ExpiresAt,
-            proposal.ClosedAt,
-            proposal.ClosedByUserId);
-    }
-}

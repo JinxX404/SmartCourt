@@ -1,5 +1,8 @@
 # Proposal lifecycle
 
+Frontend/API consumers should use the complete
+[frontend integration guide](./frontend_integration_guide.md).
+
 ## Business rules
 
 - Proposals can be created only for a case in `Matched` status.
@@ -35,7 +38,8 @@
 | Method | Route | Actor |
 | --- | --- | --- |
 | `POST` | `/api/proposals` | Client |
-| `GET` | `/api/proposals` | Client or lawyer |
+| `GET` | `/api/proposals/lawyer` | Lawyer |
+| `GET` | `/api/proposals/cases/{caseId}` | Owning client |
 | `GET` | `/api/proposals/{proposalId}` | Proposal participant |
 | `GET` | `/api/proposals/cases/{caseId}/availability` | Owning client |
 | `POST` | `/api/proposals/{proposalId}/accept` | Invited lawyer |
@@ -50,3 +54,7 @@ with a maximum length of 1,000 characters. Proposal responses include
 
 The availability response is authoritative for display, but the create command
 always enforces the limit again under a serializable database transaction.
+
+Proposal lists default to page 1, page size 5, and `Pending` status. Page size
+is limited to 50. Repeat the `statuses` query parameter to combine statuses,
+for example `?statuses=Pending&statuses=Accepted`.
