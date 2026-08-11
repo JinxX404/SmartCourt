@@ -135,8 +135,15 @@ public sealed class GetProposalsHandler(
 
         var items = rows.Select(item =>
         {
+            var hideConversation = ProposalChatVisibility.IsHiddenFromActor(
+                actorUserId,
+                item.LawyerUserId,
+                item.Status);
+            var visibleConversationId = hideConversation
+                ? null
+                : item.ConversationId;
             var canChat = item.Status == ProposalStatus.Accepted
-                && item.ConversationId.HasValue
+                && visibleConversationId.HasValue
                 && !item.ConversationIsClosed;
             return new ProposalListItemDto(
                 item.Id,
@@ -152,8 +159,8 @@ public sealed class GetProposalsHandler(
                 item.AssignedLawyerUserId == item.LawyerUserId,
                 item.ContractId,
                 item.ContractStatus?.ToString(),
-                item.ConversationId,
-                item.ConversationId.HasValue
+                visibleConversationId,
+                visibleConversationId.HasValue
                     ? item.ConversationIsClosed ? "Closed" : "Open"
                     : null,
                 canChat,

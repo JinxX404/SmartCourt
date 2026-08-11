@@ -40,7 +40,8 @@ public class UpdateCaseHandler : IRequestHandler<UpdateCaseCommand, ApiResponse<
         var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var clientId = Guid.Parse(userId);
 
-        var existing = await _context.Cases.FindAsync(new object[]{ request.CaseId }, cancellationToken);
+        var existing = await _context.Cases
+            .FirstOrDefaultAsync(c => c.Id == request.CaseId, cancellationToken);
 
         if (existing == null)
             return ApiResponse<UpdateCaseResponse>.Fail(new List<string>{"Case not found"}, 404);

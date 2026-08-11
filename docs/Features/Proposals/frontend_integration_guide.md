@@ -66,7 +66,7 @@ build an All tab, send every status explicitly.
 | `Cancelled` | The client withdrew a pending proposal. | No |
 | `Expired` | No response was received within 72 hours. | No |
 | `Terminated` | A participant ended an accepted negotiation. | No |
-| `Superseded` | Another proposal's contract was activated. | No |
+| `Superseded` | Another proposal's contract was activated. Chat is hidden from the affected lawyer. | No |
 
 ## 1. Lawyer proposal inbox
 
@@ -259,6 +259,41 @@ Acceptance creates exactly one conversation and returns its `conversationId`.
 It does not assign the case. The case remains `Matched` until a contract is
 accepted by both participants and activated.
 
+### Accept only (start an inquiry)
+
+Call only the accept endpoint. On success, navigate to the returned
+`conversationId` and allow the lawyer and client to discuss the case.
+
+### Accept and immediately submit a contract draft
+
+This is intentionally a two-step frontend workflow, not one combined request:
+
+```http
+POST /api/proposals/{proposalId}/accept
+```
+
+After that request succeeds, immediately call:
+
+```http
+POST /api/contracts
+Content-Type: application/json
+```
+
+```json
+{
+  "proposalId": "proposal-id",
+  "title": "Legal representation agreement",
+  "termsAndConditions": "The complete proposed representation terms."
+}
+```
+
+Successful contract creation returns HTTP `201 Created`.
+
+Keep contract validation and errors attached to the second step. If contract
+creation fails, the accepted proposal and conversation remain valid; show the
+error and allow the lawyer to correct and resubmit the draft. Do not call the
+accept endpoint a second time.
+
 ## 7. Reject proposal
 
 ```http
@@ -322,7 +357,8 @@ conversation becomes closed/read-only and remains available as history.
 | Accepted with draft/active contract | Open chat and View contract. |
 | Selected active lawyer | Show Assigned lawyer using `isAssignedLawyer`. |
 | Rejected/cancelled/expired | Show terminal reason/status; no chat button. |
-| Superseded/terminated | Show read-only chat history when available. |
+| Superseded | Client may retain read-only history; the affected lawyer cannot access it. |
+| Terminated | Show read-only chat history when available. |
 
 ## Lawyer UI rules
 
@@ -332,7 +368,8 @@ conversation becomes closed/read-only and remains available as history.
 | Accepted without contract | Open chat, Create contract, or Terminate. |
 | Accepted with contract | Open chat and View contract. |
 | Assigned through this proposal | Show Active client relationship. |
-| Superseded/terminated | Show read-only history; no message composer. |
+| Superseded | Show the proposal status and notification only. Remove all chat UI and identifiers. |
+| Terminated | Show read-only history; no message composer. |
 
 ## Chat traceability and lifecycle
 
@@ -363,8 +400,28 @@ Contract Completed                       -> closed conversation
 Contract Terminated                      -> closed conversation
 ```
 
-Closed conversations remain readable. Both REST and SignalR message sending
-are enforced by the backend; sending to a closed conversation returns `409`.
+Closed conversations normally remain readable by both participants. A
+superseded conversation is the privacy exception: it remains available to the
+client but is completely hidden from the affected lawyer.
+
+For a superseded lawyer, the backend:
+
+- returns `null` for `conversationId` and `conversationStatus` in proposal DTOs;
+- never returns `OpenChat` or `ViewChatHistory` in `permittedActions`;
+- excludes the conversation from `GET /api/chat/conversations`;
+- returns `404` for conversation detail, message history, and message sending;
+- rejects SignalR `JoinConversation` with `Conversation was not found.`;
+- creates a `proposal.superseded` notification explaining that the case was
+  assigned to another lawyer and the negotiation is no longer available.
+
+Use `404`, rather than revealing that a hidden conversation exists. Do not
+cache message history after a proposal becomes superseded; remove that
+conversation from the lawyer's client-side state when the notification arrives
+or when proposal data refreshes.
+
+Other closed conversations are still readable. REST and SignalR message
+sending are enforced by the backend; sending to an ordinary closed
+conversation returns `409`.
 
 Chat endpoints:
 
@@ -373,7 +430,118 @@ GET  /api/chat/conversations
 GET  /api/chat/conversations/{conversationId}
 GET  /api/chat/conversations/{conversationId}/messages
 POST /api/chat/conversations/{conversationId}/messages
+POST /api/chat/conversations/{conversationId}/attachments
+GET  /api/chat/conversations/{conversationId}/attachments/{attachmentId}/download
 ```
+
+### Send attachment message
+
+```http
+POST /api/chat/conversations/{conversationId}/attachments
+Content-Type: multipart/form-data
+```
+
+Roles: `Client`, `Lawyer`. The caller must be a participant and the proposal
+conversation must still be open. Use these multipart field names:
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `caption` | No | Text shown with the files; maximum 2,000 characters. |
+| `files` | Yes | Repeat for each file; from 1 through 5 files. |
+
+Allowed formats are PDF, DOCX, TXT, PNG, and JPEG. Each file is limited to
+10 MB and the combined files are limited to 25 MB. The backend verifies the
+file content instead of trusting the browser-provided MIME type or extension.
+
+```ts
+const body = new FormData();
+if (caption.trim()) body.append("caption", caption.trim());
+for (const file of selectedFiles) body.append("files", file);
+
+const response = await fetch(
+  `${apiBase}/api/chat/conversations/${conversationId}/attachments`,
+  {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  },
+);
+```
+
+Do not manually set the `Content-Type` request header; the browser must add
+the multipart boundary. Success is `201 Created` and returns the created
+message:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "message-id",
+    "conversationId": "conversation-id",
+    "senderUserId": "client-or-lawyer-user-id",
+    "senderName": "Ahmed Ali",
+    "type": "User",
+    "content": "Evidence for review.",
+    "systemCode": null,
+    "relatedEntityId": null,
+    "createdAt": "2026-08-11T13:30:00Z",
+    "isMine": true,
+    "attachments": [
+      {
+        "id": "attachment-id",
+        "fileName": "evidence.pdf",
+        "contentType": "application/pdf",
+        "sizeInBytes": 184320,
+        "downloadUrl": "/api/chat/conversations/conversation-id/attachments/attachment-id/download"
+      }
+    ]
+  },
+  "statusCode": 201
+}
+```
+
+If no caption is provided, `content` contains a server-generated attachment
+label. Use the `attachments` array, not message text parsing, to render files.
+Every message from history, conversation `lastMessage`, the text endpoint,
+and SignalR now includes `attachments`; it is an empty array for text-only and
+system messages.
+
+### Download an attachment
+
+`downloadUrl` is an API route, not a public storage URL. Fetch it with the JWT
+and handle the response as a blob:
+
+```ts
+const response = await fetch(`${apiBase}${attachment.downloadUrl}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+if (!response.ok) throw new Error("Attachment is no longer available.");
+
+const blob = await response.blob();
+const objectUrl = URL.createObjectURL(blob);
+// Use objectUrl for preview/download, then URL.revokeObjectURL(objectUrl).
+```
+
+The backend checks conversation access again on every download. Outsiders and
+superseded lawyers receive `404`, including when they retained an old
+`downloadUrl`. Remove cached attachment blobs and chat state when a proposal
+becomes superseded.
+
+### Real-time attachment delivery
+
+Upload the binary files through the REST attachment endpoint. Do not send
+base64 files through SignalR. After the upload commits, the backend broadcasts
+the same complete `ChatMessageDto` through the existing `ReceiveMessage`
+event, including all attachment metadata:
+
+```ts
+connection.on("ReceiveMessage", (message: ChatMessage) => {
+  upsertMessageById(message);
+});
+```
+
+The sender receives both the HTTP response and the SignalR event, so de-duplicate
+messages by `message.id`. No extra attachment SignalR event is required.
 
 SignalR hub:
 
@@ -433,6 +601,28 @@ export interface ProposalListItem {
   closedAt: string | null;
   closedByUserId: string | null;
 }
+
+export interface ChatAttachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeInBytes: number;
+  downloadUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderUserId: string | null;
+  senderName: string | null;
+  type: "User" | "System";
+  content: string;
+  systemCode: string | null;
+  relatedEntityId: string | null;
+  createdAt: string;
+  isMine: boolean;
+  attachments: ChatAttachment[];
+}
 ```
 
 When building query parameters, append each status separately:
@@ -447,10 +637,10 @@ for (const status of filters.statuses) {
 
 | HTTP | Meaning |
 | --- | --- |
-| `400` | Invalid ID, filter, page, page size, message, or reason. |
+| `400` | Invalid ID, filter, page, page size, message, reason, attachment count, size, name, type, or content. |
 | `401` | Missing or invalid token. |
 | `403` | Authenticated role cannot use the endpoint. |
 | `404` | Resource is absent or does not belong to the caller. |
-| `409` | Proposal expired, changed concurrently, has invalid status, reached the five-slot limit, or conflicts with a contract. |
+| `409` | Proposal expired, changed concurrently, has invalid status, reached the five-slot limit, conflicts with a contract, or the chat is closed. |
 
 Always display `message` when present, otherwise join the `errors` array.

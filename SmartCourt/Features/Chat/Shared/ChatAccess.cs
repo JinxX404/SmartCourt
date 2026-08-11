@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -13,17 +14,22 @@ internal static class ChatAccess
             ?? throw new AuthenticationException("Authentication is required.");
     }
 
-    public static async Task<bool> IsParticipantAsync(
+    public static async Task<bool> CanAccessConversationAsync(
         ApplicationDbContext context,
         Guid conversationId,
         Guid userId,
         CancellationToken cancellationToken)
     {
-        return await context.ChatConversations.AnyAsync(
-            conversation =>
-                conversation.Id == conversationId
+        return await (
+            from conversation in context.ChatConversations
+            join proposal in context.Proposals
+                on conversation.ProposalId equals proposal.Id
+            where conversation.Id == conversationId
                 && (conversation.ClientUserId == userId
-                    || conversation.LawyerUserId == userId),
-            cancellationToken);
+                    || conversation.LawyerUserId == userId)
+                && !(proposal.Status == ProposalStatus.Superseded
+                    && conversation.LawyerUserId == userId)
+            select conversation.Id)
+            .AnyAsync(cancellationToken);
     }
 }

@@ -19,6 +19,9 @@ public sealed class ContractsController(
     [HttpPost]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ContractDetailDto>),
+        StatusCodes.Status201Created)]
     public async Task<ActionResult<ApiResponse<ContractDetailDto>>> CreateAsync(
         [FromBody] CreateContractRequest request,
         CancellationToken cancellationToken)
@@ -26,7 +29,9 @@ public sealed class ContractsController(
         var contract = await contractService.CreateAsync(
             request,
             cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, ApiResponse<ContractDetailDto>.Created(contract));
+        return StatusCode(
+            StatusCodes.Status201Created,
+            ApiResponse<ContractDetailDto>.Created(contract));
     }
 
     [HttpGet]

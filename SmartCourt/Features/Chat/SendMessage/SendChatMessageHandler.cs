@@ -46,6 +46,14 @@ public sealed class SendChatMessageHandler(
                 404);
         }
 
+        if (conversation.Proposal.Status == ProposalStatus.Superseded
+            && conversation.LawyerUserId == actorUserId)
+        {
+            return ApiResponse<ChatMessageDto>.Fail(
+                "Conversation was not found.",
+                404);
+        }
+
         if (conversation.IsClosed
             || conversation.Proposal.Status != ProposalStatus.Accepted)
         {

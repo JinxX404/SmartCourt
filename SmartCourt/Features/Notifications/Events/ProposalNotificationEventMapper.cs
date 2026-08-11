@@ -18,7 +18,11 @@ internal sealed class ProposalNotificationEventMapper
     [
         ContractPaymentEventTypes.ProposalCreated,
         ContractPaymentEventTypes.ProposalAccepted,
-        ContractPaymentEventTypes.ProposalRejected
+        ContractPaymentEventTypes.ProposalRejected,
+        ContractPaymentEventTypes.ProposalCancelled,
+        ContractPaymentEventTypes.ProposalExpired,
+        ContractPaymentEventTypes.ProposalTerminated,
+        ContractPaymentEventTypes.ProposalSuperseded
     ];
 
     public Task<IReadOnlyCollection<NotificationDraft>> MapAsync(
@@ -76,10 +80,53 @@ internal sealed class ProposalNotificationEventMapper
                 "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
                 actionUrl,
                 data),
+            ContractPaymentEventTypes.ProposalCancelled => new(
+                payload.LawyerUserId,
+                "proposal.cancelled",
+                NotificationSeverity.Information,
+                "تم إلغاء العرض",
+                "ألغى الموكل العرض المعلق.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalExpired => new(
+                payload.ClientUserId,
+                "proposal.expired",
+                NotificationSeverity.Warning,
+                "انتهت صلاحية العرض",
+                "لم يرد المحامي على العرض خلال ثلاثة أيام.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalTerminated => new(
+                GetOtherParticipant(payload),
+                "proposal.terminated",
+                NotificationSeverity.Warning,
+                "انتهت المفاوضات",
+                "أنهى الطرف الآخر مفاوضات العرض.",
+                actionUrl,
+                data),
+            ContractPaymentEventTypes.ProposalSuperseded => new(
+                payload.LawyerUserId,
+                "proposal.superseded",
+                NotificationSeverity.Information,
+                "تم إغلاق العرض",
+                "نعتذر، تم إسناد القضية إلى محامٍ آخر ولم تعد محادثة التفاوض متاحة حفاظًا على خصوصية الموكل.",
+                actionUrl,
+                data),
             _ => throw new InvalidOperationException(
                 $"Proposal notification event type '{message.EventType}' is unsupported.")
         };
 
         return Task.FromResult<IReadOnlyCollection<NotificationDraft>>([draft]);
+    }
+
+    private static Guid GetOtherParticipant(ProposalEventPayload payload)
+    {
+        return payload.ActorUserId switch
+        {
+            var actor when actor == payload.ClientUserId => payload.LawyerUserId,
+            var actor when actor == payload.LawyerUserId => payload.ClientUserId,
+            _ => throw new InvalidOperationException(
+                "A terminated proposal event requires a valid participant actor.")
+        };
     }
 }

@@ -70,7 +70,8 @@ public sealed class ContractConversationService(
             chatMessage.SystemCode,
             chatMessage.RelatedEntityId,
             chatMessage.CreatedAt,
-            IsMine: false);
+            IsMine: false,
+            Attachments: []);
         await realtimeNotifier.MessageCreatedAsync(
             dto,
             cancellationToken);

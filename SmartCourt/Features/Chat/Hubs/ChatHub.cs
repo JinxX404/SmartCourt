@@ -70,7 +70,7 @@ public sealed class ChatHub(
             return false;
         }
 
-        return await conversationService.IsParticipantAsync(
+        return await conversationService.CanAccessConversationAsync(
             conversationId,
             userId.Value,
             cancellationToken);

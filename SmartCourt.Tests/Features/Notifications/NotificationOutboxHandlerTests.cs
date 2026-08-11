@@ -36,6 +36,27 @@ public sealed class NotificationOutboxHandlerTests
         "تم رفض العرض",
         "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
         false)]
+    [InlineData(
+        ContractPaymentEventTypes.ProposalCancelled,
+        "proposal.cancelled",
+        "Information",
+        "تم إلغاء العرض",
+        "ألغى الموكل العرض المعلق.",
+        true)]
+    [InlineData(
+        ContractPaymentEventTypes.ProposalExpired,
+        "proposal.expired",
+        "Warning",
+        "انتهت صلاحية العرض",
+        "لم يرد المحامي على العرض خلال ثلاثة أيام.",
+        false)]
+    [InlineData(
+        ContractPaymentEventTypes.ProposalSuperseded,
+        "proposal.superseded",
+        "Information",
+        "تم إغلاق العرض",
+        "نعتذر، تم إسناد القضية إلى محامٍ آخر ولم تعد محادثة التفاوض متاحة حفاظًا على خصوصية الموكل.",
+        true)]
     public async Task HandleAsync_MapsAndPersistsArabicProposalNotification(
         string eventType,
         string expectedType,
@@ -74,6 +95,34 @@ public sealed class NotificationOutboxHandlerTests
         Assert.Equal(expectedTitle, pushed.Notification.Title);
         Assert.Equal(proposalId.ToString(), pushed.Notification.Data!["proposalId"]);
         Assert.Equal(legalCaseId.ToString(), pushed.Notification.Data["legalCaseId"]);
+    }
+
+    [Fact]
+    public async Task HandleAsync_TerminatedProposalNotifiesOtherParticipant()
+    {
+        await using var context = CreateContext();
+        var notifier = new RecordingNotifier();
+        var clientId = Guid.NewGuid();
+        var lawyerId = Guid.NewGuid();
+        var proposalId = Guid.NewGuid();
+        var message = CreateMessage(
+            ContractPaymentEventTypes.ProposalTerminated,
+            proposalId,
+            new ProposalEventPayload(
+                proposalId,
+                Guid.NewGuid(),
+                clientId,
+                lawyerId,
+                clientId,
+                "No agreement"));
+
+        await CreateProposalHandler(context, notifier)
+            .HandleAsync(message, CancellationToken.None);
+
+        var saved = await context.Notifications.SingleAsync();
+        Assert.Equal(lawyerId, saved.RecipientUserId);
+        Assert.Equal("proposal.terminated", saved.Type);
+        Assert.Equal("انتهت المفاوضات", saved.Title);
     }
 
     [Fact]

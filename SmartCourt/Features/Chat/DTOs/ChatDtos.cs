@@ -5,6 +5,13 @@ public sealed record ChatParticipantDto(
     string Name,
     string Role);
 
+public sealed record ChatAttachmentDto(
+    Guid Id,
+    string FileName,
+    string ContentType,
+    long SizeInBytes,
+    string DownloadUrl);
+
 public sealed record ChatMessageDto(
     Guid Id,
     Guid ConversationId,
@@ -15,7 +22,8 @@ public sealed record ChatMessageDto(
     string? SystemCode,
     Guid? RelatedEntityId,
     DateTime CreatedAt,
-    bool IsMine);
+    bool IsMine,
+    IReadOnlyList<ChatAttachmentDto> Attachments);
 
 public sealed record ChatConversationListItemDto(
     Guid Id,
