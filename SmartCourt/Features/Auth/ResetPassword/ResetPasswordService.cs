@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Extensions;
+using SmartCourt.Features.Auth.Events;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Persistence;
 using System.Text;
 
@@ -13,7 +15,8 @@ namespace SmartCourt.Features.Auth.ResetPassword;
 public class ResetPasswordService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext dbContext,
-    IAuthHelperService authHelperService) : IResetPasswordService
+    IAuthHelperService authHelperService,
+    IOutboxWriter outboxWriter) : IResetPasswordService
 {
     private const int MaximumEncodedTokenLength = 2048;
     private const string InvalidResetMessage = "رابط إعادة تعيين كلمة المرور غير صالح أو منتهي الصلاحية.";
@@ -70,6 +73,12 @@ public class ResetPasswordService(
             }
 
             authHelperService.RevokeAllActiveRefreshTokens(user);
+
+            await AuthOutbox.EnqueuePasswordResetAsync(
+                outboxWriter,
+                user.Id,
+                Guid.NewGuid(),
+                cancellationToken);
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

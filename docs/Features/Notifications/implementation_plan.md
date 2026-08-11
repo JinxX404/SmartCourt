@@ -1,6 +1,6 @@
 # In-App Notifications V1 Implementation Plan
 
-Status: **Backend implementation and Gate 5/Gate 6 notification verification complete; Gate 6 stopped for review**
+Status: **Backend implementation and Gates 5–7 notification verification complete; Gate 7 stopped for review**
 
 Verification on 2026-08-11:
 
@@ -16,10 +16,16 @@ Verification on 2026-08-11:
   transition deduplication, concurrency, recipient isolation, and clean API/
   outbox/provider monitoring.
 - Gate 6 focused mapper/admin-verification regression: `21 passed, 0 failed`;
-- Gate 6 monitored User Verification HTTP report: `147 passed, 0 failed, 1 skipped`;
+- Gate 6 monitored User Verification HTTP report: `155 passed, 0 failed, 1 skipped`;
   the report covers every UserVerification endpoint, successful/partial/multi-file/
   replacement uploads, deletion, ownership, Admin-only recipients, exact Arabic
   snapshots, forbidden metadata, mock Email confirmation, clean logs, and port release.
+- Gate 7 focused Auth and Notifications regression: `145 passed, 0 failed`;
+- Gate 7 monitored Auth Security HTTP report: `117 passed, 0 failed, 1 skipped`;
+  the report covers every Auth endpoint, successful password-change/reset causal
+  persistence, token revocation, failed/replayed/hostile paths, exact Arabic
+  snapshots, forbidden metadata, recipient isolation, mock Email link extraction,
+  clean API/outbox/provider monitoring, and port release.
 
 This plan implements the first approved increment of the SmartCourt notification system: a durable in-app inbox, authenticated REST APIs, SignalR delivery, and transactional-outbox triggers. Email and SMS are deliberately deferred.
 
@@ -339,7 +345,24 @@ Gate 5 verification includes `VerificationNotificationEventMapperTests` and `Sma
 
 `VerificationNotificationEventMapper` uses the Verification-owned `IVerificationNotificationContextReader` to validate the source account and resolve every user in the exact `Admin` role from Identity membership. It excludes `SuperAdministrator`, ordinary users, and the uploader. Each Admin receives one `verification.review-requested` notification draft with `Information` severity, title `طلب مراجعة مستندات التحقق`, body `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.`, `actionUrl: null`, and data keys `userId` and `documentCount`. Storage paths, file URLs/content/names, private metadata, rejection reasons, contact details, provider IDs, tokens, and idempotency keys are forbidden. The outbox message ID makes dispatch replay idempotent; REST is durable and SignalR is best-effort.
 
-Gate 6 verification uses `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md). The final report records `147 passed, 0 failed, 1 documented skip`; its causal assertions verify that each successful upload action is observed before the matching Admin notification, including partial, multi-file, and replacement requests, while failed-only uploads create no event. The report also verifies deletion, ownership boundaries, notification list/count/read/read-all, exact Arabic payloads, forbidden metadata, Admin recipient isolation, mock Email confirmation, clean API/outbox/provider logs, API shutdown, and port release. Gate 6 is complete locally and stopped for explicit review; Gate 7 has not started.
+Gate 6 verification uses `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md). The final report records `155 passed, 0 failed, 1 documented skip`; its causal assertions verify that each successful upload action is observed before the matching Admin notification, including partial, multi-file, and replacement requests, while failed-only uploads create no event. The report also verifies deletion, ownership boundaries, notification list/count/read/read-all, exact Arabic payloads, forbidden metadata, Admin recipient isolation, mock Email confirmation, clean API/outbox/provider logs, API shutdown, and port release. Gate 6 was merged locally into current `main` after explicit review.
+
+### 6.9 Authentication/security extension (Gate 7)
+
+`ChangePasswordService` and `ResetPasswordService` now enqueue the version `1` semantic events `PasswordChanged` and `PasswordReset`, respectively, after their existing successful Identity/password/session mutations and before the existing final update/transaction commit. Active refresh-token revocation, password validation, reset-token behavior, rate limits, Email receipts, endpoint routes, and legacy phone-verification MediatR handlers remain unchanged. Failed operations, invalid/replayed reset tokens, and ordinary Auth actions enqueue no event.
+
+`AuthNotificationEventMapper` uses `IAuthNotificationContextReader` to resolve the account owner from the authoritative user row. It maps `PasswordChanged` to `security.password-changed` and `PasswordReset` to `security.password-reset`; both are `Critical`, use `actionUrl: null`, and contain only `userId` in `data`.
+
+The exact snapshots are:
+
+| Type | Arabic title | Arabic body |
+|---|---|---|
+| `security.password-changed` | `تم تغيير كلمة المرور` | `تم تغيير كلمة مرور حسابك بنجاح. إذا لم تكن أنت من أجرى هذا التغيير، يرجى تأمين حسابك والتواصل مع الدعم.` |
+| `security.password-reset` | `تمت إعادة تعيين كلمة المرور` | `تمت إعادة تعيين كلمة مرور حسابك بنجاح. إذا لم تطلب هذا الإجراء، يرجى تأمين حسابك والتواصل مع الدعم.` |
+
+Email addresses, passwords/hints, reset URLs/tokens, access/refresh tokens, IP addresses, device fingerprints, security stamps, provider IDs, and idempotency keys are forbidden. Existing Email security receipts remain supplementary. Outbox-message replay is idempotent; REST is durable and SignalR is best-effort.
+
+Gate 7 uses `SmartCourt.Tests/Features/Notifications/AuthNotificationEventMapperTests.cs`, the ChangePassword/ResetPassword service tests, and [`AuthSecurityNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AuthSecurityNotifications_Report.md). The HTTP report records `117 passed, 0 failed, 1 documented skip`; its causal assertions prove a successful action is followed by exactly one account-owner notification, failed actions create none, revoked tokens cannot read the inbox, reset replay is rejected, unrelated users receive no row, and notification REST/read/count/read-all behavior, exact Arabic snapshots, forbidden fields, mock Email extraction, log monitoring, and port release are correct. Gate 7 is complete locally and stopped for explicit review.
 
 ## 7. Near-real-time outbox processing
 

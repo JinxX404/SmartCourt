@@ -484,6 +484,8 @@ Register `NotificationCreated`, `NotificationRead`, and `NotificationsReadAll` h
 | `account.approved` | Affected account owner; no action URL | `Success` | `userId` |
 | `account.rejected` | Affected account owner; no action URL | `Critical` | `userId` |
 | `verification.review-requested` | Every user with the exact `Admin` role; no action URL | `Information` | `userId`, `documentCount` |
+| `security.password-changed` | Account owner; no action URL | `Critical` | `userId` |
+| `security.password-reset` | Account owner; no action URL | `Critical` | `userId` |
 
 Treat unknown future `type` values as generic notifications: show the server title/body and severity, but do not assume type-specific data keys. New types can be added without changing `NotificationDto`.
 
@@ -555,6 +557,15 @@ Exact Administrative Verification display copy is part of the API contract:
 | `VerificationReviewRequested` / `verification.review-requested` | `Information` | `طلب مراجعة مستندات التحقق` | `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` | `userId`, `documentCount` | `null` |
 
 Verification data never contains storage paths, file URLs or content, file names, full rejection reasons, private review comments, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The backend emits `account.approved` only on the actual transition to `Active`; `verification.review-requested` is emitted once per successful submission request when at least one document is persisted, including one event for a partial successful upload or a multi-file request. Every exact `Admin` role member receives one corresponding inbox row; `SuperAdministrator`, ordinary users, and the uploader do not. Replayed events are idempotent through the outbox message ID. REST remains the durable source of truth and SignalR remains best-effort; reconcile real-time items by notification ID.
+
+Exact Auth security display copy is part of the API contract:
+
+| Source event V1 / type | Severity | Arabic title | Arabic body | Required data | `actionUrl` |
+|---|---|---|---|---|---|
+| `PasswordChanged` / `security.password-changed` | `Critical` | `تم تغيير كلمة المرور` | `تم تغيير كلمة مرور حسابك بنجاح. إذا لم تكن أنت من أجرى هذا التغيير، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+| `PasswordReset` / `security.password-reset` | `Critical` | `تمت إعادة تعيين كلمة المرور` | `تمت إعادة تعيين كلمة مرور حسابك بنجاح. إذا لم تطلب هذا الإجراء، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+
+These notifications are emitted only after the corresponding password operation succeeds and refresh tokens are revoked. Failed validation, failed changes, invalid/replayed reset tokens, login, refresh, logout, ordinary token revocation, and phone challenge actions do not create them. Security data never contains Email addresses, passwords or hints, reset/access/refresh tokens, reset URLs, IP addresses, device fingerprints, security stamps, provider IDs, or idempotency keys. Existing Email security receipts remain separate. The outbox message ID makes replay idempotent; REST is durable and SignalR is best-effort.
 
 ## Navigation, rendering, and security
 

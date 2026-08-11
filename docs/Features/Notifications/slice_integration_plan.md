@@ -1,7 +1,7 @@
 # Per-Slice Notification Integration Plan
 
-Status: **Gates 0–3, Gate 5, and Gate 6 implemented and verified from current local main; Gate 4 intentionally skipped; Gate 6 is stopped for review**
-Branch: `codex/notification-gate-6-user-verification-from-main` (based on current local `main`; merge target: local `main`)
+Status: **Gates 0–3, Gate 5, Gate 6, and Gate 7 implemented and verified from current local main; Gate 4 intentionally skipped; Gate 7 is stopped for review**
+Branch: `codex/notification-gate-7-auth-security-from-main` (based on current local `main`; merge target: local `main`)
 Scope: backend only; in-app notifications first; Arabic display copy; Email/SMS deferred.
 
 This plan converts the approved [Notification Opportunity Catalog](./notification_opportunity_catalog.md) into small, independently reviewable slice integrations. It does not authorize implementation by itself. After each slice is implemented and tested, work stops until the user reviews and explicitly approves continuing.
@@ -531,11 +531,11 @@ The temporary recipient policy is every user with the exact `Admin` role. `Super
 
 ### Gate 6 verification
 
-`VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md) cover every UserVerification endpoint, successful/partial/multi-file/replacement upload outcomes, failed-only no-event behavior, deletion, ownership, Admin-only recipient isolation, notification list/count/read/read-all, exact Arabic snapshots, forbidden metadata, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release. The final monitored report records `147 passed, 0 failed, 1 documented skip`; the only skip is the optional SuperAdministrator fixture unavailable from the repository's supported setup.
+`VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md) cover every UserVerification endpoint, successful/partial/multi-file/replacement upload outcomes, failed-only no-event behavior, deletion, ownership, Admin-only recipient isolation, notification list/count/read/read-all, exact Arabic snapshots, forbidden metadata, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release. The final monitored report records `155 passed, 0 failed, 1 documented skip`; the only skip is the optional SuperAdministrator fixture unavailable from the repository's supported setup.
 
 ### Stop condition
 
-Stop after the Gate 6 HTTP report and review. Do not start Gate 7 automatically.
+Gate 6 was merged locally into current `main` after explicit approval. Do not change Gate 6 behavior while reviewing Gate 7.
 
 ## 12. Gate 7 — Authentication/security
 
@@ -548,23 +548,26 @@ Catalog scope: `AUT-01` and `AUT-02`. New-device detection `AUT-03` and Email-on
 
 These are persisted in-app audit records with Arabic safe copy. They do not replace immediate Email security receipts, which belong to the later Email scope.
 
-### Minimal Auth-slice extensions
+### Implemented Auth-slice extensions
 
-- enqueue security events inside the same password change/reset transaction;
-- do not include Email, token, IP, device fingerprint, or security stamp;
-- retain refresh-token revocation and Identity behavior unchanged;
-- no notifications for ordinary login/refresh/challenge operations.
+- `ChangePasswordService` emits `PasswordChanged` V1 after the successful password/session mutation and before the existing final update/commit;
+- `ResetPasswordService` emits `PasswordReset` V1 after the successful reset-token/password/session mutation and before the existing final update/commit;
+- `AuthNotificationEventMapper` resolves the account owner through `IAuthNotificationContextReader` and maps only `userId`;
+- exact persisted types are `security.password-changed` and `security.password-reset`, both `Critical`, with `actionUrl: null` and the approved Arabic snapshots documented in all Notification contracts;
+- no Email addresses, passwords/hints, reset/access/refresh tokens, reset URLs, IP addresses, device fingerprints, security stamps, provider IDs, or idempotency keys are emitted;
+- Identity password validation, reset-token behavior, refresh-token revocation, Email security receipts, and all existing Auth endpoint behavior remain unchanged;
+- no notifications are emitted for failed operations, ordinary login/refresh/logout/revoke, phone challenge, forgot-password request, invalid reset tokens, or replayed reset tokens.
 
 ### HTTP artifact
 
 - `AuthSecurityNotifications_Test.ps1`
 - `AuthSecurityNotifications_Report.md`
 
-The script follows the skill's exhaustive Auth requirement. Because Auth is large, this is expected to be the most expensive HTTP gate; it covers every Auth endpoint, anonymous/authenticated behavior, challenge extraction, reset/change flows, token revocation, validation/hostile input, and security notification persistence.
+The script follows the skill's exhaustive Auth requirement and records `117 passed, 0 failed, 1 documented skip`. It covers every Auth endpoint, anonymous/authenticated behavior, registration and mock Email link extraction, resend/confirmation, login, change/reset flows, invalid/expired/replayed reset paths, refresh rotation/revocation, legacy phone challenge, validation/hostile input, notification REST persistence/read/count behavior, exact Arabic snapshots, forbidden data, recipient isolation, API/outbox/provider logs, shutdown, and port release. The true time-expired reset-token case is the documented skip because the repository exposes no safe HTTP time-advance control.
 
 ### Stop condition
 
-Stop after Auth report review.
+Stop after the Gate 7 focused tests, HTTP report, log review, documentation review, and local commit. Do not start Gate 8 automatically.
 
 ## 13. Gate 8 — Optional/deferred slices
 
@@ -621,4 +624,4 @@ A slice passes only when:
 
 ## 16. Approval requested
 
-Gates 0, 1, 2, 3, 5, and 6 have been executed under separate local gate branches. Gate 4 remains intentionally untouched. Gate 5 was re-based on current local `main` and reverified; Gate 6 uses the temporary exact-`Admin` recipient policy approved for this gate and is stopped for explicit review. Gate 7 has not started.
+Gates 0, 1, 2, 3, 5, 6, and 7 have been executed under separate local gate branches. Gate 4 remains intentionally untouched. Gate 5 was re-based on current local `main` and reverified; Gate 6 uses the temporary exact-`Admin` recipient policy approved for that gate and was merged locally into `main` after review. Gate 7 is based on the resulting current local `main`, is committed locally after verification, and is stopped for explicit review. No remote push has occurred.
