@@ -3,14 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
+using SmartCourt.Features.Admin.Verifications.Events;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Persistence;
 
 
 namespace SmartCourt.Features.Admin.Verifications.ApproveUserAccount;
 
 public sealed class ApproveUserAccountHandler(
-    ApplicationDbContext context)
+    ApplicationDbContext context,
+    IOutboxWriter outboxWriter)
     : IRequestHandler<ApproveUserAccountCommand, ApiResponse<object>>
 {
     public async Task<ApiResponse<object>> Handle(
@@ -25,6 +28,7 @@ public sealed class ApproveUserAccountHandler(
             throw new NotFoundException("المستخدم غير موجود");
         }
 
+        var wasActive = user.Status == UserStatus.Active;
 
         var hasPendingDocs = await context.UserVerificationDocuments
             .AnyAsync(d => d.UserId == user.Id && d.IsCurrent && d.Status == VerificationDocumentStatus.Pending, cancellationToken);
@@ -34,6 +38,17 @@ public sealed class ApproveUserAccountHandler(
             user.Status = UserStatus.Active;
         }
         user.ModifiedFieldsJson = null;
+
+        if (!wasActive && user.Status == UserStatus.Active)
+        {
+            await VerificationOutbox.EnqueueAccountAsync(
+                outboxWriter,
+                VerificationEventTypes.AccountApproved,
+                user,
+                Guid.NewGuid(),
+                cancellationToken);
+        }
+
         await context.SaveChangesAsync(cancellationToken);
 
 

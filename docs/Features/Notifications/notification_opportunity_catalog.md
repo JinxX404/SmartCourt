@@ -176,15 +176,27 @@ Repository actions: submit/delete verification documents, review individual docu
 | ID | When this happens | Actor → recipient | User story / message intent | Type | Priority / severity | Readiness | Suggested channel |
 |---|---|---|---|---|---|---|---|
 | `VER-01` | A user submits one or more valid verification documents and enters pending review. | User → Verification work queue | As verification staff, we need a queued work item without notifying every admin individually. | `verification.review-requested` | `P2 / Information` | `New event`; assigned/queue strategy required | Operational queue/in-app for assignee |
-| `VER-02` | An administrator approves an individual current document. | Admin → User | As the user, I want to know that a submitted document was approved and whether further items remain. | `verification.document-approved` | `P2 / Success` | `New event` | In-app |
-| `VER-03` | An administrator rejects an individual current document. | Admin → User | As the user, I want to know which document needs replacement and where to view the reason. | `verification.document-rejected` | `P1 / Warning` | `New event` | In-app → Email fallback |
-| `VER-04` | Review discovers that the current document is expired. | Admin/System → User | As the user, I want to know the expired document must be replaced. | `verification.document-expired` | `P1 / Warning` | `New event` in expired transition | In-app → Email fallback |
-| `VER-05` | The account becomes active after approval/requirements are satisfied. | Admin/System → User | As the user, I want confirmation that my account is approved and usable. | `account.approved` | `P1 / Success` | `New event`; emit only on actual status transition to `Active` | In-app → Email fallback |
-| `VER-06` | An administrator rejects the account/profile. | Admin → User | As the user, I want to know the account was rejected and where to review corrective action. | `account.rejected` | `P1 / Critical` | `New event`; an existing TODO explicitly requests Email/notification | In-app → Email immediate/fallback |
+| `VER-02` | An administrator approves an individual current document. | Admin → User | As the user, I want to know that a submitted document was approved and whether further items remain. | `verification.document-approved` | `P2 / Success` | **Implemented** from `VerificationDocumentApproved` V1 | In-app; Email deferred |
+| `VER-03` | An administrator rejects an individual current document. | Admin → User | As the user, I want to know which document needs replacement and where to view the reason. | `verification.document-rejected` | `P1 / Warning` | **Implemented** from `VerificationDocumentRejected` V1 | In-app; Email deferred |
+| `VER-04` | Review discovers that the current document is expired. | Admin/System → User | As the user, I want to know the expired document must be replaced. | `verification.document-expired` | `P1 / Warning` | **Implemented** from `VerificationDocumentExpired` V1 on the expired transition | In-app; Email deferred |
+| `VER-05` | The account becomes active after approval/requirements are satisfied. | Admin/System → User | As the user, I want confirmation that my account is approved and usable. | `account.approved` | `P1 / Success` | **Implemented** from `VerificationAccountApproved` V1; actual transition to `Active` only | In-app; Email deferred |
+| `VER-06` | An administrator rejects the account/profile. | Admin → User | As the user, I want to know the account was rejected and where to review corrective action. | `account.rejected` | `P1 / Critical` | **Implemented** from `VerificationAccountRejected` V1; actual transition to `Rejected` only | In-app; Email deferred |
 | `VER-07` | A current required document will expire soon. | System → User | As the user, I want advance notice so I can replace it before account eligibility is affected. | `verification.document-expiry-approaching` | `P1 / Warning` | `Scheduled trigger`; expiry thresholds required | In-app → Email fallback |
 | `VER-08` | A user deletes or re-uploads a document and immediately receives the operation result. | User → Same user | No durable inbox item; later admin decisions are the meaningful facts. | — | `None` | `No integration` | None |
 
 Account approval should not be emitted once per approved document. Emit it only when the account status actually transitions to `Active`.
+
+### Implemented Gate 5 contract
+
+The five Gate 5 mappings persist the exact Arabic title/body snapshots below. Every mapping uses `actionUrl: null`, the document owner or affected account owner is resolved from authoritative Verification context, and the outbox message ID provides idempotent replay behavior. Document data is limited to `documentId` and `documentType`; account data is limited to `userId`. Storage paths, file URLs/content, full rejection reasons, private review comments, contact details, provider IDs, tokens, and idempotency keys are forbidden. REST is durable and SignalR is best-effort. Verification is recorded in `AdminVerificationNotifications_Report.md` with `0 failed`; the expiry reminder `VER-07` remains deferred.
+
+| Type | Severity | Arabic title | Arabic body |
+|---|---|---|---|
+| `verification.document-approved` | `Success` | `تم اعتماد مستند التحقق` | `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.` |
+| `verification.document-rejected` | `Warning` | `تم رفض مستند التحقق` | `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.` |
+| `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` |
+| `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` |
+| `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` |
 
 ## 7. Authentication and account security
 
