@@ -56,6 +56,7 @@ public sealed class ChatMessage
     public Guid? RelatedEntityId { get; internal set; }
     public DateTime CreatedAt { get; internal set; }
     public ChatConversation Conversation { get; internal set; } = null!;
+    public ICollection<ChatMessageAttachment> Attachments { get; internal set; } = [];
 
     internal static ChatMessage CreateUserMessage(
         Guid id,
@@ -72,6 +73,34 @@ public sealed class ChatMessage
             content,
             systemCode: null,
             relatedEntityId: null,
+            createdAt);
+    }
+
+    internal static ChatMessage CreateUserAttachmentMessage(
+        Guid id,
+        Guid conversationId,
+        Guid senderUserId,
+        string? caption,
+        int attachmentCount,
+        DateTime createdAt)
+    {
+        if (attachmentCount <= 0)
+        {
+            throw new BusinessException(
+                "An attachment message requires at least one file.");
+        }
+
+        var content = string.IsNullOrWhiteSpace(caption)
+            ? attachmentCount == 1
+                ? "Shared an attachment."
+                : $"Shared {attachmentCount} attachments."
+            : caption.Trim();
+
+        return CreateUserMessage(
+            id,
+            conversationId,
+            senderUserId,
+            content,
             createdAt);
     }
 

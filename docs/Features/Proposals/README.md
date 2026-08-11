@@ -15,6 +15,10 @@ Frontend/API consumers should use the complete
 - The client can cancel a pending proposal.
 - Acceptance opens one private client-lawyer conversation. It starts
   negotiation and does not assign the case.
+- Open conversations support private PDF, DOCX, TXT, PNG, and JPEG attachment
+  messages. Attachment metadata is delivered through message history and the
+  existing SignalR `ReceiveMessage` event; file bytes require an authorized
+  API download.
 - Either participant can terminate an accepted proposal when it has no open
   contract. The conversation becomes read-only and retains a system message
   explaining the closure.
