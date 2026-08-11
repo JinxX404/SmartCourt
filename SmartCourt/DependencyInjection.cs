@@ -78,6 +78,7 @@ using Twilio.Types;
 using static SmartCourt.Interfaces.Providers.IFileStorageService;
 using SmartCourt.Providers.VectorStore;
 using SmartCourt.Providers.Embedding;
+using SmartCourt.Providers.Reranker;
 using SmartCourt.Providers.PdfParser;
 using SmartCourt.Features.LawIngestion;
 using Qdrant.Client;
@@ -591,6 +592,10 @@ public static class DependencyInjection
         services.Configure<AlibabaEmbeddingOptions>(configuration.GetSection(AlibabaEmbeddingOptions.SectionName));
         services.AddHttpClient<IEmbeddingProvider, AlibabaEmbeddingProvider>();
 
+        // --- RAG Pipeline: Reranker ---
+        services.Configure<AlibabaRerankerOptions>(configuration.GetSection(AlibabaRerankerOptions.SectionName));
+        services.AddHttpClient<IRerankerProvider, AlibabaRerankerProvider>();
+
 
         // --- RAG Pipeline: PDF Parser ---
         services.AddScoped<IPdfParserProvider, PdfPigParserProvider>();
@@ -599,9 +604,10 @@ public static class DependencyInjection
         services.AddScoped<IDocumentParsingProvider, SmartCourt.Providers.DocumentParsing.CompositeDocumentParsingProvider>();
 
         // --- RAG Pipeline: Chat Model ---
-        services.Configure<SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions.SectionName));
-        services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.DeepSeekChatModelProvider>();
-
+        // services.Configure<SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions.SectionName));
+        // services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.DeepSeekChatModelProvider>();
+        services.Configure<SmartCourt.Providers.ChatModel.AlibabaChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.AlibabaChatModelOptions.SectionName));
+        services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.AlibabaChatModelProvider>();
         // --- Feature: Document Review ---
         services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();
 
