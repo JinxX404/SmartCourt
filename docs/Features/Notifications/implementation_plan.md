@@ -6,12 +6,12 @@ Verification on 2026-08-11:
 
 - solution build: passed;
 - Gate 5 focused mapper, local-provider, and Admin Verification tests: `23/23` passed;
-- Gate 5 monitored PowerShell HTTP lifecycle: `123/123` assertions passed, with
+- Gate 5 monitored PowerShell HTTP lifecycle: `122/122` assertions passed, with
   three documented environment/fixture skips;
 - latest full repository baseline from Gate 3: `710 passed, 24 failed, 0 skipped`
   out of `734`; all failures are the known legacy HTTP `201 Created` versus runtime
   `200 OK` expectations. No Notification or Gate 5 test failed.
-- Gate 5 administrative verification HTTP report: `123 passed, 0 failed, 3 skipped`;
+- Gate 5 administrative verification HTTP report: `122 passed, 0 failed, 3 skipped`;
   the report includes mock Email confirmation, exact Arabic snapshots, expiry,
   transition deduplication, concurrency, recipient isolation, and clean API/
   outbox/provider monitoring.
@@ -326,7 +326,7 @@ The Admin Verifications slice now emits five version `1` semantic facts from its
 
 The exact persisted contracts are `verification.document-approved` (`Success`, `تم اعتماد مستند التحقق`, `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.`), `verification.document-rejected` (`Warning`, `تم رفض مستند التحقق`, `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.`), `verification.document-expired` (`Warning`, `انتهت صلاحية مستند التحقق`, `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.`), `account.approved` (`Success`, `تم اعتماد حسابك`, `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.`), and `account.rejected` (`Critical`, `تم رفض الحساب`, `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.`). All use `actionUrl: null`; document data is `documentId`/`documentType`, and account data is `userId`. Storage paths, file URLs/content, full rejection reasons, private review comments, contact details, provider IDs, tokens, and idempotency keys are excluded. Repeated transitions and outbox replays are idempotent by outbox message ID; REST is durable and SignalR is best-effort.
 
-Gate 5 verification includes `VerificationNotificationEventMapperTests` and `SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Test.ps1`. The final monitored report is [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md) with `123 passed, 0 failed, 3 skipped`; it covers authorization, pending/detail/content endpoints, approve/reject/expired review, account transition deduplication, concurrency/conflicts, hostile validation, exact Arabic payloads, forbidden fields, recipient isolation, mock Email confirmation, and API/outbox/provider logs. `VER-07` expiry reminders remain deferred.
+Gate 5 verification includes `VerificationNotificationEventMapperTests` and `SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Test.ps1`. The final monitored report is [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md) with `122 passed, 0 failed, 3 skipped`; it covers authorization, pending/detail/content endpoints, approve/reject/expired review, account transition deduplication, concurrency/conflicts, hostile validation, exact Arabic payloads, forbidden fields, recipient isolation, mock Email confirmation, and API/outbox/provider logs. `VER-07` expiry reminders remain deferred.
 
 ## 7. Near-real-time outbox processing
 

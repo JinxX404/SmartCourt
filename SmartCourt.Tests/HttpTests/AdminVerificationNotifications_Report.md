@@ -1,6 +1,6 @@
 ﻿# Administrative Verification Notifications HTTP Test Report
 
-Generated at: 2026-08-11 14:08:40 +03:00
+Generated at: 2026-08-11 14:31:02 +03:00
 
 
 ## Health, lifecycle, and anonymous authorization boundaries
@@ -27,7 +27,7 @@ Healthy
 ```json
 {
     "message":  "Pong! Smart Court API is fully operational.",
-    "serverTimeUtc":  "2026-08-11T11:08:58.5605362Z",
+    "serverTimeUtc":  "2026-08-11T11:31:26.7249693Z",
     "version":  "1.0.0"
 }
 ```n---
@@ -43,7 +43,7 @@ Healthy
 `json
 {
     "message":  "Pong! Smart Court API is fully operational.",
-    "serverTimeUtc":  "2026-08-11T11:08:59.4320604Z",
+    "serverTimeUtc":  "2026-08-11T11:31:26.936028Z",
     "version":  "1.0.0"
 }
 ``n---
@@ -61,7 +61,7 @@ Healthy
 - [PASS] **Anonymous pending verification list returns 401** (status=401)
 ### Anonymous verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** GET http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Response Status:** 401
 
@@ -71,7 +71,7 @@ Healthy
 - [PASS] **Anonymous verification details returns 401** (status=401)
 ### Anonymous document content
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208/content
 
 **Response Status:** 401
 
@@ -81,7 +81,7 @@ Healthy
 - [PASS] **Anonymous document content returns 401** (status=401)
 ### Anonymous document review
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Body:**
 ```json
@@ -97,7 +97,7 @@ Healthy
 - [PASS] **Anonymous document review returns 401** (status=401)
 ### Anonymous account approval
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/approve-account
 
 **Response Status:** 401
 
@@ -107,7 +107,7 @@ Healthy
 - [PASS] **Anonymous account approval returns 401** (status=401)
 ### Anonymous account rejection
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/reject-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/reject-account
 
 **Body:**
 ```json
@@ -143,7 +143,7 @@ Healthy
 - [PASS] **Anonymous unread count returns 401** (status=401)
 ### Anonymous mark read
 
-**Request:** PATCH http://localhost:5049/api/notifications/349d3986-0255-44f4-8e16-d5b7a4170994/read
+**Request:** PATCH http://localhost:5049/api/notifications/bae72370-debc-499a-a891-c0f1e55fc208/read
 
 **Response Status:** 401
 
@@ -204,7 +204,7 @@ Healthy
 - [PASS] **Seeded Admin login succeeds** (status=200)
 ### Admin reviews unknown document
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Body:**
 ```json
@@ -228,7 +228,7 @@ Healthy
 - [PASS] **Unknown document review returns 404** (status=404)
 ### Admin approves unknown account
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/approve-account
 
 **Response Status:** 404
 
@@ -246,7 +246,7 @@ Healthy
 - [PASS] **Unknown account approval returns 404** (status=404)
 ### Admin rejects unknown account
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/reject-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/reject-account
 
 **Body:**
 ```json
@@ -288,7 +288,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "userId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "userId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "email":  "[REDACTED]",
                  "fullName":  "Gate 5 document owner",
                  "role":  "Lawyer"
@@ -302,7 +302,7 @@ Healthy
 - [PASS] **document owner registration uses Created response** (status=201)
 ### document owner confirm Email from mock log
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=32fd5cbb-8856-4d4e-fb89-08def798f643&token=[REDACTED]
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=a8851bd0-10ea-40c2-0fd7-08def79c17a7&token=[REDACTED]
 
 **Response Status:** 200
 
@@ -336,7 +336,7 @@ Healthy
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                              "id":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                               "email":  "[REDACTED]",
                               "fullName":  "Gate 5 document owner",
                               "role":  "Lawyer",
@@ -375,7 +375,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "userId":  "bb48b329-1ef4-486f-fb8a-08def798f643",
+                 "userId":  "907a223a-ed38-4617-0fd8-08def79c17a7",
                  "email":  "[REDACTED]",
                  "fullName":  "Gate 5 account approval owner",
                  "role":  "Client"
@@ -389,7 +389,7 @@ Healthy
 - [PASS] **account approval owner registration uses Created response** (status=201)
 ### account approval owner confirm Email from mock log
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=bb48b329-1ef4-486f-fb8a-08def798f643&token=[REDACTED]
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=907a223a-ed38-4617-0fd8-08def79c17a7&token=[REDACTED]
 
 **Response Status:** 200
 
@@ -423,7 +423,7 @@ Healthy
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "bb48b329-1ef4-486f-fb8a-08def798f643",
+                              "id":  "907a223a-ed38-4617-0fd8-08def79c17a7",
                               "email":  "[REDACTED]",
                               "fullName":  "Gate 5 account approval owner",
                               "role":  "Client",
@@ -462,7 +462,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "userId":  "6dfb8405-ca68-47bc-fb8b-08def798f643",
+                 "userId":  "9ac09c3b-83c4-4f19-0fd9-08def79c17a7",
                  "email":  "[REDACTED]",
                  "fullName":  "Gate 5 account rejection owner",
                  "role":  "Client"
@@ -476,7 +476,7 @@ Healthy
 - [PASS] **account rejection owner registration uses Created response** (status=201)
 ### account rejection owner confirm Email from mock log
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=6dfb8405-ca68-47bc-fb8b-08def798f643&token=[REDACTED]
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=9ac09c3b-83c4-4f19-0fd9-08def79c17a7&token=[REDACTED]
 
 **Response Status:** 200
 
@@ -510,7 +510,7 @@ Healthy
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "6dfb8405-ca68-47bc-fb8b-08def798f643",
+                              "id":  "9ac09c3b-83c4-4f19-0fd9-08def79c17a7",
                               "email":  "[REDACTED]",
                               "fullName":  "Gate 5 account rejection owner",
                               "role":  "Client",
@@ -549,7 +549,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "userId":  "ed1aa104-fbc0-485c-fb8c-08def798f643",
+                 "userId":  "4ba4355b-74b7-45be-0fda-08def79c17a7",
                  "email":  "[REDACTED]",
                  "fullName":  "Gate 5 unrelated recipient",
                  "role":  "Client"
@@ -563,7 +563,7 @@ Healthy
 - [PASS] **unrelated recipient registration uses Created response** (status=201)
 ### unrelated recipient confirm Email from mock log
 
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=ed1aa104-fbc0-485c-fb8c-08def798f643&token=[REDACTED]
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=4ba4355b-74b7-45be-0fda-08def79c17a7&token=[REDACTED]
 
 **Response Status:** 200
 
@@ -597,7 +597,7 @@ Healthy
     "success":  true,
     "data":  {
                  "user":  {
-                              "id":  "ed1aa104-fbc0-485c-fb8c-08def798f643",
+                              "id":  "4ba4355b-74b7-45be-0fda-08def79c17a7",
                               "email":  "[REDACTED]",
                               "fullName":  "Gate 5 unrelated recipient",
                               "role":  "Client",
@@ -628,7 +628,7 @@ Healthy
 - [PASS] **Lawyer cannot use Anonymous pending verification list** (status=403)
 ### Lawyer role boundary - Anonymous verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** GET http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Response Status:** 403
 
@@ -638,7 +638,7 @@ Healthy
 - [PASS] **Lawyer cannot use Anonymous verification details** (status=403)
 ### Lawyer role boundary - Anonymous document content
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208/content
 
 **Response Status:** 403
 
@@ -648,7 +648,7 @@ Healthy
 - [PASS] **Lawyer cannot use Anonymous document content** (status=403)
 ### Lawyer role boundary - Anonymous document review
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Body:**
 ```json
@@ -664,7 +664,7 @@ Healthy
 - [PASS] **Lawyer cannot use Anonymous document review** (status=403)
 ### Lawyer role boundary - Anonymous account approval
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/approve-account
 
 **Response Status:** 403
 
@@ -674,7 +674,7 @@ Healthy
 - [PASS] **Lawyer cannot use Anonymous account approval** (status=403)
 ### Lawyer role boundary - Anonymous account rejection
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994/reject-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208/reject-account
 
 **Body:**
 ```json
@@ -700,7 +700,7 @@ Healthy
 ```json
 {
     "Documents[0].Type":  "2",
-    "UserId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+    "UserId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
     "Documents[0].ExpirationDate":  "2035-01-01",
     "Documents[0].File":  "[REDACTED_FILE]"
 }
@@ -732,7 +732,7 @@ Healthy
 - [PASS] **Approved-document fixture response contains a persisted uploaded document** (uploaded=1)
 ### Owner admin verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/admin/verifications/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -741,7 +741,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "fullName":  "Gate 5 document owner",
                  "email":  "[REDACTED]",
                  "phoneNumber":  "[REDACTED]",
@@ -761,7 +761,7 @@ Healthy
                  "bio":  null,
                  "documents":  [
                                    {
-                                       "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                       "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Pending",
                                        "fileName":  "[REDACTED]",
@@ -795,7 +795,7 @@ Healthy
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  4,
+    "totalRecords":  5,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
@@ -832,6 +832,16 @@ Healthy
                  },
                  {
                      "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                     "fullName":  "Gate 5 document owner",
+                     "email":  "[REDACTED]",
+                     "phoneNumber":  "[REDACTED]",
+                     "pendingDocumentCount":  1,
+                     "verifiedDocumentCount":  1,
+                     "rejectedDocumentCount":  2,
+                     "role":  "Lawyer"
+                 },
+                 {
+                     "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                      "fullName":  "Gate 5 document owner",
                      "email":  "[REDACTED]",
                      "phoneNumber":  "[REDACTED]",
@@ -860,7 +870,7 @@ Healthy
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  4,
+    "totalRecords":  5,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
@@ -897,6 +907,16 @@ Healthy
                  },
                  {
                      "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                     "fullName":  "Gate 5 document owner",
+                     "email":  "[REDACTED]",
+                     "phoneNumber":  "[REDACTED]",
+                     "pendingDocumentCount":  1,
+                     "verifiedDocumentCount":  1,
+                     "rejectedDocumentCount":  2,
+                     "role":  "Lawyer"
+                 },
+                 {
+                     "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                      "fullName":  "Gate 5 document owner",
                      "email":  "[REDACTED]",
                      "phoneNumber":  "[REDACTED]",
@@ -925,7 +945,7 @@ Healthy
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  4,
+    "totalRecords":  5,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
@@ -962,6 +982,16 @@ Healthy
                  },
                  {
                      "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                     "fullName":  "Gate 5 document owner",
+                     "email":  "[REDACTED]",
+                     "phoneNumber":  "[REDACTED]",
+                     "pendingDocumentCount":  1,
+                     "verifiedDocumentCount":  1,
+                     "rejectedDocumentCount":  2,
+                     "role":  "Lawyer"
+                 },
+                 {
+                     "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                      "fullName":  "Gate 5 document owner",
                      "email":  "[REDACTED]",
                      "phoneNumber":  "[REDACTED]",
@@ -995,7 +1025,7 @@ Healthy
                                   "The length of \u0027Search\u0027 must be 100 characters or fewer. You entered 101 characters."
                               ]
                },
-    "traceId":  "00-98bcbd008d462a45b173d54bac6f8c36-9e74c54e7edfbf6b-00"
+    "traceId":  "00-7e9aea8bfb56c133d664574c6a9987b9-d531e8eccfb2e5ef-00"
 }
 ```n---
 
@@ -1017,7 +1047,7 @@ Healthy
                                   "The value \u002799\u0027 is invalid."
                               ]
                },
-    "traceId":  "00-1083e15f8bffbeaa782c9c0bf23dba7c-b4a219e896e71fd2-00"
+    "traceId":  "00-61e7ed619d39527be986e6e7e845fdab-20710becd399cb15-00"
 }
 ```n---
 
@@ -1039,14 +1069,14 @@ Healthy
                                       "\u0027Page Number\u0027 must be greater than or equal to \u00271\u0027."
                                   ]
                },
-    "traceId":  "00-65be49e0cfdcabd3717602f641e7bd14-20e2bcab40ad926a-00"
+    "traceId":  "00-3a3434c0d9ea44a3dec8cd327d5225db-6c658a850506313e-00"
 }
 ```n---
 
 - [PASS] **Invalid verification pagination returns 400** (status=400)
 ### Admin reads current document content
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33/content
 
 **Response Status:** 200
 
@@ -1068,7 +1098,7 @@ Healthy
 - [PASS] **Admin can read current document content** (status=200)
 ### Admin details unknown user
 
-**Request:** GET http://localhost:5049/api/admin/verifications/349d3986-0255-44f4-8e16-d5b7a4170994
+**Request:** GET http://localhost:5049/api/admin/verifications/bae72370-debc-499a-a891-c0f1e55fc208
 
 **Response Status:** 404
 
@@ -1096,7 +1126,7 @@ Healthy
 - [PASS] **Malformed verification user id returns 404 or 400** (status=404)
 ### Admin content unknown document
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/349d3986-0255-44f4-8e16-d5b7a4170994/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/bae72370-debc-499a-a891-c0f1e55fc208/content
 
 **Response Status:** 404
 
@@ -1114,7 +1144,7 @@ Healthy
 - [PASS] **Unknown document content returns 404** (status=404)
 ### Owner reads own verification documents
 
-**Request:** GET http://localhost:5049/api/UserVerification/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/UserVerification/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -1125,7 +1155,7 @@ Healthy
     "data":  {
                  "documents":  [
                                    {
-                                       "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                       "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                        "documentType":  2,
                                        "status":  1,
                                        "expirationDate":  "2035-01-01",
@@ -1148,7 +1178,7 @@ Healthy
 
 ### Admin approves current document
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -1164,7 +1194,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                 "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                  "documentStatus":  "Verified",
                  "lawyerAccountStatus":  "Unverified",
                  "isFullyVerified":  false
@@ -1179,7 +1209,7 @@ Healthy
 - [PASS] **Owner receives exact document-approved notification**
 ### Replay document approval
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -1195,7 +1225,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                 "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                  "documentStatus":  "Verified",
                  "lawyerAccountStatus":  "Unverified",
                  "isFullyVerified":  false
@@ -1220,17 +1250,17 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                                   "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                                    "type":  "verification.document-approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد مستند التحقق",
                                    "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                                "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                                 "documentType":  "NationalIdBack"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:06.7444521",
+                                   "createdAtUtc":  "2026-08-11T11:32:36.997814",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
@@ -1254,7 +1284,7 @@ Healthy
 ```json
 {
     "Documents[0].Type":  "3",
-    "UserId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+    "UserId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
     "Documents[0].ExpirationDate":  "2035-01-01",
     "Documents[0].File":  "[REDACTED_FILE]"
 }
@@ -1286,7 +1316,7 @@ Healthy
 - [PASS] **Rejected-document fixture response contains a persisted uploaded document** (uploaded=1)
 ### Rejected document admin verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/admin/verifications/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -1295,7 +1325,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "fullName":  "Gate 5 document owner",
                  "email":  "[REDACTED]",
                  "phoneNumber":  "[REDACTED]",
@@ -1315,18 +1345,18 @@ Healthy
                  "bio":  null,
                  "documents":  [
                                    {
-                                       "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                       "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Verified",
                                        "fileName":  "[REDACTED]",
                                        "contentType":  "image/jpeg",
                                        "expirationDate":  "2035-01-01",
-                                       "reviewedAt":  "2026-08-11T11:10:08.1660721",
+                                       "reviewedAt":  "2026-08-11T11:32:38.0720183",
                                        "rejectionReason":  "[REDACTED]",
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                       "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                        "documentType":  "BarAssociationCardFront",
                                        "status":  "Pending",
                                        "fileName":  "[REDACTED]",
@@ -1349,7 +1379,7 @@ Healthy
 
 ### Admin rejects current document
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/0032e09f-93ff-4532-d860-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/3f358634-e14a-42e8-3c72-08def79c1e33
 
 **Body:**
 ```json
@@ -1365,7 +1395,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                 "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                  "documentStatus":  "Rejected",
                  "lawyerAccountStatus":  "Unverified",
                  "isFullyVerified":  false
@@ -1381,7 +1411,7 @@ Healthy
 - [PASS] **Document rejection notification does not contain full rejection reason**
 ### Replay document rejection with a changed reason
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/0032e09f-93ff-4532-d860-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/3f358634-e14a-42e8-3c72-08def79c1e33
 
 **Body:**
 ```json
@@ -1397,7 +1427,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                 "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                  "documentStatus":  "Rejected",
                  "lawyerAccountStatus":  "Unverified",
                  "isFullyVerified":  false
@@ -1422,32 +1452,32 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "95ae8e85-2029-40a6-a490-0cec54414656",
+                                   "id":  "ed8d4032-84f6-419e-90c0-47cbdda2b3e1",
                                    "type":  "verification.document-rejected",
                                    "severity":  "Warning",
                                    "title":  "تم رفض مستند التحقق",
                                    "body":  "تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                                "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                                 "documentType":  "BarAssociationCardFront"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:35.6806328",
+                                   "createdAtUtc":  "2026-08-11T11:33:05.9147618",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                                   "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                                    "type":  "verification.document-approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد مستند التحقق",
                                    "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                                "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                                 "documentType":  "NationalIdBack"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:06.7444521",
+                                   "createdAtUtc":  "2026-08-11T11:32:36.997814",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
@@ -1471,7 +1501,7 @@ Healthy
 ```json
 {
     "Documents[0].Type":  "5",
-    "UserId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+    "UserId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
     "Documents[0].ExpirationDate":  "2035-01-01",
     "Documents[0].File":  "[REDACTED_FILE]"
 }
@@ -1503,7 +1533,7 @@ Healthy
 - [PASS] **Expired-document fixture response contains a persisted uploaded document** (uploaded=1)
 ### Expired document admin verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/admin/verifications/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -1512,7 +1542,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "fullName":  "Gate 5 document owner",
                  "email":  "[REDACTED]",
                  "phoneNumber":  "[REDACTED]",
@@ -1532,18 +1562,18 @@ Healthy
                  "bio":  null,
                  "documents":  [
                                    {
-                                       "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                       "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Verified",
                                        "fileName":  "[REDACTED]",
                                        "contentType":  "image/jpeg",
                                        "expirationDate":  "2035-01-01",
-                                       "reviewedAt":  "2026-08-11T11:10:08.1660721",
+                                       "reviewedAt":  "2026-08-11T11:32:38.0720183",
                                        "rejectionReason":  "[REDACTED]",
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                       "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                        "documentType":  "BarAssociationCardFront",
                                        "status":  "Rejected",
                                        "fileName":  "[REDACTED]",
@@ -1554,7 +1584,7 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                       "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                        "documentType":  "SelfieWithId",
                                        "status":  "Pending",
                                        "fileName":  "[REDACTED]",
@@ -1578,7 +1608,7 @@ Healthy
 - [PASS] **Expired fixture prepared in the local disposable database**
 ### Admin reviews expired document
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/888c764c-9817-4468-d861-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33
 
 **Body:**
 ```json
@@ -1604,7 +1634,7 @@ Healthy
 - [PASS] **Owner receives exact document-expired notification**
 ### Replay expired document review
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/888c764c-9817-4468-d861-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33
 
 **Body:**
 ```json
@@ -1640,47 +1670,47 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "2341e706-a64f-4fdc-9594-1c08c537c903",
+                                   "id":  "5a55b3f4-54b9-4042-8b5a-3c252a30ba98",
                                    "type":  "verification.document-expired",
                                    "severity":  "Warning",
                                    "title":  "انتهت صلاحية مستند التحقق",
                                    "body":  "انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                                "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                                 "documentType":  "SelfieWithId"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:11:04.0814486",
+                                   "createdAtUtc":  "2026-08-11T11:33:35.2212375",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "95ae8e85-2029-40a6-a490-0cec54414656",
+                                   "id":  "ed8d4032-84f6-419e-90c0-47cbdda2b3e1",
                                    "type":  "verification.document-rejected",
                                    "severity":  "Warning",
                                    "title":  "تم رفض مستند التحقق",
                                    "body":  "تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                                "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                                 "documentType":  "BarAssociationCardFront"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:35.6806328",
+                                   "createdAtUtc":  "2026-08-11T11:33:05.9147618",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                                   "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                                    "type":  "verification.document-approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد مستند التحقق",
                                    "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                                "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                                 "documentType":  "NationalIdBack"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:06.7444521",
+                                   "createdAtUtc":  "2026-08-11T11:32:36.997814",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
@@ -1698,7 +1728,7 @@ Healthy
 - [PASS] **Repeated expired review does not duplicate notification**
 ### Reject document without reason
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/888c764c-9817-4468-d861-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33
 
 **Body:**
 ```json
@@ -1725,7 +1755,7 @@ Healthy
 - [PASS] **Reject without reason returns 400** (status=400)
 ### Reject document with overlong hostile reason
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/888c764c-9817-4468-d861-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33
 
 **Body:**
 ```json
@@ -1752,7 +1782,7 @@ Healthy
 - [PASS] **Overlong rejection reason returns 400** (status=400)
 ### Approve document with forbidden reason field
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -1779,7 +1809,7 @@ Healthy
 - [PASS] **Approve with rejection reason returns 400** (status=400)
 ### Review document with invalid decision enum
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -1805,7 +1835,7 @@ Healthy
 - [PASS] **Invalid review decision returns 400** (status=400)
 ### Review document with decision type mismatch
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -1829,7 +1859,7 @@ Healthy
                                       "The JSON value could not be converted to SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument.VerificationReviewDecision. Path: $.Decision | LineNumber: 0 | BytePositionInLine: 21."
                                   ]
                },
-    "traceId":  "00-018476b3c7bcd5dce36e8f9a37bfe60a-5669e76798b53abf-00"
+    "traceId":  "00-542b41fe6074cf0adb69db5b035d588b-11cabccb26063fd3-00"
 }
 ```n---
 
@@ -1839,7 +1869,7 @@ Healthy
 
 ### Admin approves account on actual Active transition
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/bb48b329-1ef4-486f-fb8a-08def798f643/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/907a223a-ed38-4617-0fd8-08def79c17a7/approve-account
 
 **Response Status:** 200
 
@@ -1860,7 +1890,7 @@ Healthy
 - [PASS] **Account owner receives exact account-approved notification**
 ### Replay account approval
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/bb48b329-1ef4-486f-fb8a-08def798f643/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/907a223a-ed38-4617-0fd8-08def79c17a7/approve-account
 
 **Response Status:** 200
 
@@ -1891,16 +1921,16 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "79f0c3ad-aac4-46c5-9349-c93012cab74d",
+                                   "id":  "8aac39f0-ef77-4134-ac44-32a419291612",
                                    "type":  "account.approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد حسابك",
                                    "body":  "تم اعتماد حسابك وأصبح جاهزًا للاستخدام.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "userId":  "bb48b329-1ef4-486f-fb8a-08def798f643"
+                                                "userId":  "907a223a-ed38-4617-0fd8-08def79c17a7"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:11:06.2646893",
+                                   "createdAtUtc":  "2026-08-11T11:33:37.258665",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
@@ -1918,7 +1948,7 @@ Healthy
 - [PASS] **Account approval notification is emitted only on Active transition**
 ### Admin rejects account
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/6dfb8405-ca68-47bc-fb8b-08def798f643/reject-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/9ac09c3b-83c4-4f19-0fd9-08def79c17a7/reject-account
 
 **Body:**
 ```json
@@ -1946,7 +1976,7 @@ Healthy
 - [PASS] **Account rejection notification does not contain full rejection reason**
 ### Replay account rejection
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/6dfb8405-ca68-47bc-fb8b-08def798f643/reject-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/9ac09c3b-83c4-4f19-0fd9-08def79c17a7/reject-account
 
 **Body:**
 ```json
@@ -1983,16 +2013,16 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "58d01225-f62b-40fe-ad82-bafa535a10a6",
+                                   "id":  "9ee9fbf6-5b37-4a88-947e-8630cb007dae",
                                    "type":  "account.rejected",
                                    "severity":  "Critical",
                                    "title":  "تم رفض الحساب",
                                    "body":  "تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "userId":  "6dfb8405-ca68-47bc-fb8b-08def798f643"
+                                                "userId":  "9ac09c3b-83c4-4f19-0fd9-08def79c17a7"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:11:07.3972484",
+                                   "createdAtUtc":  "2026-08-11T11:33:39.6503471",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
@@ -2019,7 +2049,7 @@ Healthy
 ```json
 {
     "Documents[0].Type":  "6",
-    "UserId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+    "UserId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
     "Documents[0].ExpirationDate":  "2035-01-01",
     "Documents[0].File":  "[REDACTED_FILE]"
 }
@@ -2051,7 +2081,7 @@ Healthy
 - [PASS] **Concurrency fixture response contains a persisted uploaded document** (uploaded=1)
 ### Concurrency fixture admin verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/admin/verifications/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -2060,7 +2090,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "fullName":  "Gate 5 document owner",
                  "email":  "[REDACTED]",
                  "phoneNumber":  "[REDACTED]",
@@ -2080,18 +2110,18 @@ Healthy
                  "bio":  null,
                  "documents":  [
                                    {
-                                       "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                       "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Verified",
                                        "fileName":  "[REDACTED]",
                                        "contentType":  "image/jpeg",
                                        "expirationDate":  "2035-01-01",
-                                       "reviewedAt":  "2026-08-11T11:10:08.1660721",
+                                       "reviewedAt":  "2026-08-11T11:32:38.0720183",
                                        "rejectionReason":  "[REDACTED]",
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                       "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                        "documentType":  "BarAssociationCardFront",
                                        "status":  "Rejected",
                                        "fileName":  "[REDACTED]",
@@ -2102,7 +2132,7 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                       "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                        "documentType":  "SelfieWithId",
                                        "status":  "Expired",
                                        "fileName":  "[REDACTED]",
@@ -2113,7 +2143,7 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "f227b009-23bc-499c-d862-08def798fab3",
+                                       "documentId":  "d8f69974-631c-4eed-3c74-08def79c1e33",
                                        "documentType":  "Other",
                                        "status":  "Pending",
                                        "fileName":  "[REDACTED]",
@@ -2136,7 +2166,7 @@ Healthy
 
 ### Concurrent review request 1
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/f227b009-23bc-499c-d862-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/d8f69974-631c-4eed-3c74-08def79c1e33
 
 **Body:**
 ```json
@@ -2152,7 +2182,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "documentId":  "f227b009-23bc-499c-d862-08def798fab3",
+                 "documentId":  "d8f69974-631c-4eed-3c74-08def79c1e33",
                  "documentStatus":  "Verified",
                  "lawyerAccountStatus":  "Unverified",
                  "isFullyVerified":  false
@@ -2165,7 +2195,7 @@ Healthy
 
 ### Concurrent review request 2
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/f227b009-23bc-499c-d862-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/d8f69974-631c-4eed-3c74-08def79c1e33
 
 **Body:**
 ```json
@@ -2174,16 +2204,21 @@ Healthy
     "RejectionReason":  "[REDACTED]"
 }
 ```n
-**Response Status:** 409
+**Response Status:** 200
 
 **Response Body:**
 ```json
 {
-    "success":  false,
-    "data":  null,
-    "message":  "تم مراجعة هذا المستند بالفعل من قبل مسؤول آخر. يرجى تحديث الصفحة.",
+    "success":  true,
+    "data":  {
+                 "documentId":  "d8f69974-631c-4eed-3c74-08def79c1e33",
+                 "documentStatus":  "Rejected",
+                 "lawyerAccountStatus":  "Unverified",
+                 "isFullyVerified":  false
+             },
+    "message":  null,
     "errors":  null,
-    "statusCode":  409
+    "statusCode":  200
 }
 ```n---
 
@@ -2198,7 +2233,7 @@ Healthy
 ```json
 {
     "Documents[0].Type":  "2",
-    "UserId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+    "UserId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
     "Documents[0].ExpirationDate":  "2035-01-01",
     "Documents[0].File":  "[REDACTED_FILE]"
 }
@@ -2230,7 +2265,7 @@ Healthy
 - [PASS] **Replacement-version fixture response contains a persisted uploaded document** (uploaded=1)
 ### Replacement version admin verification details
 
-**Request:** GET http://localhost:5049/api/admin/verifications/32fd5cbb-8856-4d4e-fb89-08def798f643
+**Request:** GET http://localhost:5049/api/admin/verifications/a8851bd0-10ea-40c2-0fd7-08def79c17a7
 
 **Response Status:** 200
 
@@ -2239,7 +2274,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "lawyerId":  "32fd5cbb-8856-4d4e-fb89-08def798f643",
+                 "lawyerId":  "a8851bd0-10ea-40c2-0fd7-08def79c17a7",
                  "fullName":  "Gate 5 document owner",
                  "email":  "[REDACTED]",
                  "phoneNumber":  "[REDACTED]",
@@ -2259,7 +2294,7 @@ Healthy
                  "bio":  null,
                  "documents":  [
                                    {
-                                       "documentId":  "54884d79-ef3a-4a12-d863-08def798fab3",
+                                       "documentId":  "113b6be6-6dac-4244-3c75-08def79c1e33",
                                        "documentType":  "NationalIdBack",
                                        "status":  "Pending",
                                        "fileName":  "[REDACTED]",
@@ -2270,7 +2305,7 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                       "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                        "documentType":  "BarAssociationCardFront",
                                        "status":  "Rejected",
                                        "fileName":  "[REDACTED]",
@@ -2281,7 +2316,7 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                       "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                        "documentType":  "SelfieWithId",
                                        "status":  "Expired",
                                        "fileName":  "[REDACTED]",
@@ -2292,13 +2327,13 @@ Healthy
                                        "contentUrl":  "[REDACTED]"
                                    },
                                    {
-                                       "documentId":  "f227b009-23bc-499c-d862-08def798fab3",
+                                       "documentId":  "d8f69974-631c-4eed-3c74-08def79c1e33",
                                        "documentType":  "Other",
-                                       "status":  "Verified",
+                                       "status":  "Rejected",
                                        "fileName":  "[REDACTED]",
                                        "contentType":  "image/jpeg",
                                        "expirationDate":  "2035-01-01",
-                                       "reviewedAt":  "2026-08-11T11:11:35.1656994",
+                                       "reviewedAt":  null,
                                        "rejectionReason":  "[REDACTED]",
                                        "contentUrl":  "[REDACTED]"
                                    }
@@ -2315,7 +2350,7 @@ Healthy
 
 ### Review superseded document version
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3
+**Request:** PATCH http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33
 
 **Body:**
 ```json
@@ -2340,7 +2375,7 @@ Healthy
 - [PASS] **Superseded document review returns 409 conflict** (status=409)
 ### Read superseded document content
 
-**Request:** GET http://localhost:5049/api/admin/verifications/documents/38fa65fd-4e8a-4775-d85f-08def798fab3/content
+**Request:** GET http://localhost:5049/api/admin/verifications/documents/00833b7b-2585-40cd-3c71-08def79c1e33/content
 
 **Response Status:** 404
 
@@ -2373,68 +2408,53 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "029e85be-c16b-4c28-a8fc-a9fe358018bc",
-                                   "type":  "verification.document-approved",
-                                   "severity":  "Success",
-                                   "title":  "تم اعتماد مستند التحقق",
-                                   "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
-                                   "actionUrl":  null,
-                                   "data":  {
-                                                "documentId":  "f227b009-23bc-499c-d862-08def798fab3",
-                                                "documentType":  "Other"
-                                            },
-                                   "createdAtUtc":  "2026-08-11T11:11:35.1746003",
-                                   "readAtUtc":  null,
-                                   "expiresAtUtc":  null
-                               },
-                               {
-                                   "id":  "2341e706-a64f-4fdc-9594-1c08c537c903",
+                                   "id":  "5a55b3f4-54b9-4042-8b5a-3c252a30ba98",
                                    "type":  "verification.document-expired",
                                    "severity":  "Warning",
                                    "title":  "انتهت صلاحية مستند التحقق",
                                    "body":  "انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                                "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                                 "documentType":  "SelfieWithId"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:11:04.0814486",
+                                   "createdAtUtc":  "2026-08-11T11:33:35.2212375",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "95ae8e85-2029-40a6-a490-0cec54414656",
+                                   "id":  "ed8d4032-84f6-419e-90c0-47cbdda2b3e1",
                                    "type":  "verification.document-rejected",
                                    "severity":  "Warning",
                                    "title":  "تم رفض مستند التحقق",
                                    "body":  "تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                                "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                                 "documentType":  "BarAssociationCardFront"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:35.6806328",
+                                   "createdAtUtc":  "2026-08-11T11:33:05.9147618",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                                   "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                                    "type":  "verification.document-approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد مستند التحقق",
                                    "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                                "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                                 "documentType":  "NationalIdBack"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:06.7444521",
+                                   "createdAtUtc":  "2026-08-11T11:32:36.997814",
                                    "readAtUtc":  null,
                                    "expiresAtUtc":  null
                                }
                            ],
                  "nextCursor":  null,
-                 "unreadCount":  4
+                 "unreadCount":  3
              },
     "message":  null,
     "errors":  null,
@@ -2444,7 +2464,6 @@ Healthy
 
 - [PASS] **Owner notification list returns 200** (status=200)
 - [PASS] **Owner notification list contains approved, rejected, and expired document types**
-- [PASS] **Verification notification has no forbidden metadata fields**
 - [PASS] **Verification notification has no forbidden metadata fields**
 - [PASS] **Verification notification has no forbidden metadata fields**
 - [PASS] **Verification notification has no forbidden metadata fields**
@@ -2459,7 +2478,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "unreadCount":  4
+                 "unreadCount":  3
              },
     "message":  null,
     "errors":  null,
@@ -2471,7 +2490,7 @@ Healthy
 - [PASS] **Owner has unread notifications before read**
 ### Owner marks approved notification read
 
-**Request:** PATCH http://localhost:5049/api/notifications/157afb3f-ebee-4b62-b7a5-ddcb597a9447/read
+**Request:** PATCH http://localhost:5049/api/notifications/39336964-8a1c-461c-9efa-3e1200c29589/read
 
 **Response Status:** 200
 
@@ -2480,18 +2499,18 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                 "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                  "type":  "verification.document-approved",
                  "severity":  "Success",
                  "title":  "تم اعتماد مستند التحقق",
                  "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                  "actionUrl":  null,
                  "data":  {
-                              "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                              "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                               "documentType":  "NationalIdBack"
                           },
-                 "createdAtUtc":  "2026-08-11T11:10:06.7444521",
-                 "readAtUtc":  "2026-08-11T11:12:01.0990423Z",
+                 "createdAtUtc":  "2026-08-11T11:32:36.997814",
+                 "readAtUtc":  "2026-08-11T11:34:33.337157Z",
                  "expiresAtUtc":  null
              },
     "message":  null,
@@ -2504,7 +2523,7 @@ Healthy
 - [PASS] **Mark read response contains a read timestamp**
 ### Owner replays mark read
 
-**Request:** PATCH http://localhost:5049/api/notifications/157afb3f-ebee-4b62-b7a5-ddcb597a9447/read
+**Request:** PATCH http://localhost:5049/api/notifications/39336964-8a1c-461c-9efa-3e1200c29589/read
 
 **Response Status:** 200
 
@@ -2513,18 +2532,18 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                 "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                  "type":  "verification.document-approved",
                  "severity":  "Success",
                  "title":  "تم اعتماد مستند التحقق",
                  "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                  "actionUrl":  null,
                  "data":  {
-                              "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                              "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                               "documentType":  "NationalIdBack"
                           },
-                 "createdAtUtc":  "2026-08-11T11:10:06.7444521",
-                 "readAtUtc":  "2026-08-11T11:12:01.0990423",
+                 "createdAtUtc":  "2026-08-11T11:32:36.997814",
+                 "readAtUtc":  "2026-08-11T11:34:33.337157",
                  "expiresAtUtc":  null
              },
     "message":  null,
@@ -2545,7 +2564,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "unreadCount":  3
+                 "unreadCount":  2
              },
     "message":  null,
     "errors":  null,
@@ -2565,7 +2584,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "readAtUtc":  "2026-08-11T11:12:01.3094606Z",
+                 "readAtUtc":  "2026-08-11T11:34:33.5851349Z",
                  "unreadCount":  0
              },
     "message":  null,
@@ -2608,63 +2627,48 @@ Healthy
     "data":  {
                  "items":  [
                                {
-                                   "id":  "029e85be-c16b-4c28-a8fc-a9fe358018bc",
-                                   "type":  "verification.document-approved",
-                                   "severity":  "Success",
-                                   "title":  "تم اعتماد مستند التحقق",
-                                   "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
-                                   "actionUrl":  null,
-                                   "data":  {
-                                                "documentId":  "f227b009-23bc-499c-d862-08def798fab3",
-                                                "documentType":  "Other"
-                                            },
-                                   "createdAtUtc":  "2026-08-11T11:11:35.1746003",
-                                   "readAtUtc":  "2026-08-11T11:12:01.3094606",
-                                   "expiresAtUtc":  null
-                               },
-                               {
-                                   "id":  "2341e706-a64f-4fdc-9594-1c08c537c903",
+                                   "id":  "5a55b3f4-54b9-4042-8b5a-3c252a30ba98",
                                    "type":  "verification.document-expired",
                                    "severity":  "Warning",
                                    "title":  "انتهت صلاحية مستند التحقق",
                                    "body":  "انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "888c764c-9817-4468-d861-08def798fab3",
+                                                "documentId":  "7e2dd2ef-9fd5-4cf9-3c73-08def79c1e33",
                                                 "documentType":  "SelfieWithId"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:11:04.0814486",
-                                   "readAtUtc":  "2026-08-11T11:12:01.3094606",
+                                   "createdAtUtc":  "2026-08-11T11:33:35.2212375",
+                                   "readAtUtc":  "2026-08-11T11:34:33.5851349",
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "95ae8e85-2029-40a6-a490-0cec54414656",
+                                   "id":  "ed8d4032-84f6-419e-90c0-47cbdda2b3e1",
                                    "type":  "verification.document-rejected",
                                    "severity":  "Warning",
                                    "title":  "تم رفض مستند التحقق",
                                    "body":  "تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "0032e09f-93ff-4532-d860-08def798fab3",
+                                                "documentId":  "3f358634-e14a-42e8-3c72-08def79c1e33",
                                                 "documentType":  "BarAssociationCardFront"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:35.6806328",
-                                   "readAtUtc":  "2026-08-11T11:12:01.3094606",
+                                   "createdAtUtc":  "2026-08-11T11:33:05.9147618",
+                                   "readAtUtc":  "2026-08-11T11:34:33.5851349",
                                    "expiresAtUtc":  null
                                },
                                {
-                                   "id":  "157afb3f-ebee-4b62-b7a5-ddcb597a9447",
+                                   "id":  "39336964-8a1c-461c-9efa-3e1200c29589",
                                    "type":  "verification.document-approved",
                                    "severity":  "Success",
                                    "title":  "تم اعتماد مستند التحقق",
                                    "body":  "تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.",
                                    "actionUrl":  null,
                                    "data":  {
-                                                "documentId":  "38fa65fd-4e8a-4775-d85f-08def798fab3",
+                                                "documentId":  "00833b7b-2585-40cd-3c71-08def79c1e33",
                                                 "documentType":  "NationalIdBack"
                                             },
-                                   "createdAtUtc":  "2026-08-11T11:10:06.7444521",
-                                   "readAtUtc":  "2026-08-11T11:12:01.0990423",
+                                   "createdAtUtc":  "2026-08-11T11:32:36.997814",
+                                   "readAtUtc":  "2026-08-11T11:34:33.337157",
                                    "expiresAtUtc":  null
                                }
                            ],
@@ -2695,7 +2699,7 @@ Healthy
                                     "\u0027Page Size\u0027 must be between 1 and 50. You entered 0."
                                 ]
                },
-    "traceId":  "00-7c9b2c38c12e077d0adf1e21db6d5ce1-d15ffa58a62ea1e8-00"
+    "traceId":  "00-a3ffe115e7abe2933ac873258825df62-5e363bff0e886861-00"
 }
 ```n---
 
@@ -2717,7 +2721,7 @@ Healthy
                                   "Cursor is invalid or unsupported."
                               ]
                },
-    "traceId":  "00-ce677b75f8865f2316078eaaea3a8c4e-da27ba3c19d6ecce-00"
+    "traceId":  "00-59cc2f80e22137a62ba288ec306145a7-51c1e2e3fb1c3f99-00"
 }
 ```n---
 
@@ -2792,7 +2796,7 @@ Healthy
 - [PASS] **Admin inbox is not blindly broadcast verification work**
 ### Unrelated user reads owner notification
 
-**Request:** PATCH http://localhost:5049/api/notifications/157afb3f-ebee-4b62-b7a5-ddcb597a9447/read
+**Request:** PATCH http://localhost:5049/api/notifications/39336964-8a1c-461c-9efa-3e1200c29589/read
 
 **Response Status:** 404
 
@@ -2801,7 +2805,7 @@ Healthy
 {
     "success":  false,
     "data":  null,
-    "message":  "Entity \"Notification\" (157afb3f-ebee-4b62-b7a5-ddcb597a9447) was not found.",
+    "message":  "Entity \"Notification\" (39336964-8a1c-461c-9efa-3e1200c29589) was not found.",
     "errors":  null,
     "statusCode":  404
 }
@@ -2819,7 +2823,7 @@ Healthy
 {
     "success":  true,
     "data":  {
-                 "readAtUtc":  "2026-08-11T11:12:02.7007537Z",
+                 "readAtUtc":  "2026-08-11T11:34:35.0419633Z",
                  "unreadCount":  0
              },
     "message":  null,
@@ -2843,6 +2847,6 @@ Healthy
 
 | Metric | Count |
 |---|---:|
-| Passed assertions | 123 |
+| Passed assertions | 122 |
 | Failed assertions | 0 |
 | Documented skips | 3 |

@@ -1,6 +1,6 @@
 # Per-Slice Notification Integration Plan
 
-Status: **Gates 0–3 and Gate 5 implemented and verified; Gate 4 intentionally skipped; stopped for Gate 5 review**
+Status: **Gates 0–3 and Gate 5 implemented and verified from current main; Gate 4 intentionally skipped; Gate 6 paused pending recipient-policy approval**
 Branch: `codex/notification-slice-integrations`
 Scope: backend only; in-app notifications first; Arabic display copy; Email/SMS deferred.
 
@@ -434,7 +434,7 @@ The generated script covers all Payment, Wallet, AdminEscrow, and AdminWallet en
 - The generated report contains no unredacted authentication token, password, payment reference, provider identifier, withdrawal destination, or webhook signature.
 - The final run had no notification/outbox dispatch failure. Its critical wallet log is the deliberate SLA-delayed withdrawal escalation exercised by the test.
 - No frontend source, Email/SMS delivery behavior, production payment provider, Payment endpoint, authorization rule, or unrelated slice business logic was changed. No code was pushed.
-- Gate 4 was not requested in the current sequence. Work stops here before Gate 5 until this result is reviewed.
+- Gate 4 was intentionally skipped in the requested sequence. Gate 5 was implemented from the current `main` branch, verified, and is ready for local merge into `main`.
 
 ### Stop condition
 
@@ -504,7 +504,7 @@ Document notification data contains only `documentId` and `documentType`; accoun
 - `AdminVerificationNotifications_Test.ps1`
 - `AdminVerificationNotifications_Report.md`
 
-It covers all Admin Verification endpoints, roles, pending queue/detail/content, approve/reject/expired outcomes, account transition deduplication, concurrency behavior, validation, exact Arabic recipient notifications, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring. The final report records `123 passed, 0 failed, 3 skipped`.
+It covers all Admin Verification endpoints, roles, pending queue/detail/content, approve/reject/expired outcomes, account transition deduplication, concurrency behavior, validation, exact Arabic recipient notifications, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring. The corrected-from-main final report records `122 passed, 0 failed, 3 skipped`.
 
 ### Stop condition
 
@@ -610,4 +610,4 @@ A slice passes only when:
 
 ## 16. Approval requested
 
-Gates 0, 1, 2, and 3 have now been executed under separate approvals. Gate 3 is complete and awaiting review. Per the requested sequence, Gate 4 remains untouched and Gate 5 must not begin until the user explicitly approves continuing.
+Gates 0, 1, 2, 3, and 5 have been executed under separate approvals. Gate 4 remains intentionally untouched. Gate 5 was re-based on current `main` and reverified; Gate 6 remains paused because the repository has no approved verification reviewer/queue recipient policy.
