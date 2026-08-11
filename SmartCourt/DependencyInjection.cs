@@ -56,6 +56,8 @@ using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Notifications;
 using SmartCourt.Features.Notifications.Events;
 using SmartCourt.Features.Notifications.Realtime;
+using SmartCourt.Features.Admin.Verifications.Events;
+using SmartCourt.Features.Admin.Verifications.Integration;
 using SmartCourt.Features.Proposals.Integration;
 using SmartCourt.Features.Proposals.Expiration;
 using SmartCourt.Features.Users.Integration;
@@ -185,6 +187,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationEventMapper, ContractNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, VerificationNotificationEventMapper>();
         services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
         services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
@@ -263,6 +266,9 @@ public static class DependencyInjection
         services.AddScoped<
             IPaymentNotificationContextReader,
             PaymentNotificationContextReader>();
+        services.AddScoped<
+            IVerificationNotificationContextReader,
+            VerificationNotificationContextReader>();
         services.AddScoped<
             IAdminWalletAdjustmentService,
             AdminWalletAdjustmentService>();
@@ -438,21 +444,43 @@ public static class DependencyInjection
             IProposalRecurringJobRegistrar,
             ProposalRecurringJobRegistrar>();
 
-        services.Configure<SupabaseOptions>(configuration.GetSection("Supabase"));
-        services.AddScoped<IFileStorageService, SupabaseFileStorageService>();
+        services.Configure<FileStorageOptions>(
+            configuration.GetSection(FileStorageOptions.SectionName));
 
-        services.AddSingleton<Supabase.Client>(sp =>
+        var fileStorageProvider = configuration.GetValue<string>(
+            $"{FileStorageOptions.SectionName}:Provider");
+        if (string.Equals(
+                fileStorageProvider,
+                "Local",
+                StringComparison.OrdinalIgnoreCase))
         {
-            var options = sp.GetRequiredService<IOptions<SupabaseOptions>>().Value;
+            services.AddScoped<
+                IFileStorageService,
+                LocalFileStorageService>();
+        }
+        else
+        {
+            services.Configure<SupabaseOptions>(
+                configuration.GetSection("Supabase"));
+            services.AddScoped<
+                IFileStorageService,
+                SupabaseFileStorageService>();
 
-            var client = new Supabase.Client(
-                options.Url,
-                options.ApiKey);
+            services.AddSingleton<Supabase.Client>(sp =>
+            {
+                var options = sp
+                    .GetRequiredService<IOptions<SupabaseOptions>>()
+                    .Value;
 
-            client.InitializeAsync().GetAwaiter().GetResult();
+                var client = new Supabase.Client(
+                    options.Url,
+                    options.ApiKey);
 
-            return client;
-        });
+                client.InitializeAsync().GetAwaiter().GetResult();
+
+                return client;
+            });
+        }
 
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
 

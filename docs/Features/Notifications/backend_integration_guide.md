@@ -112,6 +112,24 @@ The Payments/Wallet integration consumes these version `1` facts:
 
 All Payments/Wallet notifications use `actionUrl: null`. Funding data is `milestoneId`, `contractId`, `proposalId`, and `legalCaseId`; settlement data additionally contains `escrowHoldId` and `paymentTransactionId`; withdrawal data contains only `withdrawalId`; adjustment data contains `walletAdjustmentId` and `contractId`. Amounts, currency, payment/destination references, provider identifiers, failure details, administrative reasons, and idempotency keys are never copied into the inbox payload.
 
+## Administrative Verification integration (Gate 5)
+
+The Admin Verifications slice emits these version `1` semantic events from its existing handlers. Each event is queued in the same EF unit of work before the existing save/commit; the owning slice does not call `INotificationService`, SignalR, Email, SMS, or Hangfire. `VerificationNotificationEventMapper` resolves the recipient and current status through the Verification-owned `IVerificationNotificationContextReader`.
+
+| Source event | Trigger and recipient | Notification type | Severity | Exact Arabic title | Exact Arabic body |
+|---|---|---|---|---|---|
+| `VerificationDocumentApproved` V1 | A current document changes to `Verified`; document owner | `verification.document-approved` | `Success` | `تم اعتماد مستند التحقق` | `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.` |
+| `VerificationDocumentRejected` V1 | A current document changes to `Rejected`; document owner | `verification.document-rejected` | `Warning` | `تم رفض مستند التحقق` | `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.` |
+| `VerificationDocumentExpired` V1 | Review discovers a current document is expired; document owner | `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` |
+| `VerificationAccountApproved` V1 | Account actually transitions to `Active`; affected user only | `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` |
+| `VerificationAccountRejected` V1 | Account actually transitions to `Rejected`; affected user only | `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` |
+
+All five mappings use `actionUrl: null`. Document event data contains only string GUID `documentId` and the English `documentType`; account event data contains only string GUID `userId`. The source payload may carry the bounded authoritative IDs/type/status needed for mapper validation, but it never carries a storage path, file URL/content, full rejection reason, private review comment, Email, phone, national number, provider ID, token, or idempotency key. `account.approved` is emitted only for a real transition to `Active`, never once per approved document.
+
+The shared `NotificationOutboxHandler` uses the committed outbox message ID for idempotent inbox materialization and SignalR delivery. Replayed requests and repeated decisions therefore preserve the existing endpoint result without creating duplicate notification rows. REST remains the durable source of truth through the normal notification list/count/read/read-all endpoints; SignalR is best-effort and may duplicate an already persisted item, so clients reconcile by notification ID.
+
+Gate 5 is verified by `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md). The HTTP artifact covers authorization boundaries, pending/detail/content routes, approve/reject/expiry, account transitions, concurrency/conflicts, validation, exact Arabic snapshots, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring.
+
 ## Quick start: add notifications for your slice
 
 Before adding a trigger, check the [Notification Opportunity Catalog](./notification_opportunity_catalog.md). It records the agreed candidate story, recipient, priority, proposed type, and whether an existing event can be reused. The catalog is analysis, so selecting a story for implementation still requires inclusion in an approved integration plan.

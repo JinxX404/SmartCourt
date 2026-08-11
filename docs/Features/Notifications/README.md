@@ -1,8 +1,8 @@
 # SmartCourt Notifications Documentation
 
-Status: **in-app backend V1 with Proposal, Contract, Milestone, and Payments/Wallet integrations implemented and verified**
+Status: **in-app backend V1 with Proposal, Contract, Milestone, Payments/Wallet, and Administrative Verification integrations implemented and verified**
 
-This directory is the documentation entry point for the SmartCourt notification system. The current implementation is backend-only: a durable database inbox, authenticated REST endpoints, SignalR events, and Proposal/Contract/Milestone/Payments lifecycle outbox triggers. No frontend source code, Email delivery, or SMS delivery is included.
+This directory is the documentation entry point for the SmartCourt notification system. The current implementation is backend-only: a durable database inbox, authenticated REST endpoints, SignalR events, and Proposal/Contract/Milestone/Payments/Administrative Verification lifecycle outbox triggers. No frontend source code, Email delivery, or SMS delivery is included.
 
 ## Choose the right document
 
@@ -18,6 +18,7 @@ This directory is the documentation entry point for the SmartCourt notification 
 | [Contracts Notification HTTP Test Report](../../../SmartCourt.Tests/HttpTests/ContractsNotifications_Report.md) | QA and reviewers | Records the monitored Contract lifecycle and notification results. |
 | [Milestones Notification HTTP Test Report](../../../SmartCourt.Tests/HttpTests/MilestonesNotifications_Report.md) | QA and reviewers | Records the monitored Milestone lifecycle, change-request, and automatic-acceptance notification results. |
 | [Payments Notification HTTP Test Report](../../../SmartCourt.Tests/HttpTests/PaymentsNotifications_Report.md) | QA and reviewers | Records funding, webhook, settlement, wallet, withdrawal, and notification results. |
+| [Administrative Verification Notification HTTP Test Report](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md) | QA and reviewers | Records verification decision, account transition, concurrency, recipient-isolation, Arabic-copy, and log-monitoring results. |
 
 ## Authoritative contract snapshot
 
@@ -28,9 +29,14 @@ This directory is the documentation entry point for the SmartCourt notification 
 - Current Contract producer events: `ContractCreated` V1, `ContractDraftUpdated` V1, `ContractAccepted` V2, `ContractActivated` V1, `ContractCompleted` V1, `ContractTerminationRequested` V1, and `ContractTerminated` V1. Historical `ContractAccepted` V1 is a safe no-op.
 - Current Milestone producer events: `MilestoneCreated`, `MilestoneDraftUpdated`, `MilestoneAcceptanceRecorded`, `MilestoneApproved`, `MilestoneReadyForFunding`, `MilestoneSubmitted`, `MilestoneChangesRequested`, `MilestoneAccepted`, `MilestoneAutoAccepted`, and the four `MilestoneChangeRequest*` decision events, all version `1`.
 - Current Payments producer events: existing `MilestoneFundingStarted`, `MilestoneFunded`, `MilestoneFundingFailed`, `FundsReleased`, and `FundsRefunded` facts plus `WithdrawalCompleted`, `WithdrawalFailed`, `WithdrawalDelayed`, and `WalletAdjusted`, all version `1`.
-- Current notification types: the three `proposal.*` types, seven `contract.*` types, sixteen `milestone.*` types, two `funds.*` types, and four `wallet.*` types documented in the frontend contract.
+- Current Administrative Verification producer events: `VerificationDocumentApproved`, `VerificationDocumentRejected`, `VerificationDocumentExpired`, `VerificationAccountApproved`, and `VerificationAccountRejected`, all version `1`.
+- Current notification types: the three `proposal.*` types, seven `contract.*` types, sixteen `milestone.*` types, two `funds.*` types, four `wallet.*` types, and five `verification.*`/`account.*` types documented in the frontend contract.
 - Authentication: required; recipient identity always comes from the authenticated principal.
 - Delivery semantics: durable REST inbox, best-effort and potentially duplicate SignalR.
 - Deferred: Email, SMS, public/direct notification creation, frontend components/store, and distributed SignalR backplane.
+
+## Administrative Verification contract (Gate 5)
+
+Gate 5 maps only committed semantic verification facts. Document decisions go to the authoritative document owner; account outcomes go only to the affected account owner. The mapper persists Arabic title/body snapshots, uses `actionUrl: null`, and exposes only `documentId` plus `documentType` for document events or `userId` for account events. Storage paths, file URLs/content, full rejection reasons, private review comments, contact details, provider identifiers, and idempotency keys are forbidden. Replays are idempotent through the outbox message ID, and repeated account/document decisions do not enqueue a second notification for the same state transition. The expiry-reminder story `VER-07` remains deferred.
 
 When documentation and code appear to disagree, the implemented controller/DTO/hub contracts under `SmartCourt/Features/Notifications` are the runtime authority; update these documents in the same change as any contract modification.

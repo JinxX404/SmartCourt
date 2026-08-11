@@ -6,12 +6,15 @@ using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Extensions;
+using SmartCourt.Features.Admin.Verifications.Events;
 using SmartCourt.Features.Admin.Verifications.Shared;
 using SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument.DTOs;
+using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Entities;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using SmartCourt.Interfaces.Providers;
+using SmartCourt.Infrastructure.Providers.Events;
 
 namespace SmartCourt.Features.Admin.Verifications.ReviewVerificationDocument;
 
@@ -20,7 +23,8 @@ public sealed class ReviewVerificationDocumentHandler(
     ICurrentUserService currentUserService,
     UserManager<ApplicationUser> userManager,
     IValidator<ReviewVerificationDocumentCommand> validator,
-    IFileStorageService fileStorageService)
+    IFileStorageService fileStorageService,
+    IOutboxWriter outboxWriter)
     : IRequestHandler<ReviewVerificationDocumentCommand, ApiResponse<ReviewVerificationDocumentResponse>>
 {
     public async Task<ApiResponse<ReviewVerificationDocumentResponse>> Handle(
@@ -53,6 +57,10 @@ public sealed class ReviewVerificationDocumentHandler(
             throw new ConflictException("Only the current version of a document can be reviewed.");
         }
 
+        var previousDocumentStatus = document.Status;
+        var previousAccountStatus = document.User.Status;
+        var correlationId = Guid.NewGuid();
+
         // Admin can review current documents (Pending or previously Verified/Rejected)
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -66,6 +74,17 @@ public sealed class ReviewVerificationDocumentHandler(
                 isLawyerExpired,
                 document.User.PhoneNumberConfirmed,
                 document.User.Status);
+
+            if (previousDocumentStatus != VerificationDocumentStatus.Expired)
+            {
+                await VerificationOutbox.EnqueueDocumentAsync(
+                    outboxWriter,
+                    VerificationEventTypes.DocumentExpired,
+                    document,
+                    correlationId,
+                    cancellationToken);
+            }
+
             await context.SaveChangesAsync(cancellationToken);
 
             throw new ConflictException("The document has expired and must be submitted again.");
@@ -129,6 +148,39 @@ public sealed class ReviewVerificationDocumentHandler(
             isLawyer,
             document.User.PhoneNumberConfirmed,
             document.User.Status);
+
+        if (previousDocumentStatus != document.Status)
+        {
+            var documentEventType = document.Status switch
+            {
+                VerificationDocumentStatus.Verified =>
+                    VerificationEventTypes.DocumentApproved,
+                VerificationDocumentStatus.Rejected =>
+                    VerificationEventTypes.DocumentRejected,
+                _ => null
+            };
+
+            if (documentEventType is not null)
+            {
+                await VerificationOutbox.EnqueueDocumentAsync(
+                    outboxWriter,
+                    documentEventType,
+                    document,
+                    correlationId,
+                    cancellationToken);
+            }
+        }
+
+        if (previousAccountStatus != document.User.Status
+            && document.User.Status == UserStatus.Active)
+        {
+            await VerificationOutbox.EnqueueAccountAsync(
+                outboxWriter,
+                VerificationEventTypes.AccountApproved,
+                document.User,
+                correlationId,
+                cancellationToken);
+        }
 
         try
         {

@@ -2,14 +2,19 @@
 
 Status: **Backend implementation and notification verification complete**
 
-Verification on 2026-08-09:
+Verification on 2026-08-11:
 
 - solution build: passed;
-- Notifications automated tests: 16/16 passed;
-- monitored PowerShell HTTP lifecycle: 57/57 assertions passed;
-- full repository suite: 650/675 passed, with 25 unrelated existing failures
-  concentrated in legacy HTTP 200-vs-201 expectations plus one existing SQL
-  connection failure. No Notifications test failed.
+- Gate 5 focused mapper, local-provider, and Admin Verification tests: `23/23` passed;
+- Gate 5 monitored PowerShell HTTP lifecycle: `122/122` assertions passed, with
+  three documented environment/fixture skips;
+- latest full repository baseline from Gate 3: `710 passed, 24 failed, 0 skipped`
+  out of `734`; all failures are the known legacy HTTP `201 Created` versus runtime
+  `200 OK` expectations. No Notification or Gate 5 test failed.
+- Gate 5 administrative verification HTTP report: `122 passed, 0 failed, 3 skipped`;
+  the report includes mock Email confirmation, exact Arabic snapshots, expiry,
+  transition deduplication, concurrency, recipient isolation, and clean API/
+  outbox/provider monitoring.
 
 This plan implements the first approved increment of the SmartCourt notification system: a durable in-app inbox, authenticated REST APIs, SignalR delivery, and transactional-outbox triggers. Email and SMS are deliberately deferred.
 
@@ -314,6 +319,14 @@ Payments uses `PaymentNotificationEventMapper`, the existing Milestone context r
 The mapper persists exact Arabic title/body snapshots and English machine identifiers. It emits nine notification types/variants, always with `actionUrl: null`, and excludes financial amounts, reasons, destination/payment references, provider identifiers, and idempotency keys. The mock payment provider accepts `mock-success*`, `mock-fail*`, and `mock-timeout*` withdrawal destinations solely to make the existing provider abstraction deterministic during HTTP verification; production provider behavior is unchanged.
 
 Verification includes mapper, wallet, and adjustment suites plus `SmartCourt.Tests/HttpTests/PaymentsNotifications_Test.ps1`. The focused Gate 3 suite is `24 passed, 0 failed`. The monitored HTTP report records `210 passed, 0 failed` across every Payment/Wallet/AdminEscrow/AdminWallet endpoint, direct and webhook funding, retry uncertainty, release, refund, wallet adjustment, completed/failed/delayed withdrawals, validation, roles, idempotency, exact Arabic payloads, and recipient isolation. Three disposable accounts were confirmed from mock Email log links. The report redacts auth fields and payment references, and the final run contains no notification/outbox dispatch failure. The deliberate delayed-withdrawal fixture produced the expected critical operational log before its warning notification. The complete Payments namespace is `87 passed, 6 failed`; the full repository regression is `710 passed, 24 failed, 0 skipped` out of `734`. The failure set is unchanged and consists only of pre-existing tests that expect `201 Created` while the runtime returns `200 OK`.
+
+### 6.7 Administrative Verification extension (Gate 5)
+
+The Admin Verifications slice now emits five version `1` semantic facts from its existing transactional handlers: `VerificationDocumentApproved`, `VerificationDocumentRejected`, `VerificationDocumentExpired`, `VerificationAccountApproved`, and `VerificationAccountRejected`. `VerificationNotificationEventMapper` uses `IVerificationNotificationContextReader` to resolve the authoritative document owner/account owner and validate the committed status/type. Existing MediatR handlers remain in place; no MediatR notification dispatch was added.
+
+The exact persisted contracts are `verification.document-approved` (`Success`, `تم اعتماد مستند التحقق`, `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.`), `verification.document-rejected` (`Warning`, `تم رفض مستند التحقق`, `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.`), `verification.document-expired` (`Warning`, `انتهت صلاحية مستند التحقق`, `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.`), `account.approved` (`Success`, `تم اعتماد حسابك`, `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.`), and `account.rejected` (`Critical`, `تم رفض الحساب`, `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.`). All use `actionUrl: null`; document data is `documentId`/`documentType`, and account data is `userId`. Storage paths, file URLs/content, full rejection reasons, private review comments, contact details, provider IDs, tokens, and idempotency keys are excluded. Repeated transitions and outbox replays are idempotent by outbox message ID; REST is durable and SignalR is best-effort.
+
+Gate 5 verification includes `VerificationNotificationEventMapperTests` and `SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Test.ps1`. The final monitored report is [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md) with `122 passed, 0 failed, 3 skipped`; it covers authorization, pending/detail/content endpoints, approve/reject/expired review, account transition deduplication, concurrency/conflicts, hostile validation, exact Arabic payloads, forbidden fields, recipient isolation, mock Email confirmation, and API/outbox/provider logs. `VER-07` expiry reminders remain deferred.
 
 ## 7. Near-real-time outbox processing
 
