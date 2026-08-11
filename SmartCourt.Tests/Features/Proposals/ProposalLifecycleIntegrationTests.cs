@@ -10,6 +10,7 @@ using SmartCourt.Features.Chat.Events;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.SendMessage;
 using SmartCourt.Features.Contracts.Integration;
+using SmartCourt.Features.Proposals.CancelProposal;
 using SmartCourt.Features.Proposals.CreateProposal;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
@@ -92,6 +93,32 @@ public sealed class ProposalLifecycleIntegrationTests
             context.OutboxMessages,
             message => message.EventType
                 == ContractPaymentEventTypes.ProposalExpired);
+    }
+
+    [Fact]
+    public async Task CancelPendingProposal_DoesNotCreateConversation()
+    {
+        await using var context = CreateContext();
+        var lawyerId = (await SeedUsersAndCaseAsync(context, 1)).Single();
+        var proposal = CreateProposal(lawyerId, _utcNow.AddHours(-1));
+        context.Proposals.Add(proposal);
+        await context.SaveChangesAsync();
+
+        var result = await new CancelProposalHandler(
+            context,
+            new TestCurrentUserService(_clientUserId),
+            new FixedTimeProvider(_utcNow),
+            CreateOutboxWriter(context),
+            new CancelProposalCommandValidator()).Handle(
+                new CancelProposalCommand(
+                    proposal.Id,
+                    "The client selected a different approach."),
+                CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(ProposalStatus.Cancelled, proposal.Status);
+        Assert.Null(result.Data!.ConversationId);
+        Assert.Empty(context.ChatConversations);
     }
 
     [Fact]
