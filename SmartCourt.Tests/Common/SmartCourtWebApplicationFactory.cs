@@ -87,6 +87,7 @@ public class SmartCourtWebApplicationFactory : WebApplicationFactory<Program>
                 ["PaymentProvider:WebhookAllowedIpRanges:0"] = "127.0.0.1/32",
                 ["PaymentProvider:WebhookAllowedIpRanges:1"] = "::1/128",
                 ["PaymentProvider:WebhookMaximumBodySizeBytes"] = "65536",
+                ["Qdrant:Host"] = "localhost",
                 ["OutboxDispatch:Enabled"] = "false"
             });
         });

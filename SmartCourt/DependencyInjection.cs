@@ -83,8 +83,52 @@ namespace SmartCourt;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApiServices(this IServiceCollection services)
+    public const string FrontendCorsPolicy = "Frontend";
+
+    public static IServiceCollection AddApiServices(
+        this IServiceCollection services)
     {
+        return services.AddApiServices(
+            new ConfigurationBuilder().Build(),
+            isDevelopment: false);
+    }
+
+    public static IServiceCollection AddApiServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        bool isDevelopment)
+    {
+        var configuredOrigins = (configuration
+                .GetSection("Cors:Origins")
+                .Get<string[]>() ?? [])
+            .Concat(configuration
+                .GetSection("Cors:AllowedOrigins")
+                .Get<string[]>() ?? []);
+        var allowedOrigins = configuredOrigins
+            .Concat(isDevelopment
+                ? ["http://localhost:5173", "http://127.0.0.1:5173",
+                    "http://localhost:5188", "http://127.0.0.1:5188"]
+                : [])
+            .Where(origin => !string.IsNullOrWhiteSpace(origin))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy(
+                FrontendCorsPolicy,
+                policy =>
+                {
+                    if (allowedOrigins.Length > 0)
+                    {
+                        policy.WithOrigins(allowedOrigins)
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    }
+                });
+        });
+
         services.AddRateLimiter(options =>
         {
             options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
@@ -113,7 +157,10 @@ public static class DependencyInjection
 
         services.AddControllers();
         services.AddHealthChecks();
-        services.AddSignalR();
+        services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = isDevelopment;
+        });
 
         services.AddFluentValidationAutoValidation();
         services.AddValidatorsFromAssemblyContaining<SmartCourt.Features.Auth.Login.Validators.LoginRequestValidator>();
