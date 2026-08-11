@@ -24,6 +24,7 @@ public static class RateLimitPolicyNames
     public const string FinancialMutation = "FinancialMutation";
     public const string AdminFinancialMutation = "AdminFinancialMutation";
     public const string PaymentWebhook = "PaymentWebhook";
+    public const string ChatAgentSend = "ChatAgentSend";
 }
 
 public sealed record RateLimitBucket(int PermitLimit, TimeSpan Window);
@@ -78,6 +79,9 @@ public static class SecurityRateLimitPolicies
             [RateLimitPolicyNames.AdminFinancialMutation] = new(
                 new RateLimitBucket(10, TimeSpan.FromMinutes(1)),
                 new RateLimitBucket(3, TimeSpan.FromMinutes(1))),
+            [RateLimitPolicyNames.ChatAgentSend] = new(
+                new RateLimitBucket(60, TimeSpan.FromMinutes(1)),
+                new RateLimitBucket(20, TimeSpan.FromMinutes(1))),
             [RateLimitPolicyNames.PaymentWebhook] = new(
                 new RateLimitBucket(120, TimeSpan.FromMinutes(1)),
                 Provider: new RateLimitBucket(

@@ -1,6 +1,6 @@
 # Notifications HTTP Test Report
 
-Generated at: 2026-08-09 14:02:52 +03:00
+Generated at: 2026-08-09 16:44:44 +03:00
 
 
 ## Health and unauthenticated access
@@ -12,7 +12,9 @@ Generated at: 2026-08-09 14:02:52 +03:00
 **Response Status:** 200
 
 **Response Body:**
+```text
 Healthy
+```
 ---
 
 
@@ -23,7 +25,8 @@ Healthy
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -34,18 +37,20 @@ Healthy
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
 - [PASS] **Unread count requires authentication** (status=401)
 ### Mark one requires authentication
 
-**Request:** PATCH http://localhost:5049/api/notifications/1418f28c-c11a-4876-957a-7b26688b6a4f/read
+**Request:** PATCH http://localhost:5049/api/notifications/57394fba-d667-4034-b058-7a08442a5a91/read
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -56,7 +61,8 @@ Healthy
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -67,7 +73,8 @@ Healthy
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -78,7 +85,8 @@ Healthy
 
 **Response Status:** 401
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -91,23 +99,24 @@ Healthy
 **Request:** POST http://localhost:5049/api/auth/register/client
 
 **Body:**
-`json
+```json
 {
   "FullName": "Notification Client",
-  "ConfirmPassword": "Password123!",
-  "Password": "Password123!",
-  "Email": "notifications_client_20260809140252502@example.com"
+  "Email": "[REDACTED]",
+  "Password": "[REDACTED]",
+  "ConfirmPassword": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 201
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "userId": "e46868de-b3e2-46c2-f423-08def605af24",
-    "email": "notifications_client_20260809140252502@example.com",
+    "userId": "dd35bce5-236a-4774-8768-08def61c5f35",
+    "email": "[REDACTED]",
     "fullName": "Notification Client",
     "role": "Client"
   },
@@ -115,65 +124,69 @@ Healthy
   "errors": null,
   "statusCode": 201
 }
-``n---
+```
+---
 
 
 - [PASS] **Register notification client** (status=201)
-Found confirmation URL for notifications_client_20260809140252502@example.com: http://localhost:5173/verify-email?userId=e46868de-b3e2-46c2-f423-08def605af24&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrNE5yTnhNdGJvdldBY3JOeUVJZjI5UmJrMFJXS0NmN0RFZE1XamdQcGNucHNPNFk4SzR3b3RZZDZzTHNYNVJXNG9wVFJXd1R6dWFlVy91NTEzTjhuT3hqRXdoTUhGTlFJeVpWOFVvaDMxTC8vdUJId0hVeDJVYW5pdGErZmRaekd2R3ltSHRQelFYaU14VC8wK3VGU3ZSTDNkUHFidmVzdUhSZnN5b1J4cmkvYjlYOTdQZkhpVzI3Q0lOT0pCd054NnBKcE9hVFVncnQzUW5tWVpvM20rN25lNDNvWG1OMDI3ZytiK2c3dDNJQT09
+- [PASS] **Mock Email log contains client confirmation**
+### Confirm client Email from mock log
 
-### Confirm Email for notifications_client_20260809140252502@example.com
-
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=e46868de-b3e2-46c2-f423-08def605af24&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrNE5yTnhNdGJvdldBY3JOeUVJZjI5UmJrMFJXS0NmN0RFZE1XamdQcGNucHNPNFk4SzR3b3RZZDZzTHNYNVJXNG9wVFJXd1R6dWFlVy91NTEzTjhuT3hqRXdoTUhGTlFJeVpWOFVvaDMxTC8vdUJId0hVeDJVYW5pdGErZmRaekd2R3ltSHRQelFYaU14VC8wK3VGU3ZSTDNkUHFidmVzdUhSZnN5b1J4cmkvYjlYOTdQZkhpVzI3Q0lOT0pCd054NnBKcE9hVFVncnQzUW5tWVpvM20rN25lNDNvWG1OMDI3ZytiK2c3dDNJQT09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=dd35bce5-236a-4774-8768-08def61c5f35&token=[REDACTED]
 
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "message": "تم تأكيد البريد الإلكتروني بنجاح.",
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
+- [PASS] **Mock Email client confirmation succeeds** (status=200)
 ### Login notification client
 
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
-`json
+```json
 {
-  "Email": "notifications_client_20260809140252502@example.com",
-  "Password": "Password123!"
+  "Password": "[REDACTED]",
+  "Email": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "e46868de-b3e2-46c2-f423-08def605af24",
-      "email": "notifications_client_20260809140252502@example.com",
+      "id": "dd35bce5-236a-4774-8768-08def61c5f35",
+      "email": "[REDACTED]",
       "fullName": "Notification Client",
       "role": "Client",
       "status": "Unverified",
       "rejectionReason": null
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDY4NjhkZS1iM2UyLTQ2YzItZjQyMy0wOGRlZjYwNWFmMjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImU0Njg2OGRlLWIzZTItNDZjMi1mNDIzLTA4ZGVmNjA1YWYyNCIsImVtYWlsIjoibm90aWZpY2F0aW9uc19jbGllbnRfMjAyNjA4MDkxNDAyNTI1MDJAZXhhbXBsZS5jb20iLCJuYW1lIjoiTm90aWZpY2F0aW9uIENsaWVudCIsInNlY3VyaXR5X3N0YW1wIjoiMlIzTTRSV05YVVVJRktBVlNDVEZFWFJINUpJRDVCV1UiLCJqdGkiOiI2NzViNzEyYi01YWE3LTQwODMtODU1OC0zZTEzMjk0MjY0ZTMiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJuYmYiOjE3ODYyNzMzNzMsImV4cCI6MTc4NjI3NDI3MywiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.ZFJx-mMzNaN7OBvkquF1vulepzN_RxWg_aKBu7L0W4E",
+    "accessToken": "[REDACTED]",
     "expiresIn": 900,
-    "refreshToken": "E+oFnH/vpiSOAxIXkFHj54oQdB6EBVQcZ6ISLpybQO1pH0a84MfjUJ9eJ+Zqa3dIcHJOVltwCL+7ON8cSPBk3w==",
-    "refreshTokenExpiration": "2026-08-16T11:02:53.6257269Z"
+    "refreshToken": "[REDACTED]",
+    "refreshTokenExpiration": "2026-08-16T13:44:46.6179484Z"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Login notification client** (status=200)
@@ -182,26 +195,28 @@ Found confirmation URL for notifications_client_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/clients/profile/complete
 
 **Body:**
-`json
+```json
 {
-  "DateOfBirth": "1990-01-01",
-  "Gender": 1,
-  "NationalNumber": "29080926220645",
   "Address": "Cairo",
-  "PhoneNumber": "+201098112563"
+  "Gender": 1,
+  "PhoneNumber": "[REDACTED]",
+  "NationalNumber": "[REDACTED]",
+  "DateOfBirth": "1990-01-01"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "message": "تم استكمال الملف الشخصي بنجاح.",
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Complete notification client profile** (status=200)
@@ -210,23 +225,24 @@ Found confirmation URL for notifications_client_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/auth/register/lawyer
 
 **Body:**
-`json
+```json
 {
   "FullName": "Notification Lawyer",
-  "ConfirmPassword": "Password123!",
-  "Password": "Password123!",
-  "Email": "notifications_lawyer_20260809140252502@example.com"
+  "Email": "[REDACTED]",
+  "Password": "[REDACTED]",
+  "ConfirmPassword": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 201
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "userId": "72bcdd83-2604-48d9-f424-08def605af24",
-    "email": "notifications_lawyer_20260809140252502@example.com",
+    "userId": "f2314004-f7f2-4800-8769-08def61c5f35",
+    "email": "[REDACTED]",
     "fullName": "Notification Lawyer",
     "role": "Lawyer"
   },
@@ -234,65 +250,69 @@ Found confirmation URL for notifications_client_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 201
 }
-``n---
+```
+---
 
 
 - [PASS] **Register notification lawyer** (status=201)
-Found confirmation URL for notifications_lawyer_20260809140252502@example.com: http://localhost:5173/verify-email?userId=72bcdd83-2604-48d9-f424-08def605af24&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrTTZuUEpaUUkwQmJJN1JESTJBUStZL2tIL2t6ZFNTNjV5bjdjbDNsc0ZjT2pJc3RrOTd2RkptR1VEcTkzL1BsUVRCYnJZalVidEYwWFRvejRFVnlRemg4QlpIa1Vvd1grM0I3TDZ1dkRUNDhlc3pHQ2g4cGlUOHBtaG5WNnZoWGdEajYzTkdFSE8zNnYzTlVDd0V2MXpjZDhrZllEaW05QU8yWTdMU2ZJZGdJK0lNeGp2VDFDRFh4M3JrTVpqOFc0WkFubGlJNmEyZzhYVnoxY3hYd1ljclUxTnpWZkl2eTV3OEZ4ZTRHV1hOZz09
+- [PASS] **Mock Email log contains lawyer confirmation**
+### Confirm lawyer Email from mock log
 
-### Confirm Email for notifications_lawyer_20260809140252502@example.com
-
-**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=72bcdd83-2604-48d9-f424-08def605af24&token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrTTZuUEpaUUkwQmJJN1JESTJBUStZL2tIL2t6ZFNTNjV5bjdjbDNsc0ZjT2pJc3RrOTd2RkptR1VEcTkzL1BsUVRCYnJZalVidEYwWFRvejRFVnlRemg4QlpIa1Vvd1grM0I3TDZ1dkRUNDhlc3pHQ2g4cGlUOHBtaG5WNnZoWGdEajYzTkdFSE8zNnYzTlVDd0V2MXpjZDhrZllEaW05QU8yWTdMU2ZJZGdJK0lNeGp2VDFDRFh4M3JrTVpqOFc0WkFubGlJNmEyZzhYVnoxY3hYd1ljclUxTnpWZkl2eTV3OEZ4ZTRHV1hOZz09
+**Request:** GET http://localhost:5049/api/auth/confirm-email?userId=f2314004-f7f2-4800-8769-08def61c5f35&token=[REDACTED]
 
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "message": "تم تأكيد البريد الإلكتروني بنجاح.",
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
+- [PASS] **Mock Email lawyer confirmation succeeds** (status=200)
 ### Login notification lawyer
 
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
-`json
+```json
 {
-  "Email": "notifications_lawyer_20260809140252502@example.com",
-  "Password": "Password123!"
+  "Password": "[REDACTED]",
+  "Email": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "72bcdd83-2604-48d9-f424-08def605af24",
-      "email": "notifications_lawyer_20260809140252502@example.com",
+      "id": "f2314004-f7f2-4800-8769-08def61c5f35",
+      "email": "[REDACTED]",
       "fullName": "Notification Lawyer",
       "role": "Lawyer",
       "status": "Unverified",
       "rejectionReason": null
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MmJjZGQ4My0yNjA0LTQ4ZDktZjQyNC0wOGRlZjYwNWFmMjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjcyYmNkZDgzLTI2MDQtNDhkOS1mNDI0LTA4ZGVmNjA1YWYyNCIsImVtYWlsIjoibm90aWZpY2F0aW9uc19sYXd5ZXJfMjAyNjA4MDkxNDAyNTI1MDJAZXhhbXBsZS5jb20iLCJuYW1lIjoiTm90aWZpY2F0aW9uIExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiVUFPMkFGNVJFQ1o1VFlFUUVLWERZR0ZFVkFCQjdCQ1IiLCJqdGkiOiJjMjA3MzI5My1kMTE4LTRjNGQtYjg0NS05ZjU5OGRkZGI4N2IiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYyNzMzNzYsImV4cCI6MTc4NjI3NDI3NiwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.eXsHPKtuqskCOUzzbSHkFQIW_I2neQsPRkuEATGd59s",
+    "accessToken": "[REDACTED]",
     "expiresIn": 900,
-    "refreshToken": "+e5YtTvV8vskxpG38a70lAPgShCk/54SKTafTwi/9lT1D6BJKo/shJn8Dnap9k2U1JxZisNjOl1ZfwmamZ6X7A==",
-    "refreshTokenExpiration": "2026-08-16T11:02:56.8762889Z"
+    "refreshToken": "[REDACTED]",
+    "refreshTokenExpiration": "2026-08-16T13:44:47.9445222Z"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Login notification lawyer** (status=200)
@@ -301,8 +321,9 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/lawyers/profile/complete
 
 **Body:**
-`json
+```json
 {
+  "Gender": 1,
   "Specializations": [
     {
       "Specialization": 1,
@@ -310,26 +331,27 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "CasesHandled": 10
     }
   ],
-  "Gender": 1,
-  "Level": 1,
-  "Address": "Cairo",
+  "PhoneNumber": "[REDACTED]",
   "DateOfBirth": "1985-01-01",
+  "NationalNumber": "[REDACTED]",
   "Bio": "Notification lifecycle test lawyer",
-  "NationalNumber": "28080926885557",
-  "PhoneNumber": "+201137963964"
+  "Address": "Cairo",
+  "Level": 1
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "message": "تم استكمال البيانات بنجاح",
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Complete notification lawyer profile** (status=200)
@@ -338,52 +360,55 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
-`json
+```json
 {
-  "Email": "admin@smartcourt.com",
-  "Password": "Admin@123"
+  "Password": "[REDACTED]",
+  "Email": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "a39b6312-19c2-49f7-fe42-08def48c9663",
-      "email": "admin@smartcourt.com",
+      "id": "54af6cd4-a46e-4fc6-34ca-08def604e4b7",
+      "email": "[REDACTED]",
       "fullName": "System Administrator",
       "role": "Admin",
       "status": "Active",
       "rejectionReason": null
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhMzliNjMxMi0xOWMyLTQ5ZjctZmU0Mi0wOGRlZjQ4Yzk2NjMiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImEzOWI2MzEyLTE5YzItNDlmNy1mZTQyLTA4ZGVmNDhjOTY2MyIsImVtYWlsIjoiYWRtaW5Ac21hcnRjb3VydC5jb20iLCJuYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJzZWN1cml0eV9zdGFtcCI6IkI0N09OTkw1V05BVUoyMzVMUlhIVTZOUVMyUEZPWkNRIiwianRpIjoiOTMwNjc3MGQtYmNjNy00ZjQyLWJhYmYtMGY0OTllZTg5NjNkIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODYyNzMzNzgsImV4cCI6MTc4NjI3NDI3OCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.kGfSYmOHsXxEdiW1gQUn7CQeX8iRO8ym380OwX_5ax8",
+    "accessToken": "[REDACTED]",
     "expiresIn": 900,
-    "refreshToken": "rMf1vQfbelgjjeLXolBt2T1z6xtWX321F7JH1jhFxH4AFwyw+MXHHPyY/rcCJXlia1rGGNeRrVvUNugEvGfLDg==",
-    "refreshTokenExpiration": "2026-08-16T11:02:58.6804455Z"
+    "refreshToken": "[REDACTED]",
+    "refreshTokenExpiration": "2026-08-16T13:44:48.5116812Z"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Login admin for account approval** (status=200)
 ### Approve notification client
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/e46868de-b3e2-46c2-f423-08def605af24/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/dd35bce5-236a-4774-8768-08def61c5f35/approve-account
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -393,22 +418,24 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Approve notification client** (status=200)
 ### Approve notification lawyer
 
-**Request:** PATCH http://localhost:5049/api/admin/verifications/72bcdd83-2604-48d9-f424-08def605af24/approve-account
+**Request:** PATCH http://localhost:5049/api/admin/verifications/f2314004-f7f2-4800-8769-08def61c5f35/approve-account
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -418,7 +445,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Approve notification lawyer** (status=200)
@@ -427,37 +455,39 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
-`json
+```json
 {
-  "Email": "notifications_client_20260809140252502@example.com",
-  "Password": "Password123!"
+  "Password": "[REDACTED]",
+  "Email": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "e46868de-b3e2-46c2-f423-08def605af24",
-      "email": "notifications_client_20260809140252502@example.com",
+      "id": "dd35bce5-236a-4774-8768-08def61c5f35",
+      "email": "[REDACTED]",
       "fullName": "Notification Client",
       "role": "Client",
       "status": "Active",
       "rejectionReason": null
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJlNDY4NjhkZS1iM2UyLTQ2YzItZjQyMy0wOGRlZjYwNWFmMjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImU0Njg2OGRlLWIzZTItNDZjMi1mNDIzLTA4ZGVmNjA1YWYyNCIsImVtYWlsIjoibm90aWZpY2F0aW9uc19jbGllbnRfMjAyNjA4MDkxNDAyNTI1MDJAZXhhbXBsZS5jb20iLCJuYW1lIjoiTm90aWZpY2F0aW9uIENsaWVudCIsInNlY3VyaXR5X3N0YW1wIjoiVUNTUlY0QzNRT1RUREJZMjVOS0pXQTdKRUdQUzVBSUIiLCJqdGkiOiJiZjlmZTkzOC1kYjk5LTRjZmUtOGViZC0wMzAyNWVmYzA1NDgiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJDbGllbnQiLCJuYmYiOjE3ODYyNzMzNzksImV4cCI6MTc4NjI3NDI3OSwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.CbA-TguZUbvERGSy-A797DE2qH4DZ_4Jncz-Jwlivn8",
+    "accessToken": "[REDACTED]",
     "expiresIn": 900,
-    "refreshToken": "FXmh0TC7Z6e7tv/TFevqlsAP59fWiJK2JOqXmZdUkT2fev8H+ax41wYdY08V0ywwFdvrvxBA0gtX9JYkCo61gQ==",
-    "refreshTokenExpiration": "2026-08-16T11:02:59.8465163Z"
+    "refreshToken": "[REDACTED]",
+    "refreshTokenExpiration": "2026-08-16T13:44:48.8648208Z"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Re-login approved client** (status=200)
@@ -466,37 +496,39 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/auth/login
 
 **Body:**
-`json
+```json
 {
-  "Email": "notifications_lawyer_20260809140252502@example.com",
-  "Password": "Password123!"
+  "Password": "[REDACTED]",
+  "Email": "[REDACTED]"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "user": {
-      "id": "72bcdd83-2604-48d9-f424-08def605af24",
-      "email": "notifications_lawyer_20260809140252502@example.com",
+      "id": "f2314004-f7f2-4800-8769-08def61c5f35",
+      "email": "[REDACTED]",
       "fullName": "Notification Lawyer",
       "role": "Lawyer",
       "status": "Active",
       "rejectionReason": null
     },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MmJjZGQ4My0yNjA0LTQ4ZDktZjQyNC0wOGRlZjYwNWFmMjQiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjcyYmNkZDgzLTI2MDQtNDhkOS1mNDI0LTA4ZGVmNjA1YWYyNCIsImVtYWlsIjoibm90aWZpY2F0aW9uc19sYXd5ZXJfMjAyNjA4MDkxNDAyNTI1MDJAZXhhbXBsZS5jb20iLCJuYW1lIjoiTm90aWZpY2F0aW9uIExhd3llciIsInNlY3VyaXR5X3N0YW1wIjoiVk1DUU5CUlFHRFNSREZHUks1VkxDWTdDV0lWSjVFU0EiLCJqdGkiOiIzZTUzMzQ4Yy0yZDgwLTRlOWUtODhmZC1iNDI5ZTMyOTY0N2UiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJMYXd5ZXIiLCJuYmYiOjE3ODYyNzMzODAsImV4cCI6MTc4NjI3NDI4MCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.U5rZ_MCHmEgUWyzAklD5LyXR34JSiDtGF6hr9j3hGG8",
+    "accessToken": "[REDACTED]",
     "expiresIn": 900,
-    "refreshToken": "64OqCkTVzcPfrTSZncoNXvcqGgqqm5m54Kpt2qhbWRdnMQnBzYxZygiPd+WB3Het42BWsKieDpvKIM3d8RXvBQ==",
-    "refreshTokenExpiration": "2026-08-16T11:03:00.3812321Z"
+    "refreshToken": "[REDACTED]",
+    "refreshTokenExpiration": "2026-08-16T13:44:49.0495109Z"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Re-login approved lawyer** (status=200)
@@ -507,7 +539,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -519,7 +551,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Notification API has no artificial role restriction** (status=200)
@@ -530,11 +563,11 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "negotiateVersion": 1,
-  "connectionId": "lKKBLI_wr-7zlQKNSN0opg",
-  "connectionToken": "bVQFU2axYEnvQh5HdVP3Fw",
+  "connectionId": "57q5Rd8OfU3u_518a7xjNA",
+  "connectionToken": "0B9l9gUDbqYto3WVpfGApQ",
   "availableTransports": [
     {
       "transport": "WebSockets",
@@ -558,7 +591,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
     }
   ]
 }
-``n---
+```
+---
 
 
 - [PASS] **Authenticated SignalR hub negotiation succeeds** (status=200)
@@ -566,76 +600,88 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 
 **Request:** POST http://localhost:5049/api/Case
 
+**Body:**
+```json
+{
+  "Description": "A complete case used to verify durable in-app proposal notifications.",
+  "Title": "Notification lifecycle case 20260809164444466",
+  "Governorate": "Cairo",
+  "City": "Maadi"
+}
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "caseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
+    "caseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
     "failedDocuments": []
   },
   "message": null,
   "errors": null,
   "statusCode": 201
 }
-``n---
+```
+---
 
 
 - [PASS] **Create case for notification lifecycle** (status=200)
 ### Review notification lifecycle case
 
-**Request:** POST http://localhost:5049/api/cases/f28f2f37-36c0-4e84-ac23-e68221001c14/review
+**Request:** POST http://localhost:5049/api/cases/1dfa0711-25d4-4519-b50e-b62440e5133c/review
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "8716ea03-d419-4b6e-9eee-468c98d46383",
-    "caseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
+    "id": "df29f039-4ce9-4f22-b149-855dc19219e3",
+    "caseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
     "isLatest": true,
-    "createdAt": "2026-08-09T11:03:04.0745103Z",
+    "createdAt": "2026-08-09T13:44:50.7986403Z",
     "reviewPoints": [
       {
-        "id": "6cb833be-cf26-4b37-9f54-08cf50e812e6",
-        "description": "تتمثل نقطة القوة الأساسية في صياغة الموضوع بوضوح حول 'Notification lifecycle case 20260809140252502'، وتوافر السند المبدئي الذي يرجح كفة الموكل في إثبات أصل الالتزام وتفوقه إثباتياً على الخصم.",
+        "id": "157b556a-095c-4cd0-bd10-c3fbd0a16563",
+        "description": "تتمثل نقطة القوة الأساسية في صياغة الموضوع بوضوح حول 'Notification lifecycle case 20260809164444466'، وتوافر السند المبدئي الذي يرجح كفة الموكل في إثبات أصل الالتزام وتفوقه إثباتياً على الخصم.",
         "type": "Strength"
       },
       {
-        "id": "5fbc955c-0f10-456d-966c-4014ceeb022e",
+        "id": "d65b175b-5fe9-47c6-a6d8-66d10142553e",
         "description": "ميزة الخصم تتمثل في غياب التوثيق الرسمي للتنبيهات أو الإخطارات المتبادلة بين الأطراف، مما يتيح له إنكار الاستلام أو الدفع بالتراخي في المطالبة.",
         "type": "Weakness"
       },
       {
-        "id": "741dab3c-4d53-4c57-a8d6-f25742e54aea",
+        "id": "6caaa5e0-e245-4508-adc7-998c9f710028",
         "description": "يحتاج الملف إلى استيفاء النقاط والمعلومات التالية لضمان صياغة صحيفة الدعوى بشكل مكتمل: حصر وتفصيص المبالغ المالية المطلوبة والتعويضات الدقيقة عن الضرر المادي والمعنوي، وإدراج التواريخ الرسمية الدقيقة لبدء النزاع وتاريخ الإخلال بالتعهدات.",
         "type": "MissingCaseInfo"
       },
       {
-        "id": "5b2e82e3-20d8-4e0f-83f9-7e585c34b77d",
+        "id": "1d40e30b-341f-4038-8367-e263d06e6e57",
         "description": "المستندات المحددة المطلوبة لإكمال الملف: أصل العقد/الاتفاق المبرم، صورة بطاقة الرقم القومي سارية لكل أطراف الدعوى، إيصالات التحويل أو السداد المالي، وأي إنذارات رسمية على يد محضر.",
         "type": "MissingCaseDoc"
       },
       {
-        "id": "76c59bd3-8205-45b9-9983-35ae672ea9a0",
+        "id": "1c0e601b-97f8-4fac-8cd1-517a10eac51c",
         "description": "قم بإعادة هيكلة وصف القضية في صورة جدول زمني متسلسل، يبدأ من تاريخ التعهد الأول، مروراً بتاريخ الإخلال، وصولاً إلى حجم الأضرار المترتبة حالياً.",
         "type": "Suggestion"
       },
       {
-        "id": "315a425c-ef52-4cd9-aaf7-f76de0d855e1",
+        "id": "5611a195-8859-4326-8a18-8cb2d4f0598c",
         "description": "قم بتفقيط وقسمة كافة المطالبات المالية إلى بنود مستقلة (أصل الدين، الفوائد أو التعويض عن المماطلة، والرسوم) وتوثيق كل بند بسند كتابي مستقل.",
         "type": "Suggestion"
       },
       {
-        "id": "4f16873c-2e68-4cbe-91a6-db50f8ee631d",
+        "id": "ddee59cc-c6f4-426f-a4fe-556fa21f987a",
         "description": "قم بتنظيم وثائق الملف في مجلد مرتب حسب التاريخ، وتأكد من مسح الأوراق ضوئياً بدقة عالية لضمان سهولة الإسناد والفحص القضائي.",
         "type": "Suggestion"
       }
@@ -645,26 +691,28 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Review notification lifecycle case** (status=200)
 ### Finalize notification lifecycle case
 
-**Request:** POST http://localhost:5049/api/Case/f28f2f37-36c0-4e84-ac23-e68221001c14/finalize
+**Request:** POST http://localhost:5049/api/Case/1dfa0711-25d4-4519-b50e-b62440e5133c/finalize
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "caseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
+    "caseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
     "totalEligibleLawyers": 0,
     "recommendations": []
   },
@@ -672,7 +720,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Finalize notification lifecycle case** (status=200)
@@ -684,40 +733,42 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/proposals
 
 **Body:**
-`json
+```json
 {
-  "LawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
-  "Message": "Notification HTTP lifecycle proposal 140332114",
-  "LegalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+  "LegalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+  "Message": "Notification HTTP lifecycle proposal 164451786",
+  "LawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-    "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
-    "caseTitle": "Notification lifecycle case 20260809140252502",
-    "clientUserId": "e46868de-b3e2-46c2-f423-08def605af24",
+    "id": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+    "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+    "caseTitle": "Notification lifecycle case 20260809164444466",
+    "clientUserId": "dd35bce5-236a-4774-8768-08def61c5f35",
     "clientName": "Notification Client",
-    "lawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
+    "lawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35",
     "lawyerName": "Notification Lawyer",
-    "message": "Notification HTTP lifecycle proposal 140332114",
+    "message": "Notification HTTP lifecycle proposal 164451786",
     "status": "Pending",
     "decisionReason": null,
-    "createdAt": "2026-08-09T11:03:32.2434927",
+    "createdAt": "2026-08-09T13:44:51.9100098",
     "respondedAt": null,
-    "updatedAt": "2026-08-09T11:03:32.2434927",
+    "updatedAt": "2026-08-09T13:44:51.9100098",
     "conversationId": null
   },
   "message": null,
   "errors": null,
   "statusCode": 201
 }
-``n---
+```
+---
 
 
 - [PASS] **Create proposal that will be rejected** (status=200)
@@ -728,7 +779,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -740,7 +791,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 ### Poll lawyer inbox for proposal.created
@@ -750,23 +802,46 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "nextCursor": null,
+    "unreadCount": 0
+  },
+  "message": null,
+  "errors": null,
+  "statusCode": 200
+}
+```
+---
+
+
+### Poll lawyer inbox for proposal.created
+
+**Request:** GET http://localhost:5049/api/notifications?pageSize=50
+
+**Response Status:** 200
+
+**Response Body:**
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "6a97a3d5-2a2e-4d20-b6c7-e167c8834a93",
+        "id": "2e9ad752-8d1c-4ea6-beb0-02389802025b",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:32.2893185",
+        "createdAtUtc": "2026-08-09T13:44:51.9510322",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -778,48 +853,51 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Lawyer receives durable proposal.created** 
-- [PASS] **Created payload contract** 
+- [PASS] **Lawyer receives durable proposal.created**
+- [PASS] **Created payload contract**
 ### Reject first proposal
 
-**Request:** POST http://localhost:5049/api/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d/reject
+**Request:** POST http://localhost:5049/api/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad/reject
 
 **Body:**
-`json
+```json
 {
   "Reason": "Unable to take this matter during the requested period."
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-    "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
-    "caseTitle": "Notification lifecycle case 20260809140252502",
-    "clientUserId": "e46868de-b3e2-46c2-f423-08def605af24",
+    "id": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+    "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+    "caseTitle": "Notification lifecycle case 20260809164444466",
+    "clientUserId": "dd35bce5-236a-4774-8768-08def61c5f35",
     "clientName": "Notification Client",
-    "lawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
+    "lawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35",
     "lawyerName": "Notification Lawyer",
-    "message": "Notification HTTP lifecycle proposal 140332114",
+    "message": "Notification HTTP lifecycle proposal 164451786",
     "status": "Rejected",
     "decisionReason": "Unable to take this matter during the requested period.",
-    "createdAt": "2026-08-09T11:03:32.2434927",
-    "respondedAt": "2026-08-09T11:03:33.8349741",
-    "updatedAt": "2026-08-09T11:03:33.8349741",
+    "createdAt": "2026-08-09T13:44:51.9100098",
+    "respondedAt": "2026-08-09T13:44:53.986348",
+    "updatedAt": "2026-08-09T13:44:53.986348",
     "conversationId": null
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Reject first proposal** (status=200)
@@ -830,7 +908,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -842,7 +920,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 ### Poll client inbox for proposal.rejected
@@ -852,23 +931,23 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "a5e5fb6f-64aa-429a-a35e-36f8caf4d33e",
+        "id": "df71eccc-3b85-47b2-b01f-4fd2c1e06de5",
         "type": "proposal.rejected",
         "severity": "Warning",
-        "title": "Proposal rejected",
-        "body": "A lawyer rejected your proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "تم رفض العرض",
+        "body": "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:33.8359384",
+        "createdAtUtc": "2026-08-09T13:44:53.987404",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -880,11 +959,12 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Client receives durable proposal.rejected** 
-- [PASS] **Rejected severity is Warning** 
+- [PASS] **Client receives durable proposal.rejected**
+- [PASS] **Rejected Arabic payload contract**
 
 ## Proposal-accepted lifecycle and cursor pagination
 
@@ -893,40 +973,42 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/proposals
 
 **Body:**
-`json
+```json
 {
-  "LawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
-  "Message": "Notification HTTP lifecycle proposal 140334953",
-  "LegalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+  "LegalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+  "Message": "Notification HTTP lifecycle proposal 164454989",
+  "LawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35"
 }
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-    "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
-    "caseTitle": "Notification lifecycle case 20260809140252502",
-    "clientUserId": "e46868de-b3e2-46c2-f423-08def605af24",
+    "id": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+    "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+    "caseTitle": "Notification lifecycle case 20260809164444466",
+    "clientUserId": "dd35bce5-236a-4774-8768-08def61c5f35",
     "clientName": "Notification Client",
-    "lawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
+    "lawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35",
     "lawyerName": "Notification Lawyer",
-    "message": "Notification HTTP lifecycle proposal 140334953",
+    "message": "Notification HTTP lifecycle proposal 164454989",
     "status": "Pending",
     "decisionReason": null,
-    "createdAt": "2026-08-09T11:03:35.2147959",
+    "createdAt": "2026-08-09T13:44:55.1517623",
     "respondedAt": null,
-    "updatedAt": "2026-08-09T11:03:35.2147959",
+    "updatedAt": "2026-08-09T13:44:55.1517623",
     "conversationId": null
   },
   "message": null,
   "errors": null,
   "statusCode": 201
 }
-``n---
+```
+---
 
 
 - [PASS] **Create proposal that will be accepted** (status=200)
@@ -937,23 +1019,23 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "6a97a3d5-2a2e-4d20-b6c7-e167c8834a93",
+        "id": "2e9ad752-8d1c-4ea6-beb0-02389802025b",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:32.2893185",
+        "createdAtUtc": "2026-08-09T13:44:51.9510322",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -965,7 +1047,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 ### Poll lawyer inbox for second proposal.created
@@ -975,38 +1058,38 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "02f924de-86f5-4f66-85b4-2cf614a56745",
+        "id": "a0407e21-0ca7-4b07-bfeb-5f4e76a895d6",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
         "data": {
-          "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:35.2150817",
+        "createdAtUtc": "2026-08-09T13:44:55.1521796",
         "readAtUtc": null,
         "expiresAtUtc": null
       },
       {
-        "id": "6a97a3d5-2a2e-4d20-b6c7-e167c8834a93",
+        "id": "2e9ad752-8d1c-4ea6-beb0-02389802025b",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:32.2893185",
+        "createdAtUtc": "2026-08-09T13:44:51.9510322",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -1018,45 +1101,48 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Lawyer receives second proposal.created** 
+- [PASS] **Lawyer receives second proposal.created**
 ### Accept second proposal
 
-**Request:** POST http://localhost:5049/api/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907/accept
+**Request:** POST http://localhost:5049/api/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d/accept
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-    "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14",
-    "caseTitle": "Notification lifecycle case 20260809140252502",
-    "clientUserId": "e46868de-b3e2-46c2-f423-08def605af24",
+    "id": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+    "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c",
+    "caseTitle": "Notification lifecycle case 20260809164444466",
+    "clientUserId": "dd35bce5-236a-4774-8768-08def61c5f35",
     "clientName": "Notification Client",
-    "lawyerUserId": "72bcdd83-2604-48d9-f424-08def605af24",
+    "lawyerUserId": "f2314004-f7f2-4800-8769-08def61c5f35",
     "lawyerName": "Notification Lawyer",
-    "message": "Notification HTTP lifecycle proposal 140334953",
+    "message": "Notification HTTP lifecycle proposal 164454989",
     "status": "Accepted",
     "decisionReason": null,
-    "createdAt": "2026-08-09T11:03:35.2147959",
-    "respondedAt": "2026-08-09T11:03:36.8069767",
-    "updatedAt": "2026-08-09T11:03:36.8069767",
-    "conversationId": "09025f05-c598-4a60-8d3e-98e24dca342d"
+    "createdAt": "2026-08-09T13:44:55.1517623",
+    "respondedAt": "2026-08-09T13:44:56.2338584",
+    "updatedAt": "2026-08-09T13:44:56.2338584",
+    "conversationId": "24a2bfd0-825b-479d-86f5-47f9d061ab39"
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Accept second proposal** (status=200)
@@ -1067,23 +1153,23 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "a5e5fb6f-64aa-429a-a35e-36f8caf4d33e",
+        "id": "df71eccc-3b85-47b2-b01f-4fd2c1e06de5",
         "type": "proposal.rejected",
         "severity": "Warning",
-        "title": "Proposal rejected",
-        "body": "A lawyer rejected your proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "تم رفض العرض",
+        "body": "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:33.8359384",
+        "createdAtUtc": "2026-08-09T13:44:53.987404",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -1095,7 +1181,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 ### Poll client inbox for proposal.accepted
@@ -1105,38 +1192,38 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "9445a928-8589-46e8-b5be-5a7f9a2b9c54",
+        "id": "7a82f390-e7f0-4d87-956d-668ac9f772a8",
         "type": "proposal.accepted",
         "severity": "Success",
-        "title": "Proposal accepted",
-        "body": "A lawyer accepted your proposal.",
-        "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+        "title": "تم قبول العرض",
+        "body": "وافق المحامي على عرضك.",
+        "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
         "data": {
-          "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:36.9210957",
+        "createdAtUtc": "2026-08-09T13:44:56.3166872",
         "readAtUtc": null,
         "expiresAtUtc": null
       },
       {
-        "id": "a5e5fb6f-64aa-429a-a35e-36f8caf4d33e",
+        "id": "df71eccc-3b85-47b2-b01f-4fd2c1e06de5",
         "type": "proposal.rejected",
         "severity": "Warning",
-        "title": "Proposal rejected",
-        "body": "A lawyer rejected your proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "تم رفض العرض",
+        "body": "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:33.8359384",
+        "createdAtUtc": "2026-08-09T13:44:53.987404",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -1148,11 +1235,12 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Client receives durable proposal.accepted** 
-- [PASS] **Accepted severity is Success** 
+- [PASS] **Client receives durable proposal.accepted**
+- [PASS] **Accepted Arabic payload contract**
 ### Lawyer feed first cursor page
 
 **Request:** GET http://localhost:5049/api/notifications?pageSize=1&isRead=false
@@ -1160,62 +1248,63 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "02f924de-86f5-4f66-85b4-2cf614a56745",
+        "id": "a0407e21-0ca7-4b07-bfeb-5f4e76a895d6",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
         "data": {
-          "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:35.2150817",
+        "createdAtUtc": "2026-08-09T13:44:55.1521796",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
     ],
-    "nextCursor": "djE6OTc",
+    "nextCursor": "djE6MTE",
     "unreadCount": 2
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **First cursor page has one item and nextCursor** 
+- [PASS] **First cursor page has one item and nextCursor**
 ### Lawyer feed second cursor page
 
-**Request:** GET http://localhost:5049/api/notifications?pageSize=1&isRead=false&cursor=djE6OTc
+**Request:** GET http://localhost:5049/api/notifications?pageSize=1&isRead=false&cursor=djE6MTE
 
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "6a97a3d5-2a2e-4d20-b6c7-e167c8834a93",
+        "id": "2e9ad752-8d1c-4ea6-beb0-02389802025b",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:32.2893185",
+        "createdAtUtc": "2026-08-09T13:44:51.9510322",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -1227,98 +1316,102 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Second cursor page returns a different item** 
+- [PASS] **Second cursor page returns a different item**
 
 ## Ownership, read state, and idempotency
 
 ### Client cannot mutate lawyer notification
 
-**Request:** PATCH http://localhost:5049/api/notifications/6a97a3d5-2a2e-4d20-b6c7-e167c8834a93/read
+**Request:** PATCH http://localhost:5049/api/notifications/2e9ad752-8d1c-4ea6-beb0-02389802025b/read
 
 **Response Status:** 404
 
 **Response Body:**
-`json
+```json
 {
   "success": false,
   "data": null,
-  "message": "Entity \"Notification\" (6a97a3d5-2a2e-4d20-b6c7-e167c8834a93) was not found.",
+  "message": "Entity \"Notification\" (2e9ad752-8d1c-4ea6-beb0-02389802025b) was not found.",
   "errors": null,
   "statusCode": 404
 }
-``n---
+```
+---
 
 
 - [PASS] **Cross-user notification is hidden as 404** (status=404)
 ### Mark accepted notification read
 
-**Request:** PATCH http://localhost:5049/api/notifications/9445a928-8589-46e8-b5be-5a7f9a2b9c54/read
+**Request:** PATCH http://localhost:5049/api/notifications/7a82f390-e7f0-4d87-956d-668ac9f772a8/read
 
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "9445a928-8589-46e8-b5be-5a7f9a2b9c54",
+    "id": "7a82f390-e7f0-4d87-956d-668ac9f772a8",
     "type": "proposal.accepted",
     "severity": "Success",
-    "title": "Proposal accepted",
-    "body": "A lawyer accepted your proposal.",
-    "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+    "title": "تم قبول العرض",
+    "body": "وافق المحامي على عرضك.",
+    "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
     "data": {
-      "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-      "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+      "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+      "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
     },
-    "createdAtUtc": "2026-08-09T11:03:36.9210957",
-    "readAtUtc": "2026-08-09T11:03:40.3727118Z",
+    "createdAtUtc": "2026-08-09T13:44:56.3166872",
+    "readAtUtc": "2026-08-09T13:44:57.450889Z",
     "expiresAtUtc": null
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
 - [PASS] **Mark one read succeeds** (status=200)
 ### Repeat mark accepted notification read
 
-**Request:** PATCH http://localhost:5049/api/notifications/9445a928-8589-46e8-b5be-5a7f9a2b9c54/read
+**Request:** PATCH http://localhost:5049/api/notifications/7a82f390-e7f0-4d87-956d-668ac9f772a8/read
 
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "id": "9445a928-8589-46e8-b5be-5a7f9a2b9c54",
+    "id": "7a82f390-e7f0-4d87-956d-668ac9f772a8",
     "type": "proposal.accepted",
     "severity": "Success",
-    "title": "Proposal accepted",
-    "body": "A lawyer accepted your proposal.",
-    "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+    "title": "تم قبول العرض",
+    "body": "وافق المحامي على عرضك.",
+    "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
     "data": {
-      "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-      "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+      "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+      "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
     },
-    "createdAtUtc": "2026-08-09T11:03:36.9210957",
-    "readAtUtc": "2026-08-09T11:03:40.3727118",
+    "createdAtUtc": "2026-08-09T13:44:56.3166872",
+    "readAtUtc": "2026-08-09T13:44:57.450889",
     "expiresAtUtc": null
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Repeated mark-read preserves timestamp** 
+- [PASS] **Repeated mark-read preserves timestamp**
 ### Fetch read-only feed
 
 **Request:** GET http://localhost:5049/api/notifications?isRead=true&pageSize=50
@@ -1326,24 +1419,24 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "9445a928-8589-46e8-b5be-5a7f9a2b9c54",
+        "id": "7a82f390-e7f0-4d87-956d-668ac9f772a8",
         "type": "proposal.accepted",
         "severity": "Success",
-        "title": "Proposal accepted",
-        "body": "A lawyer accepted your proposal.",
-        "actionUrl": "/proposals/16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
+        "title": "تم قبول العرض",
+        "body": "وافق المحامي على عرضك.",
+        "actionUrl": "/proposals/7379fa37-801e-44d1-aca3-6a80412fc21d",
         "data": {
-          "proposalId": "16b8dfd0-7a88-4e45-b4da-c96f8ea5e907",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "7379fa37-801e-44d1-aca3-6a80412fc21d",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:36.9210957",
-        "readAtUtc": "2026-08-09T11:03:40.3727118",
+        "createdAtUtc": "2026-08-09T13:44:56.3166872",
+        "readAtUtc": "2026-08-09T13:44:57.450889",
         "expiresAtUtc": null
       }
     ],
@@ -1354,10 +1447,11 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Read filter contains accepted notification** 
+- [PASS] **Read filter contains accepted notification**
 ### Fetch unread-only feed
 
 **Request:** GET http://localhost:5049/api/notifications?isRead=false&pageSize=50
@@ -1365,23 +1459,23 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
     "items": [
       {
-        "id": "a5e5fb6f-64aa-429a-a35e-36f8caf4d33e",
+        "id": "df71eccc-3b85-47b2-b01f-4fd2c1e06de5",
         "type": "proposal.rejected",
         "severity": "Warning",
-        "title": "Proposal rejected",
-        "body": "A lawyer rejected your proposal.",
-        "actionUrl": "/proposals/b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
+        "title": "تم رفض العرض",
+        "body": "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر.",
+        "actionUrl": "/proposals/f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
         "data": {
-          "proposalId": "b5a4ffdc-6bd2-42f8-9eac-290b68e0585d",
-          "legalCaseId": "f28f2f37-36c0-4e84-ac23-e68221001c14"
+          "proposalId": "f6fd1d50-36e5-4947-9bb8-5472bd8ed4ad",
+          "legalCaseId": "1dfa0711-25d4-4519-b50e-b62440e5133c"
         },
-        "createdAtUtc": "2026-08-09T11:03:33.8359384",
+        "createdAtUtc": "2026-08-09T13:44:53.987404",
         "readAtUtc": null,
         "expiresAtUtc": null
       }
@@ -1393,10 +1487,11 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Unread filter excludes accepted notification** 
+- [PASS] **Unread filter excludes accepted notification**
 ### Get unread count before read-all
 
 **Request:** GET http://localhost:5049/api/notifications/unread-count
@@ -1404,7 +1499,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -1414,10 +1509,11 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Unread-count endpoint reconciles feed** 
+- [PASS] **Unread-count endpoint reconciles feed**
 ### Mark all client notifications read
 
 **Request:** PATCH http://localhost:5049/api/notifications/read-all
@@ -1425,21 +1521,22 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "readAtUtc": "2026-08-09T11:03:42.5667787Z",
+    "readAtUtc": "2026-08-09T13:44:57.5754387Z",
     "unreadCount": 0
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Read-all returns zero** 
+- [PASS] **Read-all returns zero**
 ### Repeat mark-all read
 
 **Request:** PATCH http://localhost:5049/api/notifications/read-all
@@ -1447,21 +1544,22 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
-    "readAtUtc": "2026-08-09T11:03:43.1369531Z",
+    "readAtUtc": "2026-08-09T13:44:57.6379355Z",
     "unreadCount": 0
   },
   "message": null,
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Repeated read-all is idempotent** 
+- [PASS] **Repeated read-all is idempotent**
 ### Get unread count after read-all
 
 **Request:** GET http://localhost:5049/api/notifications/unread-count
@@ -1469,7 +1567,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 200
 
 **Response Body:**
-`json
+```json
 {
   "success": true,
   "data": {
@@ -1479,10 +1577,11 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
   "errors": null,
   "statusCode": 200
 }
-``n---
+```
+---
 
 
-- [PASS] **Unread count remains zero** 
+- [PASS] **Unread count remains zero**
 
 ## Validation, type coercion, malicious input, and methods
 
@@ -1493,7 +1592,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1503,9 +1602,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "'Page Size' must be between 1 and 50. You entered 0."
     ]
   },
-  "traceId": "00-cd10d57c97628267e3beaa2c3d221c68-3a7cca990a85a71e-00"
+  "traceId": "00-c612f0ca6d72830350dbbde7ada66f1b-3b46c617fa40b4a3-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Page size below minimum returns 400** (status=400)
@@ -1516,7 +1616,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1526,9 +1626,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "'Page Size' must be between 1 and 50. You entered 51."
     ]
   },
-  "traceId": "00-837915b63bd0bdf9deb21e319c5a1bb6-4e7749f30a37b128-00"
+  "traceId": "00-b54f91141cfd0fb5fdcb7a8ee028b9b0-f4a36642e73b7cd3-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Page size above maximum returns 400** (status=400)
@@ -1539,7 +1640,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1549,9 +1650,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "The value 'abc' is not valid for PageSize."
     ]
   },
-  "traceId": "00-e7d16d9a365801e50fc99a2d0e3bb614-d0d7415ea5e79dd7-00"
+  "traceId": "00-6bc3940f66b3b3311c80a508b7cad611-94665804938ccd89-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Page size wrong type returns 400** (status=400)
@@ -1562,7 +1664,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1572,9 +1674,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "The value 'banana' is not valid for IsRead."
     ]
   },
-  "traceId": "00-9576c0c80979a0feeaf63e9e9d759493-6f875ef3f2130c1b-00"
+  "traceId": "00-d3d0f516c9310334aa3e2504251856a7-73b9ba363b8a8edb-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Boolean wrong type returns 400** (status=400)
@@ -1585,7 +1688,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1595,9 +1698,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "Cursor is invalid or unsupported."
     ]
   },
-  "traceId": "00-288bab09fa2c3e8790086f370efd291d-8c0ed4378ae0b97c-00"
+  "traceId": "00-7ec71d43582d598d549aff2b929cf310-11e0f462cd2a82f5-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Malformed cursor returns 400** (status=400)
@@ -1608,7 +1712,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1618,9 +1722,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "Cursor is invalid or unsupported."
     ]
   },
-  "traceId": "00-653d19d588e75e88e087f9739dd7e4f7-5f0b3f8ac7116733-00"
+  "traceId": "00-07249bcd2088f316aab20b784a7ac85f-8d62dcd1068b1db4-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Unicode cursor returns 400** (status=400)
@@ -1631,7 +1736,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1641,9 +1746,10 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "Cursor is invalid or unsupported."
     ]
   },
-  "traceId": "00-457fd8b2f1d1f12a5ef04640012905bc-c42917ae70a8a3a3-00"
+  "traceId": "00-fd6bb9ecad5373c7613ae4e6a561ab02-d43ad13203efb54b-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **Oversized cursor returns 400** (status=400)
@@ -1654,7 +1760,7 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Response Status:** 400
 
 **Response Body:**
-`json
+```json
 {
   "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
   "title": "One or more validation errors occurred.",
@@ -1664,28 +1770,30 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
       "Cursor is invalid or unsupported."
     ]
   },
-  "traceId": "00-3c45a9cefea4a2b1ddf6c272548241b3-935abed2db1e3ba8-00"
+  "traceId": "00-14e1e7ef3f0a7d203c3e9bd1c4a13d1a-7178f6cd4285ad3e-00"
 }
-``n---
+```
+---
 
 
 - [PASS] **SQL-like cursor returns 400** (status=400)
 ### Unknown notification id
 
-**Request:** PATCH http://localhost:5049/api/notifications/d3982342-9b8d-44f2-bbfa-57283cdd6eed/read
+**Request:** PATCH http://localhost:5049/api/notifications/e1f39346-9dff-416d-b9cc-2acf8e31daa6/read
 
 **Response Status:** 404
 
 **Response Body:**
-`json
+```json
 {
   "success": false,
   "data": null,
-  "message": "Entity \"Notification\" (d3982342-9b8d-44f2-bbfa-57283cdd6eed) was not found.",
+  "message": "Entity \"Notification\" (e1f39346-9dff-416d-b9cc-2acf8e31daa6) was not found.",
   "errors": null,
   "statusCode": 404
 }
-``n---
+```
+---
 
 
 - [PASS] **Unknown notification returns 404** (status=404)
@@ -1695,7 +1803,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 
 **Response Status:** 404
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -1705,12 +1814,14 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 **Request:** POST http://localhost:5049/api/notifications
 
 **Body:**
-`json
+```json
 {}
-``n
+```
+
 **Response Status:** 405
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -1721,7 +1832,8 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 
 **Response Status:** 405
 
-**Response Body:** (Empty)
+**Response Body:**
+(Empty)
 ---
 
 
@@ -1732,6 +1844,6 @@ Found confirmation URL for notifications_lawyer_20260809140252502@example.com: h
 
 | Metric | Count |
 |---|---:|
-| Passed assertions | 57 |
+| Passed assertions | 61 |
 | Failed assertions | 0 |
 

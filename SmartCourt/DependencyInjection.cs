@@ -30,6 +30,7 @@ using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Events;
 using SmartCourt.Features.Payments.Integration;
 using SmartCourt.Providers.Jobs;
 using SmartCourt.Providers.Payments;
@@ -40,6 +41,7 @@ using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
 using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Milestones.Integration;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
@@ -179,7 +181,11 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyService, IdempotencyService>();
         services.AddScoped<IOutboxWriter, OutboxWriter>();
         services.AddScoped<IOutboxDispatcher, OutboxDispatcher>();
-        services.AddScoped<IOutboxEventHandler, ProposalNotificationOutboxHandler>();
+        services.AddScoped<INotificationEventMapper, ProposalNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, ContractNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
+        services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
         services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<
@@ -235,11 +241,17 @@ public static class DependencyInjection
             ContractService>();
         services.AddScoped<IContractQueryService, ContractQueryService>();
         services.AddScoped<
+            IContractNotificationContextReader,
+            ContractNotificationContextReader>();
+        services.AddScoped<
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
         services.AddScoped<IMilestoneDraftService, MilestoneDraftService>();
         services.AddScoped<IMilestoneChangeRequestService, MilestoneChangeRequestService>();
+        services.AddScoped<
+            IMilestoneNotificationContextReader,
+            MilestoneNotificationContextReader>();
         services.AddScoped<
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
@@ -248,6 +260,9 @@ public static class DependencyInjection
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
         services.AddScoped<IWalletService, WalletService>();
+        services.AddScoped<
+            IPaymentNotificationContextReader,
+            PaymentNotificationContextReader>();
         services.AddScoped<
             IAdminWalletAdjustmentService,
             AdminWalletAdjustmentService>();
@@ -371,7 +386,7 @@ public static class DependencyInjection
             //    "SMTP settings are incomplete or invalid.")
             .ValidateOnStart();
         services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
-        services.AddScoped<IEmailProvider, BackgroundEmailProvider>();
+        services.AddScoped<IEmailProvider, DirectEmailProvider>();
 
         services.AddOptions<AuthEmailOptions>()
             .Bind(configuration.GetSection(AuthEmailOptions.SectionName))
@@ -573,8 +588,8 @@ public static class DependencyInjection
         services.AddScoped<IVectorStoreProvider, QdrantVectorStoreProvider>();
 
         // --- RAG Pipeline: Embedding ---
-        services.Configure<GeminiEmbeddingOptions>(configuration.GetSection(GeminiEmbeddingOptions.SectionName));
-        services.AddHttpClient<IEmbeddingProvider, GeminiEmbeddingProvider>();
+        services.Configure<AlibabaEmbeddingOptions>(configuration.GetSection(AlibabaEmbeddingOptions.SectionName));
+        services.AddHttpClient<IEmbeddingProvider, AlibabaEmbeddingProvider>();
 
 
         // --- RAG Pipeline: PDF Parser ---
@@ -595,6 +610,9 @@ public static class DependencyInjection
 
         // --- Feature: Case Analysis ---
         services.AddScoped<SmartCourt.Features.CaseAnalysis.ICaseAnalysisService, SmartCourt.Features.CaseAnalysis.CaseAnalysisService>();
+
+        // --- Feature: Chat Agent ---
+        services.AddScoped<SmartCourt.Features.ChatAgent.IChatAgentService, SmartCourt.Features.ChatAgent.ChatAgentService>();
 
         // --- Feature: Matching ---
         services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();

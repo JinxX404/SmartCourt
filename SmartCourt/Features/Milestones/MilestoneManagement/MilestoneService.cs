@@ -28,10 +28,6 @@ public sealed class MilestoneService(
     IOutboxWriter outboxWriter,
     TimeProvider timeProvider) : IMilestoneService
 {
-    private const string MilestoneApprovedTrigger = "MilestoneApproved";
-
-
-
     public async Task<MilestoneActionResultDto> ApproveAsync(
         Guid milestoneId,
         string ifMatch,
@@ -73,9 +69,9 @@ public sealed class MilestoneService(
 
         var transitioned = milestone.AcceptedByClientAt.HasValue
             && milestone.AcceptedByLawyerAt.HasValue;
+        var correlationId = Guid.NewGuid();
         if (transitioned)
         {
-            var correlationId = Guid.NewGuid();
             var previousStatus = milestone.Status;
             MilestoneTransitionGuard.EnsureCanTransition(
                 previousStatus,
@@ -87,11 +83,21 @@ public sealed class MilestoneService(
                     milestone.Id,
                     previousStatus,
                     MilestoneStatus.AwaitingFunding,
-                    MilestoneApprovedTrigger,
+                    ContractPaymentEventTypes.MilestoneApproved,
                     actorUserId,
                     "وافق طرفا العقد على شروط المرحلة.",
                     correlationId,
                     now));
+            await outboxWriter.EnqueueAsync(
+                new OutboxEvent(
+                    ContractPaymentEventTypes.MilestoneApproved,
+                    1,
+                    new ContractPaymentAggregateEventPayload(
+                        milestone.Id),
+                    "Milestone",
+                    milestone.Id,
+                    correlationId),
+                cancellationToken);
             await outboxWriter.EnqueueAsync(
                 new OutboxEvent(
                     ContractPaymentEventTypes.ContractActivationRequested,
@@ -101,6 +107,20 @@ public sealed class MilestoneService(
                         actorUserId),
                     "Contract",
                     contract.Id,
+                    correlationId),
+                cancellationToken);
+        }
+        else
+        {
+            await outboxWriter.EnqueueAsync(
+                new OutboxEvent(
+                    ContractPaymentEventTypes.MilestoneAcceptanceRecorded,
+                    1,
+                    new MilestoneParticipantEventPayload(
+                        milestone.Id,
+                        actorUserId),
+                    "Milestone",
+                    milestone.Id,
                     correlationId),
                 cancellationToken);
         }

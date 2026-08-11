@@ -11,6 +11,7 @@ using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Payments.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -20,6 +21,7 @@ public sealed class MilestoneDraftService(
     ApplicationDbContext dbContext,
     ICurrentUserService currentUserService,
     IContractService contractService,
+    IOutboxWriter outboxWriter,
     TimeProvider timeProvider) : IMilestoneDraftService
 {
     public async Task<MilestoneDto> AddAsync(
@@ -56,6 +58,12 @@ public sealed class MilestoneDraftService(
             request.DueDate,
             now);
         dbContext.Milestones.Add(milestone);
+        await EnqueueParticipantEventAsync(
+            ContractPaymentEventTypes.MilestoneCreated,
+            milestone.Id,
+            actorUserId,
+            Guid.NewGuid(),
+            cancellationToken);
         try
         {
             await SaveChangesAsync(cancellationToken);
@@ -143,6 +151,12 @@ public sealed class MilestoneDraftService(
         milestone.AcceptedByClientAt = null;
         milestone.AcceptedByLawyerAt = null;
         milestone.UpdatedAt = UtcNow;
+        await EnqueueParticipantEventAsync(
+            ContractPaymentEventTypes.MilestoneDraftUpdated,
+            milestone.Id,
+            actorUserId,
+            Guid.NewGuid(),
+            cancellationToken);
         await SaveChangesAsync(cancellationToken);
 
         return MapMilestone(
@@ -354,6 +368,26 @@ public sealed class MilestoneDraftService(
             && sqlException.Message.Contains(
                 "IX_Milestones_ContractId_OrderNumber",
                 StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task EnqueueParticipantEventAsync(
+        string eventType,
+        Guid milestoneId,
+        Guid actorUserId,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                eventType,
+                1,
+                new MilestoneParticipantEventPayload(
+                    milestoneId,
+                    actorUserId),
+                "Milestone",
+                milestoneId,
+                correlationId),
+            cancellationToken);
     }
 
     private async Task SaveChangesAsync(

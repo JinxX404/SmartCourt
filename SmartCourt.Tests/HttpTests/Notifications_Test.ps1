@@ -35,8 +35,9 @@ function Assert-Test {
     )
     if ($Condition) {
         $script:passed++
-        Write-Host "PASS: $Name $Detail" -ForegroundColor Green
-        "- [PASS] **$Name** $Detail" | Out-File $ReportFile -Append -Encoding utf8
+        $detailSuffix = if ([string]::IsNullOrWhiteSpace($Detail)) { "" } else { " $Detail" }
+        Write-Host "PASS: $Name$detailSuffix" -ForegroundColor Green
+        "- [PASS] **$Name**$detailSuffix" | Out-File $ReportFile -Append -Encoding utf8
     }
     else {
         $script:failed++
@@ -45,6 +46,58 @@ function Assert-Test {
         Write-Host "FAIL: $message" -ForegroundColor Red
         "- [FAIL] **$Name** $Detail" | Out-File $ReportFile -Append -Encoding utf8
     }
+}
+
+function Protect-ReportText {
+    param([string]$Text)
+    if ([string]::IsNullOrEmpty($Text)) { return $Text }
+
+    $safe = $Text -replace '(?i)("(?:password|confirmPassword|accessToken|refreshToken|token|email|phoneNumber|nationalNumber|destinationReference)"\s*:\s*")[^"]*(")', '$1[REDACTED]$2'
+    $safe = $safe -replace '(?i)([?&](?:token|email)=)[^&\s"]+', '$1[REDACTED]'
+    return $safe
+}
+
+function Write-HttpTestLog {
+    param(
+        [string]$Title,
+        [string]$Method,
+        [string]$Url,
+        [string]$Body,
+        [string]$ResponseStatus,
+        [string]$ResponseBody
+    )
+
+    $output = "### $Title`n`n"
+    $output += "**Request:** $Method $Url`n`n"
+    if (-not [string]::IsNullOrWhiteSpace($Body)) {
+        try {
+            $formattedBody = $Body | ConvertFrom-Json -ErrorAction Stop |
+                ConvertTo-Json -Depth 10
+            $output += "**Body:**`n" + '```json' + "`n$formattedBody`n" + '```' + "`n`n"
+        }
+        catch {
+            $output += "**Body:**`n" + '```text' + "`n$Body`n" + '```' + "`n`n"
+        }
+    }
+
+    $output += "**Response Status:** $ResponseStatus`n`n"
+    $output += "**Response Body:**`n"
+    if ([string]::IsNullOrWhiteSpace($ResponseBody)) {
+        $output += "(Empty)`n"
+    }
+    else {
+        try {
+            $formattedResponse = $ResponseBody |
+                ConvertFrom-Json -ErrorAction Stop |
+                ConvertTo-Json -Depth 30
+            $output += '```json' + "`n$formattedResponse`n" + '```' + "`n"
+        }
+        catch {
+            $output += '```text' + "`n$ResponseBody`n" + '```' + "`n"
+        }
+    }
+    $output += "---`n`n"
+    $output | Out-File $ReportFile -Append -Encoding utf8
 }
 
 function Invoke-TestRequest {
@@ -81,12 +134,19 @@ function Invoke-TestRequest {
         $arguments.ContentType = "application/json"
     }
 
+    $bodyForReport = $Body
+    if ($Form.Count -gt 0) {
+        $bodyForReport = $Form | ConvertTo-Json -Depth 10
+    }
+
     try {
         $response = Invoke-WebRequest @arguments
         $content = [string]$response.Content
-        Log-Test -title $Title -method $Method -url $url -body $Body `
-            -responseStatus $response.StatusCode -responseBody $content `
-            -reportFile $ReportFile
+        Write-HttpTestLog -Title $Title -Method $Method `
+            -Url (Protect-ReportText $url) `
+            -Body (Protect-ReportText $bodyForReport) `
+            -ResponseStatus $response.StatusCode `
+            -ResponseBody (Protect-ReportText $content)
         $json = $null
         if ($content -match '^\s*[\{\[]') {
             try {
@@ -108,9 +168,11 @@ function Invoke-TestRequest {
         } else {
             $_.Exception.Message
         }
-        Log-Test -title $Title -method $Method -url $url -body $Body `
-            -responseStatus "TransportError" -responseBody $content `
-            -reportFile $ReportFile
+        Write-HttpTestLog -Title $Title -Method $Method `
+            -Url (Protect-ReportText $url) `
+            -Body (Protect-ReportText $bodyForReport) `
+            -ResponseStatus "TransportError" `
+            -ResponseBody (Protect-ReportText $content)
         return [pscustomobject]@{
             Status = 0
             Content = $content
@@ -133,6 +195,50 @@ function Login-User {
         @{ Email = $Email; Password = $Password } | ConvertTo-Json)
     Require-Setup $Title $response
     return $response.Json.data
+}
+
+function Confirm-MockEmailFromLog {
+    param(
+        [string]$Role,
+        [string]$Email
+    )
+
+    $confirmationUrl = $null
+    $escapedEmail = [regex]::Escape($Email)
+    for ($attempt = 0; $attempt -lt 15; $attempt++) {
+        $fullLog = Get-Content $ApiLogPath -Raw -ErrorAction SilentlyContinue
+        if ($fullLog -and
+            $fullLog -match "(?s)To: ${escapedEmail}.*?href='([^']*)'") {
+            $confirmationUrl = $matches[1] `
+                -replace "`r`n", "" `
+                -replace "`n", "" `
+                -replace "&amp;", "&"
+            break
+        }
+        Start-Sleep -Seconds 1
+    }
+
+    $found = -not [string]::IsNullOrWhiteSpace($confirmationUrl)
+    Assert-Test "Mock Email log contains $Role confirmation" $found
+    if (-not $found) {
+        throw "Mock Email confirmation was not found in $ApiLogPath for $Role."
+    }
+
+    if ($confirmationUrl -notmatch 'userId=([^&]+)&token=(.+)$') {
+        Assert-Test "Mock Email $Role confirmation link is parseable" $false
+        throw "Mock Email confirmation link could not be parsed for $Role."
+    }
+
+    $userId = $matches[1]
+    $token = $matches[2]
+    $response = Invoke-TestRequest "Confirm $Role Email from mock log" GET `
+        "/api/auth/confirm-email?userId=$userId&token=$token"
+    $confirmed = $response.Status -eq 200 -and $response.Json.success
+    Assert-Test "Mock Email $Role confirmation succeeds" $confirmed `
+        "(status=$($response.Status))"
+    if (-not $confirmed) {
+        throw "Mock Email confirmation failed for $Role."
+    }
 }
 
 function Find-Notification {
@@ -197,7 +303,7 @@ try {
     $clientRegister = Invoke-TestRequest "Register notification client" POST "/api/auth/register/client" -Body (
         @{ FullName = "Notification Client"; Email = $clientEmail; Password = $password; ConfirmPassword = $password } | ConvertTo-Json)
     Require-Setup "Register notification client" $clientRegister @(200, 201)
-    Confirm-EmailFromLog -email $clientEmail -reportFile $ReportFile -apiLogPath $ApiLogPath
+    Confirm-MockEmailFromLog "client" $clientEmail
     $clientLogin = Login-User "Login notification client" $clientEmail $password
     $clientId = [string]$clientLogin.user.id
     $clientToken = [string]$clientLogin.accessToken
@@ -215,7 +321,7 @@ try {
     $lawyerRegister = Invoke-TestRequest "Register notification lawyer" POST "/api/auth/register/lawyer" -Body (
         @{ FullName = "Notification Lawyer"; Email = $lawyerEmail; Password = $password; ConfirmPassword = $password } | ConvertTo-Json)
     Require-Setup "Register notification lawyer" $lawyerRegister @(200, 201)
-    Confirm-EmailFromLog -email $lawyerEmail -reportFile $ReportFile -apiLogPath $ApiLogPath
+    Confirm-MockEmailFromLog "lawyer" $lawyerEmail
     $lawyerLogin = Login-User "Login notification lawyer" $lawyerEmail $password
     $lawyerId = [string]$lawyerLogin.user.id
     $lawyerToken = [string]$lawyerLogin.accessToken
@@ -271,17 +377,25 @@ try {
     Assert-Test "Created payload contract" (
         $createdOne.type -eq "proposal.created" -and
         $createdOne.severity -eq "Information" -and
+        $createdOne.title -eq "عرض جديد" -and
+        $createdOne.body -eq "أرسل إليك موكل عرضًا جديدًا لمراجعته." -and
         $createdOne.actionUrl -eq "/proposals/$rejectedProposalId" -and
         $createdOne.data.legalCaseId -eq $caseId -and
-        -not [string]::IsNullOrWhiteSpace($createdOne.title) -and
-        -not [string]::IsNullOrWhiteSpace($createdOne.body))
+        $createdOne.data.proposalId -eq $rejectedProposalId)
 
     $reject = Invoke-TestRequest "Reject first proposal" POST "/api/proposals/$rejectedProposalId/reject" -Token $lawyerToken -Body (
         @{ Reason = "Unable to take this matter during the requested period." } | ConvertTo-Json)
     Require-Setup "Reject first proposal" $reject
     $rejectedNotification = Find-Notification "Poll client inbox for proposal.rejected" $clientToken "proposal.rejected" $rejectedProposalId
     Assert-Test "Client receives durable proposal.rejected" ($null -ne $rejectedNotification)
-    Assert-Test "Rejected severity is Warning" ($rejectedNotification.severity -eq "Warning")
+    Assert-Test "Rejected Arabic payload contract" (
+        $rejectedNotification.type -eq "proposal.rejected" -and
+        $rejectedNotification.severity -eq "Warning" -and
+        $rejectedNotification.title -eq "تم رفض العرض" -and
+        $rejectedNotification.body -eq "رفض المحامي عرضك. يمكنك مراجعة التفاصيل واختيار محامٍ آخر." -and
+        $rejectedNotification.actionUrl -eq "/proposals/$rejectedProposalId" -and
+        $rejectedNotification.data.legalCaseId -eq $caseId -and
+        $rejectedNotification.data.proposalId -eq $rejectedProposalId)
 
     Write-Section "Proposal-accepted lifecycle and cursor pagination"
     $acceptedProposalId = Create-Proposal "Create proposal that will be accepted" $caseId $lawyerId $clientToken
@@ -291,7 +405,14 @@ try {
     Require-Setup "Accept second proposal" $accept
     $acceptedNotification = Find-Notification "Poll client inbox for proposal.accepted" $clientToken "proposal.accepted" $acceptedProposalId
     Assert-Test "Client receives durable proposal.accepted" ($null -ne $acceptedNotification)
-    Assert-Test "Accepted severity is Success" ($acceptedNotification.severity -eq "Success")
+    Assert-Test "Accepted Arabic payload contract" (
+        $acceptedNotification.type -eq "proposal.accepted" -and
+        $acceptedNotification.severity -eq "Success" -and
+        $acceptedNotification.title -eq "تم قبول العرض" -and
+        $acceptedNotification.body -eq "وافق المحامي على عرضك." -and
+        $acceptedNotification.actionUrl -eq "/proposals/$acceptedProposalId" -and
+        $acceptedNotification.data.legalCaseId -eq $caseId -and
+        $acceptedNotification.data.proposalId -eq $acceptedProposalId)
 
     $firstPage = Invoke-TestRequest "Lawyer feed first cursor page" GET "/api/notifications?pageSize=1&isRead=false" -Token $lawyerToken
     Assert-Test "First cursor page has one item and nextCursor" (

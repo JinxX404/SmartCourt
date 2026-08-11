@@ -904,6 +904,71 @@ namespace SmartCourt.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentConversation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CachedCaseContext")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("CaseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CaseId");
+
+                    b.HasIndex("UserId", "IsDeleted", "UpdatedAt");
+
+                    b.ToTable("AgentConversations", (string)null);
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConversationId", "CreatedAt");
+
+                    b.ToTable("AgentMessages", (string)null);
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.Contract", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2915,6 +2980,27 @@ namespace SmartCourt.Migrations
                     b.Navigation("Conversation");
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentConversation", b =>
+                {
+                    b.HasOne("SmartCourt.Entities.Case", "Case")
+                        .WithMany()
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Case");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentMessage", b =>
+                {
+                    b.HasOne("SmartCourt.Features.ChatAgent.Entities.AgentConversation", "Conversation")
+                        .WithMany("Messages")
+                        .HasForeignKey("ConversationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Conversation");
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.Contract", b =>
                 {
                     b.HasOne("ApplicationUser", null)
@@ -3377,6 +3463,11 @@ namespace SmartCourt.Migrations
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Chat.Entities.ChatConversation", b =>
+                {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentConversation", b =>
                 {
                     b.Navigation("Messages");
                 });

@@ -15,6 +15,13 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
          .Matches(@"^\d{14}$")
          .WithMessage("الرقم القومي يجب أن يتكون من 14 رقم بالضبط.");
 
+         When(x => x.DateOfBirth.HasValue, () =>
+         {
+             RuleFor(x => x.DateOfBirth!.Value)
+                 .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+                 .WithMessage("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
+         });
+
          RuleFor(x => x.Level)
          .IsInEnum()
          .WithMessage("مستوى المحامي غير صالح.");

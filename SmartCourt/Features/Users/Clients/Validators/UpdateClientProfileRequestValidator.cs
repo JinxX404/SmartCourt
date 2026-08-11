@@ -16,5 +16,12 @@ public class UpdateClientProfileRequestValidator : AbstractValidator<UpdateClien
 
         RuleFor(x => x.Address)
             .MaximumLength(500).WithMessage("يجب ألا يتجاوز العنوان 500 حرف");
+
+        When(x => x.DateOfBirth.HasValue, () =>
+        {
+            RuleFor(x => x.DateOfBirth!.Value)
+                .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+                .WithMessage("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
+        });
     }
 }

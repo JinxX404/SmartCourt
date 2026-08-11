@@ -8,6 +8,7 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
 using SmartCourt.Infrastructure.Persistence.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -18,6 +19,7 @@ public sealed class AdminWalletAdjustmentService(
     ICurrentUserService currentUserService,
     IContractUserEligibilityService userEligibilityService,
     IIdempotencyService idempotencyService,
+    IOutboxWriter outboxWriter,
     TimeProvider timeProvider) : IAdminWalletAdjustmentService
 {
     private const string Operation = "AdminWalletAdjustment";
@@ -205,6 +207,18 @@ public sealed class AdminWalletAdjustmentService(
         wallet.UpdatedAt = now;
         dbContext.EscrowLedgerEntries.Add(ledgerEntry);
         dbContext.WalletAdjustments.Add(adjustment);
+        await outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                ContractPaymentEventTypes.WalletAdjusted,
+                1,
+                new WalletAdjustedEventPayload(
+                    adjustment.Id,
+                    lawyerUserId,
+                    adjustment.ContractId),
+                nameof(WalletAdjustment),
+                adjustment.Id,
+                correlationId),
+            cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
 
         var response = new AdminWalletAdjustmentDto(

@@ -15,6 +15,7 @@ using SmartCourt.Features.Case.GetCaseById;
 using SmartCourt.Features.Case.GetCaseById.DTOs;
 using SmartCourt.Features.Case.GetCases;
 using SmartCourt.Features.Case.GetCases.DTOs;
+using SmartCourt.Features.Case.DownloadCaseDocument;
 
 namespace SmartCourt.Features.Case
 {
@@ -100,6 +101,20 @@ namespace SmartCourt.Features.Case
                 return StatusCode(result.StatusCode, result);
 
             return Ok(result);
+        }
+
+        [HttpGet("{caseId:guid}/documents/{documentId:guid}/download")]
+        public async Task<IActionResult> DownloadDocument([FromRoute] Guid caseId, [FromRoute] Guid documentId)
+        {
+            var query = new DownloadCaseDocumentQuery
+            {
+                CaseId = caseId,
+                DocumentId = documentId
+            };
+
+            var result = await _mediator.Send(query);
+
+            return File(result.FileBytes, result.ContentType, result.FileName);
         }
     }
 }

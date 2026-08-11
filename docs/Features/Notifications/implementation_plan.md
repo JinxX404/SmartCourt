@@ -172,8 +172,10 @@ SmartCourt/Features/Notifications/
 │   ├── INotificationRealtimeNotifier.cs
 │   └── SignalRNotificationRealtimeNotifier.cs
 ├── Events/
-│   ├── ProposalNotificationDefinitionMapper.cs
-│   └── ProposalNotificationOutboxHandler.cs
+│   ├── INotificationEventMapper.cs
+│   ├── NotificationDraft.cs
+│   ├── NotificationOutboxHandler.cs
+│   └── ProposalNotificationEventMapper.cs
 └── Shared/
     ├── NotificationCursor.cs
     └── NotificationJson.cs
@@ -265,7 +267,7 @@ It does not expose recipient IDs, source event IDs, row versions, sequence value
 
 ### 6.1 Initial event coverage
 
-Register one `ProposalNotificationOutboxHandler` for:
+Register `ProposalNotificationEventMapper` behind the shared `NotificationOutboxHandler` for:
 
 | Source event | Recipient | Notification type | Severity |
 |---|---|---|---|
@@ -275,23 +277,43 @@ Register one `ProposalNotificationOutboxHandler` for:
 
 All three are `InAppOnly` in V1. The mapper owns the plain-text title/body, safe relative `/proposals/{id}` action route, and a small JSON object containing `proposalId` and `legalCaseId`.
 
-### 6.2 Handler algorithm
+### 6.2 Mapper and shared-handler algorithm
 
 For each message:
 
 1. Require event version `1`.
 2. Deserialize `ProposalEventPayload` case-insensitively.
 3. Verify `payload.ProposalId == message.AggregateId`.
-4. Resolve the approved recipient/type/template through the mapper.
-5. Look up an existing row by `(message.Id, recipientId, type)`.
-6. If absent, construct and save the notification using `message.CreatedAt` as UTC creation time.
-7. Broadcast the persisted DTO through `INotificationRealtimeNotifier`.
+4. Return the approved recipient/type/Arabic copy as a `NotificationDraft`.
+5. Let the shared handler look up each row by `(message.Id, recipientId, type)`.
+6. If absent, construct the notification using `message.CreatedAt` as UTC creation time and save all drafts once.
+7. Broadcast each persisted DTO through `INotificationRealtimeNotifier`.
 
-If a retry finds an existing row, it skips insertion and rebroadcasts the existing DTO. A unique constraint remains the final concurrency guard. No producer change is required for the existing Proposal events.
+If a retry finds an existing row, it skips insertion and rebroadcasts the existing DTO. A unique constraint remains the final concurrency guard. New slices add a mapper rather than duplicating persistence/SignalR logic. No producer change is required for the existing Proposal events.
 
 ### 6.3 Direct notification requests
 
 No generic `INotificationPublisher`/`NotificationRequestedV1` contract exists in V1. A future direct-request contract remains deferred until a real non-lifecycle use case is selected and approved. V1 establishes the durable inbox and proves the preferred semantic-event route first.
+
+### 6.4 Contracts extension
+
+Contracts uses the same shared handler through `ContractNotificationEventMapper`. Existing creation, activation, completion, and termination facts are reused. Draft updates, actor-aware acceptance V2, and first termination requests add semantic outbox facts in their existing EF units of work. Contract notification copy is Arabic, metadata keys remain English, and `actionUrl` is `null` pending an approved frontend route.
+
+The Contracts extension is verified by the mapper and service integration suites plus `SmartCourt.Tests/HttpTests/ContractsNotifications_Test.ps1`. Its monitored report records `146 passed, 0 failed`, including mock Email confirmation, exact Arabic contracts, both participant directions, funded/unfunded termination, completion, and recipient isolation. The full repository regression is `675 passed, 24 failed`; those failures are pre-existing HTTP `201 Created` expectations against the current `200 OK` runtime behavior.
+
+### 6.5 Milestones extension
+
+Milestones uses `MilestoneNotificationEventMapper` and a Milestones-owned `IMilestoneNotificationContextReader`. Draft creation/update and actor-aware participant approval add semantic outbox events inside the existing EF transactions; ready-for-funding, execution, automatic acceptance, and formal change-request mappings reuse existing outbox facts. The mapper owns authoritative recipients, Arabic copy, severity, metadata, and the `null` action URL. No controller, endpoint contract, authorization rule, lifecycle transition, automatic-acceptance scheduler, Email provider, or SMS provider is changed.
+
+The extension is verified by mapper and Milestone service suites plus `SmartCourt.Tests/HttpTests/MilestonesNotifications_Test.ps1`. The monitored HTTP report records `143 passed, 0 failed` across every Milestones endpoint, both participant directions, validation/security/concurrency cases, all four change-request outcomes, manual acceptance, the real Hangfire automatic-acceptance job, exact Arabic payloads, recipient isolation, and three registrations confirmed from mock Email logs. Its generated report contains no unredacted credentials, contact details, or payment references, and the final server-log segment contains no notification/outbox/unhandled failure signal. The automatic-acceptance fixture creates the job through the real submit endpoint, then transactionally advances only that disposable milestone's eligibility time and existing schedule score; it never inserts a notification or outbox row. The full repository regression is `697 passed, 24 failed, 0 skipped` out of `721`; the same 24 pre-existing failures expect `201 Created` while the current runtime returns `200 OK`.
+
+### 6.6 Payments and wallets extension
+
+Payments uses `PaymentNotificationEventMapper`, the existing Milestone context reader for funding/settlement relationships, and a Payments-owned `IPaymentNotificationContextReader` for withdrawal and adjustment ownership. Existing funding, release, and refund semantic facts are reused. `WalletService` adds versioned events only when a withdrawal actually becomes completed, failed, or SLA-delayed, and `AdminWalletAdjustmentService` adds `WalletAdjusted` inside its existing serializable unit of work. No Payment controller, endpoint, authorization rule, ledger invariant, provider interface, production provider, Email provider, or SMS provider is changed.
+
+The mapper persists exact Arabic title/body snapshots and English machine identifiers. It emits nine notification types/variants, always with `actionUrl: null`, and excludes financial amounts, reasons, destination/payment references, provider identifiers, and idempotency keys. The mock payment provider accepts `mock-success*`, `mock-fail*`, and `mock-timeout*` withdrawal destinations solely to make the existing provider abstraction deterministic during HTTP verification; production provider behavior is unchanged.
+
+Verification includes mapper, wallet, and adjustment suites plus `SmartCourt.Tests/HttpTests/PaymentsNotifications_Test.ps1`. The focused Gate 3 suite is `24 passed, 0 failed`. The monitored HTTP report records `210 passed, 0 failed` across every Payment/Wallet/AdminEscrow/AdminWallet endpoint, direct and webhook funding, retry uncertainty, release, refund, wallet adjustment, completed/failed/delayed withdrawals, validation, roles, idempotency, exact Arabic payloads, and recipient isolation. Three disposable accounts were confirmed from mock Email log links. The report redacts auth fields and payment references, and the final run contains no notification/outbox dispatch failure. The deliberate delayed-withdrawal fixture produced the expected critical operational log before its warning notification. The complete Payments namespace is `87 passed, 6 failed`; the full repository regression is `710 passed, 24 failed, 0 skipped` out of `734`. The failure set is unchanged and consists only of pre-existing tests that expect `201 Created` while the runtime returns `200 OK`.
 
 ## 7. Near-real-time outbox processing
 

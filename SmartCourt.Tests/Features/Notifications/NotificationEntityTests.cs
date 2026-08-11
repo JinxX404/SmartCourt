@@ -55,8 +55,8 @@ public sealed class NotificationEntityTests
             Guid.NewGuid(),
             "proposal.created",
             NotificationSeverity.Information,
-            "New proposal",
-            "A client sent you a new proposal.",
+            "عرض جديد",
+            "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
             actionUrl,
             dataJson,
             CreatedAtUtc);

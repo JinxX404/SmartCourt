@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace SmartCourt.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddProposalLifecycleRules : Migration
+    public partial class SyncModelChanges : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -39,19 +39,8 @@ namespace SmartCourt.Persistence.Migrations
                 name: "ExpiresAt",
                 table: "Proposals",
                 type: "datetime2",
-                nullable: true);
-
-            migrationBuilder.Sql(
-                "UPDATE [Proposals] SET [ExpiresAt] = DATEADD(day, 3, [CreatedAt]) WHERE [ExpiresAt] IS NULL;");
-
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "ExpiresAt",
-                table: "Proposals",
-                type: "datetime2",
                 nullable: false,
-                oldClrType: typeof(DateTime),
-                oldType: "datetime2",
-                oldNullable: true);
+                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
 
             migrationBuilder.AddColumn<Guid>(
                 name: "LawyerId",

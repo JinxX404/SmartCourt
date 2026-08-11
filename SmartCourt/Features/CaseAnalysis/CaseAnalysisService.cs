@@ -45,51 +45,76 @@ public class CaseAnalysisService(
 
             You MUST return ONLY a valid JSON object with the following schema:
             {
-              "specialization": "FamilyLaw | CivilLaw | CommercialLaw | AdministrativeAndStateCouncilLaw | CriminalLaw | LaborLaw",
+              "specialization": "FamilyLaw | CivilLaw | CommercialLaw | AdministrativeAndStateCouncilLaw | CriminalLaw | LaborLaw | ConstitutionalLaw | TaxLaw | CustomsLaw | CorporateLaw | Contracts | IntellectualProperty | Arbitration | BankingAndFinance | Investment | RealEstateAndPropertyRegistration | Execution | Insurance | Environment | InformationTechnologyAndTelecommunications | Cybercrimes",
               "requiredLawyerLevel": "GeneralRegistration | PrimaryCourt | AppealCourt | CassationCourt",
               "complexity": "Routine | Standard | Advanced | Exceptional"
             }
 
             DETAILED CONCEPTUAL CLASSIFICATION GUIDELINES FOR SPECIALIZATIONS:
 
-            1. "LaborLaw" (منازعات العمل والمستحقات العمالية):
-               - RELATIONSHIP CONTEXT: An individual employee, worker, engineer, manager, or laborer vs. an employer, business, factory, software company, or corporate organization.
-               - SITUATIONAL TRIGGERS:
-                 * The case describes a person working for an employer (whether with a written or verbal contract, full-time or part-time).
-                 * The conflict involves job dismissal, wrongful termination (الفصل التعسفي), verbal firing, account suspension/lockout by HR.
-                 * The individual claims unpaid monthly salaries, overdue wages, annual leave compensation, end-of-service gratuity, severance pay, or work-related injury/social insurance benefits under Egyptian Labor Law No. 12 of 2003.
-               - ABSOLUTE BOUNDARY RULE: Whenever an individual is demanding rights or compensation arising from their job/service for a company or employer, classify as "LaborLaw", REGARDLESS of whether the employer is a commercial enterprise or corporation.
+            1. "FamilyLaw" (الأحوال الشخصية والأسرة):
+               - Disputes involving marital status, divorce, khula, marriage contract validity, alimony/maintenance (نفقات الزوجية والأولاد), child custody/visitation (الحضانة والرؤية), estate inheritance among heirs (إعلام الوراثة والتركات), or legal guardianship over minors.
 
-            2. "CommercialLaw" (القانون التجاري والشركات):
-               - RELATIONSHIP CONTEXT: Merchant vs. Merchant, Company vs. Company (B2B), Partner vs. Partner, Shareholder vs. Corporate Board, or Business vs. Commercial Paper Holder.
-               - SITUATIONAL TRIGGERS:
-                 * Two commercial companies or business partners disagreeing over commercial trade agreements, supply contracts, distribution rights, franchise deals, or agency commissions under Commercial Code No. 17 of 1999.
-                 * Corporate internal disputes involving company formation, shareholder voting, partner expulsion, corporate restructuring, liquidation, or commercial registry.
-                 * Commercial negotiable instruments (cheques, bills of exchange, promissory notes) issued between business entities or trade bankruptcy/insolvency.
-               - ABSOLUTE BOUNDARY RULE: "CommercialLaw" is strictly for commercial activities between trading entities or corporate partners. NEVER select CommercialLaw for an individual employee suing their employer.
+            2. "CivilLaw" (القانون المدني):
+               - Disputes involving general civil contracts, civil tort liability/damages (التعويض عن الضرر المدني), personal loans between individuals, residential leasing contracts, or general civil rights where no specialized code applies.
 
-            3. "CriminalLaw" (القانون الجنائي والجنايات والجنح):
-               - RELATIONSHIP CONTEXT: State Prosecutor / Victim vs. Accused Offender.
-               - SITUATIONAL TRIGGERS:
-                 * The case involves acts defined as crimes, felonies (جنايات), misdemeanors (جنح), or contraventions punishable by imprisonment or penal fines under the Egyptian Penal Code.
-                 * Offenses including fraud (النصب), breach of trust (خيانة الأمانة), theft, forgery of official/private documents (التزوير), cybercrime (الجرائم الإلكترونية / السب والقذف عبر الإنترنت), bribery, embezzlement of public funds, physical assault, or drugs.
+            3. "CommercialLaw" (القانون التجاري والأوراق التجارية):
+               - Disputes between merchants/businesses (B2B), trade agreements, distribution deals, agency commissions, negotiable instruments (cheques, bills of exchange, promissory notes) issued between business entities, or bankruptcy/insolvency under Commercial Code No. 17 of 1999.
 
             4. "AdministrativeAndStateCouncilLaw" (القضاء الإداري ومجلس الدولة):
-               - RELATIONSHIP CONTEXT: Citizen or Private Entity vs. Public Government Authority / Sovereign Ministry / State Department (الجهة الإدارية).
-               - SITUATIONAL TRIGGERS:
-                 * Challenging an official government administrative decision, executive order, license revocation, or decree before the State Council (مجلس الدولة).
-                 * Disputes involving public sector civil service government employees (كادر الموظفين الحكوميين), or public state tenders, auctions, and government procurement contracts.
+               - Challenging official government administrative decisions, executive orders, license revocations, sovereign ministry decrees before the State Council (مجلس الدولة), public sector civil service employee disputes, or government procurement contracts/tenders.
 
-            5. "FamilyLaw" (الأحوال الشخصية والأسرة):
-               - RELATIONSHIP CONTEXT: Spouses, Ex-spouses, Family Members, Heirs, Guardians.
-               - SITUATIONAL TRIGGERS:
-                 * Disputes involving marital status, divorce, khula, marriage contract validity, alimony/maintenance (نفقات الزوجية والأولاد), child custody/visitation (الحضانة والرؤية), estate inheritance among heirs (إعلام الوراثة والتركات), or legal guardianship over minors.
+            5. "CriminalLaw" (القانون الجنائي والجنايات والجنح):
+               - Cases involving offenses defined under the Egyptian Penal Code: fraud (النصب), breach of trust (خيانة الأمانة), theft, forgery of official/private documents (التزوير), physical assault, embezzlement of public funds, or felonies/misdemeanors punishable by imprisonment or penal fines.
 
-            6. "CivilLaw" (القانون المدني):
-               - RELATIONSHIP CONTEXT: Private Individual vs. Private Individual or Entity in a General Civil Relationship.
-               - SITUATIONAL TRIGGERS:
-                 * Disputes involving real estate ownership, land registration (الشهر العقاري), property boundary lines, or court validation of contracts (دعاوى صحة ونفاذ / تثبيت الملكية).
-                 * Residential or commercial real estate leasing contracts governed by the Civil Code, eviction, civil tort liability/damages (التعويض عن الضرر المدني), or personal private loans between individuals where no specialized code (like Labor or Commercial Law) applies.
+            6. "LaborLaw" (قانون العمل ومنازعات العمال):
+               - RELATIONSHIP CONTEXT: An individual employee/worker vs. an employer/company.
+               - Disputes regarding wrongful termination (الفصل التعسفي), unpaid wages/salaries, end-of-service gratuity, annual leave balance payout, or social insurance benefits under Egyptian Labor Law No. 12 of 2003.
+
+            7. "ConstitutionalLaw" (القانون الدستوري):
+               - Challenges regarding unconstitutionality of laws, decrees, or regulations before the Supreme Constitutional Court (المحكمة الدستورية العليا).
+
+            8. "TaxLaw" (قانون الضرائب):
+               - Disputes with the Egyptian Tax Authority regarding income tax, VAT (ضريبة القيمة المضافة), stamp tax, tax audits, or appeals before Tax Dispute Resolution Committees.
+
+            9. "CustomsLaw" (قانون الجمارك):
+               - Disputes involving customs clearance, tariff valuations, customs smuggling (التهريب الجمركي), or fine disputes with the Customs Authority under Egyptian Customs Law.
+
+            10. "CorporateLaw" (قانون الشركات):
+                - Internal corporate matters: company incorporation, shareholder voting/rights, board of directors disputes, partner expulsion, corporate restructuring, mergers, acquisitions, or liquidation under Companies Law No. 159 of 1981.
+
+            11. "Contracts" (العقود والالتزامات):
+                - Cases focused primarily on drafting, interpreting, enforcing, or invalidating specialized private or commercial contracts, breach of contract clauses, liquidated damages, or contract rescission.
+
+            12. "IntellectualProperty" (الملكية الفكرية):
+                - Disputes involving trademark registration/infringement (العلامات التجارية), patents, copyright (حقوق المؤلف), industrial designs, or trade secret theft under Intellectual Property Law No. 82 of 2002.
+
+            13. "Arbitration" (التحكيم والوسائل البديلة):
+                - Domestic or international arbitration proceedings, annulment lawsuits of arbitral awards (دعاوى إبطال أحكام التحكيم), or enforcement of arbitral awards under Egyptian Arbitration Law No. 27 of 1994.
+
+            14. "BankingAndFinance" (القانون المصرفي والتمويل):
+                - Disputes involving bank loans, letter of credit (خطابات الضمان), mortgages, Central Bank of Egypt regulations, or consumer/mortgage finance institutions.
+
+            15. "Investment" (قانون الاستثمار):
+                - Disputes involving investment incentives, free zones, or investor disputes with the General Authority for Investment and Free Zones (GAFI) under Investment Law No. 72 of 2017.
+
+            16. "RealEstateAndPropertyRegistration" (الشهر العقاري والتسجيل):
+                - Disputes over real estate property ownership, land boundary lines, real estate registry (الشهر العقاري), contract validity and enforcement lawsuits (دعاوى صحة ونفاذ), or real estate title registration.
+
+            17. "Execution" (منازعات وإشكالات التنفيذ):
+                - Disputes regarding enforcement of court rulings, execution stays (إشكال في التنفيذ), precautionary attachment (الحجز التحفظي), or forced auctions (البيع الجبري).
+
+            18. "Insurance" (قانون التأمين):
+                - Disputes with insurance companies regarding life, property, auto accident compensation, or maritime/cargo insurance claims.
+
+            19. "Environment" (قانون البيئة):
+                - Disputes involving environmental pollution, natural reserves violations, or industrial environmental compliance under Environmental Law No. 4 of 1994.
+
+            20. "InformationTechnologyAndTelecommunications" (تكنولوجيا المعلومات والاتصالات):
+                - Disputes regarding telecommunication licenses, electronic signatures, software licensing, or National Telecommunications Regulatory Authority (NTRA) compliance.
+
+            21. "Cybercrimes" (الجرائم الإلكترونية والسيبرانية):
+                - Criminal offenses committed online/digitally: cyber-blackmail (الابتزاز الإلكتروني), online defamation/libel, hacking/unauthorized access, identity theft, or data privacy breaches under Anti-Cybercrime Law No. 175 of 2018.
 
             Enum value reference:
             - requiredLawyerLevel:
@@ -231,6 +256,13 @@ public class CaseAnalysisService(
             cleanedJson = cleanedJson[..^3];
         }
         cleanedJson = cleanedJson.Trim();
+
+        var firstBrace = cleanedJson.IndexOf('{');
+        var lastBrace = cleanedJson.LastIndexOf('}');
+        if (firstBrace >= 0 && lastBrace > firstBrace)
+        {
+            cleanedJson = cleanedJson.Substring(firstBrace, lastBrace - firstBrace + 1);
+        }
 
         try
         {

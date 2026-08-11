@@ -190,8 +190,8 @@ Example `200` response:
         "id": "07c4a24e-d9be-4cd5-8e66-32f681688166",
         "type": "proposal.created",
         "severity": "Information",
-        "title": "New proposal",
-        "body": "A client sent you a new proposal.",
+        "title": "عرض جديد",
+        "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
         "actionUrl": "/proposals/1adcab99-2725-412c-a918-a140ac6af83d",
         "data": {
           "proposalId": "1adcab99-2725-412c-a918-a140ac6af83d",
@@ -250,8 +250,8 @@ The request has no body. On success it returns the full updated `NotificationDto
     "id": "07c4a24e-d9be-4cd5-8e66-32f681688166",
     "type": "proposal.created",
     "severity": "Information",
-    "title": "New proposal",
-    "body": "A client sent you a new proposal.",
+    "title": "عرض جديد",
+    "body": "أرسل إليك موكل عرضًا جديدًا لمراجعته.",
     "actionUrl": "/proposals/1adcab99-2725-412c-a918-a140ac6af83d",
     "data": {
       "proposalId": "1adcab99-2725-412c-a918-a140ac6af83d",
@@ -449,8 +449,93 @@ Register `NotificationCreated`, `NotificationRead`, and `NotificationsReadAll` h
 | `proposal.created` | Lawyer; `/proposals/{proposalId}` | `Information` | `proposalId`, `legalCaseId` |
 | `proposal.accepted` | Client; `/proposals/{proposalId}` | `Success` | `proposalId`, `legalCaseId` |
 | `proposal.rejected` | Client; `/proposals/{proposalId}` | `Warning` | `proposalId`, `legalCaseId` |
+| `contract.created` | Client; no action URL | `Information` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.draft-updated` | Client; no action URL | `Warning` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.acceptance-recorded` | Participant whose acceptance is still required; no action URL | `Information` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.activated` | Client and Lawyer; no action URL | `Success` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.completed` | Client and Lawyer; no action URL | `Success` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.termination-requested` | Counterparty and, while settlement is pending, requester; no action URL | `Warning` | `contractId`, `proposalId`, `legalCaseId` |
+| `contract.terminated` | Client and Lawyer; no action URL | `Warning` | `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.created` | Other participant; no action URL | `Information` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.draft-updated` | Other participant; no action URL | `Warning` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.acceptance-recorded` | Participant whose approval is required; no action URL | `Information` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.approved` | Client and Lawyer; no action URL | `Success` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.ready-for-funding` | Client; no action URL | `Information` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.submitted` | Client; no action URL | `Information` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.changes-requested` | Lawyer; no action URL | `Warning` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.accepted` | Lawyer; no action URL | `Success` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.auto-accepted` | Client / Lawyer; no action URL | `Warning` / `Success` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.change-request-created` | Other participant; no action URL | `Information` | Base Milestone keys plus `changeRequestId` |
+| `milestone.change-request-approved` | Requester; no action URL | `Success` | Base Milestone keys plus `changeRequestId` |
+| `milestone.change-request-rejected` | Requester; no action URL | `Warning` | Base Milestone keys plus `changeRequestId` |
+| `milestone.change-request-cancelled` | Other participant; no action URL | `Information` | Base Milestone keys plus `changeRequestId` |
+| `milestone.funding-started` | Lawyer; no action URL | `Information` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.funded` | Client and Lawyer; no action URL | `Success` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `milestone.funding-failed` | Client; no action URL | `Critical` | `milestoneId`, `contractId`, `proposalId`, `legalCaseId` |
+| `funds.released` | Client and Lawyer; no action URL | `Success` | Base Milestone keys plus `escrowHoldId`, `paymentTransactionId` |
+| `funds.refunded` | Client / Lawyer; no action URL | `Success` / `Information` | Base Milestone keys plus `escrowHoldId`, `paymentTransactionId` |
+| `wallet.withdrawal-completed` | Lawyer; no action URL | `Success` | `withdrawalId` |
+| `wallet.withdrawal-failed` | Lawyer; no action URL | `Warning` | `withdrawalId` |
+| `wallet.withdrawal-delayed` | Lawyer; no action URL | `Warning` | `withdrawalId` |
+| `wallet.adjusted` | Lawyer; no action URL | `Warning` | `walletAdjustmentId`, `contractId` |
 
 Treat unknown future `type` values as generic notifications: show the server title/body and severity, but do not assume type-specific data keys. New types can be added without changing `NotificationDto`.
+
+`type` and the keys inside `data` are intentionally English machine identifiers. The user-visible `title` and `body` are persisted Arabic snapshots created when the source event is dispatched. Fetching a notification does not regenerate or translate its copy, so clients must always render the returned `title` and `body` rather than deriving display text from `type`.
+
+Contract, Milestone, Payment, and Wallet notifications deliberately return `actionUrl: null` in this increment. Render them normally without a navigation affordance. Do not manufacture a client-side URL from IDs in `data`; navigation will be enabled only through a later additive backend contract after the route is approved.
+
+Exact Contract display copy is part of the API contract:
+
+| Type | Arabic title | Arabic body |
+|---|---|---|
+| `contract.created` | `مسودة عقد جديدة` | `أنشأ المحامي مسودة عقد جديدة لتراجع شروطها.` |
+| `contract.draft-updated` | `تم تحديث مسودة العقد` | `تم تحديث شروط العقد، وتحتاج النسخة الحالية إلى مراجعتك وموافقتك.` |
+| `contract.acceptance-recorded` | `موافقة جديدة على العقد` | `وافق الطرف الآخر على نسخة العقد الحالية، والعقد بانتظار موافقتك.` |
+| `contract.activated` | `تم تفعيل العقد` | `أصبح العقد نشطًا ويمكن بدء تنفيذ مراحله.` |
+| `contract.completed` | `اكتمل العقد` | `اكتملت جميع مراحل العقد وتسوياته بنجاح.` |
+| `contract.termination-requested` | `تم طلب إنهاء العقد` | `تم تسجيل طلب إنهاء العقد، وتجري معالجة التسوية اللازمة.` |
+| `contract.terminated` | `تم إنهاء العقد` | `اكتملت إجراءات إنهاء العقد وتسويته.` |
+
+Exact Milestone display copy is also part of the API contract:
+
+| Type / recipient variant | Arabic title | Arabic body |
+|---|---|---|
+| `milestone.created` | `مرحلة تعاقدية جديدة` | `أضاف الطرف الآخر مرحلة جديدة إلى العقد لتراجع شروطها.` |
+| `milestone.draft-updated` | `تم تحديث المرحلة` | `تم تحديث شروط المرحلة، وتحتاج النسخة الحالية إلى مراجعتك وموافقتك.` |
+| `milestone.acceptance-recorded` | `موافقة جديدة على المرحلة` | `وافق الطرف الآخر على شروط المرحلة الحالية، والمرحلة بانتظار موافقتك.` |
+| `milestone.approved` | `تم اعتماد المرحلة` | `وافق طرفا العقد على شروط المرحلة وأصبحت جاهزة للانتقال إلى التمويل.` |
+| `milestone.ready-for-funding` | `المرحلة جاهزة للتمويل` | `أصبحت المرحلة جاهزة للتمويل حتى يتمكن المحامي من بدء العمل.` |
+| `milestone.submitted` | `تم تسليم أعمال المرحلة` | `سلّم المحامي أعمال المرحلة، ويمكنك الآن مراجعتها وقبولها أو طلب تعديلات.` |
+| `milestone.changes-requested` | `طُلبت تعديلات على المرحلة` | `طلب العميل تعديلات على أعمال المرحلة، ويمكنك مراجعة الطلب وإعادة التسليم.` |
+| `milestone.accepted` | `تم قبول أعمال المرحلة` | `قبل العميل أعمال المرحلة، وبدأت مدة حجز المبلغ قبل إتاحته للصرف.` |
+| `milestone.auto-accepted` / Client | `تم قبول المرحلة تلقائيًا` | `انتهت مدة المراجعة وقُبلت أعمال المرحلة تلقائيًا، وبدأت مدة الاعتراض.` |
+| `milestone.auto-accepted` / Lawyer | `تم قبول المرحلة تلقائيًا` | `قُبلت أعمال المرحلة تلقائيًا بعد انتهاء مدة المراجعة، وبدأت مدة حجز المبلغ.` |
+| `milestone.change-request-created` | `طلب تعديل جديد للمرحلة` | `أنشأ الطرف الآخر طلبًا لتعديل شروط المرحلة، ويحتاج الطلب إلى قرارك.` |
+| `milestone.change-request-approved` | `تمت الموافقة على طلب التعديل` | `وافق الطرف الآخر على طلب تعديل المرحلة، وطُبّقت الشروط المعتمدة.` |
+| `milestone.change-request-rejected` | `تم رفض طلب تعديل المرحلة` | `رفض الطرف الآخر طلب تعديل المرحلة. يمكنك مراجعة الطلب لمعرفة التفاصيل.` |
+| `milestone.change-request-cancelled` | `تم إلغاء طلب تعديل المرحلة` | `ألغى الطرف الآخر طلب تعديل المرحلة، ولم يعد القرار مطلوبًا منك.` |
+
+Milestone bodies intentionally exclude descriptions, submission notes, change-request text, rejection reasons, payment amounts, and stored-file IDs. Fetch those details through the authorized Milestones APIs when the product later adds an approved route.
+
+Exact Payment and Wallet display copy is part of the API contract:
+
+| Type / recipient variant | Arabic title | Arabic body |
+|---|---|---|
+| `milestone.funding-started` / Lawyer | `بدأ تمويل المرحلة` | `بدأت معالجة تمويل المرحلة. انتظر تأكيد اكتمال التمويل قبل بدء العمل.` |
+| `milestone.funded` / Client | `تم تمويل المرحلة` | `اكتمل تمويل المرحلة وحُفظ المبلغ في حساب الضمان.` |
+| `milestone.funded` / Lawyer | `تم تمويل المرحلة` | `اكتمل تمويل المرحلة، ويمكنك الآن بدء العمل عليها.` |
+| `milestone.funding-failed` / Client | `فشل تمويل المرحلة` | `لم تكتمل عملية تمويل المرحلة. يمكنك مراجعة وسيلة الدفع والمحاولة مرة أخرى.` |
+| `funds.released` / Client | `تم تحرير أموال المرحلة` | `انتهت مدة الحجز وتم تحرير مستحقات المحامي عن المرحلة.` |
+| `funds.released` / Lawyer | `أصبحت مستحقات المرحلة متاحة` | `تم تحويل مستحقات المرحلة إلى رصيد محفظتك المتاح.` |
+| `funds.refunded` / Client | `تم رد أموال المرحلة` | `اكتملت تسوية المرحلة وتم رد الأموال إلى العميل.` |
+| `funds.refunded` / Lawyer | `تم رد أموال المرحلة` | `اكتملت تسوية المرحلة برد الأموال إلى العميل.` |
+| `wallet.withdrawal-completed` / Lawyer | `اكتمل طلب السحب` | `اكتمل طلب سحب الرصيد من محفظتك بنجاح.` |
+| `wallet.withdrawal-failed` / Lawyer | `فشل طلب السحب` | `لم يكتمل طلب السحب، وأُعيد المبلغ إلى رصيد محفظتك المتاح.` |
+| `wallet.withdrawal-delayed` / Lawyer | `طلب السحب يحتاج إلى مراجعة` | `تأخر حسم طلب السحب ويجري التعامل معه يدويًا. لا تنشئ طلبًا بديلًا.` |
+| `wallet.adjusted` / Lawyer | `تم تصحيح رصيد المحفظة` | `أجرى مسؤول النظام تصحيحًا ماليًا على محفظتك. راجع الرصيد الحالي والتفاصيل مع الدعم عند الحاجة.` |
+
+Financial notifications deliberately exclude amounts, currency, payment method and withdrawal destination references, provider transaction identifiers, failure details, administrative reasons, and idempotency keys. Treat every ID in `data` as an opaque lookup key; it does not grant access to the referenced resource.
 
 ## Navigation, rendering, and security
 
@@ -516,7 +601,10 @@ Adding a new notification `type` with the existing DTO is an additive change. Fr
 - [Architecture Decision](./architecture.md)
 - [Backend Producer Guide](./backend_integration_guide.md)
 - [Implemented Plan and Verification](./implementation_plan.md)
-- [HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/Notifications_Report.md)
+- [Notification Core HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/Notifications_Report.md)
+- [Contracts Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/ContractsNotifications_Report.md)
+- [Milestones Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/MilestonesNotifications_Report.md)
+- [Payments Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/PaymentsNotifications_Report.md)
 
 External references:
 
