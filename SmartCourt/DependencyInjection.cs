@@ -66,6 +66,8 @@ using SmartCourt.Features.Disputes;
 using SmartCourt.Features.Payments.FundingVerification;
 using SmartCourt.Features.Auth.RevokeRefreshToken;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Features.Auth.Events;
+using SmartCourt.Features.Auth.Integration;
 using SmartCourt.Entities;
 using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
@@ -189,6 +191,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationEventMapper, MilestoneNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, VerificationNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, AuthNotificationEventMapper>();
         services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
         services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
@@ -270,6 +273,9 @@ public static class DependencyInjection
         services.AddScoped<
             IVerificationNotificationContextReader,
             VerificationNotificationContextReader>();
+        services.AddScoped<
+            IAuthNotificationContextReader,
+            AuthNotificationContextReader>();
         services.AddScoped<
             IAdminWalletAdjustmentService,
             AdminWalletAdjustmentService>();
