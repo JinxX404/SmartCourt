@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SmartCourt.Common.Exceptions;
 using SmartCourt.Interfaces.Providers;
 
 namespace SmartCourt.Providers.ChatModel;
@@ -95,24 +96,23 @@ public class AlibabaChatModelProvider : IChatModelProvider
                     continue;
                 }
 
-                _logger.LogError("Alibaba DashScope API failed after {Attempts} attempts. Last error: {Error}. Using fallback.", i + 1, lastErrorMessage);
-                return GenerateFallbackResponse(systemPrompt, userPrompt);
+                throw new BusinessException($"Alibaba chat API failed: {response.ReasonPhrase}");
             }
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Alibaba DashScope API request timed out on attempt {Attempt}. Using fallback.", i + 1);
-                return GenerateFallbackResponse(systemPrompt, userPrompt);
+                _logger.LogError(ex, "Alibaba DashScope API request timed out on attempt {Attempt}.", i + 1);
+                throw new BusinessException("Alibaba chat API request timed out.", ex);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to connect to Alibaba DashScope API on attempt {Attempt}. Using fallback.", i + 1);
-                return GenerateFallbackResponse(systemPrompt, userPrompt);
+                _logger.LogError(ex, "Failed to connect to Alibaba DashScope API on attempt {Attempt}.", i + 1);
+                throw new BusinessException("Failed to connect to Alibaba chat API.", ex);
             }
         }
 
         if (response == null || !response.IsSuccessStatusCode)
         {
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            throw new BusinessException("Alibaba chat API did not return a successful response.");
         }
 
         var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -120,7 +120,7 @@ public class AlibabaChatModelProvider : IChatModelProvider
 
         if (string.IsNullOrWhiteSpace(rawBody))
         {
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            throw new BusinessException("Alibaba chat API returned an empty response.");
         }
 
         try
@@ -141,7 +141,7 @@ public class AlibabaChatModelProvider : IChatModelProvider
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse Alibaba DashScope API response: {Response}", rawBody);
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            throw new BusinessException("Alibaba chat API returned an invalid response.", ex);
         }
     }
     private static string GenerateFallbackResponse(string systemPrompt, string userPrompt)

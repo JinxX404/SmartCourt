@@ -34,7 +34,7 @@ public class CompositeDocumentParsingProvider : IDocumentParsingProvider
             return extension switch
             {
                 ".pdf" => await ParsePdfAsync(fileStream, cancellationToken),
-                ".docx" or ".doc" => ParseDocx(fileStream),
+                ".docx" => ParseDocx(fileStream),
                 _ => throw new BusinessException($"Unsupported file type for document analysis: {extension}")
             };
         }

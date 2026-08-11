@@ -2,10 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SmartCourt.Common.Configuration;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.LawIngestion.DTOs;
@@ -24,7 +27,7 @@ public class LawIngestionService : ILawIngestionService
     private readonly IVectorStoreProvider _vectorStore;
     private readonly IFileStorageService _fileStorage;
     private readonly ILogger<LawIngestionService> _logger;
-    private const string CollectionName = "egyptian_law";
+    private readonly RagOptions _ragOptions;
 
     public LawIngestionService(
         ApplicationDbContext dbContext,
@@ -34,7 +37,8 @@ public class LawIngestionService : ILawIngestionService
         IEmbeddingProvider embeddingProvider,
         IVectorStoreProvider vectorStore,
         IFileStorageService fileStorage,
-        ILogger<LawIngestionService> logger)
+        ILogger<LawIngestionService> logger,
+        IOptions<RagOptions> ragOptions)
     {
         _dbContext = dbContext;
         _backgroundJobProvider = backgroundJobProvider;
@@ -44,6 +48,7 @@ public class LawIngestionService : ILawIngestionService
         _vectorStore = vectorStore;
         _fileStorage = fileStorage;
         _logger = logger;
+        _ragOptions = ragOptions.Value;
     }
 
     public async Task<IngestLawDocumentResponse> StartIngestionAsync(
@@ -55,28 +60,41 @@ public class LawIngestionService : ILawIngestionService
             throw new BusinessException("File is required and cannot be empty.");
         }
 
-        // Upload file
+        var existingDoc = await _dbContext.LawDocuments
+            .FirstOrDefaultAsync(d => d.DocumentTitle == request.DocumentTitle && d.Language == request.Language, cancellationToken);
+
+        // Upload the replacement before changing the database record.
         using var stream = request.File.OpenReadStream();
         var filePath = $"law_documents/{Guid.NewGuid()}_{request.File.FileName}";
         var uploadResult = await _fileStorage.UploadAsync(stream, filePath, request.File.FileName, cancellationToken);
 
-        // Check for existing document to increment version
-        var existingDoc = await _dbContext.LawDocuments
-            .FirstOrDefaultAsync(d => d.DocumentTitle == request.DocumentTitle && d.Language == request.Language, cancellationToken);
-
-        var doc = new LawDocument
+        var previousStoragePath = existingDoc?.FileStoragePath;
+        var doc = existingDoc ?? new LawDocument();
+        doc.FileName = request.File.FileName;
+        doc.DocumentTitle = request.DocumentTitle;
+        doc.Language = request.Language;
+        doc.Description = request.Description;
+        doc.FileStoragePath = uploadResult.StoragePath;
+        doc.Status = IngestionStatus.Pending;
+        doc.ErrorMessage = null;
+        doc.TotalPages = 0;
+        doc.ChunkCount = 0;
+        doc.ProcessingStartedAt = null;
+        doc.CompletedAt = null;
+        if (existingDoc is not null)
         {
-            FileName = request.File.FileName,
-            DocumentTitle = request.DocumentTitle,
-            Language = request.Language,
-            Description = request.Description,
-            FileStoragePath = uploadResult.StoragePath,
-            Status = IngestionStatus.Pending,
-            Version = existingDoc != null ? existingDoc.Version + 1 : 1
-        };
+            doc.Version++;
+        }
 
-        _dbContext.LawDocuments.Add(doc);
+        if (existingDoc is null) _dbContext.LawDocuments.Add(doc);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(previousStoragePath)
+            && !string.Equals(previousStoragePath, uploadResult.StoragePath, StringComparison.Ordinal))
+        {
+            try { await _fileStorage.DeleteAsync(previousStoragePath, cancellationToken); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete replaced law file {FilePath}", previousStoragePath); }
+        }
 
         // Enqueue background job
         _backgroundJobProvider.Enqueue<ILawIngestionService>(s => s.ExecuteIngestionAsync(doc.Id));
@@ -102,7 +120,7 @@ public class LawIngestionService : ILawIngestionService
         var doc = await _dbContext.LawDocuments.FindAsync(new object[] { documentId }, cancellationToken);
         if (doc == null) throw new NotFoundException("Document not found.");
 
-        await _vectorStore.DeleteByDocumentIdAsync(CollectionName, documentId, cancellationToken);
+        await _vectorStore.DeleteByDocumentIdAsync(_ragOptions.LegalCollectionName, documentId, cancellationToken);
         
         try
         {
@@ -138,7 +156,7 @@ public class LawIngestionService : ILawIngestionService
             await _dbContext.SaveChangesAsync();
 
             // 1. Ensure Qdrant Collection exists
-            await _vectorStore.EnsureCollectionExistsAsync(CollectionName, _embeddingProvider.Dimensions);
+            await _vectorStore.EnsureCollectionExistsAsync(_ragOptions.LegalCollectionName, _embeddingProvider.Dimensions);
 
             // 2. Read PDF
             var fileBytes = await _fileStorage.DownloadAsync(doc.FileStoragePath);
@@ -156,39 +174,44 @@ public class LawIngestionService : ILawIngestionService
             // 5. Delete existing vectors if this is a re-ingestion
             if (doc.Version > 1)
             {
-                await _vectorStore.DeleteByDocumentIdAsync(CollectionName, doc.Id);
+                await _vectorStore.DeleteByDocumentIdAsync(_ragOptions.LegalCollectionName, doc.Id);
             }
 
             // 6. Embed and Store (Batch processing)
-            var points = new List<VectorPoint>();
-            
-            // Generate embeddings for all chunk texts
-            var chunkTexts = chunks.Select(c => c.Text).ToList();
-            var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(chunkTexts);
-
-            for (int i = 0; i < chunks.Count; i++)
+            var points = new List<VectorPoint>(chunks.Count);
+            for (var offset = 0; offset < chunks.Count; offset += _ragOptions.EmbeddingBatchSize)
             {
-                var chunk = chunks[i];
-                var vector = embeddings[i];
+                var batch = chunks.Skip(offset).Take(_ragOptions.EmbeddingBatchSize).ToList();
+                var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(batch.Select(c => c.Text).ToList());
+                if (embeddings.Count != batch.Count || embeddings.Any(v => v.Length != _embeddingProvider.Dimensions))
+                    throw new BusinessException("Embedding provider returned invalid vectors.");
 
-                var payload = new Dictionary<string, object>
+                for (var i = 0; i < batch.Count; i++)
                 {
-                    { "document_id", doc.Id.ToString() },
-                    { "document_title", doc.DocumentTitle },
-                    { "language", doc.Language },
-                    { "part", chunk.Part },
-                    { "chapter", chunk.Chapter },
-                    { "section", chunk.Section },
-                    { "article_number", chunk.Article },
-                    { "chunk_index", chunk.ChunkIndex },
-                    { "chunk_text", chunk.Text },
-                    { "version", doc.Version }
-                };
-
-                points.Add(new VectorPoint(Guid.NewGuid(), vector, payload));
+                    var chunk = batch[i];
+                    var chunkId = $"{doc.Id:N}:{doc.Version}:{offset + i}:{chunk.Article}:{chunk.ChunkIndex}";
+                    var payload = new Dictionary<string, object>
+                    {
+                        { "chunk_id", chunkId },
+                        { "document_id", doc.Id.ToString() },
+                        { "document_title", doc.DocumentTitle },
+                        { "law_name", doc.DocumentTitle },
+                        { "language", doc.Language },
+                        { "jurisdiction", _ragOptions.Jurisdiction },
+                        { "source_type", "uploaded_law" },
+                        { "part", chunk.Part },
+                        { "chapter", chunk.Chapter },
+                        { "section", chunk.Section },
+                        { "article_number", chunk.Article },
+                        { "chunk_index", offset + i },
+                        { "chunk_text", chunk.Text },
+                        { "version", doc.Version }
+                    };
+                    points.Add(new VectorPoint(DeterministicGuid(chunkId), embeddings[i], payload));
+                }
             }
 
-            await _vectorStore.UpsertBatchAsync(CollectionName, points);
+            await _vectorStore.UpsertBatchAsync(_ragOptions.LegalCollectionName, points);
 
             // 7. Complete
             doc.ChunkCount = points.Count;
@@ -223,5 +246,11 @@ public class LawIngestionService : ILawIngestionService
             Version = doc.Version,
             CompletedAt = doc.CompletedAt
         };
+    }
+
+    private static Guid DeterministicGuid(string value)
+    {
+        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value));
+        return new Guid(hash.AsSpan(0, 16));
     }
 }
