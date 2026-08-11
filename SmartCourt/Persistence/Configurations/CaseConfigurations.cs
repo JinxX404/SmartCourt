@@ -8,6 +8,8 @@ namespace SmartCourt.Persistence.Configurations
     {
         public void Configure(EntityTypeBuilder<Case> builder)
         {
+            builder.HasQueryFilter(c => !c.IsDeleted);
+
             builder.HasOne(c => c.ClientProfile)
                 .WithMany(cp => cp.Cases)
                 .HasForeignKey(c => c.ClientId)
