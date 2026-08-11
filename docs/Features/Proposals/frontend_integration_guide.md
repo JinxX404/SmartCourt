@@ -430,7 +430,118 @@ GET  /api/chat/conversations
 GET  /api/chat/conversations/{conversationId}
 GET  /api/chat/conversations/{conversationId}/messages
 POST /api/chat/conversations/{conversationId}/messages
+POST /api/chat/conversations/{conversationId}/attachments
+GET  /api/chat/conversations/{conversationId}/attachments/{attachmentId}/download
 ```
+
+### Send attachment message
+
+```http
+POST /api/chat/conversations/{conversationId}/attachments
+Content-Type: multipart/form-data
+```
+
+Roles: `Client`, `Lawyer`. The caller must be a participant and the proposal
+conversation must still be open. Use these multipart field names:
+
+| Field | Required | Rules |
+| --- | --- | --- |
+| `caption` | No | Text shown with the files; maximum 2,000 characters. |
+| `files` | Yes | Repeat for each file; from 1 through 5 files. |
+
+Allowed formats are PDF, DOCX, TXT, PNG, and JPEG. Each file is limited to
+10 MB and the combined files are limited to 25 MB. The backend verifies the
+file content instead of trusting the browser-provided MIME type or extension.
+
+```ts
+const body = new FormData();
+if (caption.trim()) body.append("caption", caption.trim());
+for (const file of selectedFiles) body.append("files", file);
+
+const response = await fetch(
+  `${apiBase}/api/chat/conversations/${conversationId}/attachments`,
+  {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  },
+);
+```
+
+Do not manually set the `Content-Type` request header; the browser must add
+the multipart boundary. Success is `201 Created` and returns the created
+message:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "message-id",
+    "conversationId": "conversation-id",
+    "senderUserId": "client-or-lawyer-user-id",
+    "senderName": "Ahmed Ali",
+    "type": "User",
+    "content": "Evidence for review.",
+    "systemCode": null,
+    "relatedEntityId": null,
+    "createdAt": "2026-08-11T13:30:00Z",
+    "isMine": true,
+    "attachments": [
+      {
+        "id": "attachment-id",
+        "fileName": "evidence.pdf",
+        "contentType": "application/pdf",
+        "sizeInBytes": 184320,
+        "downloadUrl": "/api/chat/conversations/conversation-id/attachments/attachment-id/download"
+      }
+    ]
+  },
+  "statusCode": 201
+}
+```
+
+If no caption is provided, `content` contains a server-generated attachment
+label. Use the `attachments` array, not message text parsing, to render files.
+Every message from history, conversation `lastMessage`, the text endpoint,
+and SignalR now includes `attachments`; it is an empty array for text-only and
+system messages.
+
+### Download an attachment
+
+`downloadUrl` is an API route, not a public storage URL. Fetch it with the JWT
+and handle the response as a blob:
+
+```ts
+const response = await fetch(`${apiBase}${attachment.downloadUrl}`, {
+  headers: { Authorization: `Bearer ${token}` },
+});
+if (!response.ok) throw new Error("Attachment is no longer available.");
+
+const blob = await response.blob();
+const objectUrl = URL.createObjectURL(blob);
+// Use objectUrl for preview/download, then URL.revokeObjectURL(objectUrl).
+```
+
+The backend checks conversation access again on every download. Outsiders and
+superseded lawyers receive `404`, including when they retained an old
+`downloadUrl`. Remove cached attachment blobs and chat state when a proposal
+becomes superseded.
+
+### Real-time attachment delivery
+
+Upload the binary files through the REST attachment endpoint. Do not send
+base64 files through SignalR. After the upload commits, the backend broadcasts
+the same complete `ChatMessageDto` through the existing `ReceiveMessage`
+event, including all attachment metadata:
+
+```ts
+connection.on("ReceiveMessage", (message: ChatMessage) => {
+  upsertMessageById(message);
+});
+```
+
+The sender receives both the HTTP response and the SignalR event, so de-duplicate
+messages by `message.id`. No extra attachment SignalR event is required.
 
 SignalR hub:
 
@@ -490,6 +601,28 @@ export interface ProposalListItem {
   closedAt: string | null;
   closedByUserId: string | null;
 }
+
+export interface ChatAttachment {
+  id: string;
+  fileName: string;
+  contentType: string;
+  sizeInBytes: number;
+  downloadUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderUserId: string | null;
+  senderName: string | null;
+  type: "User" | "System";
+  content: string;
+  systemCode: string | null;
+  relatedEntityId: string | null;
+  createdAt: string;
+  isMine: boolean;
+  attachments: ChatAttachment[];
+}
 ```
 
 When building query parameters, append each status separately:
@@ -504,10 +637,10 @@ for (const status of filters.statuses) {
 
 | HTTP | Meaning |
 | --- | --- |
-| `400` | Invalid ID, filter, page, page size, message, or reason. |
+| `400` | Invalid ID, filter, page, page size, message, reason, attachment count, size, name, type, or content. |
 | `401` | Missing or invalid token. |
 | `403` | Authenticated role cannot use the endpoint. |
 | `404` | Resource is absent or does not belong to the caller. |
-| `409` | Proposal expired, changed concurrently, has invalid status, reached the five-slot limit, or conflicts with a contract. |
+| `409` | Proposal expired, changed concurrently, has invalid status, reached the five-slot limit, conflicts with a contract, or the chat is closed. |
 
 Always display `message` when present, otherwise join the `errors` array.

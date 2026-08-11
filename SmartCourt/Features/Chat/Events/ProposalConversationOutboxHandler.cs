@@ -80,7 +80,8 @@ public sealed class ProposalConversationOutboxHandler(
                 chatMessage.SystemCode,
                 chatMessage.RelatedEntityId,
                 chatMessage.CreatedAt,
-                IsMine: false),
+                IsMine: false,
+                Attachments: []),
             cancellationToken);
     }
 }

@@ -71,7 +71,7 @@ internal static class ChatReadModel
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
-        return await (
+        var row = await (
             from message in context.ChatMessages.AsNoTracking()
             join conversation in context.ChatConversations.AsNoTracking()
                 on message.ConversationId equals conversation.Id
@@ -84,17 +84,42 @@ internal static class ChatReadModel
                 && (conversation.ClientUserId == actorUserId
                     || (conversation.LawyerUserId == actorUserId
                         && proposal.Status != ProposalStatus.Superseded))
-            select new ChatMessageDto(
+            select new
+            {
                 message.Id,
                 message.ConversationId,
                 message.SenderUserId,
-                sender == null ? null : sender.FullName,
-                message.Type.ToString(),
+                SenderName = sender == null ? null : sender.FullName,
+                message.Type,
                 message.Content,
                 message.SystemCode,
                 message.RelatedEntityId,
-                message.CreatedAt,
-                message.SenderUserId == actorUserId))
+                message.CreatedAt
+            })
             .SingleOrDefaultAsync(cancellationToken);
+
+        if (row is null)
+        {
+            return null;
+        }
+
+        var attachmentsByMessageId = await ChatAttachmentReadModel
+            .FindForMessagesAsync(
+                context,
+                [row.Id],
+                cancellationToken);
+        attachmentsByMessageId.TryGetValue(row.Id, out var attachments);
+        return new ChatMessageDto(
+            row.Id,
+            row.ConversationId,
+            row.SenderUserId,
+            row.SenderName,
+            row.Type.ToString(),
+            row.Content,
+            row.SystemCode,
+            row.RelatedEntityId,
+            row.CreatedAt,
+            row.SenderUserId == actorUserId,
+            attachments ?? []);
     }
 }

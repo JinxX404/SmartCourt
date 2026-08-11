@@ -98,25 +98,38 @@ public sealed class GetChatConversationsHandler(
                     SenderName = sender == null ? null : sender.FullName
                 })
             .ToListAsync(cancellationToken);
-        var lastMessageByConversationId = messageRows
+        var lastMessageRows = messageRows
             .GroupBy(item => item.Message.ConversationId)
             .Select(group => group
                 .OrderByDescending(item => item.Message.CreatedAt)
                 .ThenByDescending(item => item.Message.Id)
                 .First())
-            .ToDictionary(
+            .ToList();
+        var attachmentsByMessageId = await ChatAttachmentReadModel
+            .FindForMessagesAsync(
+                context,
+                lastMessageRows.Select(item => item.Message.Id).ToArray(),
+                cancellationToken);
+        var lastMessageByConversationId = lastMessageRows.ToDictionary(
             item => item.Message.ConversationId,
-            item => new ChatMessageDto(
-                item.Message.Id,
-                item.Message.ConversationId,
-                item.Message.SenderUserId,
-                item.SenderName,
-                item.Message.Type.ToString(),
-                item.Message.Content,
-                item.Message.SystemCode,
-                item.Message.RelatedEntityId,
-                item.Message.CreatedAt,
-                item.Message.SenderUserId == actorUserId));
+            item =>
+            {
+                attachmentsByMessageId.TryGetValue(
+                    item.Message.Id,
+                    out var attachments);
+                return new ChatMessageDto(
+                    item.Message.Id,
+                    item.Message.ConversationId,
+                    item.Message.SenderUserId,
+                    item.SenderName,
+                    item.Message.Type.ToString(),
+                    item.Message.Content,
+                    item.Message.SystemCode,
+                    item.Message.RelatedEntityId,
+                    item.Message.CreatedAt,
+                    item.Message.SenderUserId == actorUserId,
+                    attachments ?? []);
+            });
 
         var items = rows.Select(row =>
         {

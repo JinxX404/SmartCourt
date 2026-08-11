@@ -26,6 +26,7 @@ public class ApplicationDbContext
         typeof(MilestoneSubmissionAttachment),
         typeof(EscrowLedgerEntry),
         typeof(ChatMessage),
+        typeof(ChatMessageAttachment),
         typeof(AgentMessage),
         typeof(PaymentWebhookEvent),
         typeof(DisputeResolution),
@@ -95,6 +96,8 @@ public class ApplicationDbContext
     public DbSet<ChatConversation> ChatConversations =>
         Set<ChatConversation>();
     public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
+    public DbSet<ChatMessageAttachment> ChatMessageAttachments =>
+        Set<ChatMessageAttachment>();
     public DbSet<AgentConversation> AgentConversations =>
         Set<AgentConversation>();
     public DbSet<AgentMessage> AgentMessages => Set<AgentMessage>();
