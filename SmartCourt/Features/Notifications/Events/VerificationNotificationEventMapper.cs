@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Admin.Verifications.Integration;
@@ -24,7 +25,8 @@ internal sealed class VerificationNotificationEventMapper(
         VerificationEventTypes.DocumentRejected,
         VerificationEventTypes.DocumentExpired,
         VerificationEventTypes.AccountApproved,
-        VerificationEventTypes.AccountRejected
+        VerificationEventTypes.AccountRejected,
+        VerificationEventTypes.ReviewRequested
     ];
 
     public async Task<IReadOnlyCollection<NotificationDraft>> MapAsync(
@@ -33,9 +35,19 @@ internal sealed class VerificationNotificationEventMapper(
     {
         EnsureVersion(message, 1);
 
-        return IsDocumentEvent(message.EventType)
-            ? await MapDocumentAsync(message, cancellationToken)
-            : await MapAccountAsync(message, cancellationToken);
+        return message.EventType switch
+        {
+            VerificationEventTypes.DocumentApproved
+                or VerificationEventTypes.DocumentRejected
+                or VerificationEventTypes.DocumentExpired
+                => await MapDocumentAsync(message, cancellationToken),
+            VerificationEventTypes.AccountApproved
+                or VerificationEventTypes.AccountRejected
+                => await MapAccountAsync(message, cancellationToken),
+            VerificationEventTypes.ReviewRequested
+                => await MapReviewRequestedAsync(message, cancellationToken),
+            _ => throw Unsupported(message.EventType)
+        };
     }
 
     private async Task<IReadOnlyCollection<NotificationDraft>> MapDocumentAsync(
@@ -180,10 +192,50 @@ internal sealed class VerificationNotificationEventMapper(
         ];
     }
 
-    private static bool IsDocumentEvent(string eventType) =>
-        eventType is VerificationEventTypes.DocumentApproved
-            or VerificationEventTypes.DocumentRejected
-            or VerificationEventTypes.DocumentExpired;
+    private async Task<IReadOnlyCollection<NotificationDraft>> MapReviewRequestedAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = Deserialize<VerificationReviewRequestedEventPayload>(message);
+        EnsureIdentifier(payload.UserId, "user");
+        EnsureAggregate(message, payload.UserId);
+        if (payload.DocumentCount <= 0)
+        {
+            throw new InvalidOperationException(
+                "Verification review-requested notification document count is invalid.");
+        }
+
+        var context = await contextReader.GetReviewRequestedAsync(
+            payload.UserId,
+            cancellationToken);
+        if (context.UserId != payload.UserId)
+        {
+            throw new InvalidOperationException(
+                "Verification review-requested notification payload does not match its authoritative context.");
+        }
+
+        var data = new Dictionary<string, string>
+        {
+            ["userId"] = context.UserId.ToString(),
+            ["documentCount"] = payload.DocumentCount.ToString(CultureInfo.InvariantCulture)
+        };
+
+        return context.AdministratorUserIds
+            .Distinct()
+            .Select(administratorUserId =>
+            {
+                EnsureIdentifier(administratorUserId, "administrator");
+                return new NotificationDraft(
+                    administratorUserId,
+                    "verification.review-requested",
+                    NotificationSeverity.Information,
+                    "طلب مراجعة مستندات التحقق",
+                    "تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.",
+                    null,
+                    data);
+            })
+            .ToArray();
+    }
 
     private static T Deserialize<T>(OutboxMessage message)
     {

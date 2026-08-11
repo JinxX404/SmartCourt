@@ -44,4 +44,29 @@ internal static class VerificationOutbox
                 user.Id,
                 correlationId),
             cancellationToken);
+
+    public static Task EnqueueReviewRequestedAsync(
+        IOutboxWriter outboxWriter,
+        ApplicationUser user,
+        int documentCount,
+        Guid correlationId,
+        CancellationToken cancellationToken)
+    {
+        if (documentCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(documentCount));
+        }
+
+        return outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                VerificationEventTypes.ReviewRequested,
+                1,
+                new VerificationReviewRequestedEventPayload(
+                    user.Id,
+                    documentCount),
+                nameof(ApplicationUser),
+                user.Id,
+                correlationId),
+            cancellationToken);
+    }
 }

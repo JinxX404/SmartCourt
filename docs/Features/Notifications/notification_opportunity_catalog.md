@@ -175,7 +175,7 @@ Repository actions: submit/delete verification documents, review individual docu
 
 | ID | When this happens | Actor → recipient | User story / message intent | Type | Priority / severity | Readiness | Suggested channel |
 |---|---|---|---|---|---|---|---|
-| `VER-01` | A user submits one or more valid verification documents and enters pending review. | User → Verification work queue | As verification staff, we need a queued work item without notifying every admin individually. | `verification.review-requested` | `P2 / Information` | `New event`; assigned/queue strategy required | Operational queue/in-app for assignee |
+| `VER-01` | A user submits one or more verification documents and at least one document is persisted, including a partial-success request. | User → every exact `Admin` role member | As verification staff, we need one durable review request for each successful submission while a dedicated queue is not yet available. | `verification.review-requested` | `P2 / Information` | **Implemented** from `VerificationReviewRequested` V1; one event per submission and one inbox row per Admin | In-app; Email deferred |
 | `VER-02` | An administrator approves an individual current document. | Admin → User | As the user, I want to know that a submitted document was approved and whether further items remain. | `verification.document-approved` | `P2 / Success` | **Implemented** from `VerificationDocumentApproved` V1 | In-app; Email deferred |
 | `VER-03` | An administrator rejects an individual current document. | Admin → User | As the user, I want to know which document needs replacement and where to view the reason. | `verification.document-rejected` | `P1 / Warning` | **Implemented** from `VerificationDocumentRejected` V1 | In-app; Email deferred |
 | `VER-04` | Review discovers that the current document is expired. | Admin/System → User | As the user, I want to know the expired document must be replaced. | `verification.document-expired` | `P1 / Warning` | **Implemented** from `VerificationDocumentExpired` V1 on the expired transition | In-app; Email deferred |
@@ -197,6 +197,10 @@ The five Gate 5 mappings persist the exact Arabic title/body snapshots below. Ev
 | `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` |
 | `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` |
 | `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` |
+
+### Implemented Gate 6 contract
+
+`VerificationReviewRequested` V1 is queued by `SubmitVerificationDocumentsHandler` before the existing EF save when at least one document succeeds. A request with multiple successful documents produces one event with `documentCount`; a partial-success request also produces one event for its successful documents; a failed-only request produces none. The Notifications mapper resolves the exact `Admin` role membership from authoritative Identity tables and creates one `verification.review-requested` row per Admin. It excludes `SuperAdministrator`, ordinary users, and the uploading user. All use `actionUrl: null`, data keys are only `userId` and `documentCount`, and persisted Arabic copy is `طلب مراجعة مستندات التحقق` / `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` with `Information` severity. Storage paths, file URLs/content, file names, private metadata, rejection reasons, contact details, provider IDs, tokens, and idempotency keys are forbidden. Outbox message ID replay is idempotent; REST is durable and SignalR is best-effort. Verification is recorded in [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md) with `147 passed, 0 failed, 1 documented skip`.
 
 ## 7. Authentication and account security
 
