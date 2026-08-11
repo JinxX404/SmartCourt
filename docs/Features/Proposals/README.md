@@ -31,7 +31,11 @@ Frontend/API consumers should use the complete
 | `Cancelled` | No | The client withdrew a pending invitation. |
 | `Expired` | No | No response was received within 72 hours. |
 | `Terminated` | No | A participant ended an accepted negotiation. |
-| `Superseded` | No | Another contract was activated for the case. |
+| `Superseded` | No | Another contract was activated; the affected lawyer loses all chat access. |
+
+Superseded chat privacy is enforced by proposal DTOs, chat list/detail/message
+handlers, message sending, and SignalR conversation joins. Clients retain their
+own read-only history.
 
 ## Endpoints
 

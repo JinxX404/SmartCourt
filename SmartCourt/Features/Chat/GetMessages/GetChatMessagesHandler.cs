@@ -29,7 +29,7 @@ public sealed class GetChatMessagesHandler(
         }
 
         var actorUserId = ChatAccess.GetRequiredUserId(currentUserService);
-        if (!await ChatAccess.IsParticipantAsync(
+        if (!await ChatAccess.CanAccessConversationAsync(
                 context,
                 request.ConversationId,
                 actorUserId,

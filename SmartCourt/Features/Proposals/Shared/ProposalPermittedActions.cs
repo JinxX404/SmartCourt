@@ -50,11 +50,17 @@ internal static class ProposalPermittedActions
 
         if (conversationId.HasValue)
         {
-            actions.Add(
-                proposalStatus == ProposalStatus.Accepted
-                && !conversationIsClosed
-                    ? ProposalActionNames.OpenChat
-                    : ProposalActionNames.ViewChatHistory);
+            if (!ProposalChatVisibility.IsHiddenFromActor(
+                    actorUserId,
+                    lawyerUserId,
+                    proposalStatus))
+            {
+                actions.Add(
+                    proposalStatus == ProposalStatus.Accepted
+                    && !conversationIsClosed
+                        ? ProposalActionNames.OpenChat
+                        : ProposalActionNames.ViewChatHistory);
+            }
         }
 
         if (contractId.HasValue)
@@ -71,5 +77,17 @@ internal static class ProposalPermittedActions
         }
 
         return actions;
+    }
+}
+
+internal static class ProposalChatVisibility
+{
+    public static bool IsHiddenFromActor(
+        Guid actorUserId,
+        Guid lawyerUserId,
+        ProposalStatus proposalStatus)
+    {
+        return proposalStatus == ProposalStatus.Superseded
+            && actorUserId == lawyerUserId;
     }
 }

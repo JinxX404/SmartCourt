@@ -69,8 +69,15 @@ internal static class ProposalReadModel
             return null;
         }
 
+        var hideConversation = ProposalChatVisibility.IsHiddenFromActor(
+            actorUserId,
+            row.LawyerUserId,
+            row.Status);
+        var visibleConversationId = hideConversation
+            ? null
+            : row.ConversationId;
         var canChat = row.Status == ProposalStatus.Accepted
-            && row.ConversationId.HasValue
+            && visibleConversationId.HasValue
             && !row.ConversationIsClosed;
         return new ProposalDetailDto(
                 row.Id,
@@ -88,8 +95,8 @@ internal static class ProposalReadModel
                 row.AssignedLawyerUserId == row.LawyerUserId,
                 row.ContractId,
                 row.ContractStatus?.ToString(),
-                row.ConversationId,
-                row.ConversationId.HasValue
+                visibleConversationId,
+                visibleConversationId.HasValue
                     ? row.ConversationIsClosed ? "Closed" : "Open"
                     : null,
                 canChat,

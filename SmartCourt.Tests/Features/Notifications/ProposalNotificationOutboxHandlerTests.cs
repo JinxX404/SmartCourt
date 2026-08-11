@@ -80,6 +80,39 @@ public sealed class ProposalNotificationOutboxHandlerTests
     }
 
     [Fact]
+    public async Task HandleAsync_SupersededProposalExplainsPrivacyClosureToLawyer()
+    {
+        await using var context = CreateContext();
+        var lawyerId = Guid.NewGuid();
+        var proposalId = Guid.NewGuid();
+        var message = CreateMessage(
+            ContractPaymentEventTypes.ProposalSuperseded,
+            proposalId,
+            new ProposalEventPayload(
+                proposalId,
+                Guid.NewGuid(),
+                Guid.NewGuid(),
+                lawyerId));
+
+        await new ProposalNotificationOutboxHandler(
+                context,
+                new RecordingNotifier())
+            .HandleAsync(message, CancellationToken.None);
+
+        var saved = await context.Notifications.SingleAsync();
+        Assert.Equal(lawyerId, saved.RecipientUserId);
+        Assert.Contains("sorry", saved.Body, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "assigned to another lawyer",
+            saved.Body,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "no longer available",
+            saved.Body,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task HandleAsync_RetryDoesNotInsertDuplicate()
     {
         await using var context = CreateContext();

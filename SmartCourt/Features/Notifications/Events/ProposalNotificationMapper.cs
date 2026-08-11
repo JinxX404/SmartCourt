@@ -71,7 +71,7 @@ internal static class ProposalNotificationMapper
                 "proposal.superseded",
                 NotificationSeverity.Information,
                 "Proposal closed",
-                "The client activated another contract for this case.",
+                "We're sorry, this case was assigned to another lawyer and the negotiation is no longer available.",
                 actionUrl,
                 data),
             _ => throw new InvalidOperationException(

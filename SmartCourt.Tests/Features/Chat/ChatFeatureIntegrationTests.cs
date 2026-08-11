@@ -7,6 +7,8 @@ using SmartCourt.Common.Enums;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Events;
+using SmartCourt.Features.Chat.GetConversation;
+using SmartCourt.Features.Chat.GetConversations;
 using SmartCourt.Features.Chat.GetMessages;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
@@ -158,6 +160,82 @@ public sealed class ChatFeatureIntegrationTests
         Assert.True(result.Data.Items[0].IsMine);
         Assert.Equal("Contract draft was accepted.", result.Data.Items[1].Content);
         Assert.False(result.Data.Items[1].IsMine);
+    }
+
+    [Fact]
+    public async Task SupersededConversation_IsHiddenFromLawyerAcrossChatAccessPaths()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var proposal = await context.Proposals.SingleAsync();
+        proposal.Supersede(_utcNow);
+        conversation.Close(_utcNow);
+        context.ChatMessages.Add(
+            ChatMessage.CreateUserMessage(
+                Guid.NewGuid(),
+                conversation.Id,
+                _clientUserId,
+                "Confidential negotiation details.",
+                _utcNow.AddMinutes(-1)));
+        await context.SaveChangesAsync();
+
+        var lawyerUser = new MutableCurrentUserService(_lawyerUserId);
+        var messagesResult = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+        var detailResult = await new GetChatConversationHandler(
+            context,
+            lawyerUser).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var listResult = await new GetChatConversationsHandler(
+            context,
+            lawyerUser,
+            new GetChatConversationsQueryValidator()).Handle(
+                new GetChatConversationsQuery(),
+                CancellationToken.None);
+        var accessService = new ChatConversationService(
+            context,
+            new FixedTimeProvider(_utcNow));
+        var canJoinSignalRConversation = await accessService.CanAccessConversationAsync(
+            conversation.Id,
+            _lawyerUserId,
+            CancellationToken.None);
+        var sendResult = await new SendChatMessageHandler(
+            context,
+            lawyerUser,
+            new SendChatMessageCommandValidator(),
+            new RecordingNotifier(),
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "Attempt to reopen negotiation."),
+                CancellationToken.None);
+
+        Assert.False(messagesResult.Success);
+        Assert.Equal(404, messagesResult.StatusCode);
+        Assert.False(detailResult.Success);
+        Assert.Equal(404, detailResult.StatusCode);
+        Assert.True(listResult.Success);
+        Assert.Empty(listResult.Data!.Items);
+        Assert.False(canJoinSignalRConversation);
+        Assert.False(sendResult.Success);
+        Assert.Equal(404, sendResult.StatusCode);
+
+        lawyerUser.UserId = _clientUserId;
+        var clientMessagesResult = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+
+        Assert.True(clientMessagesResult.Success);
+        Assert.Single(clientMessagesResult.Data!.Items);
     }
 
     [Theory]

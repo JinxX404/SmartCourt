@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -37,8 +38,11 @@ public sealed class GetChatConversationsHandler(
                 on conversation.ClientUserId equals client.Id
             join lawyer in context.Users
                 on conversation.LawyerUserId equals lawyer.Id
+            join proposal in context.Proposals
+                on conversation.ProposalId equals proposal.Id
             where conversation.ClientUserId == actorUserId
-                || conversation.LawyerUserId == actorUserId
+                || (conversation.LawyerUserId == actorUserId
+                    && proposal.Status != ProposalStatus.Superseded)
             select new
             {
                 conversation,

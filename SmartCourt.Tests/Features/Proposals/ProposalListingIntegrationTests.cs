@@ -185,6 +185,43 @@ public sealed class ProposalListingIntegrationTests
         Assert.Equal(404, result.StatusCode);
     }
 
+    [Fact]
+    public async Task LawyerInbox_HidesSupersededConversationMetadataAndActions()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAndCasesAsync(context);
+        var proposal = CreateProposal(
+            _caseId,
+            _lawyerUserId,
+            _utcNow.AddHours(-3));
+        proposal.Accept(_utcNow.AddHours(-2));
+        proposal.Supersede(_utcNow.AddHours(-1));
+        var conversation = new ChatConversation(
+            Guid.NewGuid(),
+            proposal.Id,
+            _caseId,
+            _clientUserId,
+            _lawyerUserId,
+            _utcNow.AddHours(-2));
+        conversation.Close(_utcNow.AddHours(-1));
+        context.AddRange(proposal, conversation);
+        await context.SaveChangesAsync();
+
+        var result = await CreateHandler(context, _lawyerUserId).Handle(
+            new GetProposalsQuery(
+                ProposalListScope.LawyerInbox,
+                Statuses: [ProposalStatus.Superseded]),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        var item = Assert.Single(result.Data!.Items);
+        Assert.Null(item.ConversationId);
+        Assert.Null(item.ConversationStatus);
+        Assert.False(item.CanChat);
+        Assert.DoesNotContain("OpenChat", item.PermittedActions);
+        Assert.DoesNotContain("ViewChatHistory", item.PermittedActions);
+    }
+
     private GetProposalsHandler CreateHandler(
         ApplicationDbContext context,
         Guid userId)

@@ -66,7 +66,7 @@ build an All tab, send every status explicitly.
 | `Cancelled` | The client withdrew a pending proposal. | No |
 | `Expired` | No response was received within 72 hours. | No |
 | `Terminated` | A participant ended an accepted negotiation. | No |
-| `Superseded` | Another proposal's contract was activated. | No |
+| `Superseded` | Another proposal's contract was activated. Chat is hidden from the affected lawyer. | No |
 
 ## 1. Lawyer proposal inbox
 
@@ -259,6 +259,41 @@ Acceptance creates exactly one conversation and returns its `conversationId`.
 It does not assign the case. The case remains `Matched` until a contract is
 accepted by both participants and activated.
 
+### Accept only (start an inquiry)
+
+Call only the accept endpoint. On success, navigate to the returned
+`conversationId` and allow the lawyer and client to discuss the case.
+
+### Accept and immediately submit a contract draft
+
+This is intentionally a two-step frontend workflow, not one combined request:
+
+```http
+POST /api/proposals/{proposalId}/accept
+```
+
+After that request succeeds, immediately call:
+
+```http
+POST /api/contracts
+Content-Type: application/json
+```
+
+```json
+{
+  "proposalId": "proposal-id",
+  "title": "Legal representation agreement",
+  "termsAndConditions": "The complete proposed representation terms."
+}
+```
+
+Successful contract creation returns HTTP `201 Created`.
+
+Keep contract validation and errors attached to the second step. If contract
+creation fails, the accepted proposal and conversation remain valid; show the
+error and allow the lawyer to correct and resubmit the draft. Do not call the
+accept endpoint a second time.
+
 ## 7. Reject proposal
 
 ```http
@@ -322,7 +357,8 @@ conversation becomes closed/read-only and remains available as history.
 | Accepted with draft/active contract | Open chat and View contract. |
 | Selected active lawyer | Show Assigned lawyer using `isAssignedLawyer`. |
 | Rejected/cancelled/expired | Show terminal reason/status; no chat button. |
-| Superseded/terminated | Show read-only chat history when available. |
+| Superseded | Client may retain read-only history; the affected lawyer cannot access it. |
+| Terminated | Show read-only chat history when available. |
 
 ## Lawyer UI rules
 
@@ -332,7 +368,8 @@ conversation becomes closed/read-only and remains available as history.
 | Accepted without contract | Open chat, Create contract, or Terminate. |
 | Accepted with contract | Open chat and View contract. |
 | Assigned through this proposal | Show Active client relationship. |
-| Superseded/terminated | Show read-only history; no message composer. |
+| Superseded | Show the proposal status and notification only. Remove all chat UI and identifiers. |
+| Terminated | Show read-only history; no message composer. |
 
 ## Chat traceability and lifecycle
 
@@ -363,8 +400,28 @@ Contract Completed                       -> closed conversation
 Contract Terminated                      -> closed conversation
 ```
 
-Closed conversations remain readable. Both REST and SignalR message sending
-are enforced by the backend; sending to a closed conversation returns `409`.
+Closed conversations normally remain readable by both participants. A
+superseded conversation is the privacy exception: it remains available to the
+client but is completely hidden from the affected lawyer.
+
+For a superseded lawyer, the backend:
+
+- returns `null` for `conversationId` and `conversationStatus` in proposal DTOs;
+- never returns `OpenChat` or `ViewChatHistory` in `permittedActions`;
+- excludes the conversation from `GET /api/chat/conversations`;
+- returns `404` for conversation detail, message history, and message sending;
+- rejects SignalR `JoinConversation` with `Conversation was not found.`;
+- creates a `proposal.superseded` notification explaining that the case was
+  assigned to another lawyer and the negotiation is no longer available.
+
+Use `404`, rather than revealing that a hidden conversation exists. Do not
+cache message history after a proposal becomes superseded; remove that
+conversation from the lawyer's client-side state when the notification arrives
+or when proposal data refreshes.
+
+Other closed conversations are still readable. REST and SignalR message
+sending are enforced by the backend; sending to an ordinary closed
+conversation returns `409`.
 
 Chat endpoints:
 

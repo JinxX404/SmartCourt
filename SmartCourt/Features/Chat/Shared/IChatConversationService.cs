@@ -12,7 +12,7 @@ public interface IChatConversationService
         Guid proposalId,
         CancellationToken cancellationToken);
 
-    Task<bool> IsParticipantAsync(
+    Task<bool> CanAccessConversationAsync(
         Guid conversationId,
         Guid userId,
         CancellationToken cancellationToken);
