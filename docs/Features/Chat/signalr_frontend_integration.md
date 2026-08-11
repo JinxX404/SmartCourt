@@ -21,15 +21,28 @@ authorization header to the WebSocket connection.
 import * as signalR from "@microsoft/signalr";
 
 const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${apiBase}/hubs/chat`, {
+  .withUrl(import.meta.env.DEV ? "/hubs/chat" : `${apiBase}/hubs/chat`, {
     accessTokenFactory: () => accessToken,
   })
   .withAutomaticReconnect([0, 2000, 5000, 10000])
   .build();
 ```
 
+The repository's Vite configuration proxies `/hubs` to the local API and
+enables WebSocket forwarding. Use the relative `/hubs/chat` URL during local
+frontend development so the browser stays on one origin. For a separately
+hosted frontend, configure its exact origin in backend configuration, for
+example `Cors__Origins__0=https://app.example.com`. Do not use `*` with
+credentialed chat connections.
+
 Start the connection after the user is authenticated. Stop it when the user
 signs out or the application is disposed.
+
+For no-refresh delivery, register the `ReceiveMessage` handler before calling
+`connection.start()`, then invoke `JoinConversation` with exactly one argument:
+the conversation ID. Invoke `SendMessage` with exactly two arguments: the
+conversation ID and `{ content }`. Cancellation is managed by the server and
+must not be sent as an additional hub argument.
 
 ```ts
 await connection.start();

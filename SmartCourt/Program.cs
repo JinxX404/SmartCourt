@@ -21,7 +21,9 @@ namespace SmartCourt
                 var builder = WebApplication.CreateBuilder(args);
 
                 // 1. Add API Services
-                builder.Services.AddApiServices();
+                builder.Services.AddApiServices(
+                    builder.Configuration,
+                    builder.Environment.IsDevelopment());
 
                 // 2. Add Infrastructure Services (Database, Identity, Email, etc.)
                 builder.Services.AddInfrastructureServices(builder.Configuration, builder.Environment.IsDevelopment());
@@ -47,6 +49,7 @@ namespace SmartCourt
                     app.UseHangfireDashboard();
                 }
 
+                app.UseCors(DependencyInjection.FrontendCorsPolicy);
                 app.UseAuthentication();
                 //app.UseRateLimiter();
                 app.UseAuthorization();

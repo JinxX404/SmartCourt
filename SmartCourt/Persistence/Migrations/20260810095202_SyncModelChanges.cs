@@ -11,85 +11,99 @@ namespace SmartCourt.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Proposals_LegalCaseId",
-                table: "Proposals");
+            // Some development databases received these schema changes from an
+            // earlier branch migration. Guard every operation so EF can safely
+            // reconcile their migration history without rebuilding the database.
+            migrationBuilder.Sql(
+                """
+                IF EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'IX_Proposals_LegalCaseId'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Proposals]'))
+                    DROP INDEX [IX_Proposals_LegalCaseId] ON [dbo].[Proposals];
 
-            migrationBuilder.DropCheckConstraint(
-                name: "CK_Proposals_Status_Range",
-                table: "Proposals");
+                IF EXISTS (
+                    SELECT 1 FROM sys.check_constraints
+                    WHERE [name] = N'CK_Proposals_Status_Range'
+                      AND [parent_object_id] = OBJECT_ID(N'[dbo].[Proposals]'))
+                    ALTER TABLE [dbo].[Proposals]
+                        DROP CONSTRAINT [CK_Proposals_Status_Range];
 
-            migrationBuilder.DropIndex(
-                name: "IX_Contracts_LegalCaseId",
-                table: "Contracts");
+                IF EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'IX_Contracts_LegalCaseId'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Contracts]'))
+                    DROP INDEX [IX_Contracts_LegalCaseId] ON [dbo].[Contracts];
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ClosedAt",
-                table: "Proposals",
-                type: "datetime2",
-                nullable: true);
+                IF COL_LENGTH(N'dbo.Proposals', N'ClosedAt') IS NULL
+                    ALTER TABLE [dbo].[Proposals] ADD [ClosedAt] datetime2 NULL;
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "ClosedByUserId",
-                table: "Proposals",
-                type: "uniqueidentifier",
-                nullable: true);
+                IF COL_LENGTH(N'dbo.Proposals', N'ClosedByUserId') IS NULL
+                    ALTER TABLE [dbo].[Proposals]
+                        ADD [ClosedByUserId] uniqueidentifier NULL;
 
-            migrationBuilder.AddColumn<DateTime>(
-                name: "ExpiresAt",
-                table: "Proposals",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified));
+                IF COL_LENGTH(N'dbo.Proposals', N'ExpiresAt') IS NULL
+                    ALTER TABLE [dbo].[Proposals]
+                        ADD [ExpiresAt] datetime2 NOT NULL
+                        CONSTRAINT [DF_Proposals_ExpiresAt]
+                        DEFAULT '0001-01-01T00:00:00.0000000';
 
-            migrationBuilder.AddColumn<Guid>(
-                name: "LawyerId",
-                table: "Cases",
-                type: "uniqueidentifier",
-                nullable: true);
+                IF COL_LENGTH(N'dbo.Cases', N'LawyerId') IS NULL
+                    ALTER TABLE [dbo].[Cases] ADD [LawyerId] uniqueidentifier NULL;
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Proposals_ClosedByUserId",
-                table: "Proposals",
-                column: "ClosedByUserId");
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'IX_Proposals_ClosedByUserId'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Proposals]'))
+                    CREATE INDEX [IX_Proposals_ClosedByUserId]
+                        ON [dbo].[Proposals] ([ClosedByUserId]);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Proposals_Status_ExpiresAt",
-                table: "Proposals",
-                columns: new[] { "Status", "ExpiresAt" });
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'IX_Proposals_Status_ExpiresAt'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Proposals]'))
+                    CREATE INDEX [IX_Proposals_Status_ExpiresAt]
+                        ON [dbo].[Proposals] ([Status], [ExpiresAt]);
 
-            migrationBuilder.AddCheckConstraint(
-                name: "CK_Proposals_Status_Range",
-                table: "Proposals",
-                sql: "[Status] BETWEEN 0 AND 6");
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.check_constraints
+                    WHERE [name] = N'CK_Proposals_Status_Range'
+                      AND [parent_object_id] = OBJECT_ID(N'[dbo].[Proposals]'))
+                    ALTER TABLE [dbo].[Proposals]
+                        ADD CONSTRAINT [CK_Proposals_Status_Range]
+                        CHECK ([Status] BETWEEN 0 AND 6);
 
-            migrationBuilder.CreateIndex(
-                name: "UX_Contracts_ActiveCase",
-                table: "Contracts",
-                column: "LegalCaseId",
-                unique: true,
-                filter: "[Status] = 1");
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'UX_Contracts_ActiveCase'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Contracts]'))
+                    CREATE UNIQUE INDEX [UX_Contracts_ActiveCase]
+                        ON [dbo].[Contracts] ([LegalCaseId])
+                        WHERE [Status] = 1;
 
-            migrationBuilder.CreateIndex(
-                name: "IX_Cases_LawyerId",
-                table: "Cases",
-                column: "LawyerId");
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.indexes
+                    WHERE [name] = N'IX_Cases_LawyerId'
+                      AND [object_id] = OBJECT_ID(N'[dbo].[Cases]'))
+                    CREATE INDEX [IX_Cases_LawyerId]
+                        ON [dbo].[Cases] ([LawyerId]);
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Cases_LawyerProfile_LawyerId",
-                table: "Cases",
-                column: "LawyerId",
-                principalTable: "LawyerProfile",
-                principalColumn: "UserId",
-                onDelete: ReferentialAction.Restrict);
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.foreign_keys
+                    WHERE [name] = N'FK_Cases_LawyerProfile_LawyerId')
+                    ALTER TABLE [dbo].[Cases]
+                        ADD CONSTRAINT [FK_Cases_LawyerProfile_LawyerId]
+                        FOREIGN KEY ([LawyerId]) REFERENCES [dbo].[LawyerProfile] ([UserId])
+                        ON DELETE NO ACTION;
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_Proposals_AspNetUsers_ClosedByUserId",
-                table: "Proposals",
-                column: "ClosedByUserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                IF NOT EXISTS (
+                    SELECT 1 FROM sys.foreign_keys
+                    WHERE [name] = N'FK_Proposals_AspNetUsers_ClosedByUserId')
+                    ALTER TABLE [dbo].[Proposals]
+                        ADD CONSTRAINT [FK_Proposals_AspNetUsers_ClosedByUserId]
+                        FOREIGN KEY ([ClosedByUserId]) REFERENCES [dbo].[AspNetUsers] ([Id])
+                        ON DELETE NO ACTION;
+                """);
         }
 
         /// <inheritdoc />
