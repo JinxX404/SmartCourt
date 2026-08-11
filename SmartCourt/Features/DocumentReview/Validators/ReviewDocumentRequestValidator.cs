@@ -8,14 +8,14 @@ namespace SmartCourt.Features.DocumentReview.Validators;
 
 public class ReviewDocumentRequestValidator : AbstractValidator<ReviewDocumentRequest>
 {
-    private readonly string[] _allowedExtensions = { ".pdf", ".doc", ".docx" };
+    private readonly string[] _allowedExtensions = { ".pdf", ".docx" };
 
     public ReviewDocumentRequestValidator()
     {
         RuleFor(x => x.File)
             .NotNull().WithMessage("File is required.")
             .Must(f => f.Length <= 10 * 1024 * 1024).WithMessage("File size must not exceed 10 MB.")
-            .Must(BeValidExtension).WithMessage("Only .pdf, .doc, and .docx files are supported.");
+            .Must(BeValidExtension).WithMessage("Only .pdf and .docx files are supported.");
 
         RuleFor(x => x.Query)
             .NotEmpty().WithMessage("Query is required.")

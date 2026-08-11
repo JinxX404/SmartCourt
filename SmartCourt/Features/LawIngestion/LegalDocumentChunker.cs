@@ -60,7 +60,16 @@ public class LegalDocumentChunker
             return FallbackChunking(fullText, currentPart, currentChapter, currentSection);
         }
 
-        int lastIndex = 0;
+        // Preserve the title/preamble: it is often the only place where a law's
+        // scope and jurisdiction are stated.
+        var preamble = fullText[..articleMatches[0].Index].Trim();
+        if (!string.IsNullOrWhiteSpace(preamble))
+        {
+            UpdateStructuralMetadata(preamble, ref currentPart, ref currentChapter, ref currentSection);
+            ProcessArticleBody(preamble, currentPart, currentChapter, currentSection, 0, chunks);
+        }
+
+        int lastIndex = articleMatches[0].Index;
         int currentArticleNumber = 0;
 
         foreach (Match match in articleMatches)
@@ -95,6 +104,10 @@ public class LegalDocumentChunker
 
         return MergeShortChunks(chunks, _options.MinChunkTokens);
     }
+
+    /// <summary>Chunks ordinary user documents without interpreting contract clauses as legislation.</summary>
+    public List<LawChunkDto> ChunkPlainText(string text)
+        => FallbackChunking(text, string.Empty, string.Empty, string.Empty);
 
     private void UpdateStructuralMetadata(string text, ref string part, ref string chapter, ref string section)
     {
@@ -189,7 +202,10 @@ public class LegalDocumentChunker
             var current = chunks[i];
             int tokenEstimate = current.Text.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
 
-            if (tokenEstimate < minTokens && merged.Count > 0)
+            if (tokenEstimate < minTokens && merged.Count > 0
+                && merged.Last().Article == current.Article
+                && merged.Last().Part == current.Part
+                && merged.Last().Chapter == current.Chapter)
             {
                 // Merge with previous
                 var prev = merged.Last();

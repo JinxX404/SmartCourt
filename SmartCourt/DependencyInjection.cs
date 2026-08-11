@@ -1,92 +1,83 @@
-using System.Threading.RateLimiting;
-using System.Security.Claims;
-using System.Globalization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.AspNetCore.Builder;
-using SmartCourt.Providers.Jwt;
-using SmartCourt.Providers;
-using SmartCourt.Common.Extensions;
-using SmartCourt.Common.Entities;
-using SmartCourt.Common.Options;
-using SmartCourt.Common.RateLimiting;
-using SmartCourt.Common.Models;
 using FluentValidation;
 using FluentValidation.AspNetCore;
-using System.Text;
 using Hangfire;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using SmartCourt.Features.Auth.ConfirmEmail;
+using Qdrant.Client;
+using SmartCourt.Common.Configuration;
+using SmartCourt.Common.Extensions;
+using SmartCourt.Common.Models;
+using SmartCourt.Common.Options;
+using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Auth.ChangePassword;
+using SmartCourt.Features.Auth.ConfirmEmail;
 using SmartCourt.Features.Auth.ForgotPassword;
-using SmartCourt.Features.Auth.ResetPassword;
-using SmartCourt.Infrastructure.Idempotency;
-using SmartCourt.Infrastructure.Providers.Events;
-using SmartCourt.Infrastructure.Providers.Jobs;
-using SmartCourt.Infrastructure.Providers.Payments;
-using SmartCourt.Features.Payments;
-using SmartCourt.Features.Payments.Events;
-using SmartCourt.Features.Payments.Integration;
-using SmartCourt.Providers.Jobs;
-using SmartCourt.Providers.Payments;
-using SmartCourt.Features.Auth.ResendVerification;
 using SmartCourt.Features.Auth.Login;
 using SmartCourt.Features.Auth.RefreshToken;
 using SmartCourt.Features.Auth.RegisterClient;
 using SmartCourt.Features.Auth.RegisterLawyer;
-using SmartCourt.Features.Milestones.Events;
-using SmartCourt.Features.Milestones;
-using SmartCourt.Features.Milestones.Integration;
+using SmartCourt.Features.Auth.ResendVerification;
+using SmartCourt.Features.Auth.ResetPassword;
+using SmartCourt.Features.Auth.RevokeRefreshToken;
+using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Features.Case.Integration;
+using SmartCourt.Features.Chat.Events;
+using SmartCourt.Features.Chat.Integration;
+using SmartCourt.Features.Chat.Realtime;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
 using SmartCourt.Features.Contracts.Integration;
-
-using SmartCourt.Features.Case.Integration;
-using SmartCourt.Features.Chat.Integration;
-using SmartCourt.Features.Chat.Events;
-using SmartCourt.Features.Chat.Realtime;
-using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Disputes;
+using SmartCourt.Features.Files.Integration;
+using SmartCourt.Features.LawIngestion;
+using SmartCourt.Features.Milestones;
+using SmartCourt.Features.Milestones.Events;
+using SmartCourt.Features.Milestones.Integration;
 using SmartCourt.Features.Notifications;
 using SmartCourt.Features.Notifications.Events;
 using SmartCourt.Features.Notifications.Realtime;
+using SmartCourt.Entities;
 using SmartCourt.Features.Admin.Verifications.Events;
 using SmartCourt.Features.Admin.Verifications.Integration;
-using SmartCourt.Features.Proposals.Integration;
-using SmartCourt.Features.Proposals.Expiration;
-using SmartCourt.Features.Users.Integration;
-using SmartCourt.Features.Files.Integration;
-using SmartCourt.Features.Disputes;
-using SmartCourt.Features.Payments.FundingVerification;
-using SmartCourt.Features.Auth.RevokeRefreshToken;
-using SmartCourt.Features.Auth.Shared;
 using SmartCourt.Features.Auth.Events;
 using SmartCourt.Features.Auth.Integration;
-using SmartCourt.Entities;
+using SmartCourt.Features.Payments;
+using SmartCourt.Features.Payments.Events;
+using SmartCourt.Features.Payments.FundingVerification;
+using SmartCourt.Features.Payments.Integration;
+using SmartCourt.Features.Proposals.Expiration;
+using SmartCourt.Features.Proposals.Integration;
+using SmartCourt.Features.Users.Integration;
 using SmartCourt.Features.UserVerification.DeleteVerificationDocument;
 using SmartCourt.Features.UserVerification.GetUserVerificationDocuments;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments;
-using SmartCourt.Interfaces.Providers;
+using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Infrastructure.Providers.Jobs;
+using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Interfaces;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
-using SmartCourt.Persistence.DataSeeders;
+using SmartCourt.Providers;
 using SmartCourt.Providers.Email;
-using SmartCourt.Providers.FileStorage;
-using Twilio.Types;
-using static SmartCourt.Interfaces.Providers.IFileStorageService;
-using SmartCourt.Providers.VectorStore;
 using SmartCourt.Providers.Embedding;
-using SmartCourt.Providers.Reranker;
+using SmartCourt.Providers.FileStorage;
+using SmartCourt.Providers.Jobs;
+using SmartCourt.Providers.Jwt;
+using SmartCourt.Providers.Payments;
 using SmartCourt.Providers.PdfParser;
-using SmartCourt.Features.LawIngestion;
-using Qdrant.Client;
-using SmartCourt.Common.Configuration;
+using SmartCourt.Providers.Reranker;
+using SmartCourt.Providers.VectorStore;
+using System.Globalization;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.RateLimiting;
 
 namespace SmartCourt;
 
@@ -614,7 +605,19 @@ public static class DependencyInjection
         services.AddScoped<IValidator<DeleteVerificationDocumentCommand>, DeleteVerificationDocumentCommandValidator>();
 
         // --- RAG Pipeline: Vector Store ---
-        services.Configure<QdrantOptions>(configuration.GetSection(QdrantOptions.SectionName));
+        services.AddOptions<QdrantOptions>()
+            .Bind(configuration.GetSection(QdrantOptions.SectionName))
+            .Validate(x => !string.IsNullOrWhiteSpace(x.Host), "Qdrant:Host is required.")
+            .Validate(x => x.Port > 0, "Qdrant:Port must be positive.")
+            .ValidateOnStart();
+        services.AddOptions<RagOptions>()
+            .Bind(configuration.GetSection(RagOptions.SectionName))
+            .Validate(x => !string.IsNullOrWhiteSpace(x.LegalCollectionName), "Rag:LegalCollectionName is required.")
+            .Validate(x => x.EmbeddingBatchSize is > 0 and <= 128, "Rag:EmbeddingBatchSize must be between 1 and 128.")
+            .Validate(x => x.CandidateCount is > 0 and <= 100, "Rag:CandidateCount must be between 1 and 100.")
+            .Validate(x => x.RerankedCount is > 0 and <= 20, "Rag:RerankedCount must be between 1 and 20.")
+            .Validate(x => x.MinimumSimilarityScore is >= -1 and <= 1, "Rag:MinimumSimilarityScore must be between -1 and 1.")
+            .ValidateOnStart();
         services.AddSingleton<QdrantClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
@@ -623,11 +626,20 @@ public static class DependencyInjection
         services.AddScoped<IVectorStoreProvider, QdrantVectorStoreProvider>();
 
         // --- RAG Pipeline: Embedding ---
-        services.Configure<AlibabaEmbeddingOptions>(configuration.GetSection(AlibabaEmbeddingOptions.SectionName));
+        services.AddOptions<AlibabaEmbeddingOptions>()
+            .Bind(configuration.GetSection(AlibabaEmbeddingOptions.SectionName))
+            .Validate(x => !string.IsNullOrWhiteSpace(x.ApiKey), "AlibabaEmbedding:ApiKey is required.")
+            .Validate(x => Uri.TryCreate(x.BaseUrl, UriKind.Absolute, out _), "AlibabaEmbedding:BaseUrl must be absolute.")
+            .Validate(x => x.Dimensions > 0, "AlibabaEmbedding:Dimensions must be positive.")
+            .ValidateOnStart();
         services.AddHttpClient<IEmbeddingProvider, AlibabaEmbeddingProvider>();
 
         // --- RAG Pipeline: Reranker ---
-        services.Configure<AlibabaRerankerOptions>(configuration.GetSection(AlibabaRerankerOptions.SectionName));
+        services.AddOptions<AlibabaRerankerOptions>()
+            .Bind(configuration.GetSection(AlibabaRerankerOptions.SectionName))
+            .Validate(x => !string.IsNullOrWhiteSpace(x.ApiKey), "AlibabaReranker:ApiKey is required.")
+            .Validate(x => Uri.TryCreate(x.BaseUrl, UriKind.Absolute, out _), "AlibabaReranker:BaseUrl must be absolute.")
+            .ValidateOnStart();
         services.AddHttpClient<IRerankerProvider, AlibabaRerankerProvider>();
 
 
@@ -640,7 +652,12 @@ public static class DependencyInjection
         // --- RAG Pipeline: Chat Model ---
         // services.Configure<SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.DeepSeekChatModelOptions.SectionName));
         // services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.DeepSeekChatModelProvider>();
-        services.Configure<SmartCourt.Providers.ChatModel.AlibabaChatModelOptions>(configuration.GetSection(SmartCourt.Providers.ChatModel.AlibabaChatModelOptions.SectionName));
+        services.AddOptions<SmartCourt.Providers.ChatModel.AlibabaChatModelOptions>()
+            .Bind(configuration.GetSection(SmartCourt.Providers.ChatModel.AlibabaChatModelOptions.SectionName))
+            .Validate(x => !string.IsNullOrWhiteSpace(x.ApiKey), "AlibabaChatModel:ApiKey is required.")
+            .Validate(x => Uri.TryCreate(x.BaseUrl, UriKind.Absolute, out _), "AlibabaChatModel:BaseUrl must be absolute.")
+            .Validate(x => x.MaxTokens > 0, "AlibabaChatModel:MaxTokens must be positive.")
+            .ValidateOnStart();
         services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.AlibabaChatModelProvider>();
         // --- Feature: Document Review ---
         services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();
@@ -658,7 +675,13 @@ public static class DependencyInjection
         services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();
 
         // --- RAG Pipeline: Law Ingestion Feature ---
-        services.Configure<ChunkingOptions>(configuration.GetSection(ChunkingOptions.SectionName));
+        services.AddOptions<ChunkingOptions>()
+            .Bind(configuration.GetSection(ChunkingOptions.SectionName))
+            .Validate(x => x.MaxChunkTokens > 0 && x.OverlapTokens >= 0 && x.OverlapTokens < x.MaxChunkTokens,
+                "Chunking overlap must be non-negative and less than the maximum chunk size.")
+            .Validate(x => x.MinChunkTokens > 0 && x.MinChunkTokens <= x.MaxChunkTokens,
+                "Chunking minimum size must be positive and not exceed the maximum chunk size.")
+            .ValidateOnStart();
         services.AddScoped<ILawIngestionService, LawIngestionService>();
         services.AddScoped<LegalDocumentChunker>();
 

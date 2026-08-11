@@ -41,8 +41,12 @@ public class QdrantVectorStoreProvider : IVectorStoreProvider
 
                 // Create payload indexes
                 await _client.CreatePayloadIndexAsync(collectionName, "document_id", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
+                await _client.CreatePayloadIndexAsync(collectionName, "chunk_id", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
                 await _client.CreatePayloadIndexAsync(collectionName, "document_title", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
+                await _client.CreatePayloadIndexAsync(collectionName, "law_name", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
                 await _client.CreatePayloadIndexAsync(collectionName, "language", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
+                await _client.CreatePayloadIndexAsync(collectionName, "jurisdiction", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
+                await _client.CreatePayloadIndexAsync(collectionName, "source_type", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
                 await _client.CreatePayloadIndexAsync(collectionName, "part", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
                 await _client.CreatePayloadIndexAsync(collectionName, "chapter", PayloadSchemaType.Keyword, cancellationToken: cancellationToken);
                 await _client.CreatePayloadIndexAsync(collectionName, "article_number", PayloadSchemaType.Integer, cancellationToken: cancellationToken);
@@ -112,6 +116,9 @@ public class QdrantVectorStoreProvider : IVectorStoreProvider
         Dictionary<string, string>? filters = null, 
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(collectionName)) throw new ArgumentException("Collection name is required.", nameof(collectionName));
+        if (queryVector is null || queryVector.Length == 0) throw new ArgumentException("Query vector is required.", nameof(queryVector));
+        if (topK <= 0 || topK > 100) throw new ArgumentOutOfRangeException(nameof(topK));
         try
         {
             Filter? filter = null;
