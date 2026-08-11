@@ -12,6 +12,10 @@ public interface IVerificationNotificationContextReader
     Task<VerificationAccountNotificationContext> GetAccountAsync(
         Guid userId,
         CancellationToken cancellationToken);
+
+    Task<VerificationReviewRequestedNotificationContext> GetReviewRequestedAsync(
+        Guid userId,
+        CancellationToken cancellationToken);
 }
 
 public sealed record VerificationDocumentNotificationContext(
@@ -23,3 +27,7 @@ public sealed record VerificationDocumentNotificationContext(
 public sealed record VerificationAccountNotificationContext(
     Guid UserId,
     UserStatus Status);
+
+public sealed record VerificationReviewRequestedNotificationContext(
+    Guid UserId,
+    IReadOnlyCollection<Guid> AdministratorUserIds);

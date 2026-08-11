@@ -38,4 +38,32 @@ internal sealed class VerificationNotificationContextReader(
             ?? throw new InvalidOperationException(
                 "تعذر إنشاء الإشعار لأن الحساب المرتبط بالحدث غير موجود.");
     }
+
+    public async Task<VerificationReviewRequestedNotificationContext>
+        GetReviewRequestedAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+    {
+        var userExists = await dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.Id == userId, cancellationToken);
+        if (!userExists)
+        {
+            throw new InvalidOperationException(
+                "تعذر إنشاء إشعار مراجعة التحقق لأن الحساب المرتبط بالحدث غير موجود.");
+        }
+
+        var administratorUserIds = await (
+                from userRole in dbContext.UserRoles.AsNoTracking()
+                join role in dbContext.Roles.AsNoTracking()
+                    on userRole.RoleId equals role.Id
+                where role.Name == "Admin"
+                select userRole.UserId)
+            .Distinct()
+            .ToArrayAsync(cancellationToken);
+
+        return new VerificationReviewRequestedNotificationContext(
+            userId,
+            administratorUserIds);
+    }
 }

@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Entities;
+using SmartCourt.Features.Admin.Verifications.Events;
 using SmartCourt.Features.UserVerification.SubmitVerificationDocuments.DTOs;
 using SmartCourt.Interfaces.Providers;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Persistence;
 using SmartCourt.Features.Auth.Enums;
 using Supabase.Gotrue;
@@ -28,6 +30,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IValidator<SubmitVerificationDocumentsCommand> _validator;
         private readonly IFileStorageService _fileStorageService;
+        private readonly IOutboxWriter _outboxWriter;
 
         private static readonly string[] AllowedImageContentTypes =
         {
@@ -41,12 +44,14 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
         public SubmitVerificationDocumentsHandler(ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IValidator<SubmitVerificationDocumentsCommand> validator,
-            IFileStorageService fileStorageService)
+            IFileStorageService fileStorageService,
+            IOutboxWriter outboxWriter)
         {
             _context = context;
             _userManager = userManager;
             _validator = validator;
             _fileStorageService = fileStorageService;
+            _outboxWriter = outboxWriter;
         }
 
         public async Task<ApiResponse<SubmitVerificationDocumentResponseDto>> Handle(SubmitVerificationDocumentsCommand request, CancellationToken cancellationToken)
@@ -203,6 +208,13 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 {
                     user.Status = UserStatus.PendingReview;
                     _context.Users.Update(user);
+
+                    await VerificationOutbox.EnqueueReviewRequestedAsync(
+                        _outboxWriter,
+                        user,
+                        responseDto.UploadedDocuments.Count,
+                        Guid.NewGuid(),
+                        cancellationToken);
                 }
 
                 if(_context.ChangeTracker.HasChanges())

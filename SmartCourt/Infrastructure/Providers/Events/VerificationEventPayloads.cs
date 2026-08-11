@@ -9,3 +9,7 @@ public sealed record VerificationDocumentEventPayload(
 public sealed record VerificationAccountEventPayload(
     Guid UserId,
     string Status);
+
+public sealed record VerificationReviewRequestedEventPayload(
+    Guid UserId,
+    int DocumentCount);

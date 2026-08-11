@@ -130,6 +130,20 @@ The shared `NotificationOutboxHandler` uses the committed outbox message ID for 
 
 Gate 5 is verified by `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md). The HTTP artifact covers authorization boundaries, pending/detail/content routes, approve/reject/expiry, account transitions, concurrency/conflicts, validation, exact Arabic snapshots, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring.
 
+## User Verification Submission integration (Gate 6)
+
+`SubmitVerificationDocumentsHandler` emits one `VerificationReviewRequested` version `1` event before its existing `SaveChangesAsync` when at least one requested document is successfully persisted. The event uses the submitting account as its aggregate, records only the account ID and successful document count, and is committed atomically with the document rows, stored-file rows, and `PendingReview` state. A partial upload therefore creates one event for the successful subset; a multi-file request still creates one event rather than one event per file. Failed-only validation or upload outcomes enqueue no event.
+
+`VerificationNotificationEventMapper` resolves recipients through `IVerificationNotificationContextReader`. The context reader queries Identity membership for the exact `Admin` role only. It does not infer recipients from a request payload, include `SuperAdministrator`, or notify the uploading user. The mapper returns one draft per Admin, with no draft when there are no Admin role members. Existing MediatR request handlers remain in place; no MediatR notification dispatch was added.
+
+| Source event | Trigger and recipient | Notification type | Severity | Exact Arabic title | Exact Arabic body | Data | `actionUrl` |
+|---|---|---|---|---|---|---|---|
+| `VerificationReviewRequested` V1 | At least one document is persisted by a user verification submission; every exact `Admin` role member | `verification.review-requested` | `Information` | `طلب مراجعة مستندات التحقق` | `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` | `userId`, `documentCount` | `null` |
+
+The event payload and notification data never contain storage paths, file URLs/content, file names, private review metadata, rejection reasons, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The source outbox message ID is the idempotency key used internally by `NotificationOutboxHandler`; replaying a message preserves one persisted row per `(source event, Admin recipient, type)`. REST list/count/read/read-all remains durable, and SignalR delivers the persisted DTO best-effort.
+
+Gate 6 is verified by `VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md). The report records `147 passed, 0 failed, 1 documented skip` and proves the action response precedes notification polling for successful, partial, multi-file, and replacement uploads, while failed-only uploads create no event. It also covers every UserVerification endpoint, deletion, ownership boundaries, exact Arabic data, forbidden fields, Admin-only isolation, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release.
+
 ## Quick start: add notifications for your slice
 
 Before adding a trigger, check the [Notification Opportunity Catalog](./notification_opportunity_catalog.md). It records the agreed candidate story, recipient, priority, proposed type, and whether an existing event can be reused. The catalog is analysis, so selecting a story for implementation still requires inclusion in an approved integration plan.

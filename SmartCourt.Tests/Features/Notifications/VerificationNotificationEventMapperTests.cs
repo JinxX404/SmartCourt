@@ -14,6 +14,8 @@ public sealed class VerificationNotificationEventMapperTests
 {
     private static readonly Guid DocumentId = Guid.NewGuid();
     private static readonly Guid UserId = Guid.NewGuid();
+    private static readonly Guid FirstAdministratorId = Guid.NewGuid();
+    private static readonly Guid SecondAdministratorId = Guid.NewGuid();
     private static readonly DateTime UtcNow = new(
         2026,
         8,
@@ -160,17 +162,55 @@ public sealed class VerificationNotificationEventMapperTests
     }
 
     [Fact]
-    public void EventTypes_AdvertisesEachGateFiveEventExactlyOnce()
+    public async Task MapAsync_ReviewRequestedCreatesOneSafeDraftPerAdminOnly()
+    {
+        var mapper = CreateMapper(review: new VerificationReviewRequestedNotificationContext(
+            UserId,
+            [FirstAdministratorId, SecondAdministratorId, FirstAdministratorId]));
+
+        var drafts = await mapper.MapAsync(
+            CreateReviewMessage(
+                new VerificationReviewRequestedEventPayload(UserId, 2)),
+            CancellationToken.None);
+
+        Assert.Equal(2, drafts.Count);
+        Assert.Equal(
+            [FirstAdministratorId, SecondAdministratorId],
+            drafts.Select(draft => draft.RecipientUserId));
+        Assert.All(drafts, draft =>
+        {
+            Assert.Equal("verification.review-requested", draft.Type);
+            Assert.Equal("Information", draft.Severity.ToString());
+            Assert.Equal("طلب مراجعة مستندات التحقق", draft.Title);
+            Assert.Equal(
+                "تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.",
+                draft.Body);
+            Assert.Null(draft.ActionUrl);
+            Assert.Equal(UserId.ToString(), draft.Data!["userId"]);
+            Assert.Equal("2", draft.Data["documentCount"]);
+            Assert.Equal(2, draft.Data.Count);
+            Assert.DoesNotContain(
+                draft.Data.Keys,
+                key => key.Contains("path", StringComparison.OrdinalIgnoreCase)
+                    || key.Contains("content", StringComparison.OrdinalIgnoreCase)
+                    || key.Contains("email", StringComparison.OrdinalIgnoreCase)
+                    || key.Contains("phone", StringComparison.OrdinalIgnoreCase));
+        });
+    }
+
+    [Fact]
+    public void EventTypes_AdvertisesEachVerificationEventExactlyOnce()
     {
         var mapper = CreateMapper();
 
-        Assert.Equal(5, mapper.EventTypes.Count);
-        Assert.Equal(5, mapper.EventTypes.Distinct().Count());
+        Assert.Equal(6, mapper.EventTypes.Count);
+        Assert.Equal(6, mapper.EventTypes.Distinct().Count());
         Assert.Contains(VerificationEventTypes.DocumentApproved, mapper.EventTypes);
         Assert.Contains(VerificationEventTypes.DocumentRejected, mapper.EventTypes);
         Assert.Contains(VerificationEventTypes.DocumentExpired, mapper.EventTypes);
         Assert.Contains(VerificationEventTypes.AccountApproved, mapper.EventTypes);
         Assert.Contains(VerificationEventTypes.AccountRejected, mapper.EventTypes);
+        Assert.Contains(VerificationEventTypes.ReviewRequested, mapper.EventTypes);
     }
 
     [Fact]
@@ -244,9 +284,32 @@ public sealed class VerificationNotificationEventMapperTests
                 CancellationToken.None));
     }
 
+    [Fact]
+    public async Task MapAsync_RejectsInvalidReviewRequestPayload()
+    {
+        var mapper = CreateMapper(review: new VerificationReviewRequestedNotificationContext(
+            UserId,
+            [FirstAdministratorId]));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            mapper.MapAsync(
+                CreateReviewMessage(
+                    new VerificationReviewRequestedEventPayload(UserId, 0)),
+                CancellationToken.None));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            mapper.MapAsync(
+                CreateReviewMessage(
+                    new VerificationReviewRequestedEventPayload(
+                        Guid.NewGuid(),
+                        1)),
+                CancellationToken.None));
+    }
+
     private static VerificationNotificationEventMapper CreateMapper(
         VerificationDocumentNotificationContext? document = null,
-        VerificationAccountNotificationContext? account = null) =>
+        VerificationAccountNotificationContext? account = null,
+        VerificationReviewRequestedNotificationContext? review = null) =>
         new(new StubContextReader(
             document ?? new VerificationDocumentNotificationContext(
                 DocumentId,
@@ -255,7 +318,10 @@ public sealed class VerificationNotificationEventMapperTests
                 VerificationDocumentStatus.Verified),
             account ?? new VerificationAccountNotificationContext(
                 UserId,
-                UserStatus.Active)));
+                UserStatus.Active),
+            review ?? new VerificationReviewRequestedNotificationContext(
+                UserId,
+                [FirstAdministratorId])));
 
     private static OutboxMessage CreateDocumentMessage(
         string eventType,
@@ -285,9 +351,23 @@ public sealed class VerificationNotificationEventMapperTests
         UtcNow,
         UtcNow);
 
+    private static OutboxMessage CreateReviewMessage(
+        VerificationReviewRequestedEventPayload payload,
+        Guid? aggregateId = null) => new(
+        Guid.NewGuid(),
+        VerificationEventTypes.ReviewRequested,
+        1,
+        JsonSerializer.Serialize(payload),
+        nameof(ApplicationUser),
+        aggregateId ?? UserId,
+        Guid.NewGuid(),
+        UtcNow,
+        UtcNow);
+
     private sealed class StubContextReader(
         VerificationDocumentNotificationContext document,
-        VerificationAccountNotificationContext account)
+        VerificationAccountNotificationContext account,
+        VerificationReviewRequestedNotificationContext review)
         : IVerificationNotificationContextReader
     {
         public Task<VerificationDocumentNotificationContext> GetDocumentAsync(
@@ -304,6 +384,14 @@ public sealed class VerificationNotificationEventMapperTests
         {
             Assert.Equal(UserId, userId);
             return Task.FromResult(account);
+        }
+
+        public Task<VerificationReviewRequestedNotificationContext> GetReviewRequestedAsync(
+            Guid userId,
+            CancellationToken cancellationToken)
+        {
+            Assert.Equal(UserId, userId);
+            return Task.FromResult(review);
         }
     }
 }

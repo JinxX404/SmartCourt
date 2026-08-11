@@ -1,7 +1,7 @@
 # Per-Slice Notification Integration Plan
 
-Status: **Gates 0–3 and Gate 5 implemented and verified from current main; Gate 4 intentionally skipped; Gate 6 paused pending recipient-policy approval**
-Branch: `codex/notification-slice-integrations`
+Status: **Gates 0–3, Gate 5, and Gate 6 implemented and verified from current local main; Gate 4 intentionally skipped; Gate 6 is stopped for review**
+Branch: `codex/notification-gate-6-user-verification-from-main` (based on current local `main`; merge target: local `main`)
 Scope: backend only; in-app notifications first; Arabic display copy; Email/SMS deferred.
 
 This plan converts the approved [Notification Opportunity Catalog](./notification_opportunity_catalog.md) into small, independently reviewable slice integrations. It does not authorize implementation by itself. After each slice is implemented and tested, work stops until the user reviews and explicitly approves continuing.
@@ -514,17 +514,28 @@ Stop after administrative verification review.
 
 Catalog scope: `VER-01`. `VER-08` remains intentionally without a notification.
 
-The current product has no assigned verification reviewer. To avoid broadcasting to every admin, this gate does not create admin inbox rows until a queue/assignment recipient policy is approved.
+The temporary recipient policy is every user with the exact `Admin` role. `SuperAdministrator`, ordinary users, and the uploading user are excluded. This is an explicit temporary product policy until a dedicated verification assignment/queue model exists; the mapper must be replaced or narrowed when that model is approved.
 
-Allowed work before that decision is limited to a semantic `VerificationReviewRequested` outbox fact and tests proving it commits with successful uploads. The event may later feed an assignment queue, but an outbox event with no notification mapper would currently fail dispatch. Therefore the safest recommendation is to defer this gate entirely until assignment semantics exist.
+### Minimal UserVerification-slice extensions
 
-If approved later:
+- `SubmitVerificationDocumentsHandler` enqueues `VerificationReviewRequested` version `1` before its existing `SaveChangesAsync` when at least one document is persisted;
+- one submission request creates one event, including one event for a partial-success upload and one event for a multi-file request with its successful `documentCount`;
+- failed-only validation/upload outcomes enqueue no event;
+- `VerificationNotificationEventMapper` resolves Admin recipients through `IVerificationNotificationContextReader` and returns one draft per exact `Admin` role member;
+- the event and notification carry only `userId` and bounded `documentCount`; no storage path, file URL/content/name, private metadata, rejection reason, contact detail, provider ID, token, or idempotency key is included;
+- existing MediatR UserVerification handlers remain; no MediatR notification dispatch is introduced.
 
-- add assignment/queue ownership;
-- map only to the assigned reviewer;
-- test every UserVerification endpoint and partial upload outcome;
-- generate `UserVerificationNotifications_Test.ps1` and report;
-- stop for review.
+### Gate 6 Arabic copy and data contract
+
+`verification.review-requested` uses `Information`, title `طلب مراجعة مستندات التحقق`, body `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.`, `actionUrl: null`, and required data keys `userId` and `documentCount`. REST is the durable source of truth; SignalR broadcasts the persisted DTO best-effort. The shared outbox message ID makes replay idempotent, so each Admin receives at most one inbox row for the same committed submission event.
+
+### Gate 6 verification
+
+`VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md) cover every UserVerification endpoint, successful/partial/multi-file/replacement upload outcomes, failed-only no-event behavior, deletion, ownership, Admin-only recipient isolation, notification list/count/read/read-all, exact Arabic snapshots, forbidden metadata, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release. The final monitored report records `147 passed, 0 failed, 1 documented skip`; the only skip is the optional SuperAdministrator fixture unavailable from the repository's supported setup.
+
+### Stop condition
+
+Stop after the Gate 6 HTTP report and review. Do not start Gate 7 automatically.
 
 ## 12. Gate 7 — Authentication/security
 
@@ -610,4 +621,4 @@ A slice passes only when:
 
 ## 16. Approval requested
 
-Gates 0, 1, 2, 3, and 5 have been executed under separate approvals. Gate 4 remains intentionally untouched. Gate 5 was re-based on current `main` and reverified; Gate 6 remains paused because the repository has no approved verification reviewer/queue recipient policy.
+Gates 0, 1, 2, 3, 5, and 6 have been executed under separate local gate branches. Gate 4 remains intentionally untouched. Gate 5 was re-based on current local `main` and reverified; Gate 6 uses the temporary exact-`Admin` recipient policy approved for this gate and is stopped for explicit review. Gate 7 has not started.

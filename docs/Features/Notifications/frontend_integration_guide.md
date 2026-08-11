@@ -483,6 +483,7 @@ Register `NotificationCreated`, `NotificationRead`, and `NotificationsReadAll` h
 | `verification.document-expired` | Document owner; no action URL | `Warning` | `documentId`, `documentType` |
 | `account.approved` | Affected account owner; no action URL | `Success` | `userId` |
 | `account.rejected` | Affected account owner; no action URL | `Critical` | `userId` |
+| `verification.review-requested` | Every user with the exact `Admin` role; no action URL | `Information` | `userId`, `documentCount` |
 
 Treat unknown future `type` values as generic notifications: show the server title/body and severity, but do not assume type-specific data keys. New types can be added without changing `NotificationDto`.
 
@@ -551,8 +552,9 @@ Exact Administrative Verification display copy is part of the API contract:
 | `VerificationDocumentExpired` / `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` | `documentId`, `documentType` | `null` |
 | `VerificationAccountApproved` / `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` | `userId` | `null` |
 | `VerificationAccountRejected` / `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` | `userId` | `null` |
+| `VerificationReviewRequested` / `verification.review-requested` | `Information` | `طلب مراجعة مستندات التحقق` | `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` | `userId`, `documentCount` | `null` |
 
-Verification data never contains storage paths, file URLs or content, full rejection reasons, private review comments, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The backend emits `account.approved` only on the actual transition to `Active`; repeated review/account requests are idempotent through the outbox message ID. REST remains the durable source of truth and SignalR remains best-effort; reconcile real-time items by notification ID.
+Verification data never contains storage paths, file URLs or content, file names, full rejection reasons, private review comments, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The backend emits `account.approved` only on the actual transition to `Active`; `verification.review-requested` is emitted once per successful submission request when at least one document is persisted, including one event for a partial successful upload or a multi-file request. Every exact `Admin` role member receives one corresponding inbox row; `SuperAdministrator`, ordinary users, and the uploader do not. Replayed events are idempotent through the outbox message ID. REST remains the durable source of truth and SignalR remains best-effort; reconcile real-time items by notification ID.
 
 ## Navigation, rendering, and security
 
@@ -623,6 +625,7 @@ Adding a new notification `type` with the existing DTO is an additive change. Fr
 - [Milestones Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/MilestonesNotifications_Report.md)
 - [Payments Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/PaymentsNotifications_Report.md)
 - [Administrative Verification Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md)
+- [User Verification Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md)
 
 External references:
 

@@ -1,6 +1,6 @@
 # In-App Notifications V1 Implementation Plan
 
-Status: **Backend implementation and notification verification complete**
+Status: **Backend implementation and Gate 5/Gate 6 notification verification complete; Gate 6 stopped for review**
 
 Verification on 2026-08-11:
 
@@ -15,6 +15,11 @@ Verification on 2026-08-11:
   the report includes mock Email confirmation, exact Arabic snapshots, expiry,
   transition deduplication, concurrency, recipient isolation, and clean API/
   outbox/provider monitoring.
+- Gate 6 focused mapper/admin-verification regression: `21 passed, 0 failed`;
+- Gate 6 monitored User Verification HTTP report: `147 passed, 0 failed, 1 skipped`;
+  the report covers every UserVerification endpoint, successful/partial/multi-file/
+  replacement uploads, deletion, ownership, Admin-only recipients, exact Arabic
+  snapshots, forbidden metadata, mock Email confirmation, clean logs, and port release.
 
 This plan implements the first approved increment of the SmartCourt notification system: a durable in-app inbox, authenticated REST APIs, SignalR delivery, and transactional-outbox triggers. Email and SMS are deliberately deferred.
 
@@ -327,6 +332,14 @@ The Admin Verifications slice now emits five version `1` semantic facts from its
 The exact persisted contracts are `verification.document-approved` (`Success`, `تم اعتماد مستند التحقق`, `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.`), `verification.document-rejected` (`Warning`, `تم رفض مستند التحقق`, `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.`), `verification.document-expired` (`Warning`, `انتهت صلاحية مستند التحقق`, `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.`), `account.approved` (`Success`, `تم اعتماد حسابك`, `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.`), and `account.rejected` (`Critical`, `تم رفض الحساب`, `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.`). All use `actionUrl: null`; document data is `documentId`/`documentType`, and account data is `userId`. Storage paths, file URLs/content, full rejection reasons, private review comments, contact details, provider IDs, tokens, and idempotency keys are excluded. Repeated transitions and outbox replays are idempotent by outbox message ID; REST is durable and SignalR is best-effort.
 
 Gate 5 verification includes `VerificationNotificationEventMapperTests` and `SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Test.ps1`. The final monitored report is [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md) with `122 passed, 0 failed, 3 skipped`; it covers authorization, pending/detail/content endpoints, approve/reject/expired review, account transition deduplication, concurrency/conflicts, hostile validation, exact Arabic payloads, forbidden fields, recipient isolation, mock Email confirmation, and API/outbox/provider logs. `VER-07` expiry reminders remain deferred.
+
+### 6.8 User Verification Submission extension (Gate 6)
+
+`SubmitVerificationDocumentsHandler` now enqueues the version `1` semantic event `VerificationReviewRequested` before its existing EF save when at least one document is successfully persisted. The event aggregate is the submitting `ApplicationUser`; its payload contains only `UserId` and successful `DocumentCount`. A partial-success request creates one event for the successful subset, a multi-file request creates one event rather than one per file, and failed-only validation/upload outcomes create none. Existing UserVerification MediatR handlers, endpoint routes, response DTOs, validation, file-storage behavior, and business transitions remain otherwise unchanged.
+
+`VerificationNotificationEventMapper` uses the Verification-owned `IVerificationNotificationContextReader` to validate the source account and resolve every user in the exact `Admin` role from Identity membership. It excludes `SuperAdministrator`, ordinary users, and the uploader. Each Admin receives one `verification.review-requested` notification draft with `Information` severity, title `طلب مراجعة مستندات التحقق`, body `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.`, `actionUrl: null`, and data keys `userId` and `documentCount`. Storage paths, file URLs/content/names, private metadata, rejection reasons, contact details, provider IDs, tokens, and idempotency keys are forbidden. The outbox message ID makes dispatch replay idempotent; REST is durable and SignalR is best-effort.
+
+Gate 6 verification uses `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md). The final report records `147 passed, 0 failed, 1 documented skip`; its causal assertions verify that each successful upload action is observed before the matching Admin notification, including partial, multi-file, and replacement requests, while failed-only uploads create no event. The report also verifies deletion, ownership boundaries, notification list/count/read/read-all, exact Arabic payloads, forbidden metadata, Admin recipient isolation, mock Email confirmation, clean API/outbox/provider logs, API shutdown, and port release. Gate 6 is complete locally and stopped for explicit review; Gate 7 has not started.
 
 ## 7. Near-real-time outbox processing
 
