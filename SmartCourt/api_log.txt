@@ -16048,3 +16048,1398 @@ Body: <!DOCTYPE html>
 </html>
 
 ------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client1_20260810124814@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=7d6fe167-2f1a-47b9-dea8-08def6c4800f&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5d25BOWYzSHU4SXMzWVdWbUhUMjB0R2JXR1J2dm1DeklySmltZ2lZTGhhMWRsekViMWU0RUNwV0V3eHBvWUtUMWl2ZmdpZ0tjMkJIaTl4Q0JidGpvbzk5Qmp0WXovYlp0c1VxVzUvQ1RvL3JpejFRbDVCcS82R0RIZUUwa2FYdGJnU1YrMldvaDUwUjZFV3k0MSsyRk02VE1KVXFha3E2Z3doMkRkOHZkY0p3NkxSUnFhYzFSdG1VOWtjQlBoSEZGOVBpMGRNa1JUY2NXeCsrL3V1SEdlQklTZzZnQTFLZUl4QnpYb1Ewdk5mdz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client2_20260810124814@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client Two،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=50effa47-0a86-41ae-dea9-08def6c4800f&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5WE44dXRnajk3bnhudkVrbXJaYzNCZlJPOS9Rb0N2ZWpSNjgvUTl0UUU5UE5GdG9nZ1R5Z2JLSDBXT1JnVEYwTmJVUWRlRmYxeGhmY3BGbTRIM3hMc1FLRjVHYnU5S1VpUGEzYk50YzhDVWphZzk0L3FwVzFXMFNUUG9hdFY3RHNNWGpFd3NNb25kSnkrUkg5cXBwa0hZcWNIZWpKSzhUMVllWENIUlhac2lDbVJjQnlWL2JYb1JrR2xpUnVwNDg4SUdJTndGRzVaaE5RVktnU21QMU5vR3g4V1B5blJuYWpuMG1sRzU5NW5sUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_lawyer1_20260810124814@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Lawyer One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=4d202f8f-4c95-4e8f-deaa-08def6c4800f&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIvZlV1cm1YQS9WRG9ibE1UQ1VPeE5YelV1MWNKVjN6WEFRYldsazhqcXNDZkhGVFRHM1BibllHUWZBM29mWXJBSXNvcUJCR25zeVl3K0FOVnJVdEt6TkxadjRRNUNGWHMwcnJNUUpoQUVlUkRoYndoMCtCSjFDb0VrZlR1VE5VRkFMM2ZoNi81dVZqWGM2SGFITzdla2xLTjB3akR0K09yMzRXRnlBU0pzM01mRHdlL012VVdiNHBidGtjVGhPN3dFWUF5SDU0bi9CK1M1OTI2ZE1UajkyZGZIeFBORm56UVEzZUM0dHVKWkIrUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client1_20260810125323@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=4e8095d2-6cf0-4233-d644-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5SSt4emtSNGRwRnhjN0VGVkxEN1pQY1NpeE5UV3Q1aTczMHE5U1RNZW0xcVU2K3lHMjZpcXNDdzBJZmN0VXdCYU1ndWM2SVc5U3l3NjRQc3BsWm8vWTlrZlNNTS9rUk54K240a0RlVVFvZmNVTjg5dk1Pcjg0R1FmNEc1UHFlRE5TK21MSW0rQzFqbXEvZXp1MGZRa2ZLZkhDQ0lFVDhNMXVuRExabGRtMEY1OTR3VnFtMkZBWWJuL3FZaHJyY3QwbzVRZFBvZGQyckEzTXVuRjBZMStCck5ORGZ6UE82VDU4Vnl5d1hsc21wdz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client2_20260810125323@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client Two،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=2ba79e75-ad65-4000-d645-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrczR3b25UWnVTcjVBK01DZDR0RnNqblRMbjd6OTJZb3dpNE1rbXZDdnBLbjcvMHBTRE1qZEJkZVBoV1VaZWRoQ2ZLd2VpQS8rQmVBR0VjNHYxUlcvNitDdjhKUG85aHhNanBGbFpqWndET0VTNU1JTEtaMmdONEJUSU9wbzk0ZGlpdjBSd1JOM0F2RVR0UVVISWdSQlhoekNES2FncTlHYmRocDdjaFYwb2ppck93UVJKUkJ2cVZqWTlPdXRlajhoM0o1VDhNU1QyTnF3RlB4UU9TaE45dmU4UTVVNHMwNEFJQ0JjS3lBQnJzUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_lawyer1_20260810125323@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Lawyer One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=8565ffd9-efc8-4c48-d646-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrVkhGS0d6V0xhaTdGTHhWelowTjdFMWRBa2UzekhzSzBrQ0duU2VQaHB6OWVBcFhXZDJ4U2tOaXpiMFRqYkZBSnZCNG9KUU54aGsvekRPSnRqbG41bStGbVZVK0JvMVplR3VSamZJYzVqSmN2VnhBLzRlWGZpeHJ6SW13VWR5K3JONlBXYW10THNxOGpPMzVYTytMT1lLelpjUWNKYVNnYzBMbGI5ZVVReUlBL0ZOYXJUdGhWallPdlZtU3A5aVZaQ2MzUGNDZmZVaHdqeTZkY1NQQStrS3ZPbmhQalNmVGh4MEtWWlRkSFJvUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client1_20260810125525@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=4f9dae67-cc82-4a08-d647-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5M0RZTWw4TTNGcVlpeVpxQlNmTXNaWmRlTEJnMi84VWhpb1ZIZ2xMalN3ck1ySWdFVEI1UEhQQ1ptRmlZOGJzdW1OMDNpTHF3emFyZjIzR1RoWlBQQ3ZmWnFNWDZiWWdSR0RvaWwycXYvTS9zNExPZm9wK1FmQjRRMU1DZG9KbHoxSXI3TnQ4dnpUVE9PMTRFU2RaRFE1YUMyRVJPY3U5cmxqUWMyQmNsWEtpeWJpMEM4MlFQZUQzMXhBUWMrdUxHZUFubFFWODI3TmdiSjZPRFRBYlhWaC96a2lIZTJDQjVqeC83V1cxbzY5dz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client2_20260810125525@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client Two،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=c7579b6c-d8be-4672-d648-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4Q0dkb1RaYXgrZDRQVGE0U0FMRXdwM1poNFQvcDZaeXpiVHBNcW44T21IaldxZ1pYVFpWT25ScC9PdzUzTThJVWZSMEo1OXJrSGFmVlV3VHAzVm5BMEF1b1Y0QTNRK0NUemNHV0krVFdUSUw4ZmdMemcxNmlsb1RzWUVXTW54am9Hak9SUEJ6Ti80cTRrWjQ1VEpwMnZIQVZwVHdGQlRDd0lSTWEwbTV5ZVV5RlRhdkw0Qk9BbTQyUDl2RGxZa0J4ZmIxc2FtY2ZoZzhzVjVyMkt5SjdxNm5nbDlzaXFFVjNsajN0citqb2dlUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_lawyer1_20260810125525@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Lawyer One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=1910fbc4-eab9-4daa-d649-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrZ3Z6SU1QdnMwZVVNQzZ3d0ZwNkxWUDAyRnY1NGxkak4rWittb3VkQlA1VGtEQWk1Uk1RaVk4TENPb1lDY29ZUkFQUW5tazl6T3hMK3N2b1U5M0pCMTg2amVLQWxKdElmMFFWY0svSzBtTWZPOWp5cE1mazF6end6ZWZtWmFHYlA1UmNiTUVJeHRDU0pxcjMxdUMxMGF2Skd0RzJ2UklTK0liMjEydGFEeTZzQ2tEVGtlQTFleDJWRElCY0hYSUphMkFWV0dvMGlHS29MTnVHMlRZSmZ3Zkwwc29UeGtNZVZLZjBJNktHc244Zz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client1_20260810125654@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=82ac2a80-0907-46d6-d64a-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5dWNTQ0dGOUhORGNUUkRqLzhOZW40amVVcDVtcEJzdHdoZFFubnliNmwvQlhWbkdwaE1iUjRFeU9ZdFlVREtqMkIvZFBRejAvaHp6cFZHTUZTc25DanluZGNEa0MwU0NHNVFhd0xyZFZEa2xESEJsVkxQK25nUW1hUVk5UEtXaG5YM3NsTEpFdEozSi96Z2dYTEpWWVF6NWFQdEwxY1lKdDVzUHIrKzJ3UWRZQkpUcWlibXl4T2NUK2VtZmcvOEpkaFdjTGoyOVFJWnFpOU1oRFNlNGZ0WUtZNm9BZ1dNRHJqM01qUHVDTnZKQT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client2_20260810125654@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client Two،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=fdfd16d4-768f-4fa6-d64b-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrazJIR20zVmNnY3NKNVl1R1R3OEgrcmZLZXhFNDNoWjJBVUIyc1JIbW1jbS9Jakk0RkxJZElxenBiT2Q3ekh0ck9HQTRnMGRaMFFaQVNLSmJiemo4bEwveGVaVm5VYllNa2txN1lIdFZaQ0VocUNUSjQ3THRJeE1tWU5oSS9GeXU2cEpWN0hLNFB6NS94Z2lSeGxOenluSkJURzJsYzloQzZVdndRcHVPZWlHMnppRDZ4RzJDYjk3ZjZBOUMzZ0lvSkdmYnNPcVNlSEl6YTN0TDN2cTBTM2h2VU80eXRiSFRkbHp3aGhnSGlzQT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_lawyer1_20260810125654@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Lawyer One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=6e0f6ab4-0a00-4707-d64c-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIvS3FwYjI1a01WRVlXQ3YveFBrejROOVJ5VWlVVEhRL2xadm5kOUpYYTZIU3JVUjBLVm0wc2dibWpCRWlyaS95NnZYeG1RaXJXcEtodmhyd3NoOCsrTDlqRnNoaWJJenU2WWRsYWMwSEtlRG9BR05jSkZGK3lTY3VPVmoxQ21uQlJrM0lZWDhUakJ2a2lnUWl3RFAvUnVBbmEvRzZPVW5MT29JL25kTjM3WTZDNTBNaVlCRGNJc0ZIWTlMV01ydjAzdEZoYUNQUldzTVV1SURNWGl5NUxNUVhDL0FCd2szcWMxMTBCdEUxY09DUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client1_20260810125812@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=15f52ab3-7e20-4c77-d64d-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrbTdWUzA2RDM4V25MYnhIZGZnY2V3NUhlWlJFK3NicXpPVUxaK3dpRnpKOU04WWllZGxtbGRHTFVSL0k3Z0dUcVZIN2dtMXdaRlJ4NUJpN21VODJjZ041Ny9FbXllMFMwOWJ3Z0ZkeEIxaWlXQml1ampHcGJDYjN6T292Um1qZG10cFJDNFZNNVZKUExKRVVoMXRndWNjQXJUeEYwYjgvOGlBaW1ZNlpWK0gvWVMxRnBKeTdERGFxSXZhUWxmc1c2MU5EVWMyV3pMZ0dFZmttQjhoSDRTdWtPSERYVkpZai94SHM1TTc2YlpLdz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_client2_20260810125812@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Client Two،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=fb3123f9-8ab5-4e48-d64e-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIvSnhLd0M2R1RKamVpNkQ1VUdGT3RSSFdVNk9TWklRd0FSSnhobmdodVF0YVErbUdGVm5TbUpZcStKRG9CNVRWZVp3WGhoRVpCd0hpUzNtcjIyZjVkb2dYUEZUV0tPd21rS2NWallnVjEwdTRWamJValMxelVIUFo1TkpJS1h6MDhpTjRXQkNEdmhRWFUrSlFlenczbTlEMXVaOUR3SFZEd2xPb2pkMEg5TGQ4MlQ5c1lEM1RTOEZDM1BJcUpsYmFpczhnY0ZubmFxVUJ3cmxicXd6Zm9YQVNWWmswWHJqSkNzelJWQjlPOWx2Zz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: chatprop_lawyer1_20260810125812@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Lawyer One،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=2fffc720-fc9e-4e73-d64f-08def6c5382d&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5dXZEcU40R0d6MjV6OWgyNEFCb05XMTFlaVRTeE5oejZHWHRHem9QR3dGOUtQSTVmL2tnSEtCREZZbzB2em5IZ00xTC8yUCt0bTFVeWJZc0tmbFJXQWUrdmxuNXNwNDk0NFNSbHluWDhtazllUmFNcGs0SWRWMkhyaVRCMW90WlU5a09GbFNjZWc4dVdlVVJmYTd2WVRYNEZvWXgzVTIzeVh3UzFaZTE4bUlsRnQ1RFZ6ZVZ0MzZvajlWdDlUZnlzaEh0V3VMYlFiSDRXTk5uQnVTOUFUaGZURnlvSmtISHAyMnRPWmRtbGZjdz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------

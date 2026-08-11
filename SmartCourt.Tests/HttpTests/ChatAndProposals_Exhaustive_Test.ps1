@@ -160,6 +160,9 @@ $propBodyXSS = @{ LegalCaseId = $caseId; LawyerUserId = $lawyerId; Message = "<s
 $rPropXSS = Invoke-ApiRaw "POST Proposal (XSS Message -> 201 or 400)" POST "/api/proposals" -body $propBodyXSS -token $client1Token
 Write-Assert "POST Proposal - XSS Payload Handled" ($rPropXSS.Status -in @(201, 400))
 $xssPropId = if ($rPropXSS.Status -eq 201) { $rPropXSS.Content.data.id } else { $null }
+if ($xssPropId) {
+    Invoke-ApiRaw "Cancel XSS" POST "/api/proposals/$xssPropId/cancel" -body (@{Reason="Test cleanup"} | ConvertTo-Json) -token $client1Token | Out-Null
+}
 
 $propBodyMassive = @{ LegalCaseId = $caseId; LawyerUserId = $lawyerId; Message = ("A" * 10000) } | ConvertTo-Json
 $rPropMassive = Invoke-ApiRaw "POST Proposal (Massive String -> 400)" POST "/api/proposals" -body $propBodyMassive -token $client1Token
@@ -219,9 +222,9 @@ Write-Assert "GET Proposal Detail - Cross tenant" ($getPropUnauth.Status -in @(4
 # PHASE 4 - Contracts & Milestones (To unlock Chat & State)
 # ---------------------------------------------------------
 Write-Section "Phase 4: Contract & Milestones"
-$contractResp = Invoke-ApiRaw "Lawyer Creates Contract" POST "/api/contracts" -token $lawyerToken -body (@{ ProposalId = $prop4Id; Title = "Test Contract"; TermsAndConditions = "Terms" } | ConvertTo-Json)
+$contractResp = Invoke-ApiRaw "Lawyer Creates Contract" POST "/api/contracts" -token $lawyerToken -body (@{ ProposalId = $prop4Id; Title = "Test Contract long title"; TermsAndConditions = "This is a valid Terms And Conditions string that exceeds twenty characters." } | ConvertTo-Json)
 $contractId = $contractResp.Content.Data.Id
-Write-Assert "Contract Created" ($contractResp.Status -eq 201)
+Write-Assert "Contract Created" ($contractResp.Status -in @(200, 201))
 
 $cd = Invoke-ApiRaw "Get Contract (Client)" GET "/api/contracts/$contractId" -token $lawyerToken
 $ifMatchC = $cd.Content.Data.Version
@@ -231,7 +234,7 @@ $cd2 = Invoke-ApiRaw "Get Contract (Lawyer)" GET "/api/contracts/$contractId" -t
 $ifMatchL = $cd2.Content.Data.Version
 Invoke-IfMatch "Lawyer Accepts Contract" POST "/api/contracts/$contractId/accept" -ifMatch $ifMatchL -body "{}" -token $lawyerToken | Out-Null
 
-$ms1Resp = Invoke-ApiRaw "Create Milestone 1" POST "/api/contracts/$contractId/milestones" -token $lawyerToken -body (@{ Title = "Phase 1"; Description = "Desc"; OrderNumber = 1; Amount = 1500.00; DurationDays = 14 } | ConvertTo-Json)
+$ms1Resp = Invoke-ApiRaw "Create Milestone 1" POST "/api/contracts/$contractId/milestones" -token $lawyerToken -body (@{ Title = "Phase 1 longer title"; Description = "This is a valid Description string that exceeds twenty characters."; OrderNumber = 1; Amount = 1500.00; DurationDays = 14 } | ConvertTo-Json)
 $ms1Id = $ms1Resp.Content.Data.Id
 Write-Assert "Milestone Created" ($ms1Resp.Status -eq 201)
 

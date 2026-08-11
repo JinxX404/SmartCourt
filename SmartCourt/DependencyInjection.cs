@@ -386,7 +386,7 @@ public static class DependencyInjection
             //    "SMTP settings are incomplete or invalid.")
             .ValidateOnStart();
         services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
-        services.AddScoped<IEmailProvider, BackgroundEmailProvider>();
+        services.AddScoped<IEmailProvider, DirectEmailProvider>();
 
         services.AddOptions<AuthEmailOptions>()
             .Bind(configuration.GetSection(AuthEmailOptions.SectionName))
