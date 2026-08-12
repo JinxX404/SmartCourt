@@ -5,6 +5,7 @@ import { ProfilePage } from "../features/users";
 import { UserStatusBadge } from "../features/auth/components/UserStatusBadge";
 import { VerificationTab } from "../features/auth/components/VerificationTab";
 import { AdminVerificationsTab } from "../features/admin/verifications/components/AdminVerificationsTab";
+import { LawyersPage } from "./LawyersPage";
 import { useQuery } from "@tanstack/react-query";
 import { AuthApi } from "../features/auth/api/authApi";
 import { UsersApi } from "../features/users/api/usersApi";
@@ -279,8 +280,11 @@ export const Dashboard = () => {
             </button>
 
             <button
-              onClick={() => navigate("/lawyers")}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+              onClick={() => handleTabChange("lawyers")}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "lawyers"
+                ? "bg-gold/15 text-gold border-r-4 border-gold"
+                : "text-gray-400 hover:text-white hover:bg-white/5"
+                }`}
             >
               <LuUsers className="w-5 h-5" />
               <span>البحث عن محامين</span>
@@ -620,6 +624,7 @@ export const Dashboard = () => {
         )}
 
         {activeTab === "verification" && <VerificationTab />}
+        {activeTab === "lawyers" && <LawyersPage />}
 
         {(activeTab === "new-case" || activeTab === "chats") && (
           <div className="min-h-[50vh] flex flex-col items-center justify-center bg-white dark:bg-[#1a1d23] rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800">

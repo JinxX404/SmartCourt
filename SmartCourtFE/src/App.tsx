@@ -10,6 +10,7 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { Profile } from "./pages/Profile";
 import { Dashboard } from "./pages/Dashboard";
 import { VerifyEmail } from "./pages/VerifyEmail";
+import { LawyersPage } from "./pages/LawyersPage";
 import { Loader } from "./components/Loader";
 
 import { Toaster } from "react-hot-toast";
@@ -59,6 +60,7 @@ function App() {
         <Routes>
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/lawyers" element={<LawyersPage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
