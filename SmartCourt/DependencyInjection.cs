@@ -796,6 +796,9 @@ public static class DependencyInjection
         // --- Feature: Matching ---
         services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();
 
+        // --- Feature: Articles ---
+        services.AddScoped<SmartCourt.Features.Articles.IArticleService, SmartCourt.Features.Articles.ArticleService>();
+
         // --- RAG Pipeline: Law Ingestion Feature ---
         services.AddOptions<ChunkingOptions>()
             .Bind(configuration.GetSection(ChunkingOptions.SectionName))

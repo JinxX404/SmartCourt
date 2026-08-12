@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
 #nullable disable
 
-namespace SmartCourt.Migrations
+namespace SmartCourt.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260812100348_M5_AddArticles")]
+    partial class M5_AddArticles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -276,112 +279,6 @@ namespace SmartCourt.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleComment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ArticleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ArticleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ArticleComments", (string)null);
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleLike", b =>
-                {
-                    b.Property<Guid>("ArticleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("ArticleId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ArticleLikes", (string)null);
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ArticleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsResolved")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<Guid>("ReporterId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ArticleId");
-
-                    b.HasIndex("ReporterId");
-
-                    b.ToTable("ArticleReports", (string)null);
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleView", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ArticleId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ArticleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ArticleViews", (string)null);
-                });
-
             modelBuilder.Entity("SmartCourt.Common.Entities.ClientProfile", b =>
                 {
                     b.Property<Guid>("UserId")
@@ -541,9 +438,6 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("CommentsCount")
-                        .HasColumnType("int");
-
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -561,14 +455,8 @@ namespace SmartCourt.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsDeletedByAdmin")
-                        .HasColumnType("bit");
-
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("LikesCount")
-                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -2121,55 +2009,6 @@ namespace SmartCourt.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.ClientPaymentCustomer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("ClientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsLive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ProviderCode")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("ProviderCustomerId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClientUserId", "ProviderCode")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ClientPaymentCustomers_Client_Provider");
-
-                    b.HasIndex("ProviderCode", "ProviderCustomerId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_ClientPaymentCustomers_ProviderCustomer");
-
-                    b.ToTable("ClientPaymentCustomers", (string)null);
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.EscrowAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2411,107 +2250,6 @@ namespace SmartCourt.Migrations
                         });
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.LawyerPayoutAccount", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<long>("AvailableProviderAmountMinor")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasDefaultValue(0L);
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DefaultCurrency")
-                        .IsRequired()
-                        .HasMaxLength(3)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
-
-                    b.Property<bool>("DetailsSubmitted")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("IsLive")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastProviderErrorCode")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("LastProviderStatus")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<DateTime?>("LastSynchronizedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("LawyerUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("MaskedDestination")
-                        .HasMaxLength(200)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("PayoutsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ProviderAccountId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("ProviderCode")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("TransfersEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LawyerUserId", "ProviderCode")
-                        .IsUnique()
-                        .HasDatabaseName("UX_LawyerPayoutAccounts_Lawyer_Provider");
-
-                    b.HasIndex("ProviderCode", "ProviderAccountId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_LawyerPayoutAccounts_ProviderAccount");
-
-                    b.ToTable("LawyerPayoutAccounts", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_LawyerPayoutAccounts_ProviderBalance_NonNegative", "[AvailableProviderAmountMinor] >= 0");
-
-                            t.HasCheckConstraint("CK_LawyerPayoutAccounts_Status_Range", "[Status] BETWEEN 0 AND 4");
-                        });
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.LawyerWallet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2616,36 +2354,13 @@ namespace SmartCourt.Migrations
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<long?>("ProviderAmountMinor")
-                        .HasColumnType("bigint");
-
                     b.Property<int>("ProviderAttemptCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<string>("ProviderCurrency")
-                        .HasMaxLength(3)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
-
                     b.Property<string>("ProviderName")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("ProviderObjectType")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<string>("ProviderRelatedTransactionId")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<string>("ProviderStatus")
                         .HasMaxLength(100)
                         .IsUnicode(false)
                         .HasColumnType("varchar(100)");
@@ -2723,43 +2438,14 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ConnectedAccountId")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
                     b.Property<string>("EventId")
                         .IsRequired()
                         .HasMaxLength(200)
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<Guid?>("PaymentTransactionId")
+                    b.Property<Guid>("PaymentTransactionId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ProcessingError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("ProviderCode")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<string>("ProviderObjectId")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
 
                     b.Property<DateTime>("ReceivedAt")
                         .HasColumnType("datetime2");
@@ -2883,9 +2569,6 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<Guid?>("LawyerPayoutAccountId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -2894,24 +2577,6 @@ namespace SmartCourt.Migrations
 
                     b.Property<DateTime?>("ProcessedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("ProviderAccountId")
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<long?>("ProviderAmountMinor")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ProviderCurrency")
-                        .HasMaxLength(3)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(3)");
-
-                    b.Property<string>("ProviderStatus")
-                        .HasMaxLength(100)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("ProviderTransactionId")
                         .HasMaxLength(200)
@@ -2940,8 +2605,6 @@ namespace SmartCourt.Migrations
                     b.HasIndex("IdempotencyKey")
                         .IsUnique()
                         .HasDatabaseName("UX_WithdrawalRequests_IdempotencyKey");
-
-                    b.HasIndex("LawyerPayoutAccountId");
 
                     b.HasIndex("LawyerUserId", "Status")
                         .HasDatabaseName("IX_WithdrawalRequests_LawyerUserId_Status");
@@ -3286,81 +2949,6 @@ namespace SmartCourt.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleComment", b =>
-                {
-                    b.HasOne("SmartCourt.Common.Entities.LegalArticle", "Article")
-                        .WithMany()
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Article");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleLike", b =>
-                {
-                    b.HasOne("SmartCourt.Common.Entities.LegalArticle", "Article")
-                        .WithMany()
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Article");
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleReport", b =>
-                {
-                    b.HasOne("SmartCourt.Common.Entities.LegalArticle", "Article")
-                        .WithMany()
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "Reporter")
-                        .WithMany()
-                        .HasForeignKey("ReporterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Article");
-
-                    b.Navigation("Reporter");
-                });
-
-            modelBuilder.Entity("SmartCourt.Common.Entities.ArticleView", b =>
-                {
-                    b.HasOne("SmartCourt.Common.Entities.LegalArticle", "Article")
-                        .WithMany()
-                        .HasForeignKey("ArticleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Article");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SmartCourt.Common.Entities.ClientProfile", b =>
@@ -3872,15 +3460,6 @@ namespace SmartCourt.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.ClientPaymentCustomer", b =>
-                {
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("ClientUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.EscrowAccount", b =>
                 {
                     b.HasOne("SmartCourt.Features.Contracts.Entities.Contract", null)
@@ -3935,15 +3514,6 @@ namespace SmartCourt.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("SmartCourt.Features.Payments.Entities.LawyerPayoutAccount", b =>
-                {
-                    b.HasOne("ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("LawyerUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.LawyerWallet", b =>
                 {
                     b.HasOne("ApplicationUser", null)
@@ -3977,7 +3547,8 @@ namespace SmartCourt.Migrations
                     b.HasOne("SmartCourt.Features.Payments.Entities.PaymentTransaction", null)
                         .WithMany()
                         .HasForeignKey("PaymentTransactionId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WalletAdjustment", b =>
@@ -4015,11 +3586,6 @@ namespace SmartCourt.Migrations
 
             modelBuilder.Entity("SmartCourt.Features.Payments.Entities.WithdrawalRequest", b =>
                 {
-                    b.HasOne("SmartCourt.Features.Payments.Entities.LawyerPayoutAccount", null)
-                        .WithMany()
-                        .HasForeignKey("LawyerPayoutAccountId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("LawyerUserId")
