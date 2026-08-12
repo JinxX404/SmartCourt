@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SmartCourt.Common.Exceptions;
@@ -19,6 +20,7 @@ public class ChatAgentService(
     IVectorStoreProvider vectorStoreProvider,
     IFileStorageService fileStorageService,
     IDocumentParsingProvider documentParsingProvider,
+    IHttpContextAccessor? httpContextAccessor = null,
     TimeProvider? timeProvider = null,
     ILogger<ChatAgentService>? logger = null) : IChatAgentService
 {
@@ -29,6 +31,7 @@ public class ChatAgentService(
     private readonly IVectorStoreProvider _vectorStoreProvider = vectorStoreProvider;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
+    private readonly IHttpContextAccessor? _httpContextAccessor = httpContextAccessor;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly ILogger<ChatAgentService>? _logger = logger;
 
@@ -253,15 +256,38 @@ public class ChatAgentService(
             _logger?.LogWarning(ex, "Failed to perform RAG vector search for conversation {ConversationId}", conversationId);
         }
 
-        // Build System Prompt
+        // Determine role-based prompt guidelines
+        bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
+        if (!isLawyer && _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") != true)
+        {
+            isLawyer = await _dbContext.UserRoles
+                .AnyAsync(ur => ur.UserId == currentUserId &&
+                    _dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Lawyer"),
+                    cancellationToken);
+        }
+
+        // Build System Prompt based on User Role
         var systemPromptBuilder = new System.Text.StringBuilder();
-        systemPromptBuilder.AppendLine(@"أنت مساعد ذكي متخصص في القانون المصري لمنصة SmartCourt.
-طبيعة دورك: تقديم الإرشادات والمعلومات القانونية المبسطة والدقيقة وفقاً للتشريعات والقوانين المصرية.
-تعليمات هامة:
-1. أجب باللغة العربية الفصحى وبأسلوب قانوني مهني ومبسط.
-2. وجه المستخدم دائماً وتذكر أن هذه المعلومات للإرشاد وليست استشارة قانونية رسمية نهائية.
-3. استند إلى مواد القانون المصري المرفقة في السياق عند الإجابة.
-4. إذا تم توفير تفاصيل القضية، اربط إجابتك بظروف القضية المعروضة.");
+        if (isLawyer)
+        {
+            systemPromptBuilder.AppendLine(@"أنت مساعد ومناظر قانوني ذكي متخصص في القانون المصري لمنصة SmartCourt، وتعمل كمساعد مباشر للمحامي (Pair Lawyer).
+طبيعة دورك وهويتك:
+1. تصرف كزميل محامي خبير ومحترف، وتحدث بتفصيل تحليلي وعميق حول كل استفسار يقدمه المحامي (act as a pair lawyer and talk in details about each inquiry).
+2. قدم تحليلاً قانونياً شاملاً يشمل التكييف القانوني للوقائع، الدفوع الموضوعية والإجرائية، الاختصاص القضائي، والثغرات القانونية المحتملة.
+3. استخدم المصطلحات والأساليب القانونية الفنية الدقيقة والمتبعة بين القضاة والمحامين.
+4. استند إلى نصوص المواد والقوانين المصرية والمبادئ القضائية المتاحة في السياق بأسلوب تفصيلي يخدم صياغة المذكرات وبناء الاستراتيجية القضائية.
+5. اربط تحليلك بتفاصيل ومستندات القضية المرفقة بأسلوب عميق ودقيق.");
+        }
+        else
+        {
+            systemPromptBuilder.AppendLine(@"أنت مستشار ومساعد قانوني ذكي موجه للموكل (العميل) عبر منصة SmartCourt.
+طبيعة دورك وهويتك:
+1. قدم نصائح وإرشادات قانونية موجهة ومبسطة في صورة خطوات إجرائية عمليّة ومحددة يمكن للموكل اتخاذها (Procedural, actionable steps).
+2. تجنب التعقيد المصطلحي المفرط أو التفاصيل الأكاديمية الجافة، واستخدم أسلوباً واضحاً ومبسطاً وتوعوياً بصفتك مستشاراً قانونياً (Act as a legal advisor, don't be super technical).
+3. التزم بالأمانة والنزاهة المطلقة: يمنع منعاً باتاً دعم أو مساندة أي استفسارات أو طلبات مشبوهة، خبيثة، أو غير مشروعة (Don't support malicious inquiries).
+4. وضح للموكل دائماً بأسلوب مهني أن هذه الإرشادات لبناء الوعي وتحديد الخطوات العملية، ومتابعة الدعوى رسمياً يتم عبر محاميه المختص.
+5. اربط إجابتك ببيانات ومستندات القضية المرفقة بأسلوب إجرائي مبسط وعملي.");
+        }
 
         if (retrievedLawArticles.Count > 0)
         {
@@ -538,7 +564,7 @@ public class ChatAgentService(
                     catch (Exception ex)
                     {
                         _logger?.LogWarning(ex, "Failed to download or parse document {FileName} for CaseId {CaseId}", name, conversation.CaseId);
-                        sb.AppendLine($"[تعذر استخراج المحتوى: {ex.Message}]");
+                        sb.AppendLine("[تعذر استخراج محتوى هذا المستند]");
                     }
                 }
                 else

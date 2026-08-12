@@ -96,23 +96,27 @@ public class AlibabaChatModelProvider : IChatModelProvider
                     continue;
                 }
 
-                throw new BusinessException($"Alibaba chat API failed: {response.ReasonPhrase}");
+                throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.");
+            }
+            catch (BusinessException)
+            {
+                throw;
             }
             catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
             {
                 _logger.LogError(ex, "Alibaba DashScope API request timed out on attempt {Attempt}.", i + 1);
-                throw new BusinessException("Alibaba chat API request timed out.", ex);
+                throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.", ex);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to connect to Alibaba DashScope API on attempt {Attempt}.", i + 1);
-                throw new BusinessException("Failed to connect to Alibaba chat API.", ex);
+                throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.", ex);
             }
         }
 
         if (response == null || !response.IsSuccessStatusCode)
         {
-            throw new BusinessException("Alibaba chat API did not return a successful response.");
+            throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.");
         }
 
         var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -120,7 +124,7 @@ public class AlibabaChatModelProvider : IChatModelProvider
 
         if (string.IsNullOrWhiteSpace(rawBody))
         {
-            throw new BusinessException("Alibaba chat API returned an empty response.");
+            throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.");
         }
 
         try
@@ -141,7 +145,7 @@ public class AlibabaChatModelProvider : IChatModelProvider
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse Alibaba DashScope API response: {Response}", rawBody);
-            throw new BusinessException("Alibaba chat API returned an invalid response.", ex);
+            throw new BusinessException("خدمة المساعد الذكي غير متاحة حالياً، يرجى إعادة المحاولة لاحقاً.", ex);
         }
     }
     private static string GenerateFallbackResponse(string systemPrompt, string userPrompt)
