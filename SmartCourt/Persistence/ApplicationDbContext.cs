@@ -89,6 +89,12 @@ public class ApplicationDbContext
     public DbSet<UserVerificationDocument> UserVerificationDocuments =>
         Set<UserVerificationDocument>();
     public DbSet<LegalCategory> LegalCategories => Set<LegalCategory>();
+    public DbSet<LegalArticleCategory> LegalArticleCategories => Set<LegalArticleCategory>();
+    public DbSet<LegalArticle> LegalArticles => Set<LegalArticle>();
+    public DbSet<ArticleView> ArticleViews => Set<ArticleView>();
+    public DbSet<ArticleLike> ArticleLikes => Set<ArticleLike>();
+    public DbSet<ArticleComment> ArticleComments => Set<ArticleComment>();
+    public DbSet<ArticleReport> ArticleReports => Set<ArticleReport>();
     public DbSet<LegalSpecialization> LegalSpecializations =>
         Set<LegalSpecialization>();
     public DbSet<LawDocument> LawDocuments => Set<LawDocument>();
