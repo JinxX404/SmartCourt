@@ -501,7 +501,7 @@ public static class DependencyInjection
         {
             services.AddScoped<
                 IFileStorageService,
-                SupabaseFileStorageService>();
+                LocalFileStorageService>();
         }
         else
         {
