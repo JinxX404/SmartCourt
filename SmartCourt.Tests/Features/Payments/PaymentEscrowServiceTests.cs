@@ -61,10 +61,11 @@ public sealed class PaymentEscrowServiceTests
             "fund-success-1",
             CancellationToken.None);
 
-        Assert.Equal(EscrowHoldStatus.Funded, result.Status);
-        Assert.Equal(1_000m, result.GrossAmount);
-        Assert.Equal(50m, result.PlatformFee);
-        Assert.Equal(950m, result.NetAmount);
+        var payment = Assert.IsType<PaymentDto>(result.Payment);
+        Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
+        Assert.Equal(1_000m, payment.GrossAmount);
+        Assert.Equal(50m, payment.PlatformFee);
+        Assert.Equal(950m, payment.NetAmount);
         Assert.Equal(1, provider.DepositCalls);
         Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
         Assert.NotNull(milestone.FundedAt);
@@ -80,7 +81,7 @@ public sealed class PaymentEscrowServiceTests
 
         Assert.Equal(PaymentTransactionStatus.Completed, transaction.Status);
         Assert.Equal(hold.Id, transaction.EscrowHoldId);
-        Assert.Equal(hold.Id, result.Id);
+        Assert.Equal(hold.Id, payment.Id);
         Assert.Equal(1_000m, account.TotalDeposited);
         Assert.Equal(950m, wallet.PendingBalance);
         Assert.Equal(1_000m, ledger.Amount);
@@ -760,10 +761,12 @@ public sealed class PaymentEscrowServiceTests
 
         var result = await service.RetryAsync(
             originalTransaction.Id,
+            "pm_retry",
             "retry-payment-1",
             CancellationToken.None);
 
-        Assert.Equal(EscrowHoldStatus.Funded, result.Status);
+        var payment = Assert.IsType<PaymentDto>(result.Payment);
+        Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
         Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
         Assert.Equal(1, provider.DepositCalls);
         var attempts = await context.PaymentTransactions
@@ -785,7 +788,7 @@ public sealed class PaymentEscrowServiceTests
             await queryService.GetMilestonePaymentAsync(
                 milestone.Id,
                 CancellationToken.None);
-        Assert.Equal(result, milestonePayment);
+        Assert.Equal(payment, milestonePayment);
     }
 
     [Fact]
@@ -804,6 +807,7 @@ public sealed class PaymentEscrowServiceTests
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
             service.RetryAsync(
                 originalTransaction.Id,
+                "pm_retry",
                 "retry-payment-unauthorized",
                 CancellationToken.None));
 

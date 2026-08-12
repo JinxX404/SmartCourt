@@ -32,9 +32,12 @@ public sealed class WalletsApiTests
             request,
             "withdrawal-key",
             CancellationToken.None);
+        var historyAction = await controller.GetWithdrawalsAsync(
+            CancellationToken.None);
 
         AssertWrappedOk(walletAction, service.Wallet);
         AssertWrappedOk(withdrawalAction, service.ActionResult);
+        AssertWrappedOk(historyAction, service.Withdrawals);
         Assert.Same(request, service.Request);
         Assert.Equal("withdrawal-key", service.IdempotencyKey);
     }
@@ -72,6 +75,10 @@ public sealed class WalletsApiTests
         AssertRoute(
             nameof(WalletsController.WithdrawAsync),
             "POST",
+            "withdrawals");
+        AssertRoute(
+            nameof(WalletsController.GetWithdrawalsAsync),
+            "GET",
             "withdrawals");
     }
 
@@ -117,6 +124,20 @@ public sealed class WalletsApiTests
             "Completed",
             DateTime.UtcNow);
 
+        public IReadOnlyList<WithdrawalDto> Withdrawals { get; } =
+        [
+            new WithdrawalDto(
+                Guid.NewGuid(),
+                100m,
+                "EGP",
+                SmartCourt.Features.Payments.Enums.WithdrawalStatus.Completed,
+                "paid",
+                null,
+                false,
+                DateTime.UtcNow,
+                DateTime.UtcNow)
+        ];
+
         public CreateWithdrawalRequest? Request { get; private set; }
         public string? IdempotencyKey { get; private set; }
         public int WithdrawCalls { get; private set; }
@@ -127,6 +148,10 @@ public sealed class WalletsApiTests
             cancellationToken.ThrowIfCancellationRequested();
             return Task.FromResult(Wallet);
         }
+
+        public Task<IReadOnlyList<WithdrawalDto>> GetWithdrawalsAsync(
+            CancellationToken cancellationToken)
+            => Task.FromResult(Withdrawals);
 
         public Task<PaymentActionResultDto> WithdrawAsync(
             CreateWithdrawalRequest request,

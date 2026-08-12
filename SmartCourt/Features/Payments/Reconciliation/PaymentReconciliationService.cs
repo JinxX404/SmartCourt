@@ -205,7 +205,8 @@ public sealed class PaymentReconciliationService(
                 paymentTransaction.Currency,
                 milestone.Id,
                 paymentTransaction.IdempotencyKey,
-                correlationId),
+                correlationId,
+                paymentTransaction.ProviderTransactionId),
             cancellationToken);
         if (result is null || result.Outcome == ProviderOperationOutcome.Unknown)
         {
@@ -217,6 +218,7 @@ public sealed class PaymentReconciliationService(
         }
 
         EnsureResultMatches(result, paymentTransaction, milestone.Id);
+        ApplyProviderResult(paymentTransaction, result);
         var contract = await dbContext.Contracts.AsNoTracking()
             .SingleOrDefaultAsync(
                 item => item.Id == paymentTransaction.ContractId,
@@ -227,6 +229,15 @@ public sealed class PaymentReconciliationService(
             await paymentEscrowService.FindProcessingFundingReservationIdAsync(
                 milestone.Id,
                 cancellationToken);
+        if (result.Outcome
+            is ProviderOperationOutcome.Processing
+                or ProviderOperationOutcome.RequiresCustomerAction)
+        {
+            ApplyProviderResult(paymentTransaction, result);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return JobExecutionResult.NoOp("ProviderOutcomeStillProcessing");
+        }
+
         if (result.Outcome == ProviderOperationOutcome.Succeeded)
         {
             await paymentEscrowService.CompleteFundingAsync(
@@ -274,7 +285,8 @@ public sealed class PaymentReconciliationService(
                     paymentTransaction.Currency,
                     holdId,
                     paymentTransaction.IdempotencyKey,
-                    correlationId),
+                    correlationId,
+                    paymentTransaction.ProviderTransactionId),
                 cancellationToken)
             : await reconciliationProvider.GetRefundStatusAsync(
                 new ProviderRefundStatusRequest(
@@ -282,7 +294,8 @@ public sealed class PaymentReconciliationService(
                     paymentTransaction.Currency,
                     holdId,
                     paymentTransaction.IdempotencyKey,
-                    correlationId),
+                    correlationId,
+                    paymentTransaction.ProviderTransactionId),
                 cancellationToken);
         if (result is null || result.Outcome == ProviderOperationOutcome.Unknown)
         {
@@ -294,6 +307,15 @@ public sealed class PaymentReconciliationService(
         }
 
         EnsureResultMatches(result, paymentTransaction, holdId);
+        if (result.Outcome
+            is ProviderOperationOutcome.Processing
+                or ProviderOperationOutcome.RequiresCustomerAction)
+        {
+            ApplyProviderResult(paymentTransaction, result);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return JobExecutionResult.NoOp("ProviderOutcomeStillProcessing");
+        }
+
         var now = timeProvider.GetUtcNow().UtcDateTime;
         if (result.Outcome == ProviderOperationOutcome.Failed)
         {
@@ -343,6 +365,7 @@ public sealed class PaymentReconciliationService(
         }
 
         paymentTransaction.ProviderTransactionId = result.ProviderTransactionId;
+        ApplyProviderResult(paymentTransaction, result);
         if (isRelease)
         {
             PaymentReleaseRetryPolicy.RecordSuccess(
@@ -448,5 +471,19 @@ public sealed class PaymentReconciliationService(
             transaction.Id);
         throw new BusinessException(
             "نتيجة مطابقة مزود الدفع لا تطابق بيانات معاملة الدفع الأصلية.");
+    }
+
+    private void ApplyProviderResult(
+        PaymentTransaction transaction,
+        ProviderResult result)
+    {
+        transaction.ProviderTransactionId = result.ProviderTransactionId;
+        transaction.ProviderRelatedTransactionId =
+            result.RelatedProviderTransactionId;
+        transaction.ProviderStatus = result.ProviderStatus;
+        transaction.ProviderObjectType = result.ProviderObjectType;
+        transaction.ProviderAmountMinor = result.ProviderMoney?.AmountMinor;
+        transaction.ProviderCurrency = result.ProviderMoney?.Currency;
+        transaction.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
     }
 }

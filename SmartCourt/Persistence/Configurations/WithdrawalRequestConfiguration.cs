@@ -24,6 +24,15 @@ public sealed class WithdrawalRequestConfiguration
         builder.Property(request => request.ProviderTransactionId)
             .IsUnicode(false)
             .HasMaxLength(200);
+        builder.Property(request => request.ProviderAccountId)
+            .IsUnicode(false)
+            .HasMaxLength(200);
+        builder.Property(request => request.ProviderStatus)
+            .IsUnicode(false)
+            .HasMaxLength(100);
+        builder.Property(request => request.ProviderCurrency)
+            .IsUnicode(false)
+            .HasMaxLength(3);
         builder.Property(request => request.FailureReason)
             .NullableUnicode(2_000);
         builder.Property(request => request.RequiresManualAction)
@@ -44,6 +53,10 @@ public sealed class WithdrawalRequestConfiguration
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(request => request.LawyerUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<LawyerPayoutAccount>()
+            .WithMany()
+            .HasForeignKey(request => request.LawyerPayoutAccountId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(request => request.IdempotencyKey)

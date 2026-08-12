@@ -9,6 +9,17 @@ public sealed class RetryPaymentRequestValidator
 {
     public RetryPaymentRequestValidator()
     {
+        RuleFor(request => request.PaymentMethodReference)
+            .NotEmpty()
+            .WithMessage(
+                "مرجع وسيلة الدفع الجديدة مطلوب لإعادة محاولة عملية الدفع.")
+            .Must(value => !string.IsNullOrWhiteSpace(value))
+            .WithMessage(
+                "مرجع وسيلة الدفع الجديدة لا يمكن أن يكون فارغًا.")
+            .MaximumLength(200)
+            .WithMessage(
+                "مرجع وسيلة الدفع الجديدة يجب ألا يتجاوز 200 حرف.");
+
         RuleFor(request => request.IdempotencyKey)
             .NotEmpty()
             .WithMessage(

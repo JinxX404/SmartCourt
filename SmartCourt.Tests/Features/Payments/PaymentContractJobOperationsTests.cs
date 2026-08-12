@@ -51,7 +51,7 @@ public sealed class PaymentContractJobOperationsTests
             return Task.FromResult(result);
         }
 
-        public Task<PaymentDto> FundAsync(
+        public Task<FundingOperationDto> FundAsync(
             Guid milestoneId,
             FundMilestoneRequest request,
             string? idempotencyKey,
@@ -68,8 +68,9 @@ public sealed class PaymentContractJobOperationsTests
             CancellationToken cancellationToken)
             => throw new NotSupportedException();
 
-        public Task<PaymentDto> RetryAsync(
+        public Task<FundingOperationDto> RetryAsync(
             Guid paymentTransactionId,
+            string paymentMethodReference,
             string? idempotencyKey,
             CancellationToken cancellationToken)
             => throw new NotSupportedException();

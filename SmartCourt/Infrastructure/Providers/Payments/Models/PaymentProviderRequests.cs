@@ -1,11 +1,20 @@
 namespace SmartCourt.Infrastructure.Providers.Payments;
 
+public interface IProviderOperationRequest
+{
+    decimal Amount { get; }
+    string Currency { get; }
+    Guid BusinessId { get; }
+    string ProviderIdempotencyKey { get; }
+    Guid CorrelationId { get; }
+}
+
 public abstract record PaymentProviderRequest(
     decimal Amount,
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId);
+    Guid CorrelationId) : IProviderOperationRequest;
 
 public sealed record ProviderDepositRequest(
     decimal Amount,
@@ -13,7 +22,9 @@ public sealed record ProviderDepositRequest(
     Guid BusinessId,
     string ProviderIdempotencyKey,
     Guid CorrelationId,
-    string PaymentMethodReference)
+    string PaymentMethodReference,
+    string ConfirmationTokenReference = "",
+    string CustomerReference = "")
     : PaymentProviderRequest(
         Amount,
         Currency,
@@ -28,7 +39,10 @@ public sealed record ProviderDepositRetryRequest(
     string ProviderIdempotencyKey,
     Guid CorrelationId,
     string OriginalProviderIdempotencyKey,
-    string? OriginalProviderTransactionId)
+    string? OriginalProviderTransactionId,
+    string PaymentMethodReference = "",
+    string ConfirmationTokenReference = "",
+    string CustomerReference = "")
     : PaymentProviderRequest(
         Amount,
         Currency,
@@ -41,7 +55,11 @@ public sealed record ProviderReleaseRequest(
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId)
+    Guid CorrelationId,
+    string SourcePaymentProviderTransactionId = "",
+    string SourceChargeProviderTransactionId = "",
+    string DestinationAccountId = "",
+    decimal GrossBusinessAmount = 0m)
     : PaymentProviderRequest(
         Amount,
         Currency,
@@ -55,7 +73,8 @@ public sealed record ProviderRefundRequest(
     Guid BusinessId,
     string ProviderIdempotencyKey,
     Guid CorrelationId,
-    string Reason)
+    string Reason,
+    string SourcePaymentProviderTransactionId = "")
     : PaymentProviderRequest(
         Amount,
         Currency,
@@ -69,7 +88,9 @@ public sealed record ProviderWithdrawalRequest(
     Guid BusinessId,
     string ProviderIdempotencyKey,
     Guid CorrelationId,
-    string DestinationReference = "")
+    string DestinationReference = "",
+    string ConnectedAccountId = "",
+    ProviderMoney? PayoutMoney = null)
     : PaymentProviderRequest(
         Amount,
         Currency,

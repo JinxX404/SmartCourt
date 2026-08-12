@@ -50,7 +50,67 @@ public sealed record WalletDto(
     decimal AvailableBalance,
     decimal TotalReleased);
 
+public sealed record WithdrawalDto(
+    Guid Id,
+    decimal Amount,
+    string Currency,
+    WithdrawalStatus Status,
+    string? ProviderStatus,
+    string? FailureReason,
+    bool RequiresManualAction,
+    DateTime RequestedAt,
+    DateTime? ProcessedAt);
+
 public sealed record PaymentActionResultDto(
     Guid EntityId,
     string Status,
     DateTime OccurredAt);
+
+public sealed record FundingOperationDto(
+    Guid PaymentTransactionId,
+    Guid MilestoneId,
+    string Status,
+    string? ClientActionType,
+    string? ClientSecret,
+    string? RedirectUrl,
+    PaymentDto? Payment,
+    DateTime OccurredAt);
+
+public sealed record LawyerPayoutAccountDto(
+    Guid Id,
+    string ProviderCode,
+    string Status,
+    bool DetailsSubmitted,
+    bool TransfersEnabled,
+    bool PayoutsEnabled,
+    string Country,
+    string DefaultCurrency,
+    string? MaskedDestination,
+    DateTime? LastSynchronizedAt);
+
+public sealed record PayoutAccountLinkDto(
+    string Url,
+    DateTime? ExpiresAt);
+
+public sealed record PaymentProviderConfigDto(
+    string ProviderCode,
+    string PublishableKey,
+    string Currency,
+    bool SandboxOnly,
+    bool ConfirmationTokensEnabled,
+    bool SavedPaymentMethodsEnabled);
+
+public sealed record SetupPaymentMethodSessionDto(
+    string SetupIntentId,
+    string ClientSecret,
+    string Status);
+
+public sealed record SavedPaymentMethodDto(
+    string PaymentMethodReference,
+    string Type,
+    string? Brand,
+    string? Last4,
+    long? ExpiryMonth,
+    long? ExpiryYear,
+    string? HolderName,
+    bool IsDefault);

@@ -49,6 +49,11 @@ public sealed class PaymentTransaction
     public PaymentOperationType OperationType { get; internal set; }
     public string ProviderName { get; internal set; } = string.Empty;
     public string? ProviderTransactionId { get; internal set; }
+    public string? ProviderRelatedTransactionId { get; internal set; }
+    public string? ProviderStatus { get; internal set; }
+    public string? ProviderObjectType { get; internal set; }
+    public long? ProviderAmountMinor { get; internal set; }
+    public string? ProviderCurrency { get; internal set; }
     public string IdempotencyKey { get; internal set; } = string.Empty;
     public decimal Amount { get; internal set; }
     public string Currency { get; internal set; } = EntityGuard.CurrencyEgp;

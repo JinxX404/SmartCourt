@@ -8,6 +8,10 @@ public interface IWalletService
     Task<WalletDto> GetAsync(
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<WithdrawalDto>> GetWithdrawalsAsync(
+        CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<WithdrawalDto>>([]);
+
     Task<PaymentActionResultDto> WithdrawAsync(
         CreateWithdrawalRequest request,
         string? idempotencyKey,

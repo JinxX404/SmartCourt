@@ -22,6 +22,18 @@ public sealed class PaymentTransactionConfiguration
         builder.Property(transaction => transaction.ProviderTransactionId)
             .IsUnicode(false)
             .HasMaxLength(200);
+        builder.Property(transaction => transaction.ProviderRelatedTransactionId)
+            .IsUnicode(false)
+            .HasMaxLength(200);
+        builder.Property(transaction => transaction.ProviderStatus)
+            .IsUnicode(false)
+            .HasMaxLength(100);
+        builder.Property(transaction => transaction.ProviderObjectType)
+            .IsUnicode(false)
+            .HasMaxLength(100);
+        builder.Property(transaction => transaction.ProviderCurrency)
+            .IsUnicode(false)
+            .HasMaxLength(3);
         builder.Property(transaction => transaction.IdempotencyKey)
             .IsRequired()
             .IsUnicode(false)

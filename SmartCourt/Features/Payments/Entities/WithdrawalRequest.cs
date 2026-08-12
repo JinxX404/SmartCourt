@@ -35,6 +35,11 @@ public sealed class WithdrawalRequest
     public string Currency { get; internal set; } = EntityGuard.CurrencyEgp;
     public WithdrawalStatus Status { get; internal set; }
     public string? ProviderTransactionId { get; internal set; }
+    public Guid? LawyerPayoutAccountId { get; internal set; }
+    public string? ProviderAccountId { get; internal set; }
+    public string? ProviderStatus { get; internal set; }
+    public long? ProviderAmountMinor { get; internal set; }
+    public string? ProviderCurrency { get; internal set; }
     public string? FailureReason { get; internal set; }
     public bool RequiresManualAction { get; internal set; }
     public DateTime? ManualActionRequiredAt { get; internal set; }

@@ -8,16 +8,31 @@ namespace SmartCourt.Features.Payments;
 
 public interface IPaymentEscrowService
 {
-    Task<PaymentDto> FundAsync(
+    Task<FundingOperationDto> FundAsync(
         Guid milestoneId,
         FundMilestoneRequest request,
         string? idempotencyKey,
         CancellationToken cancellationToken);
 
-    Task<PaymentDto> RetryAsync(
+    Task<FundingOperationDto> FundWithConfirmationTokenAsync(
+        Guid milestoneId,
+        string confirmationTokenReference,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+        => throw new NotSupportedException();
+
+    Task<FundingOperationDto> RetryAsync(
         Guid paymentTransactionId,
+        string paymentMethodReference,
         string? idempotencyKey,
         CancellationToken cancellationToken);
+
+    Task<FundingOperationDto> RetryWithConfirmationTokenAsync(
+        Guid paymentTransactionId,
+        string confirmationTokenReference,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+        => throw new NotSupportedException();
 
     Task<PaymentDto> CompleteFundingAsync(
         Milestone milestone,
