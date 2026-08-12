@@ -1,5 +1,8 @@
 # Proposal lifecycle
 
+Frontend/API consumers should use the complete
+[frontend integration guide](./frontend_integration_guide.md).
+
 ## Business rules
 
 - Proposals can be created only for a case in `Matched` status.
@@ -12,6 +15,10 @@
 - The client can cancel a pending proposal.
 - Acceptance opens one private client-lawyer conversation. It starts
   negotiation and does not assign the case.
+- Open conversations support private PDF, DOCX, TXT, PNG, and JPEG attachment
+  messages. Attachment metadata is delivered through message history and the
+  existing SignalR `ReceiveMessage` event; file bytes require an authorized
+  API download.
 - Either participant can terminate an accepted proposal when it has no open
   contract. The conversation becomes read-only and retains a system message
   explaining the closure.
@@ -28,14 +35,19 @@
 | `Cancelled` | No | The client withdrew a pending invitation. |
 | `Expired` | No | No response was received within 72 hours. |
 | `Terminated` | No | A participant ended an accepted negotiation. |
-| `Superseded` | No | Another contract was activated for the case. |
+| `Superseded` | No | Another contract was activated; the affected lawyer loses all chat access. |
+
+Superseded chat privacy is enforced by proposal DTOs, chat list/detail/message
+handlers, message sending, and SignalR conversation joins. Clients retain their
+own read-only history.
 
 ## Endpoints
 
 | Method | Route | Actor |
 | --- | --- | --- |
 | `POST` | `/api/proposals` | Client |
-| `GET` | `/api/proposals` | Client or lawyer |
+| `GET` | `/api/proposals/lawyer` | Lawyer |
+| `GET` | `/api/proposals/cases/{caseId}` | Owning client |
 | `GET` | `/api/proposals/{proposalId}` | Proposal participant |
 | `GET` | `/api/proposals/cases/{caseId}/availability` | Owning client |
 | `POST` | `/api/proposals/{proposalId}/accept` | Invited lawyer |
@@ -50,3 +62,7 @@ with a maximum length of 1,000 characters. Proposal responses include
 
 The availability response is authoritative for display, but the create command
 always enforces the limit again under a serializable database transaction.
+
+Proposal lists default to page 1, page size 5, and `Pending` status. Page size
+is limited to 50. Repeat the `statuses` query parameter to combine statuses,
+for example `?statuses=Pending&statuses=Accepted`.

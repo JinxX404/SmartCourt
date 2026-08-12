@@ -19,10 +19,20 @@ public sealed class ContractConversationService(
         CancellationToken cancellationToken)
     {
         Validate(message);
+        var closesConversation = message.Type is
+            ContractConversationMessageType.ContractCompleted
+            or ContractConversationMessageType.ContractTerminated;
         if (await context.ChatMessages.AnyAsync(
                 item => item.Id == message.EventId,
                 cancellationToken))
         {
+            if (closesConversation)
+            {
+                await CloseExistingConversationAsync(
+                    message,
+                    cancellationToken);
+            }
+
             return;
         }
 
@@ -44,6 +54,10 @@ public sealed class ContractConversationService(
                 cancellationToken);
         context.ChatMessages.Add(chatMessage);
         conversation.MarkMessageAdded(createdAt);
+        if (closesConversation)
+        {
+            conversation.Close(createdAt);
+        }
         await context.SaveChangesAsync(cancellationToken);
 
         var dto = new ChatMessageDto(
@@ -56,10 +70,28 @@ public sealed class ContractConversationService(
             chatMessage.SystemCode,
             chatMessage.RelatedEntityId,
             chatMessage.CreatedAt,
-            IsMine: false);
+            IsMine: false,
+            Attachments: []);
         await realtimeNotifier.MessageCreatedAsync(
             dto,
             cancellationToken);
+    }
+
+    private async Task CloseExistingConversationAsync(
+        ContractConversationSystemMessage message,
+        CancellationToken cancellationToken)
+    {
+        var conversation = await context.ChatConversations
+            .SingleOrDefaultAsync(
+                item => item.ProposalId == message.ProposalId,
+                cancellationToken);
+        if (conversation is null || conversation.IsClosed)
+        {
+            return;
+        }
+
+        conversation.Close(message.OccurredAt.UtcDateTime);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
     private static void Validate(ContractConversationSystemMessage message)

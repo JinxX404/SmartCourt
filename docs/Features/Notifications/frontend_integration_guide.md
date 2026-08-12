@@ -478,12 +478,20 @@ Register `NotificationCreated`, `NotificationRead`, and `NotificationsReadAll` h
 | `wallet.withdrawal-failed` | Lawyer; no action URL | `Warning` | `withdrawalId` |
 | `wallet.withdrawal-delayed` | Lawyer; no action URL | `Warning` | `withdrawalId` |
 | `wallet.adjusted` | Lawyer; no action URL | `Warning` | `walletAdjustmentId`, `contractId` |
+| `verification.document-approved` | Document owner; no action URL | `Success` | `documentId`, `documentType` |
+| `verification.document-rejected` | Document owner; no action URL | `Warning` | `documentId`, `documentType` |
+| `verification.document-expired` | Document owner; no action URL | `Warning` | `documentId`, `documentType` |
+| `account.approved` | Affected account owner; no action URL | `Success` | `userId` |
+| `account.rejected` | Affected account owner; no action URL | `Critical` | `userId` |
+| `verification.review-requested` | Every user with the exact `Admin` role; no action URL | `Information` | `userId`, `documentCount` |
+| `security.password-changed` | Account owner; no action URL | `Critical` | `userId` |
+| `security.password-reset` | Account owner; no action URL | `Critical` | `userId` |
 
 Treat unknown future `type` values as generic notifications: show the server title/body and severity, but do not assume type-specific data keys. New types can be added without changing `NotificationDto`.
 
 `type` and the keys inside `data` are intentionally English machine identifiers. The user-visible `title` and `body` are persisted Arabic snapshots created when the source event is dispatched. Fetching a notification does not regenerate or translate its copy, so clients must always render the returned `title` and `body` rather than deriving display text from `type`.
 
-Contract, Milestone, Payment, and Wallet notifications deliberately return `actionUrl: null` in this increment. Render them normally without a navigation affordance. Do not manufacture a client-side URL from IDs in `data`; navigation will be enabled only through a later additive backend contract after the route is approved.
+Contract, Milestone, Payment, Wallet, and Administrative Verification notifications deliberately return `actionUrl: null` in this increment. Render them normally without a navigation affordance. Do not manufacture a client-side URL from IDs in `data`; navigation will be enabled only through a later additive backend contract after the route is approved.
 
 Exact Contract display copy is part of the API contract:
 
@@ -536,6 +544,28 @@ Exact Payment and Wallet display copy is part of the API contract:
 | `wallet.adjusted` / Lawyer | `تم تصحيح رصيد المحفظة` | `أجرى مسؤول النظام تصحيحًا ماليًا على محفظتك. راجع الرصيد الحالي والتفاصيل مع الدعم عند الحاجة.` |
 
 Financial notifications deliberately exclude amounts, currency, payment method and withdrawal destination references, provider transaction identifiers, failure details, administrative reasons, and idempotency keys. Treat every ID in `data` as an opaque lookup key; it does not grant access to the referenced resource.
+
+Exact Administrative Verification display copy is part of the API contract:
+
+| Source event V1 / type | Severity | Arabic title | Arabic body | Required data | `actionUrl` |
+|---|---|---|---|---|---|
+| `VerificationDocumentApproved` / `verification.document-approved` | `Success` | `تم اعتماد مستند التحقق` | `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.` | `documentId`, `documentType` | `null` |
+| `VerificationDocumentRejected` / `verification.document-rejected` | `Warning` | `تم رفض مستند التحقق` | `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.` | `documentId`, `documentType` | `null` |
+| `VerificationDocumentExpired` / `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` | `documentId`, `documentType` | `null` |
+| `VerificationAccountApproved` / `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` | `userId` | `null` |
+| `VerificationAccountRejected` / `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` | `userId` | `null` |
+| `VerificationReviewRequested` / `verification.review-requested` | `Information` | `طلب مراجعة مستندات التحقق` | `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` | `userId`, `documentCount` | `null` |
+
+Verification data never contains storage paths, file URLs or content, file names, full rejection reasons, private review comments, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The backend emits `account.approved` only on the actual transition to `Active`; `verification.review-requested` is emitted once per successful submission request when at least one document is persisted, including one event for a partial successful upload or a multi-file request. Every exact `Admin` role member receives one corresponding inbox row; `SuperAdministrator`, ordinary users, and the uploader do not. Replayed events are idempotent through the outbox message ID. REST remains the durable source of truth and SignalR remains best-effort; reconcile real-time items by notification ID.
+
+Exact Auth security display copy is part of the API contract:
+
+| Source event V1 / type | Severity | Arabic title | Arabic body | Required data | `actionUrl` |
+|---|---|---|---|---|---|
+| `PasswordChanged` / `security.password-changed` | `Critical` | `تم تغيير كلمة المرور` | `تم تغيير كلمة مرور حسابك بنجاح. إذا لم تكن أنت من أجرى هذا التغيير، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+| `PasswordReset` / `security.password-reset` | `Critical` | `تمت إعادة تعيين كلمة المرور` | `تمت إعادة تعيين كلمة مرور حسابك بنجاح. إذا لم تطلب هذا الإجراء، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+
+These notifications are emitted only after the corresponding password operation succeeds and refresh tokens are revoked. Failed validation, failed changes, invalid/replayed reset tokens, login, refresh, logout, ordinary token revocation, and phone challenge actions do not create them. Security data never contains Email addresses, passwords or hints, reset/access/refresh tokens, reset URLs, IP addresses, device fingerprints, security stamps, provider IDs, or idempotency keys. Existing Email security receipts remain separate. The outbox message ID makes replay idempotent; REST is durable and SignalR is best-effort.
 
 ## Navigation, rendering, and security
 
@@ -605,6 +635,8 @@ Adding a new notification `type` with the existing DTO is an additive change. Fr
 - [Contracts Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/ContractsNotifications_Report.md)
 - [Milestones Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/MilestonesNotifications_Report.md)
 - [Payments Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/PaymentsNotifications_Report.md)
+- [Administrative Verification Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md)
+- [User Verification Notification HTTP Verification Report](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md)
 
 External references:
 

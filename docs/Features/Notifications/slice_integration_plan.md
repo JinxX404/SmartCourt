@@ -1,7 +1,7 @@
 # Per-Slice Notification Integration Plan
 
-Status: **Gates 0–3 implemented and verified; stopped for Gate 3 review before Gate 5**
-Branch: `codex/notification-slice-integrations`
+Status: **Gates 0–3, Gate 5, Gate 6, and Gate 7 implemented and verified from current local main; Gate 4 intentionally skipped; Gate 7 is stopped for review**
+Branch: `codex/notification-gate-7-auth-security-from-main` (based on current local `main`; merge target: local `main`)
 Scope: backend only; in-app notifications first; Arabic display copy; Email/SMS deferred.
 
 This plan converts the approved [Notification Opportunity Catalog](./notification_opportunity_catalog.md) into small, independently reviewable slice integrations. It does not authorize implementation by itself. After each slice is implemented and tested, work stops until the user reviews and explicitly approves continuing.
@@ -434,7 +434,7 @@ The generated script covers all Payment, Wallet, AdminEscrow, and AdminWallet en
 - The generated report contains no unredacted authentication token, password, payment reference, provider identifier, withdrawal destination, or webhook signature.
 - The final run had no notification/outbox dispatch failure. Its critical wallet log is the deliberate SLA-delayed withdrawal escalation exercised by the test.
 - No frontend source, Email/SMS delivery behavior, production payment provider, Payment endpoint, authorization rule, or unrelated slice business logic was changed. No code was pushed.
-- Gate 4 was not requested in the current sequence. Work stops here before Gate 5 until this result is reviewed.
+- Gate 4 was intentionally skipped in the requested sequence. Gate 5 was implemented from the current `main` branch, verified, and is ready for local merge into `main`.
 
 ### Stop condition
 
@@ -487,18 +487,24 @@ Catalog scope: `VER-02` through `VER-06`. Expiry reminder `VER-07` is deferred.
 
 ### Minimal Admin-slice extensions
 
-- enqueue versioned facts from existing review/approve/reject handlers before their save;
-- use the current user/account/document IDs and bounded status/document type;
-- never include document storage paths or full rejection reason in the event;
-- prevent one account-approved notification per document by detecting the actual account status transition;
+- enqueue `VerificationDocumentApproved`, `VerificationDocumentRejected`, `VerificationDocumentExpired`, `VerificationAccountApproved`, and `VerificationAccountRejected`, all version `1`, from the existing review/approve/reject handlers before their save;
+- use the current user/account/document IDs and bounded status/document type, then let `VerificationNotificationEventMapper` resolve the recipient through the Verification-owned context reader;
+- never include document storage paths, file URLs/content, private review comments, or full rejection reasons in the event or notification;
+- prevent one account-approved notification per document by detecting the actual account status transition to `Active`, and emit account rejection only on transition to `Rejected`;
 - preserve legacy MediatR handlers without introducing new MediatR notification dispatch.
+
+### Gate 5 Arabic copy and data contract
+
+All five notification types use `actionUrl: null`. `verification.document-approved` is `Success`, titled `تم اعتماد مستند التحقق`, with body `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.`. `verification.document-rejected` is `Warning`, titled `تم رفض مستند التحقق`, with body `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.`. `verification.document-expired` is `Warning`, titled `انتهت صلاحية مستند التحقق`, with body `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.`. `account.approved` is `Success`, titled `تم اعتماد حسابك`, with body `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.`. `account.rejected` is `Critical`, titled `تم رفض الحساب`, with body `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.`.
+
+Document notification data contains only `documentId` and `documentType`; account notification data contains only `userId`. Storage paths, file URLs/content, full rejection reasons, private review comments, Email/phone/national numbers, provider IDs, tokens, and idempotency keys are forbidden. The shared outbox message ID makes materialization idempotent; REST is the durable delivery path and SignalR is best-effort.
 
 ### HTTP artifact
 
 - `AdminVerificationNotifications_Test.ps1`
 - `AdminVerificationNotifications_Report.md`
 
-It covers all Admin Verification endpoints, roles, pending queue/detail/content, approve/reject/expired outcomes, concurrency behavior, and exact recipient notifications.
+It covers all Admin Verification endpoints, roles, pending queue/detail/content, approve/reject/expired outcomes, account transition deduplication, concurrency behavior, validation, exact Arabic recipient notifications, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring. The corrected-from-main final report records `122 passed, 0 failed, 3 skipped`.
 
 ### Stop condition
 
@@ -508,17 +514,28 @@ Stop after administrative verification review.
 
 Catalog scope: `VER-01`. `VER-08` remains intentionally without a notification.
 
-The current product has no assigned verification reviewer. To avoid broadcasting to every admin, this gate does not create admin inbox rows until a queue/assignment recipient policy is approved.
+The temporary recipient policy is every user with the exact `Admin` role. `SuperAdministrator`, ordinary users, and the uploading user are excluded. This is an explicit temporary product policy until a dedicated verification assignment/queue model exists; the mapper must be replaced or narrowed when that model is approved.
 
-Allowed work before that decision is limited to a semantic `VerificationReviewRequested` outbox fact and tests proving it commits with successful uploads. The event may later feed an assignment queue, but an outbox event with no notification mapper would currently fail dispatch. Therefore the safest recommendation is to defer this gate entirely until assignment semantics exist.
+### Minimal UserVerification-slice extensions
 
-If approved later:
+- `SubmitVerificationDocumentsHandler` enqueues `VerificationReviewRequested` version `1` before its existing `SaveChangesAsync` when at least one document is persisted;
+- one submission request creates one event, including one event for a partial-success upload and one event for a multi-file request with its successful `documentCount`;
+- failed-only validation/upload outcomes enqueue no event;
+- `VerificationNotificationEventMapper` resolves Admin recipients through `IVerificationNotificationContextReader` and returns one draft per exact `Admin` role member;
+- the event and notification carry only `userId` and bounded `documentCount`; no storage path, file URL/content/name, private metadata, rejection reason, contact detail, provider ID, token, or idempotency key is included;
+- existing MediatR UserVerification handlers remain; no MediatR notification dispatch is introduced.
 
-- add assignment/queue ownership;
-- map only to the assigned reviewer;
-- test every UserVerification endpoint and partial upload outcome;
-- generate `UserVerificationNotifications_Test.ps1` and report;
-- stop for review.
+### Gate 6 Arabic copy and data contract
+
+`verification.review-requested` uses `Information`, title `طلب مراجعة مستندات التحقق`, body `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.`, `actionUrl: null`, and required data keys `userId` and `documentCount`. REST is the durable source of truth; SignalR broadcasts the persisted DTO best-effort. The shared outbox message ID makes replay idempotent, so each Admin receives at most one inbox row for the same committed submission event.
+
+### Gate 6 verification
+
+`VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md) cover every UserVerification endpoint, successful/partial/multi-file/replacement upload outcomes, failed-only no-event behavior, deletion, ownership, Admin-only recipient isolation, notification list/count/read/read-all, exact Arabic snapshots, forbidden metadata, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release. The final monitored report records `155 passed, 0 failed, 1 documented skip`; the only skip is the optional SuperAdministrator fixture unavailable from the repository's supported setup.
+
+### Stop condition
+
+Gate 6 was merged locally into current `main` after explicit approval. Do not change Gate 6 behavior while reviewing Gate 7.
 
 ## 12. Gate 7 — Authentication/security
 
@@ -531,23 +548,26 @@ Catalog scope: `AUT-01` and `AUT-02`. New-device detection `AUT-03` and Email-on
 
 These are persisted in-app audit records with Arabic safe copy. They do not replace immediate Email security receipts, which belong to the later Email scope.
 
-### Minimal Auth-slice extensions
+### Implemented Auth-slice extensions
 
-- enqueue security events inside the same password change/reset transaction;
-- do not include Email, token, IP, device fingerprint, or security stamp;
-- retain refresh-token revocation and Identity behavior unchanged;
-- no notifications for ordinary login/refresh/challenge operations.
+- `ChangePasswordService` emits `PasswordChanged` V1 after the successful password/session mutation and before the existing final update/commit;
+- `ResetPasswordService` emits `PasswordReset` V1 after the successful reset-token/password/session mutation and before the existing final update/commit;
+- `AuthNotificationEventMapper` resolves the account owner through `IAuthNotificationContextReader` and maps only `userId`;
+- exact persisted types are `security.password-changed` and `security.password-reset`, both `Critical`, with `actionUrl: null` and the approved Arabic snapshots documented in all Notification contracts;
+- no Email addresses, passwords/hints, reset/access/refresh tokens, reset URLs, IP addresses, device fingerprints, security stamps, provider IDs, or idempotency keys are emitted;
+- Identity password validation, reset-token behavior, refresh-token revocation, Email security receipts, and all existing Auth endpoint behavior remain unchanged;
+- no notifications are emitted for failed operations, ordinary login/refresh/logout/revoke, phone challenge, forgot-password request, invalid reset tokens, or replayed reset tokens.
 
 ### HTTP artifact
 
 - `AuthSecurityNotifications_Test.ps1`
 - `AuthSecurityNotifications_Report.md`
 
-The script follows the skill's exhaustive Auth requirement. Because Auth is large, this is expected to be the most expensive HTTP gate; it covers every Auth endpoint, anonymous/authenticated behavior, challenge extraction, reset/change flows, token revocation, validation/hostile input, and security notification persistence.
+The script follows the skill's exhaustive Auth requirement and records `117 passed, 0 failed, 1 documented skip`. It covers every Auth endpoint, anonymous/authenticated behavior, registration and mock Email link extraction, resend/confirmation, login, change/reset flows, invalid/expired/replayed reset paths, refresh rotation/revocation, legacy phone challenge, validation/hostile input, notification REST persistence/read/count behavior, exact Arabic snapshots, forbidden data, recipient isolation, API/outbox/provider logs, shutdown, and port release. The true time-expired reset-token case is the documented skip because the repository exposes no safe HTTP time-advance control.
 
 ### Stop condition
 
-Stop after Auth report review.
+Stop after the Gate 7 focused tests, HTTP report, log review, documentation review, and local commit. Do not start Gate 8 automatically.
 
 ## 13. Gate 8 — Optional/deferred slices
 
@@ -604,4 +624,4 @@ A slice passes only when:
 
 ## 16. Approval requested
 
-Gates 0, 1, 2, and 3 have now been executed under separate approvals. Gate 3 is complete and awaiting review. Per the requested sequence, Gate 4 remains untouched and Gate 5 must not begin until the user explicitly approves continuing.
+Gates 0, 1, 2, 3, 5, 6, and 7 have been executed under separate local gate branches. Gate 4 remains intentionally untouched. Gate 5 was re-based on current local `main` and reverified; Gate 6 uses the temporary exact-`Admin` recipient policy approved for that gate and was merged locally into `main` after review. Gate 7 is based on the resulting current local `main`, is committed locally after verification, and is stopped for explicit review. No remote push has occurred.

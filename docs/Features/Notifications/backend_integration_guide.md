@@ -112,6 +112,53 @@ The Payments/Wallet integration consumes these version `1` facts:
 
 All Payments/Wallet notifications use `actionUrl: null`. Funding data is `milestoneId`, `contractId`, `proposalId`, and `legalCaseId`; settlement data additionally contains `escrowHoldId` and `paymentTransactionId`; withdrawal data contains only `withdrawalId`; adjustment data contains `walletAdjustmentId` and `contractId`. Amounts, currency, payment/destination references, provider identifiers, failure details, administrative reasons, and idempotency keys are never copied into the inbox payload.
 
+## Administrative Verification integration (Gate 5)
+
+The Admin Verifications slice emits these version `1` semantic events from its existing handlers. Each event is queued in the same EF unit of work before the existing save/commit; the owning slice does not call `INotificationService`, SignalR, Email, SMS, or Hangfire. `VerificationNotificationEventMapper` resolves the recipient and current status through the Verification-owned `IVerificationNotificationContextReader`.
+
+| Source event | Trigger and recipient | Notification type | Severity | Exact Arabic title | Exact Arabic body |
+|---|---|---|---|---|---|
+| `VerificationDocumentApproved` V1 | A current document changes to `Verified`; document owner | `verification.document-approved` | `Success` | `تم اعتماد مستند التحقق` | `تم اعتماد أحد مستندات التحقق الخاصة بك. يمكنك متابعة حالة التحقق من حسابك.` |
+| `VerificationDocumentRejected` V1 | A current document changes to `Rejected`; document owner | `verification.document-rejected` | `Warning` | `تم رفض مستند التحقق` | `تم رفض أحد مستندات التحقق الخاصة بك. يرجى مراجعة التفاصيل واستبدال المستند عند الحاجة.` |
+| `VerificationDocumentExpired` V1 | Review discovers a current document is expired; document owner | `verification.document-expired` | `Warning` | `انتهت صلاحية مستند التحقق` | `انتهت صلاحية أحد مستندات التحقق الخاصة بك. يرجى إعادة رفع مستند ساري المفعول.` |
+| `VerificationAccountApproved` V1 | Account actually transitions to `Active`; affected user only | `account.approved` | `Success` | `تم اعتماد حسابك` | `تم اعتماد حسابك وأصبح جاهزًا للاستخدام.` |
+| `VerificationAccountRejected` V1 | Account actually transitions to `Rejected`; affected user only | `account.rejected` | `Critical` | `تم رفض الحساب` | `تم رفض طلب اعتماد حسابك. يرجى مراجعة التفاصيل واتخاذ الإجراء المطلوب.` |
+
+All five mappings use `actionUrl: null`. Document event data contains only string GUID `documentId` and the English `documentType`; account event data contains only string GUID `userId`. The source payload may carry the bounded authoritative IDs/type/status needed for mapper validation, but it never carries a storage path, file URL/content, full rejection reason, private review comment, Email, phone, national number, provider ID, token, or idempotency key. `account.approved` is emitted only for a real transition to `Active`, never once per approved document.
+
+The shared `NotificationOutboxHandler` uses the committed outbox message ID for idempotent inbox materialization and SignalR delivery. Replayed requests and repeated decisions therefore preserve the existing endpoint result without creating duplicate notification rows. REST remains the durable source of truth through the normal notification list/count/read/read-all endpoints; SignalR is best-effort and may duplicate an already persisted item, so clients reconcile by notification ID.
+
+Gate 5 is verified by `SmartCourt.Tests/Features/Notifications/VerificationNotificationEventMapperTests.cs` and [`AdminVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AdminVerificationNotifications_Report.md). The HTTP artifact covers authorization boundaries, pending/detail/content routes, approve/reject/expiry, account transitions, concurrency/conflicts, validation, exact Arabic snapshots, forbidden metadata, recipient isolation, mock Email confirmation, and API/outbox/provider log monitoring.
+
+## User Verification Submission integration (Gate 6)
+
+`SubmitVerificationDocumentsHandler` emits one `VerificationReviewRequested` version `1` event before its existing `SaveChangesAsync` when at least one requested document is successfully persisted. The event uses the submitting account as its aggregate, records only the account ID and successful document count, and is committed atomically with the document rows, stored-file rows, and `PendingReview` state. A partial upload therefore creates one event for the successful subset; a multi-file request still creates one event rather than one event per file. Failed-only validation or upload outcomes enqueue no event.
+
+`VerificationNotificationEventMapper` resolves recipients through `IVerificationNotificationContextReader`. The context reader queries Identity membership for the exact `Admin` role only. It does not infer recipients from a request payload, include `SuperAdministrator`, or notify the uploading user. The mapper returns one draft per Admin, with no draft when there are no Admin role members. Existing MediatR request handlers remain in place; no MediatR notification dispatch was added.
+
+| Source event | Trigger and recipient | Notification type | Severity | Exact Arabic title | Exact Arabic body | Data | `actionUrl` |
+|---|---|---|---|---|---|---|---|
+| `VerificationReviewRequested` V1 | At least one document is persisted by a user verification submission; every exact `Admin` role member | `verification.review-requested` | `Information` | `طلب مراجعة مستندات التحقق` | `تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.` | `userId`, `documentCount` | `null` |
+
+The event payload and notification data never contain storage paths, file URLs/content, file names, private review metadata, rejection reasons, Email addresses, phone numbers, national numbers, provider IDs, tokens, or idempotency keys. The source outbox message ID is the idempotency key used internally by `NotificationOutboxHandler`; replaying a message preserves one persisted row per `(source event, Admin recipient, type)`. REST list/count/read/read-all remains durable, and SignalR delivers the persisted DTO best-effort.
+
+Gate 6 is verified by `VerificationNotificationEventMapperTests` and [`UserVerificationNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/UserVerificationNotifications_Report.md). The report records `155 passed, 0 failed, 1 documented skip` and proves the action response precedes notification polling for successful, partial, multi-file, and replacement uploads, while failed-only uploads create no event. It also covers every UserVerification endpoint, deletion, ownership boundaries, exact Arabic data, forbidden fields, Admin-only isolation, mock Email confirmation, API/outbox/provider monitoring, API shutdown, and port release.
+
+## Authentication/security integration (Gate 7)
+
+The Auth slice now emits two version `1` semantic facts from the existing successful password transactions. `ChangePasswordService` queues `PasswordChanged` after Identity changes the password and active refresh tokens are revoked but before the existing final update/commit. `ResetPasswordService` queues `PasswordReset` at the equivalent point after a valid reset token changes the password and active refresh tokens are revoked. The outbox row is therefore committed atomically with the existing Auth state change; failed validation, failed password operations, invalid/replayed reset tokens, and unrelated Auth actions do not enqueue a fact.
+
+`AuthNotificationEventMapper` uses the Auth-owned `IAuthNotificationContextReader` to resolve the account owner from the authoritative user row. It validates event version, aggregate/user identity, and payload identity before creating the draft. No recipient is taken from an HTTP request, and no administrator or other account is notified.
+
+| Source event | Trigger and recipient | Notification type | Severity | Exact Arabic title | Exact Arabic body | Data | `actionUrl` |
+|---|---|---|---|---|---|---|---|---|
+| `PasswordChanged` V1 | Successful authenticated password change after refresh-token revocation; account owner | `security.password-changed` | `Critical` | `تم تغيير كلمة المرور` | `تم تغيير كلمة مرور حسابك بنجاح. إذا لم تكن أنت من أجرى هذا التغيير، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+| `PasswordReset` V1 | Successful reset-token password reset after refresh-token revocation; account owner | `security.password-reset` | `Critical` | `تمت إعادة تعيين كلمة المرور` | `تمت إعادة تعيين كلمة مرور حسابك بنجاح. إذا لم تطلب هذا الإجراء، يرجى تأمين حسابك والتواصل مع الدعم.` | `userId` | `null` |
+
+The source payload contains only the account `userId`. Notification data and snapshots never contain Email addresses, passwords or hints, reset/access/refresh tokens, reset URLs, IP addresses, device fingerprints, security stamps, provider IDs, or idempotency keys. Existing Auth Email security receipts remain unchanged; these are additional in-app receipts. `NotificationOutboxHandler` deduplicates replay by the committed outbox message ID, recipient, and type. REST remains the durable source of truth through list/count/read/read-all, and SignalR pushes the persisted DTO best-effort.
+
+Gate 7 is verified by `AuthNotificationEventMapperTests`, the ChangePassword/ResetPassword service suites, and [`AuthSecurityNotifications_Report.md`](../../../SmartCourt.Tests/HttpTests/AuthSecurityNotifications_Report.md). The report records `117 passed, 0 failed, 1 documented skip`; it covers every Auth route, anonymous/authenticated and role boundaries, mock Email confirmation/reset-link extraction, success/failure/replay/concurrency/validation paths, token revocation, exact Arabic snapshots, forbidden metadata, recipient isolation, notification REST behavior, clean API/outbox/provider logs, API shutdown, and port release.
+
 ## Quick start: add notifications for your slice
 
 Before adding a trigger, check the [Notification Opportunity Catalog](./notification_opportunity_catalog.md). It records the agreed candidate story, recipient, priority, proposed type, and whether an existing event can be reused. The catalog is analysis, so selecting a story for implementation still requires inclusion in an approved integration plan.

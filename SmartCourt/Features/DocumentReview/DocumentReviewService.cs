@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using SmartCourt.Common.Configuration;
 using SmartCourt.Features.DocumentReview.DTOs;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Providers.PdfParser;
@@ -17,25 +18,31 @@ public class DocumentReviewService : IDocumentReviewService
 {
     private readonly IEmbeddingProvider _embeddingProvider;
     private readonly IVectorStoreProvider _vectorStore;
+    private readonly IRerankerProvider _rerankerProvider;
     private readonly IChatModelProvider _chatModelProvider;
     private readonly IDocumentParsingProvider _documentParsingProvider;
     private readonly LegalDocumentChunker _chunker;
     private readonly ILogger<DocumentReviewService> _logger;
+    private readonly RagOptions _ragOptions;
 
     public DocumentReviewService(
         IEmbeddingProvider embeddingProvider,
         IVectorStoreProvider vectorStore,
+        IRerankerProvider rerankerProvider,
         IChatModelProvider chatModelProvider,
         IDocumentParsingProvider documentParsingProvider,
         LegalDocumentChunker chunker,
-        ILogger<DocumentReviewService> logger)
+        ILogger<DocumentReviewService> logger,
+        IOptions<RagOptions> ragOptions)
     {
         _embeddingProvider = embeddingProvider;
         _vectorStore = vectorStore;
+        _rerankerProvider = rerankerProvider;
         _chatModelProvider = chatModelProvider;
         _documentParsingProvider = documentParsingProvider;
         _chunker = chunker;
         _logger = logger;
+        _ragOptions = ragOptions.Value;
     }
 
 
@@ -49,20 +56,28 @@ public class DocumentReviewService : IDocumentReviewService
 
     public async Task<AnalyzeResponse> AskLawAsync(AskLawRequest request, CancellationToken cancellationToken = default)
     {
-        var collectionName = "egyptian_law";
+        var collectionName = _ragOptions.LegalCollectionName;
 
         var normalizedQuery = ArabicTextNormalizer.Normalize(request.Query);
 
         // 1. Embed query
         var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).First();
         
-        // 2. Retrieve from the existing egyptian_law collection
-        var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: 5, filters: null, cancellationToken: cancellationToken);
+        // 2. Retrieve from the existing egyptian_law collection (over-fetch)
+        var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
 
         var retrievedChunks = searchResults
-            .Where(r => r.Payload.ContainsKey("chunk_text"))
+            .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore && r.Payload.ContainsKey("chunk_text"))
             .Select(r => r.Payload["chunk_text"].ToString())
             .ToList();
+
+        // 3. Rerank to get the top 5 most relevant chunks
+        if (retrievedChunks.Count > 0)
+        {
+            var reranked = await _rerankerProvider.RerankAsync(request.Query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
+            retrievedChunks = reranked.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count)
+                .OrderByDescending(r => r.RelevanceScore).Select(r => retrievedChunks[r.Index]).ToList();
+        }
 
         if (retrievedChunks.Count == 0)
         {
@@ -78,20 +93,15 @@ public class DocumentReviewService : IDocumentReviewService
             contextBuilder.AppendLine();
         }
 
-        var systemPrompt = $@"You are a highly capable legal analysis assistant specialized in Egyptian Law. 
-Use the provided law snippets to answer the user's query.
-If the snippets do not contain enough information to answer the query, clearly state that.
-Do not hallucinate facts outside the provided context.
-
-LAW CONTEXT:
-{contextBuilder}";
+        var systemPrompt = DocumentReviewPrompts.GetAskLawSystemPrompt(contextBuilder.ToString());
 
         var answer = await _chatModelProvider.GenerateAsync(systemPrompt, request.Query, cancellationToken);
 
         return new AnalyzeResponse
         {
             Answer = answer,
-            ChunksUsed = retrievedChunks.Count
+            ChunksUsed = retrievedChunks.Count,
+            RetrievedContext = retrievedChunks
         };
     }
 
@@ -101,8 +111,8 @@ LAW CONTEXT:
         
         try
         {
-            // 1. Chunking (default to Arabic for document reviews)
-            var chunks = _chunker.ChunkText(text, "ar");
+            // User documents are not legislation: do not infer article boundaries from them.
+            var chunks = _chunker.ChunkPlainText(text);
             if (chunks.Count == 0)
             {
                 return new AnalyzeResponse { Answer = "No text could be extracted for analysis.", ChunksUsed = 0 };
@@ -112,7 +122,15 @@ LAW CONTEXT:
             await _vectorStore.EnsureCollectionExistsAsync(collectionName, _embeddingProvider.Dimensions, cancellationToken);
 
             // 3. Embed & Ingest
-            var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(chunks.Select(c => c.Text).ToList(), cancellationToken);
+            var embeddings = new List<float[]>(chunks.Count);
+            for (var offset = 0; offset < chunks.Count; offset += _ragOptions.EmbeddingBatchSize)
+            {
+                var batch = chunks.Skip(offset).Take(_ragOptions.EmbeddingBatchSize).Select(c => c.Text).ToList();
+                var batchEmbeddings = await _embeddingProvider.GenerateEmbeddingsAsync(batch, cancellationToken);
+                if (batchEmbeddings.Count != batch.Count || batchEmbeddings.Any(x => x.Length != _embeddingProvider.Dimensions))
+                    throw new InvalidOperationException("Embedding provider returned invalid vectors.");
+                embeddings.AddRange(batchEmbeddings);
+            }
             var points = new List<VectorPoint>();
             for (int i = 0; i < chunks.Count; i++)
             {
@@ -128,15 +146,22 @@ LAW CONTEXT:
             }
             await _vectorStore.UpsertBatchAsync(collectionName, points, cancellationToken);
 
-            // 4. Retrieve
+            // 4. Retrieve (over-fetch)
             var normalizedQuery = ArabicTextNormalizer.Normalize(query);
             var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).First();
-            var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: 5, filters: null, cancellationToken: cancellationToken);
+            var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
 
             var retrievedChunks = searchResults
-                .Where(r => r.Payload.ContainsKey("chunk_text"))
+                .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore && r.Payload.ContainsKey("chunk_text"))
                 .Select(r => r.Payload["chunk_text"].ToString())
                 .ToList();
+
+            // Rerank document chunks
+            if (retrievedChunks.Count > 0)
+            {
+                var reranked = await _rerankerProvider.RerankAsync(query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
+                retrievedChunks = reranked.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => retrievedChunks[r.Index]!).ToList();
+            }
 
             if (retrievedChunks.Count == 0)
             {
@@ -152,41 +177,89 @@ LAW CONTEXT:
                 documentContextBuilder.AppendLine();
             }
 
-            var combinedSearchText = $"{normalizedQuery}\n\nRelated Document Text:\n{documentContextBuilder}";
-            var combinedEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { combinedSearchText }, cancellationToken)).First();
+            var documentContextString = documentContextBuilder.ToString();
+
+            // 5a. Generate multi-queries for search
+            var searchQueriesPrompt = DocumentReviewPrompts.GetMultiQuerySearchPrompt($"USER QUESTION:\n{query}\n\n{documentContextString}");
+            var searchQueriesResponse = await _chatModelProvider.GenerateAsync(searchQueriesPrompt, "Generate queries", cancellationToken);
             
-            var lawSearchResults = await _vectorStore.SearchAsync("egyptian_law", combinedEmbedding, topK: 5, filters: null, cancellationToken: cancellationToken);
-            var retrievedLawChunks = lawSearchResults
+            var rawQueries = searchQueriesResponse
+                .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(q => q.Trim().TrimStart('-', '*', '1', '2', '3', '4', '5', '.').Trim())
+                .Where(q => !string.IsNullOrWhiteSpace(q) && q.Length > 2)
+                .Take(5)
+                .ToList();
+
+            if (rawQueries.Count == 0)
+            {
+                rawQueries.Add(normalizedQuery); // Fallback
+            }
+            else if (!rawQueries.Contains(normalizedQuery, StringComparer.Ordinal)) rawQueries.Insert(0, normalizedQuery);
+
+            // 5b. Generate document summary for reranking
+            var rerankSummaryPrompt = DocumentReviewPrompts.GetRerankerSummaryPrompt(documentContextString);
+            var documentSummary = await _chatModelProvider.GenerateAsync(rerankSummaryPrompt, "Generate summary", cancellationToken);
+            var rerankQuery = $"{normalizedQuery}\n{documentSummary}";
+
+            // Embed all queries
+            var queryEmbeddings = await _embeddingProvider.GenerateEmbeddingsAsync(rawQueries, cancellationToken);
+            
+            // Search Qdrant for each query and aggregate results
+            var allLawSearchResults = new List<SmartCourt.Interfaces.Providers.VectorSearchResult>();
+            foreach (var qEmbedding in queryEmbeddings)
+            {
+                var lawSearchResults = await _vectorStore.SearchAsync(_ragOptions.LegalCollectionName, qEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
+                allLawSearchResults.AddRange(lawSearchResults);
+            }
+
+            // Deduplicate by Payload's chunk_id or text
+            var uniqueLawChunks = allLawSearchResults
+                .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
+                .GroupBy(r => r.Payload.ContainsKey("chunk_id") ? r.Payload["chunk_id"].ToString() : r.Payload.ContainsKey("chunk_text") ? r.Payload["chunk_text"].ToString() : Guid.NewGuid().ToString())
+                .Select(g => g.OrderByDescending(x => x.Score).First())
+                .OrderByDescending(x => x.Score)
+                .Take(40)
+                .ToList();
+
+            var retrievedLawTexts = uniqueLawChunks
                 .Where(r => r.Payload.ContainsKey("chunk_text"))
                 .Select(r => r.Payload["chunk_text"].ToString())
                 .ToList();
 
-            var lawContextBuilder = new StringBuilder();
-            for (int i = 0; i < retrievedLawChunks.Count; i++)
+            // Rerank law chunks using the document summary
+            if (retrievedLawTexts.Count > 0)
             {
-                lawContextBuilder.AppendLine($"--- Law Snippet {i + 1} ---");
-                lawContextBuilder.AppendLine(retrievedLawChunks[i]);
-                lawContextBuilder.AppendLine();
+                var rerankedLaw = await _rerankerProvider.RerankAsync(rerankQuery, retrievedLawTexts, topN: Math.Min(10, retrievedLawTexts.Count), cancellationToken);
+                var finalLawChunks = rerankedLaw.Where(r => r.Index >= 0 && r.Index < uniqueLawChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => uniqueLawChunks[r.Index]).ToList();
+
+                var lawContextBuilder = new StringBuilder();
+                for (int i = 0; i < finalLawChunks.Count; i++)
+                {
+                    var chunk = finalLawChunks[i];
+                    var chunkText = chunk.Payload.ContainsKey("chunk_text") ? chunk.Payload["chunk_text"].ToString() : "";
+                    var lawName = chunk.Payload.ContainsKey("law_name") ? chunk.Payload["law_name"].ToString() : chunk.Payload.GetValueOrDefault("document_title", "Unknown Law").ToString();
+                    var articleNumber = chunk.Payload.ContainsKey("article_number") ? chunk.Payload["article_number"].ToString() : "";
+                    var articleLabel = string.IsNullOrWhiteSpace(articleNumber) ? "" : $" - المادة {articleNumber}";
+
+                    lawContextBuilder.AppendLine($"--- Law Snippet {i + 1} [{lawName}{articleLabel}] ---");
+                    lawContextBuilder.AppendLine(chunkText);
+                    lawContextBuilder.AppendLine();
+                }
+
+                // 6. Generate final response
+                var systemPrompt = DocumentReviewPrompts.GetReviewDocumentSystemPrompt(documentContextString, lawContextBuilder.ToString());
+
+                var answer = await _chatModelProvider.GenerateAsync(systemPrompt, query, cancellationToken);
+
+                return new AnalyzeResponse
+                {
+                    Answer = answer,
+                    ChunksUsed = retrievedChunks.Count + finalLawChunks.Count,
+                    RetrievedContext = retrievedChunks.Concat(finalLawChunks.Select(c => c.Payload.ContainsKey("chunk_text") ? c.Payload["chunk_text"].ToString() : "")).ToList()
+                };
             }
 
-            // 6. Generate final response
-            var systemPrompt = $@"You are a highly capable legal analysis assistant specialized in Egyptian Law.
-Use the provided document snippets and the relevant law snippets to answer the user's query.
-If the snippets do not contain enough information to answer the query, clearly state that.
-Do not hallucinate facts outside the provided context.
-
-DOCUMENT CONTEXT:
-{documentContextBuilder}
-LAW CONTEXT:
-{lawContextBuilder}";
-
-            var answer = await _chatModelProvider.GenerateAsync(systemPrompt, query, cancellationToken);
-
-            return new AnalyzeResponse
-            {
-                Answer = answer,
-                ChunksUsed = retrievedChunks.Count + retrievedLawChunks.Count
-            };
+            return new AnalyzeResponse { Answer = "Could not find relevant Egyptian law to review the document.", ChunksUsed = retrievedChunks.Count };
         }
         finally
         {

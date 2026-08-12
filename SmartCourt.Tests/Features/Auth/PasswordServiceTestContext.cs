@@ -12,6 +12,8 @@ using SmartCourt.Features.Auth.ChangePassword;
 using SmartCourt.Features.Auth.Enums;
 using SmartCourt.Features.Auth.ResetPassword;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Infrastructure.Persistence.Entities;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 using System.Text;
@@ -27,6 +29,7 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
     private readonly ServiceProvider _serviceProvider;
     private readonly TestCurrentUserService _currentUserService = new();
     private readonly TestAuthHelperService _authHelperService = new();
+    private readonly TestOutboxWriter _outboxWriter = new();
 
     private PasswordServiceTestContext(
         SqliteConnection connection,
@@ -42,6 +45,7 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
 
     public ApplicationDbContext DbContext { get; }
     public TestUserManager UserManager { get; }
+    public IReadOnlyList<OutboxEvent> OutboxEvents => _outboxWriter.Events;
     public RoleManager<IdentityRole<Guid>> RoleManager
         => _serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
 
@@ -90,12 +94,17 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
             UserManager,
             DbContext,
             _authHelperService,
-            _currentUserService);
+            _currentUserService,
+            _outboxWriter);
     }
 
     public ResetPasswordService CreateResetPasswordService()
     {
-        return new ResetPasswordService(UserManager, DbContext, _authHelperService);
+        return new ResetPasswordService(
+            UserManager,
+            DbContext,
+            _authHelperService,
+            _outboxWriter);
     }
 
     public async Task<ApplicationUser> CreateUserAsync(
@@ -242,6 +251,20 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
             {
                 token.RevokedOn = DateTime.UtcNow;
             }
+        }
+    }
+
+    private sealed class TestOutboxWriter : IOutboxWriter
+    {
+        public List<OutboxEvent> Events { get; } = [];
+
+        public Task<OutboxMessage> EnqueueAsync(
+            OutboxEvent @event,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Events.Add(@event);
+            return Task.FromResult<OutboxMessage>(null!);
         }
     }
 }

@@ -55,16 +55,47 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
-    [HttpGet]
-    [Authorize(Roles = "Client,Lawyer")]
+    [HttpGet("lawyer")]
+    [Authorize(Roles = "Lawyer")]
     [ProducesResponseType(
         typeof(ApiResponse<ProposalPageDto>),
         StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<ProposalPageDto>>> ListAsync(
-        [FromQuery] GetProposalsQuery query,
+    public async Task<ActionResult<ApiResponse<ProposalPageDto>>>
+        ListLawyerProposalsAsync(
+        [FromQuery] ProposalListFilter filter,
         CancellationToken cancellationToken)
     {
-        var result = await mediator.Send(query, cancellationToken);
+        var result = await mediator.Send(
+            new GetProposalsQuery(
+                ProposalListScope.LawyerInbox,
+                Statuses: filter.Statuses,
+                Search: filter.Search,
+                Page: filter.Page,
+                PageSize: filter.PageSize),
+            cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet("cases/{legalCaseId:guid}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ProposalPageDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProposalPageDto>>>
+        ListCaseProposalsAsync(
+        Guid legalCaseId,
+        [FromQuery] ProposalListFilter filter,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new GetProposalsQuery(
+                ProposalListScope.ClientCase,
+                legalCaseId,
+                filter.Statuses,
+                filter.Search,
+                filter.Page,
+                filter.PageSize),
+            cancellationToken);
         return StatusCode(result.StatusCode, result);
     }
 

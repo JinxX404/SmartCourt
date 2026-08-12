@@ -141,14 +141,83 @@ public sealed class ExplanationAndRecommendationTests
             NullLogger<MatchingService>.Instance);
 
         // Act
-        var result = await service.GetRecommendationsAsync(caseId, clientId);
+        var response = await service.GetRecommendationsAsync(caseId, clientId);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(1, result.TotalEligibleLawyers);
-        Assert.Single(result.Recommendations);
-        Assert.Equal("محامي إداري", result.Recommendations[0].LawyerName);
-        Assert.Equal("توصية ممتازة", result.Recommendations[0].Explanation);
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.Equal(1, response.TotalRecords);
+        Assert.Equal(1, response.Data.TotalEligibleLawyers);
+        Assert.Single(response.Data.Recommendations);
+        Assert.Equal("محامي إداري", response.Data.Recommendations[0].LawyerName);
+        Assert.Equal("توصية ممتازة", response.Data.Recommendations[0].Explanation);
+    }
+
+    [Fact]
+    public async Task GetRecommendations_Pagination_ReturnsCorrectPage()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var clientId = Guid.NewGuid();
+        var caseId = Guid.NewGuid();
+        var caseEntity = new CaseEntity
+        {
+            Id = caseId,
+            ClientId = clientId,
+            Title = "قضية مدنية متعددة المحامين",
+            Description = "وصف القضية",
+            Status = CaseStatus.Matched
+        };
+        dbContext.Cases.Add(caseEntity);
+
+        for (int i = 1; i <= 5; i++)
+        {
+            var user = new ApplicationUser { Id = Guid.NewGuid(), UserName = $"lawyer{i}@example.com", Email = $"lawyer{i}@example.com", FullName = $"محامي {i}" };
+            var profile = new LawyerProfile { UserId = user.Id, User = user };
+            dbContext.Users.Add(user);
+            dbContext.LawyerProfiles.Add(profile);
+
+            dbContext.CaseRecommendations.Add(new CaseRecommendation
+            {
+                Id = Guid.NewGuid(),
+                CaseId = caseId,
+                LawyerId = user.Id,
+                LawyerProfile = profile,
+                TotalScore = (decimal)(1.0 - (i * 0.1)),
+                Rank = i,
+                Explanation = $"توصية للمحامي {i}"
+            });
+        }
+        await dbContext.SaveChangesAsync();
+
+        var service = new MatchingService(
+            dbContext,
+            new TestChatModelProvider(),
+            NullLogger<MatchingService>.Instance);
+
+        // Act - Request Page 2 with PageSize 2
+        var pagedRequest = new SmartCourt.Common.Models.PagedRequest { PageNumber = 2, PageSize = 2 };
+        var response = await service.GetRecommendationsAsync(caseId, clientId, pagedRequest);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.True(response.Success);
+        Assert.Equal(2, response.PageNumber);
+        Assert.Equal(2, response.PageSize);
+        Assert.Equal(5, response.TotalRecords);
+        Assert.Equal(3, response.TotalPages);
+        Assert.True(response.HasNextPage);
+        Assert.True(response.HasPreviousPage);
+
+        Assert.NotNull(response.Data);
+        Assert.Equal(2, response.Data.Recommendations.Count);
+        Assert.Equal(3, response.Data.Recommendations[0].Rank);
+        Assert.Equal("محامي 3", response.Data.Recommendations[0].LawyerName);
+        Assert.Equal(4, response.Data.Recommendations[1].Rank);
+        Assert.Equal("محامي 4", response.Data.Recommendations[1].LawyerName);
     }
 
     [Fact]

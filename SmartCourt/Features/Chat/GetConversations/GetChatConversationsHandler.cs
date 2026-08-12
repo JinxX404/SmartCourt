@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -37,8 +38,11 @@ public sealed class GetChatConversationsHandler(
                 on conversation.ClientUserId equals client.Id
             join lawyer in context.Users
                 on conversation.LawyerUserId equals lawyer.Id
+            join proposal in context.Proposals
+                on conversation.ProposalId equals proposal.Id
             where conversation.ClientUserId == actorUserId
-                || conversation.LawyerUserId == actorUserId
+                || (conversation.LawyerUserId == actorUserId
+                    && proposal.Status != ProposalStatus.Superseded)
             select new
             {
                 conversation,
@@ -94,25 +98,38 @@ public sealed class GetChatConversationsHandler(
                     SenderName = sender == null ? null : sender.FullName
                 })
             .ToListAsync(cancellationToken);
-        var lastMessageByConversationId = messageRows
+        var lastMessageRows = messageRows
             .GroupBy(item => item.Message.ConversationId)
             .Select(group => group
                 .OrderByDescending(item => item.Message.CreatedAt)
                 .ThenByDescending(item => item.Message.Id)
                 .First())
-            .ToDictionary(
+            .ToList();
+        var attachmentsByMessageId = await ChatAttachmentReadModel
+            .FindForMessagesAsync(
+                context,
+                lastMessageRows.Select(item => item.Message.Id).ToArray(),
+                cancellationToken);
+        var lastMessageByConversationId = lastMessageRows.ToDictionary(
             item => item.Message.ConversationId,
-            item => new ChatMessageDto(
-                item.Message.Id,
-                item.Message.ConversationId,
-                item.Message.SenderUserId,
-                item.SenderName,
-                item.Message.Type.ToString(),
-                item.Message.Content,
-                item.Message.SystemCode,
-                item.Message.RelatedEntityId,
-                item.Message.CreatedAt,
-                item.Message.SenderUserId == actorUserId));
+            item =>
+            {
+                attachmentsByMessageId.TryGetValue(
+                    item.Message.Id,
+                    out var attachments);
+                return new ChatMessageDto(
+                    item.Message.Id,
+                    item.Message.ConversationId,
+                    item.Message.SenderUserId,
+                    item.SenderName,
+                    item.Message.Type.ToString(),
+                    item.Message.Content,
+                    item.Message.SystemCode,
+                    item.Message.RelatedEntityId,
+                    item.Message.CreatedAt,
+                    item.Message.SenderUserId == actorUserId,
+                    attachments ?? []);
+            });
 
         var items = rows.Select(row =>
         {

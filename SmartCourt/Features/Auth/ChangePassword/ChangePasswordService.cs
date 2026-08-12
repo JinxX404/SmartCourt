@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Auth.Events;
 using SmartCourt.Features.Auth.Shared;
+using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
 
@@ -12,7 +14,8 @@ public class ChangePasswordService(
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext dbContext,
     IAuthHelperService authHelperService,
-    ICurrentUserService currentUserService) : IChangePasswordService
+    ICurrentUserService currentUserService,
+    IOutboxWriter outboxWriter) : IChangePasswordService
 {
     public async Task ChangePasswordAsync(string currentPassword, string newPassword, CancellationToken cancellationToken)
     {
@@ -47,6 +50,12 @@ public class ChangePasswordService(
             EnsurePasswordChangeSucceeded(changeResult);
 
             authHelperService.RevokeAllActiveRefreshTokens(user);
+
+            await AuthOutbox.EnqueuePasswordChangedAsync(
+                outboxWriter,
+                user.Id,
+                Guid.NewGuid(),
+                cancellationToken);
 
             var updateResult = await userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)

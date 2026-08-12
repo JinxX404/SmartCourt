@@ -6,10 +6,13 @@ public sealed class GetProposalsQueryValidator : AbstractValidator<GetProposalsQ
 {
     public GetProposalsQueryValidator()
     {
+        RuleFor(query => query.Scope).IsInEnum();
+        RuleFor(query => query.LegalCaseId)
+            .NotEmpty()
+            .When(query => query.Scope == ProposalListScope.ClientCase);
         RuleFor(query => query.Page).GreaterThanOrEqualTo(1);
-        RuleFor(query => query.PageSize).InclusiveBetween(1, 100);
+        RuleFor(query => query.PageSize).InclusiveBetween(1, 50);
         RuleFor(query => query.Search).MaximumLength(100);
-        RuleFor(query => query.Direction).IsInEnum().When(query => query.Direction.HasValue);
-        RuleFor(query => query.Status).IsInEnum().When(query => query.Status.HasValue);
+        RuleForEach(query => query.Statuses).IsInEnum();
     }
 }

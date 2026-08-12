@@ -63,7 +63,7 @@ public sealed class ChatConversationService(
             cancellationToken);
     }
 
-    public async Task<bool> IsParticipantAsync(
+    public async Task<bool> CanAccessConversationAsync(
         Guid conversationId,
         Guid userId,
         CancellationToken cancellationToken)
@@ -73,7 +73,7 @@ public sealed class ChatConversationService(
             return false;
         }
 
-        return await ChatAccess.IsParticipantAsync(
+        return await ChatAccess.CanAccessConversationAsync(
             context,
             conversationId,
             userId,

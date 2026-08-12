@@ -29,7 +29,7 @@ public sealed class GetChatMessagesHandler(
         }
 
         var actorUserId = ChatAccess.GetRequiredUserId(currentUserService);
-        if (!await ChatAccess.IsParticipantAsync(
+        if (!await ChatAccess.CanAccessConversationAsync(
                 context,
                 request.ConversationId,
                 actorUserId,
@@ -60,20 +60,33 @@ public sealed class GetChatMessagesHandler(
             .Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
+        var attachmentsByMessageId = await ChatAttachmentReadModel
+            .FindForMessagesAsync(
+                context,
+                rows.Select(item => item.Message.Id).ToArray(),
+                cancellationToken);
+
         var items = rows
             .OrderBy(item => item.Message.CreatedAt)
             .ThenBy(item => item.Message.Id)
-            .Select(item => new ChatMessageDto(
-                item.Message.Id,
-                item.Message.ConversationId,
-                item.Message.SenderUserId,
-                item.SenderName,
-                item.Message.Type.ToString(),
-                item.Message.Content,
-                item.Message.SystemCode,
-                item.Message.RelatedEntityId,
-                item.Message.CreatedAt,
-                item.Message.SenderUserId == actorUserId))
+            .Select(item =>
+            {
+                attachmentsByMessageId.TryGetValue(
+                    item.Message.Id,
+                    out var attachments);
+                return new ChatMessageDto(
+                    item.Message.Id,
+                    item.Message.ConversationId,
+                    item.Message.SenderUserId,
+                    item.SenderName,
+                    item.Message.Type.ToString(),
+                    item.Message.Content,
+                    item.Message.SystemCode,
+                    item.Message.RelatedEntityId,
+                    item.Message.CreatedAt,
+                    item.Message.SenderUserId == actorUserId,
+                    attachments ?? []);
+            })
             .ToList();
 
         var page = new ChatMessagePageDto(

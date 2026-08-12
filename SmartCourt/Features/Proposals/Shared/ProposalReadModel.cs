@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Proposals.DTOs;
+using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Persistence;
 
 namespace SmartCourt.Features.Proposals.Shared;
@@ -23,6 +24,9 @@ internal static class ProposalReadModel
             join conversation in context.ChatConversations
                 on proposal.Id equals conversation.ProposalId into conversationJoin
             from conversation in conversationJoin.DefaultIfEmpty()
+            join contract in context.Contracts
+                on proposal.Id equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
             where proposal.Id == proposalId
                 && (proposal.ClientUserId == actorUserId
                     || proposal.LawyerUserId == actorUserId)
@@ -38,6 +42,14 @@ internal static class ProposalReadModel
                 proposal.Message,
                 proposal.Status,
                 proposal.DecisionReason,
+                CaseStatus = legalCase.Status,
+                AssignedLawyerUserId = legalCase.LawyerId,
+                ContractId = contract == null
+                    ? null
+                    : (Guid?)contract.Id,
+                ContractStatus = contract == null
+                    ? null
+                    : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
                 proposal.CreatedAt,
                 proposal.RespondedAt,
                 proposal.ExpiresAt,
@@ -46,13 +58,28 @@ internal static class ProposalReadModel
                 proposal.UpdatedAt,
                 ConversationId = conversation == null
                     ? null
-                    : (Guid?)conversation.Id
+                    : (Guid?)conversation.Id,
+                ConversationIsClosed = conversation != null
+                    && conversation.IsClosed
             })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return row is null
+        if (row is null)
+        {
+            return null;
+        }
+
+        var hideConversation = ProposalChatVisibility.IsHiddenFromActor(
+            actorUserId,
+            row.LawyerUserId,
+            row.Status);
+        var visibleConversationId = hideConversation
             ? null
-            : new ProposalDetailDto(
+            : row.ConversationId;
+        var canChat = row.Status == ProposalStatus.Accepted
+            && visibleConversationId.HasValue
+            && !row.ConversationIsClosed;
+        return new ProposalDetailDto(
                 row.Id,
                 row.LegalCaseId,
                 row.CaseTitle,
@@ -63,10 +90,27 @@ internal static class ProposalReadModel
                 row.Message,
                 row.Status.ToString(),
                 row.DecisionReason,
+                row.CaseStatus.ToString(),
+                row.AssignedLawyerUserId,
+                row.AssignedLawyerUserId == row.LawyerUserId,
+                row.ContractId,
+                row.ContractStatus?.ToString(),
+                visibleConversationId,
+                visibleConversationId.HasValue
+                    ? row.ConversationIsClosed ? "Closed" : "Open"
+                    : null,
+                canChat,
+                ProposalPermittedActions.Resolve(
+                    actorUserId,
+                    row.ClientUserId,
+                    row.LawyerUserId,
+                    row.Status,
+                    row.ContractId,
+                    row.ConversationId,
+                    row.ConversationIsClosed),
                 row.CreatedAt,
                 row.RespondedAt,
                 row.UpdatedAt,
-                row.ConversationId,
                 row.ExpiresAt,
                 row.ClosedAt,
                 row.ClosedByUserId);

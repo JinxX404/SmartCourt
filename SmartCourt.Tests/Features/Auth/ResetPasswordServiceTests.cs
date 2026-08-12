@@ -1,6 +1,7 @@
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Extensions;
 using SmartCourt.Features.Auth.Enums;
+using SmartCourt.Infrastructure.Providers.Events;
 using System.Security.Claims;
 using Xunit;
 
@@ -35,6 +36,13 @@ public sealed class ResetPasswordServiceTests
             PasswordServiceTestContext.CurrentPassword));
         Assert.True(await testContext.UserManager.CheckPasswordAsync(storedUser, NewPassword));
         Assert.All(storedUser.RefreshTokens, refreshToken => Assert.False(refreshToken.IsActive));
+
+        var outboxEvent = Assert.Single(testContext.OutboxEvents);
+        Assert.Equal(AuthEventTypes.PasswordReset, outboxEvent.EventType);
+        Assert.Equal(1, outboxEvent.EventVersion);
+        Assert.Equal(user.Id, outboxEvent.AggregateId);
+        var payload = Assert.IsType<AuthPasswordSecurityEventPayload>(outboxEvent.Payload);
+        Assert.Equal(user.Id, payload.UserId);
     }
 
     [Fact]

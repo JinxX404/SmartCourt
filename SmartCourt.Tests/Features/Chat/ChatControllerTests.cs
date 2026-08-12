@@ -8,6 +8,7 @@ using System.Reflection;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Chat;
 using SmartCourt.Features.Chat.DTOs;
+using SmartCourt.Features.Chat.Attachments;
 using SmartCourt.Features.Chat.GetConversation;
 using SmartCourt.Features.Chat.GetConversations;
 using SmartCourt.Features.Chat.GetMessages;
@@ -40,11 +41,21 @@ public sealed class ChatControllerTests
             conversationId,
             new SendChatMessageRequest("Hello"),
             CancellationToken.None);
+        var attachmentRequest = new SendChatAttachmentsRequest
+        {
+            Caption = "Evidence",
+            Files = []
+        };
+        var attachmentsAction = await controller.SendAttachmentsAsync(
+            conversationId,
+            attachmentRequest,
+            CancellationToken.None);
 
         AssertWrappedOk(listAction, mediator.Page);
         AssertWrappedOk(getAction, mediator.Detail);
         AssertWrappedOk(messagesAction, mediator.Messages);
         AssertWrappedOk(sendAction, mediator.Message);
+        AssertWrappedCreated(attachmentsAction, mediator.CreatedMessage);
         Assert.Equal("case", mediator.ListQuery!.Search);
         Assert.Equal(2, mediator.ListQuery.Page);
         Assert.Equal(10, mediator.ListQuery.PageSize);
@@ -54,6 +65,8 @@ public sealed class ChatControllerTests
         Assert.Equal(25, mediator.MessagesQuery.PageSize);
         Assert.Equal(conversationId, mediator.SendCommand!.ConversationId);
         Assert.Equal("Hello", mediator.SendCommand.Content);
+        Assert.Equal(conversationId, mediator.AttachmentsCommand!.ConversationId);
+        Assert.Equal("Evidence", mediator.AttachmentsCommand.Caption);
     }
 
     [Fact]
@@ -63,6 +76,18 @@ public sealed class ChatControllerTests
         AssertEndpoint(nameof(ChatController.GetAsync));
         AssertEndpoint(nameof(ChatController.GetMessagesAsync));
         AssertEndpoint(nameof(ChatController.SendMessageAsync));
+        AssertEndpoint(nameof(ChatController.SendAttachmentsAsync));
+        AssertEndpoint(nameof(ChatController.DownloadAttachmentAsync));
+    }
+
+    private static void AssertWrappedCreated<T>(
+        ActionResult<ApiResponse<T>> action,
+        ApiResponse<T> expected)
+    {
+        var result = Assert.IsType<ObjectResult>(Convert(action));
+        var response = Assert.IsType<ApiResponse<T>>(result.Value);
+        Assert.Equal(StatusCodes.Status201Created, result.StatusCode);
+        Assert.Same(expected, response);
     }
 
     private static void AssertWrappedOk<T>(
@@ -103,15 +128,19 @@ public sealed class ChatControllerTests
                 new ChatMessagePageDto([], 1, 10, 0, false));
         private readonly ApiResponse<ChatMessageDto> _message =
             ApiResponse<ChatMessageDto>.Ok(CreateMessage());
+        private readonly ApiResponse<ChatMessageDto> _createdMessage =
+            ApiResponse<ChatMessageDto>.Created(CreateMessage());
 
         public ApiResponse<ChatConversationDetailDto> Detail => _detail;
         public ApiResponse<ChatConversationPageDto> Page => _page;
         public ApiResponse<ChatMessagePageDto> Messages => _messages;
         public ApiResponse<ChatMessageDto> Message => _message;
+        public ApiResponse<ChatMessageDto> CreatedMessage => _createdMessage;
         public GetChatConversationsQuery? ListQuery { get; private set; }
         public GetChatConversationQuery? GetQuery { get; private set; }
         public GetChatMessagesQuery? MessagesQuery { get; private set; }
         public SendChatMessageCommand? SendCommand { get; private set; }
+        public SendChatAttachmentsCommand? AttachmentsCommand { get; private set; }
 
         public Task<TResponse> Send<TResponse>(
             IRequest<TResponse> request,
@@ -127,6 +156,8 @@ public sealed class ChatControllerTests
                     Capture(query, _messages),
                 SendChatMessageCommand command =>
                     Capture(command, _message),
+                SendChatAttachmentsCommand command =>
+                    Capture(command, _createdMessage),
                 _ => throw new NotSupportedException(request.GetType().Name)
             };
 
@@ -181,6 +212,9 @@ public sealed class ChatControllerTests
                 case SendChatMessageCommand command:
                     SendCommand = command;
                     break;
+                case SendChatAttachmentsCommand command:
+                    AttachmentsCommand = command;
+                    break;
             }
 
             return response!;
@@ -220,7 +254,8 @@ public sealed class ChatControllerTests
                 null,
                 null,
                 new DateTime(2026, 7, 30, 9, 0, 0, DateTimeKind.Utc),
-                true);
+                true,
+                []);
         }
     }
 }

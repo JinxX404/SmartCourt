@@ -57,8 +57,8 @@ public class FinalizeCaseHandler(
         // Idempotency: if case is already Matched, return existing recommendations
         if (caseEntity.Status == CaseStatus.Matched)
         {
-            var existingResult = await _matchingService.GetRecommendationsAsync(request.CaseId, currentUserId, cancellationToken);
-            return ApiResponse<FinalizeResultDto>.Ok(existingResult);
+            var existingResult = await _matchingService.GetRecommendationsAsync(request.CaseId, currentUserId, null, cancellationToken);
+            return ApiResponse<FinalizeResultDto>.Ok(existingResult.Data!);
         }
 
         // Execute orchestration pipeline within a transaction
@@ -77,7 +77,7 @@ public class FinalizeCaseHandler(
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             // Step 4: Matching -> Scoring -> Explanation -> Recommendation Persistence
-            var finalizeResult = await _matchingService.ProcessMatchingAndPersistAsync(request.CaseId, cancellationToken);
+            var finalizeResult = await _matchingService.ProcessMatchingAndPersistAsync(request.CaseId, null, cancellationToken);
 
             // Step 5: Transition to Matched
             caseEntity.Status = CaseStatus.Matched;

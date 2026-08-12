@@ -192,4 +192,59 @@ public sealed class CaseAnalysisServiceTests
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => service.AnalyzeCaseAsync(Guid.NewGuid()));
     }
+
+    [Theory]
+    [InlineData("Cybercrimes", Specialization.Cybercrimes, LawyerLevel.AppealCourt, CaseComplexity.Advanced)]
+    [InlineData("TaxLaw", Specialization.TaxLaw, LawyerLevel.CassationCourt, CaseComplexity.Exceptional)]
+    [InlineData("IntellectualProperty", Specialization.IntellectualProperty, LawyerLevel.PrimaryCourt, CaseComplexity.Standard)]
+    [InlineData("RealEstateAndPropertyRegistration", Specialization.RealEstateAndPropertyRegistration, LawyerLevel.PrimaryCourt, CaseComplexity.Routine)]
+    public async Task AnalyzeCase_ExpandedSpecializations_ParsesAndCreatesProfile(
+        string specName, Specialization expectedSpec, LawyerLevel expectedLevel, CaseComplexity expectedComplexity)
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var caseId = Guid.NewGuid();
+        var caseEntity = new CaseEntity
+        {
+            Id = caseId,
+            Title = $"قضية {specName}",
+            Description = $"تفاصيل قضية {specName}",
+            Status = CaseStatus.FinalSubmitted
+        };
+        dbContext.Cases.Add(caseEntity);
+        await dbContext.SaveChangesAsync();
+
+        var chatModelProvider = new TestChatModelProvider
+        {
+            OutputToReturn = $$"""
+                Here is the analysis:
+                ```json
+                {
+                  "specialization": "{{specName}}",
+                  "requiredLawyerLevel": "{{expectedLevel}}",
+                  "complexity": "{{expectedComplexity}}"
+                }
+                ```
+                Hope this helps!
+                """
+        };
+
+        var service = new CaseAnalysisService(
+            dbContext,
+            chatModelProvider,
+            null!,
+            null!,
+            NullLogger<CaseAnalysisService>.Instance);
+
+        // Act
+        var profile = await service.AnalyzeCaseAsync(caseId);
+
+        // Assert
+        Assert.NotNull(profile);
+        Assert.Equal(expectedSpec, profile.Specialization);
+        Assert.Equal(expectedLevel, profile.RequiredLawyerLevelId);
+        Assert.Equal(expectedComplexity, profile.Complexity);
+    }
 }

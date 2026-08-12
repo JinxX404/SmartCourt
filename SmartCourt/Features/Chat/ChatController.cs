@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartCourt.Common.Models;
+using SmartCourt.Features.Chat.Attachments;
 using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.GetConversation;
 using SmartCourt.Features.Chat.GetConversations;
@@ -74,5 +75,54 @@ public sealed class ChatController(IMediator mediator) : ControllerBase
             new SendChatMessageCommand(conversationId, request.Content),
             cancellationToken);
         return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("conversations/{conversationId:guid}/attachments")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(27 * 1024 * 1024)]
+    [ProducesResponseType(
+        typeof(ApiResponse<ChatMessageDto>),
+        StatusCodes.Status201Created)]
+    public async Task<ActionResult<ApiResponse<ChatMessageDto>>>
+        SendAttachmentsAsync(
+            Guid conversationId,
+            [FromForm] SendChatAttachmentsRequest request,
+            CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new SendChatAttachmentsCommand(
+                conversationId,
+                request.Caption,
+                request.Files),
+            cancellationToken);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpGet(
+        "conversations/{conversationId:guid}/attachments/{attachmentId:guid}/download")]
+    [Produces("application/octet-stream")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<ChatAttachmentDownloadResult>),
+        StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> DownloadAttachmentAsync(
+        Guid conversationId,
+        Guid attachmentId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new DownloadChatAttachmentQuery(
+                conversationId,
+                attachmentId),
+            cancellationToken);
+        if (!result.Success || result.Data is null)
+        {
+            return StatusCode(result.StatusCode, result);
+        }
+
+        return File(
+            result.Data.Content,
+            result.Data.ContentType,
+            result.Data.FileName);
     }
 }

@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
 using SmartCourt.Features.Chat.DTOs;
+using SmartCourt.Features.Chat.Attachments;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Events;
+using SmartCourt.Features.Chat.GetConversation;
+using SmartCourt.Features.Chat.GetConversations;
 using SmartCourt.Features.Chat.GetMessages;
 using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
@@ -19,7 +23,9 @@ using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Proposals.Shared;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
+using SmartCourt.Tests.TestDoubles;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Chat;
@@ -94,6 +100,150 @@ public sealed class ChatFeatureIntegrationTests
     }
 
     [Fact]
+    public async Task SendAttachments_PersistsReturnsAndBroadcastsSecureMetadata()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var notifier = new RecordingNotifier();
+        var storage = new TestFileStorageService();
+        var fileBytes = "%PDF-1.7\nChat attachment"u8.ToArray();
+        var handler = new SendChatAttachmentsHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            new SendChatAttachmentsCommandValidator(),
+            storage,
+            notifier,
+            new FixedTimeProvider(_utcNow));
+
+        var result = await handler.Handle(
+            new SendChatAttachmentsCommand(
+                conversation.Id,
+                "Evidence for review.",
+                [CreateFormFile(fileBytes, "evidence.pdf", "application/pdf")]),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal(201, result.StatusCode);
+        Assert.Equal("Evidence for review.", result.Data!.Content);
+        var attachment = Assert.Single(result.Data.Attachments);
+        Assert.Equal("evidence.pdf", attachment.FileName);
+        Assert.Equal("application/pdf", attachment.ContentType);
+        Assert.Equal(fileBytes.Length, attachment.SizeInBytes);
+        Assert.Equal(
+            $"/api/chat/conversations/{conversation.Id}/attachments/{attachment.Id}/download",
+            attachment.DownloadUrl);
+        Assert.DoesNotContain("chat-attachments", attachment.DownloadUrl);
+        Assert.Single(context.ChatMessageAttachments);
+        Assert.Single(context.StoredFiles);
+
+        var realtimeMessage = Assert.Single(notifier.Messages);
+        Assert.Equal(result.Data.Id, realtimeMessage.Id);
+        Assert.Equal(attachment, Assert.Single(realtimeMessage.Attachments));
+
+        var history = await new GetChatMessagesHandler(
+            context,
+            new MutableCurrentUserService(_lawyerUserId),
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+
+        Assert.True(history.Success);
+        Assert.Equal(attachment, Assert.Single(
+            Assert.Single(history.Data!.Items).Attachments));
+    }
+
+    [Fact]
+    public async Task SendAttachments_RejectsAFileWhoseContentDoesNotMatchItsExtension()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var notifier = new RecordingNotifier();
+        var handler = new SendChatAttachmentsHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            new SendChatAttachmentsCommandValidator(),
+            new TestFileStorageService(),
+            notifier,
+            new FixedTimeProvider(_utcNow));
+
+        var result = await handler.Handle(
+            new SendChatAttachmentsCommand(
+                conversation.Id,
+                null,
+                [CreateFormFile("not a PDF"u8.ToArray(), "fake.pdf", "application/pdf")]),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(400, result.StatusCode);
+        Assert.Empty(context.ChatMessages);
+        Assert.Empty(context.ChatMessageAttachments);
+        Assert.Empty(context.StoredFiles);
+        Assert.Empty(notifier.Messages);
+    }
+
+    [Fact]
+    public async Task AttachmentDownload_EnforcesParticipantAndSupersededPrivacyRules()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var storage = new TestFileStorageService
+        {
+            DownloadBytesToReturn = "private evidence"u8.ToArray()
+        };
+        var actor = new MutableCurrentUserService(_clientUserId);
+        var upload = await new SendChatAttachmentsHandler(
+            context,
+            actor,
+            new SendChatAttachmentsCommandValidator(),
+            storage,
+            new RecordingNotifier(),
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatAttachmentsCommand(
+                    conversation.Id,
+                    null,
+                    [CreateFormFile("%PDF-1.7\ndata"u8.ToArray(), "private.pdf", "application/pdf")]),
+                CancellationToken.None);
+        var attachmentId = Assert.Single(upload.Data!.Attachments).Id;
+        var downloadHandler = new DownloadChatAttachmentHandler(
+            context,
+            actor,
+            storage);
+
+        var clientResult = await downloadHandler.Handle(
+            new DownloadChatAttachmentQuery(conversation.Id, attachmentId),
+            CancellationToken.None);
+        Assert.True(clientResult.Success);
+        Assert.Equal(storage.DownloadBytesToReturn, clientResult.Data!.Content);
+
+        actor.UserId = _outsiderUserId;
+        var outsiderResult = await downloadHandler.Handle(
+            new DownloadChatAttachmentQuery(conversation.Id, attachmentId),
+            CancellationToken.None);
+        Assert.False(outsiderResult.Success);
+        Assert.Equal(404, outsiderResult.StatusCode);
+
+        var proposal = await context.Proposals.SingleAsync();
+        proposal.Supersede(_utcNow.AddMinutes(1));
+        conversation.Close(_utcNow.AddMinutes(1));
+        await context.SaveChangesAsync();
+        actor.UserId = _lawyerUserId;
+        var supersededLawyerResult = await downloadHandler.Handle(
+            new DownloadChatAttachmentQuery(conversation.Id, attachmentId),
+            CancellationToken.None);
+        Assert.False(supersededLawyerResult.Success);
+        Assert.Equal(404, supersededLawyerResult.StatusCode);
+
+        actor.UserId = _clientUserId;
+        var clientAfterSupersedeResult = await downloadHandler.Handle(
+            new DownloadChatAttachmentQuery(conversation.Id, attachmentId),
+            CancellationToken.None);
+        Assert.True(clientAfterSupersedeResult.Success);
+    }
+
+    [Fact]
     public async Task GetMessages_RejectsOutsider()
     {
         await using var context = CreateContext();
@@ -158,6 +308,128 @@ public sealed class ChatFeatureIntegrationTests
         Assert.True(result.Data.Items[0].IsMine);
         Assert.Equal("Contract draft was accepted.", result.Data.Items[1].Content);
         Assert.False(result.Data.Items[1].IsMine);
+    }
+
+    [Fact]
+    public async Task SupersededConversation_IsHiddenFromLawyerAcrossChatAccessPaths()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var proposal = await context.Proposals.SingleAsync();
+        proposal.Supersede(_utcNow);
+        conversation.Close(_utcNow);
+        context.ChatMessages.Add(
+            ChatMessage.CreateUserMessage(
+                Guid.NewGuid(),
+                conversation.Id,
+                _clientUserId,
+                "Confidential negotiation details.",
+                _utcNow.AddMinutes(-1)));
+        await context.SaveChangesAsync();
+
+        var lawyerUser = new MutableCurrentUserService(_lawyerUserId);
+        var messagesResult = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+        var detailResult = await new GetChatConversationHandler(
+            context,
+            lawyerUser).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var listResult = await new GetChatConversationsHandler(
+            context,
+            lawyerUser,
+            new GetChatConversationsQueryValidator()).Handle(
+                new GetChatConversationsQuery(),
+                CancellationToken.None);
+        var accessService = new ChatConversationService(
+            context,
+            new FixedTimeProvider(_utcNow));
+        var canJoinSignalRConversation = await accessService.CanAccessConversationAsync(
+            conversation.Id,
+            _lawyerUserId,
+            CancellationToken.None);
+        var sendResult = await new SendChatMessageHandler(
+            context,
+            lawyerUser,
+            new SendChatMessageCommandValidator(),
+            new RecordingNotifier(),
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "Attempt to reopen negotiation."),
+                CancellationToken.None);
+
+        Assert.False(messagesResult.Success);
+        Assert.Equal(404, messagesResult.StatusCode);
+        Assert.False(detailResult.Success);
+        Assert.Equal(404, detailResult.StatusCode);
+        Assert.True(listResult.Success);
+        Assert.Empty(listResult.Data!.Items);
+        Assert.False(canJoinSignalRConversation);
+        Assert.False(sendResult.Success);
+        Assert.Equal(404, sendResult.StatusCode);
+
+        lawyerUser.UserId = _clientUserId;
+        var clientMessagesResult = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+
+        Assert.True(clientMessagesResult.Success);
+        Assert.Single(clientMessagesResult.Data!.Items);
+    }
+
+    [Theory]
+    [InlineData(ContractConversationMessageType.ContractCompleted)]
+    [InlineData(ContractConversationMessageType.ContractTerminated)]
+    public async Task TerminalContractEvent_ClosesConversationAndBlocksMessages(
+        ContractConversationMessageType messageType)
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var notifier = new RecordingNotifier();
+        var service = new ContractConversationService(
+            context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
+            notifier);
+
+        await service.AppendSystemMessageAsync(
+            new ContractConversationSystemMessage(
+                Guid.NewGuid(),
+                _proposalId,
+                messageType,
+                Guid.NewGuid(),
+                new DateTimeOffset(_utcNow)),
+            CancellationToken.None);
+
+        Assert.True(conversation.IsClosed);
+        Assert.Contains(
+            context.ChatMessages,
+            message => message.SystemCode == messageType.ToString());
+
+        var sendResult = await new SendChatMessageHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            new SendChatMessageCommandValidator(),
+            notifier,
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "This conversation is now read-only."),
+                CancellationToken.None);
+
+        Assert.False(sendResult.Success);
+        Assert.Equal(409, sendResult.StatusCode);
     }
 
     private async Task SeedUsersAsync(ApplicationDbContext context)
@@ -263,6 +535,23 @@ public sealed class ChatFeatureIntegrationTests
                 .ToUpperInvariant(),
             FullName = fullName,
             NationalNumber = id.ToString("N")[..14]
+        };
+    }
+
+    private static IFormFile CreateFormFile(
+        byte[] content,
+        string fileName,
+        string contentType)
+    {
+        return new FormFile(
+            new MemoryStream(content),
+            0,
+            content.Length,
+            "files",
+            fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = contentType
         };
     }
 

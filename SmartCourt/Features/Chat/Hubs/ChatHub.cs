@@ -14,10 +14,9 @@ public sealed class ChatHub(
     IChatConversationService conversationService,
     ICurrentUserService currentUserService) : Hub<IChatClient>
 {
-    public async Task JoinConversation(
-        Guid conversationId,
-        CancellationToken cancellationToken)
+    public async Task JoinConversation(Guid conversationId)
     {
+        var cancellationToken = Context.ConnectionAborted;
         if (!await CanAccessConversationAsync(
                 conversationId,
                 cancellationToken))
@@ -31,24 +30,21 @@ public sealed class ChatHub(
             cancellationToken);
     }
 
-    public async Task LeaveConversation(
-        Guid conversationId,
-        CancellationToken cancellationToken)
+    public async Task LeaveConversation(Guid conversationId)
     {
         await Groups.RemoveFromGroupAsync(
             Context.ConnectionId,
             ChatGroups.Conversation(conversationId),
-            cancellationToken);
+            Context.ConnectionAborted);
     }
 
     public async Task<ChatMessageDto> SendMessage(
         Guid conversationId,
-        SendChatMessageRequest request,
-        CancellationToken cancellationToken)
+        SendChatMessageRequest request)
     {
         var result = await mediator.Send(
             new SendChatMessageCommand(conversationId, request.Content),
-            cancellationToken);
+            Context.ConnectionAborted);
         if (!result.Success || result.Data is null)
         {
             throw new HubException(
@@ -70,7 +66,7 @@ public sealed class ChatHub(
             return false;
         }
 
-        return await conversationService.IsParticipantAsync(
+        return await conversationService.CanAccessConversationAsync(
             conversationId,
             userId.Value,
             cancellationToken);

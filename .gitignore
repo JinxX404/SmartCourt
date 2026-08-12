@@ -493,5 +493,16 @@ appsettings.Local.json
 appsettings.*.local.json
 startup-error.txt
 
+# Local browser/API test harnesses and generated output
+.scratch/
+.playwright-cli/
+SmartCourt/uploads/
+
 # Ignored law documents
 docs/Egyptian law/manshurat.org/
+docs/Egyptian law/exports/
+
+# Ignored script data files
+scripts/chunks/
+scripts/*.json
+scripts/*.jsonl
