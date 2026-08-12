@@ -17,6 +17,10 @@ using SmartCourt.Features.Case.GetCases;
 using SmartCourt.Features.Case.GetCases.DTOs;
 using SmartCourt.Features.Case.DownloadCaseDocument;
 
+using System.Threading;
+using SmartCourt.Features.Case.AddCaseDocument;
+using SmartCourt.Features.Case.AddCaseDocument.DTOs;
+
 namespace SmartCourt.Features.Case
 {
     [Route("api/[controller]")]
@@ -25,10 +29,12 @@ namespace SmartCourt.Features.Case
     public class CaseController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IAddCaseDocumentService _addCaseDocumentService;
 
-        public CaseController(IMediator mediator)
+        public CaseController(IMediator mediator, IAddCaseDocumentService addCaseDocumentService)
         {
             _mediator = mediator;
+            _addCaseDocumentService = addCaseDocumentService;
         }
 
         [HttpPost]
@@ -115,6 +121,20 @@ namespace SmartCourt.Features.Case
             var result = await _mediator.Send(query);
 
             return File(result.FileBytes, result.ContentType, result.FileName);
+        }
+
+        [HttpPost("{caseId:guid}/documents")]
+        public async Task<ActionResult<ApiResponse<AddCaseDocumentResponse>>> AddDocuments(
+            [FromRoute] Guid caseId,
+            [FromForm] AddCaseDocumentRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _addCaseDocumentService.AddDocumentsAsync(caseId, request, cancellationToken);
+
+            if (!result.Success)
+                return StatusCode(result.StatusCode, result);
+
+            return Ok(result);
         }
     }
 }

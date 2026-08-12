@@ -706,6 +706,9 @@ public static class DependencyInjection
             .Validate(x => x.MaxTokens > 0, "AlibabaChatModel:MaxTokens must be positive.")
             .ValidateOnStart();
         services.AddHttpClient<IChatModelProvider, SmartCourt.Providers.ChatModel.AlibabaChatModelProvider>();
+        // --- Feature: Add Case Document ---
+        services.AddScoped<SmartCourt.Features.Case.AddCaseDocument.IAddCaseDocumentService, SmartCourt.Features.Case.AddCaseDocument.AddCaseDocumentService>();
+
         // --- Feature: Document Review ---
         services.AddScoped<SmartCourt.Features.DocumentReview.IDocumentReviewService, SmartCourt.Features.DocumentReview.DocumentReviewService>();
 
