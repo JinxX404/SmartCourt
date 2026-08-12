@@ -127,10 +127,10 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
 
         var response = await clientUserClient.SendAsync(fundReq);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<PaymentDto>>(JsonOptions);
+        var apiResp = await response.Content.ReadFromJsonAsync<ApiResponse<FundingOperationDto>>(JsonOptions);
         Assert.NotNull(apiResp);
         Assert.True(apiResp.Success);
-        Assert.Equal(EscrowHoldStatus.Funded, apiResp.Data!.Status);
+        Assert.Equal(EscrowHoldStatus.Funded, apiResp.Data!.Payment!.Status);
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         fundReq1.Headers.Add("Idempotency-Key", idempotencyKey);
         var resp1 = await clientUserClient.SendAsync(fundReq1);
         Assert.Equal(HttpStatusCode.OK, resp1.StatusCode);
-        var apiResp1 = await resp1.Content.ReadFromJsonAsync<ApiResponse<PaymentDto>>(JsonOptions);
+        var apiResp1 = await resp1.Content.ReadFromJsonAsync<ApiResponse<FundingOperationDto>>(JsonOptions);
 
         // Call 2 with identical key
         var fundReq2 = new HttpRequestMessage(HttpMethod.Post, $"/api/milestones/{milestoneId}/fund")
@@ -159,9 +159,11 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         var resp2 = await clientUserClient.SendAsync(fundReq2);
 
         Assert.Equal(HttpStatusCode.OK, resp2.StatusCode);
-        var apiResp2 = await resp2.Content.ReadFromJsonAsync<ApiResponse<PaymentDto>>(JsonOptions);
+        var apiResp2 = await resp2.Content.ReadFromJsonAsync<ApiResponse<FundingOperationDto>>(JsonOptions);
         Assert.NotNull(apiResp2);
-        Assert.Equal(apiResp1!.Data!.Id, apiResp2.Data!.Id);
+        Assert.Equal(
+            apiResp1!.Data!.Payment!.Id,
+            apiResp2.Data!.Payment!.Id);
     }
 
     [Fact]
@@ -247,6 +249,7 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
 
         var retryReq = new HttpRequestMessage(HttpMethod.Post, $"/api/payments/{attemptId}/retry");
         retryReq.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        retryReq.Content = JsonContent.Create(new RetryPaymentRequest("pm_card_visa"));
 
         var retryResp = await adminClient.SendAsync(retryReq);
         Assert.True(retryResp.StatusCode == HttpStatusCode.OK || retryResp.StatusCode == HttpStatusCode.BadRequest);

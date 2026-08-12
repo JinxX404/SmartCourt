@@ -52,6 +52,7 @@ public class ApplicationDbContext
         typeof(PaymentTransaction),
         typeof(PaymentWebhookEvent),
         typeof(LawyerWallet),
+        typeof(LawyerPayoutAccount),
         typeof(WithdrawalRequest),
         typeof(Dispute),
         typeof(DisputeResolution),
@@ -121,6 +122,10 @@ public class ApplicationDbContext
     public DbSet<PaymentWebhookEvent> PaymentWebhookEvents =>
         Set<PaymentWebhookEvent>();
     public DbSet<LawyerWallet> LawyerWallets => Set<LawyerWallet>();
+    public DbSet<LawyerPayoutAccount> LawyerPayoutAccounts =>
+        Set<LawyerPayoutAccount>();
+    public DbSet<ClientPaymentCustomer> ClientPaymentCustomers =>
+        Set<ClientPaymentCustomer>();
     public DbSet<WithdrawalRequest> WithdrawalRequests =>
         Set<WithdrawalRequest>();
     public DbSet<Dispute> Disputes => Set<Dispute>();
@@ -170,6 +175,20 @@ public class ApplicationDbContext
         {
             if (!AppendOnlyTypes.Contains(entry.Metadata.ClrType)
                 || entry.State is not (EntityState.Modified or EntityState.Deleted))
+            {
+                continue;
+            }
+
+            // The received Stripe event identity and payload metadata are
+            // immutable. Only its processing checkpoint may advance so that
+            // Stripe can retry a delivery safely after a transient failure.
+            if (entry.Metadata.ClrType == typeof(PaymentWebhookEvent)
+                && entry.State == EntityState.Modified
+                && entry.Properties
+                    .Where(property => property.IsModified)
+                    .All(property => property.Metadata.Name is
+                        nameof(PaymentWebhookEvent.ProcessedAt)
+                        or nameof(PaymentWebhookEvent.ProcessingError)))
             {
                 continue;
             }

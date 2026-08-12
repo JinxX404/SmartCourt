@@ -332,11 +332,13 @@ public static class DependencyInjection
                 "يجب أن تكون مهلة معالجة العمليات المالية بين 5 دقائق و7 أيام.")
             .ValidateOnStart();
 
-        // =========================================================================
-        // TESTING MODE: Register MockPaymentProvider by default if enabled or as fallback
-        // =========================================================================
-        if (configuration.GetValue<bool>(
-                $"{PaymentProviderOptions.SectionName}:UseMockProvider") || true)
+        var useMockPaymentProvider = configuration.GetValue<bool?>(
+            $"{PaymentProviderOptions.SectionName}:UseMockProvider")
+            ?? true;
+        var paymentProviderCode = configuration.GetValue<string>(
+            $"{PaymentProviderOptions.SectionName}:ProviderCode");
+
+        if (useMockPaymentProvider)
         {
             services.AddScoped<MockPaymentProvider>();
             services.AddScoped<IPaymentProvider>(
@@ -352,11 +354,76 @@ public static class DependencyInjection
         // "PaymentProvider:ProviderCode" to "PaymobMarketPlace".
         // The mock stays the default; choosing Paymob overrides the interface resolution.
         // =========================================================================
-        if (!configuration.GetValue<bool>(
-                $"{PaymentProviderOptions.SectionName}:UseMockProvider")
+        else if (string.Equals(
+                paymentProviderCode,
+                SmartCourt.Providers.Payments.Stripe.StripeOptions.ProviderCode,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddOptions<SmartCourt.Providers.Payments.Stripe.StripeOptions>()
+                .Bind(configuration.GetSection(
+                    $"{PaymentProviderOptions.SectionName}:{SmartCourt.Providers.Payments.Stripe.StripeOptions.SectionName}"))
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.SecretKey)
+                        && options.SecretKey.StartsWith("sk_test_", StringComparison.Ordinal),
+                    "Stripe:SecretKey must be a Stripe test secret key (sk_test_...).")
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.PublishableKey)
+                        && options.PublishableKey.StartsWith("pk_test_", StringComparison.Ordinal),
+                    "Stripe:PublishableKey must be a Stripe test publishable key (pk_test_...).")
+                .Validate(
+                    options => !string.IsNullOrWhiteSpace(options.PlatformWebhookSecret)
+                        && !string.IsNullOrWhiteSpace(options.ConnectWebhookSecret),
+                    "Both Stripe platform and Connect webhook signing secrets are required.")
+                .Validate(
+                    options => options.SandboxOnly
+                        && options.WebhookToleranceSeconds is >= 60 and <= 900
+                        && options.MaxNetworkRetries is >= 0 and <= 5
+                        && Uri.IsWellFormedUriString(options.ConnectReturnUrl, UriKind.Absolute)
+                        && Uri.IsWellFormedUriString(options.ConnectRefreshUrl, UriKind.Absolute),
+                    "Stripe Connect sandbox, webhook tolerance, retries, and onboarding URLs are invalid.")
+                .ValidateOnStart();
+
+            services.AddSingleton<global::Stripe.StripeClient>(serviceProvider =>
+            {
+                var options = serviceProvider
+                    .GetRequiredService<IOptions<SmartCourt.Providers.Payments.Stripe.StripeOptions>>()
+                    .Value;
+                var httpClient =
+                    global::Stripe.SystemNetHttpClient
+                        .BuildDefaultSystemNetHttpClient();
+                var stripeHttpClient = new global::Stripe.SystemNetHttpClient(
+                    httpClient,
+                    options.MaxNetworkRetries,
+                    appInfo: null,
+                    enableTelemetry: true);
+                return new global::Stripe.StripeClient(
+                    new global::Stripe.StripeClientOptions
+                    {
+                        ApiKey = options.SecretKey,
+                        HttpClient = stripeHttpClient
+                    });
+            });
+            services.AddScoped<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>();
+            services.AddScoped<SmartCourt.Providers.Payments.Stripe.StripeWebhookVerifier>();
+            services.AddScoped<PaymentProviderWebhookService>();
+            services.AddScoped<ILawyerPayoutAccountService, LawyerPayoutAccountService>();
+            services.AddScoped<IClientPaymentMethodService, ClientPaymentMethodService>();
+            services.AddScoped<IPaymentProvider>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>());
+            services.AddScoped<IPaymentReconciliationProvider>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>());
+            services.AddScoped<ILawyerPayoutAccountProvider>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>());
+            services.AddScoped<IClientPaymentMethodProvider>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>());
+            services.AddScoped<IPaymentBrowserConfigurationProvider>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripePaymentProvider>());
+            services.AddScoped<IPaymentProviderWebhookVerifier>(serviceProvider => serviceProvider
+                .GetRequiredService<SmartCourt.Providers.Payments.Stripe.StripeWebhookVerifier>());
+        }
+        else if (!useMockPaymentProvider
             && string.Equals(
-                configuration.GetValue<string>(
-                    $"{PaymentProviderOptions.SectionName}:ProviderCode"),
+                paymentProviderCode,
                 PaymobOptions.ProviderCode,
                 StringComparison.OrdinalIgnoreCase))
         {
@@ -385,6 +452,11 @@ public static class DependencyInjection
                 sp => sp.GetRequiredService<PaymobPaymentProvider>());
             services.AddScoped<IPaymentReconciliationProvider>(
                 sp => sp.GetRequiredService<PaymobPaymentProvider>());
+        }
+        else
+        {
+            throw new InvalidOperationException(
+                $"Unsupported payment provider '{paymentProviderCode ?? "<null>"}'.");
         }
 
         services.AddOptions<MailKitOptions>()

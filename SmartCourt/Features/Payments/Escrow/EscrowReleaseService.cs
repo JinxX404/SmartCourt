@@ -163,6 +163,37 @@ public sealed class EscrowReleaseService(
             return NoOp("LawyerWalletNotFound", escrowHoldId);
         }
 
+        LawyerPayoutAccount? payoutAccount = null;
+        PaymentTransaction? depositTransaction = null;
+        if (paymentProvider is ILawyerPayoutAccountProvider)
+        {
+            payoutAccount = await dbContext.LawyerPayoutAccounts
+                .SingleOrDefaultAsync(
+                    item => item.LawyerUserId == contract.LawyerUserId
+                        && item.Status == LawyerPayoutAccountStatus.Enabled,
+                    cancellationToken);
+            if (payoutAccount is null)
+            {
+                return NoOp("LawyerPayoutAccountNotEnabled", escrowHoldId);
+            }
+
+            depositTransaction = await dbContext.PaymentTransactions
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.Id == hold.ProviderDepositTransactionId
+                        && item.OperationType == PaymentOperationType.Deposit
+                        && item.Status == PaymentTransactionStatus.Completed,
+                    cancellationToken);
+            if (depositTransaction is null
+                || string.IsNullOrWhiteSpace(
+                    depositTransaction.ProviderTransactionId)
+                || string.IsNullOrWhiteSpace(
+                    depositTransaction.ProviderRelatedTransactionId))
+            {
+                return NoOp("ProviderDepositIdentifiersMissing", escrowHoldId);
+            }
+        }
+
         if (!FinancialStateIsValid(hold, account, wallet))
         {
             return NoOp(
@@ -218,7 +249,7 @@ public sealed class EscrowReleaseService(
                 PaymentOperationType.Release,
                 paymentProvider.GetType().Name,
                 providerIdempotencyKey,
-                hold.GrossAmount,
+                hold.NetAmount,
                 now)
             {
                 EscrowHoldId = hold.Id
@@ -271,11 +302,16 @@ public sealed class EscrowReleaseService(
                 releaseTransaction,
                 now);
             var providerRequest = new ProviderReleaseRequest(
-                hold.GrossAmount,
+                hold.NetAmount,
                 account.Currency,
                 hold.Id,
                 releaseTransaction.IdempotencyKey,
-                releaseTransaction.Id);
+                releaseTransaction.Id,
+                depositTransaction?.ProviderTransactionId ?? string.Empty,
+                depositTransaction?.ProviderRelatedTransactionId
+                    ?? string.Empty,
+                payoutAccount?.ProviderAccountId ?? string.Empty,
+                hold.GrossAmount);
             await SaveAttemptAndCommitAsync(
                 transaction,
                 cancellationToken);
@@ -380,6 +416,16 @@ public sealed class EscrowReleaseService(
 
             releaseTransaction.ProviderTransactionId =
                 providerResult.ProviderTransactionId;
+            releaseTransaction.ProviderRelatedTransactionId =
+                providerResult.RelatedProviderTransactionId;
+            releaseTransaction.ProviderStatus =
+                providerResult.ProviderStatus;
+            releaseTransaction.ProviderObjectType =
+                providerResult.ProviderObjectType;
+            releaseTransaction.ProviderAmountMinor =
+                providerResult.ProviderMoney?.AmountMinor;
+            releaseTransaction.ProviderCurrency =
+                providerResult.ProviderMoney?.Currency;
             PaymentReleaseRetryPolicy.RecordSuccess(
                 releaseTransaction,
                 now);
@@ -430,6 +476,23 @@ public sealed class EscrowReleaseService(
         wallet.PendingBalance -= hold.NetAmount;
         wallet.AvailableBalance += hold.NetAmount;
         wallet.UpdatedAt = now;
+        if (payoutAccount is not null
+            && releaseTransaction.ProviderAmountMinor.HasValue)
+        {
+            if (payoutAccount.AvailableProviderAmountMinor >
+                long.MaxValue - releaseTransaction.ProviderAmountMinor.Value)
+            {
+                throw new BusinessException(
+                    "تجاوز رصيد مزود الدفع الحد العددي المسموح به.");
+            }
+
+            payoutAccount.AvailableProviderAmountMinor +=
+                releaseTransaction.ProviderAmountMinor.Value;
+            payoutAccount.DefaultCurrency =
+                releaseTransaction.ProviderCurrency
+                ?? payoutAccount.DefaultCurrency;
+            payoutAccount.UpdatedAt = now;
+        }
 
         EscrowHoldTransitionGuard.EnsureCanTransition(
             hold.Status,

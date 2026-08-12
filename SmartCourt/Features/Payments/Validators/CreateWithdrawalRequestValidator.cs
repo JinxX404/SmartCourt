@@ -14,12 +14,8 @@ public sealed class CreateWithdrawalRequestValidator
             .Must(HasAtMostTwoDecimalPlaces)
             .WithMessage("قيمة السحب يجب ألا تتجاوز منزلتين عشريتين.");
         RuleFor(request => request.DestinationReference)
-            .NotEmpty()
-            .WithMessage("مرجع وجهة السحب مطلوب.")
-            .Must(value => !string.IsNullOrWhiteSpace(value))
-            .WithMessage("مرجع وجهة السحب لا يمكن أن يكون فارغًا.")
             .MaximumLength(200)
-            .WithMessage("مرجع وجهة السحب يجب ألا يتجاوز 200 حرف.");
+            .WithMessage("مرجع وجهة السحب القديم يجب ألا يتجاوز 200 حرفًا عند إرساله.");
     }
 
     private static bool HasAtMostTwoDecimalPlaces(decimal amount)

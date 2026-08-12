@@ -221,7 +221,8 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
         fundM1Msg.Headers.Add("Idempotency-Key", fundIdempotencyKey);
         var fundM1Resp = await clientUserClient.SendAsync(fundM1Msg);
         Assert.Equal(HttpStatusCode.OK, fundM1Resp.StatusCode);
-        var fundData = (await fundM1Resp.Content.ReadFromJsonAsync<ApiResponse<PaymentDto>>(JsonOptions))!.Data!;
+        var fundOperation = (await fundM1Resp.Content.ReadFromJsonAsync<ApiResponse<FundingOperationDto>>(JsonOptions))!.Data!;
+        var fundData = Assert.IsType<PaymentDto>(fundOperation.Payment);
         Assert.Equal(EscrowHoldStatus.Funded, fundData.Status);
 
         // Step 10: Lawyer Submits Work for Milestone 1 with authorized fileId

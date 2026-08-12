@@ -21,6 +21,15 @@ public sealed class PaymentDtoValidatorTests
             new CreateWithdrawalRequestValidator()
                 .Validate(withdrawal)
                 .IsValid);
+        Assert.True(new CreateMilestonePaymentSessionRequestValidator()
+            .Validate(new CreateMilestonePaymentSessionRequest(
+                "ctoken_test_valid"))
+            .IsValid);
+        Assert.True(new RetryPaymentSessionRequestValidator()
+            .Validate(new RetryPaymentSessionRequest(
+                "ctoken_test_retry",
+                "retry-key"))
+            .IsValid);
     }
 
     [Fact]
@@ -40,10 +49,6 @@ public sealed class PaymentDtoValidatorTests
             withdrawalResult.Errors,
             error => error.PropertyName
                 == nameof(CreateWithdrawalRequest.Amount));
-        Assert.Contains(
-            withdrawalResult.Errors,
-            error => error.PropertyName
-                == nameof(CreateWithdrawalRequest.DestinationReference));
     }
 
     [Fact]
