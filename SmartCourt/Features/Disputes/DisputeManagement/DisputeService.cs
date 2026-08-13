@@ -70,6 +70,12 @@ public sealed class DisputeService(
             ?? throw new NotFoundException("العقد المرتبط بالمرحلة غير موجود.");
         EnsureParticipant(contract.ClientUserId, contract.LawyerUserId, actorUserId);
 
+        if (milestone.Type != MilestoneType.Standard)
+        {
+            throw new BusinessException(
+                "لا يمكن فتح نزاع على مرحلة مصروفات لأنها تُحرر مباشرة بعد التمويل.");
+        }
+
         if (contract.Status != ContractStatus.Active
             || milestone.Status != MilestoneStatus.AcceptedHold)
         {

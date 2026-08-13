@@ -1,0 +1,558 @@
+
+--- MOCK EMAIL ---
+To: stripe_milestone_client_20260813205800243@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone client،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=8ab78856-7abc-4da3-dd91-08def9646adc&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrWEkrSlFaMTNvK2R6NGsvUkZkKzlMMWxRUzF4WFNqNXZrVWtsOVpMa3h0ck9FRDZxc21VamtSZnl3cjk2dmhrRHFiNzc5ODF1akVrM0hSYVphVTZQbENJTDRZMU9OY0lRL1AxYjltek9rd213eE5vUmc1T2hiV2ZnWkIrRmpKaGt1dSt5ZlZWZERlMk5Wa2J2aUxyaHVNc0Nab2F4U1pIcjd2U3prZzZJMCtXeFByMlltWkUyMEpxTHpGMnVzSGk2UVJFK2xjWW83SEtpM3hnOTFILzlzbzAwTUdITzF4akxZNkkrTnRNaVNBdz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: stripe_milestone_client_20260813205839551@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone client،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=f7885ec3-a334-4c9c-dd92-08def9646adc&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4SkpJR0NCQmE1NEFOOU93WFVleklBQVdOQTlFb1hTTnhBd0laSnpaOFBWVENnaHdmYThLYm1RdHJOcjg1SzUxT1ByeEs5MEZ3ZllSQjBqVFdaSHdVUkorS0xPVTZCakpPWWI2N0VKV01JQ1BlbU5Ccklhc01zdHJJeXN2dGh1bXBLbkVwQXZtUFY4N2k5cTdXYnFyd1FjbStKUFJJSzZrM2ZpK1JLQkZ0NU9lLzQ4aHNsN1BONENVVVViNzBDdmJMVzZGRkoyNTJBMU42SEtPNzFhRGRFd1VtanVWODNtblpMNC8rMVhaRHdCQT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: stripe_milestone_lawyer_20260813205839551@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone lawyer،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=fbb19743-8126-4e08-dd93-08def9646adc&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5b2pzaktSNFZvZ1kvN3RUejNEb1RTdzlZdTVLZ1NoUDY1aXFtV0dIS2dzWWF4NmQ0V0c1SU4za1VQaWhhL1k2QXphb2NHRW9tZThKYzlVaVVIR2Y5dTE4anVVaUF0aHR4azVYajZVdHUrQzhxbytNaUd0bTA0TFBqS0Q3eTVhYWJ2eG5RbnF1aHREOGNZQ0VCRFhwUnJGTTR0ZzBDRlF4aWY5b1Z6cHFKVWRWNUZIUUM1N3UwMlJFZzd6Q0U3c05ieG5lVHVacVpLZU5rT3A2bmN4citNL0p6MUdpYmxMMlNwQjQwdFpnTGd1QT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: stripe_milestone_client_20260813210058212@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone client،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=cee59dff-2d7f-46e5-67e4-08def964d49c&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI4ZXdlazlsdU1lVmZtZzgyamN2QTZseTdYOE5xQmtmNDltRTg1bkZUdG9rcTZWMFk1anEwOWRqVU5EQkRacDgyQWNqWk5FL2ZXckh3S3VPYzJwd2JzUTZFTktENXpRZUpxTUFrMHVwNERUYi9Qblpya3JncFNnVU44Y0FYUTQzY2NLZGJTUktzVW82cDNDUkdlUm02WjAvTWVFbHA1ZThTZGtLVkw4a0pSMmthNTJLL1IzQjd0bHh2MzYrWDV4Z0UwOUNkTnp0aFd4aXo2bUEyUUxnM1d3MmpmeGloUmZTbXRVVElVV05XUVBOZz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: stripe_milestone_lawyer_20260813210058212@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone lawyer،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=57e9e9d6-09f1-487d-67e5-08def964d49c&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTIrVTJ2UmI5Y0dqREhreXpzdXNFcEVpZ2g3Ni8wdFJYK2xNS2tLcTZBODlQODFNaG41ejJVZkI5OHBybExSeUpCUGYyc013cDY2ckZKejFpN0RLTDN6TGRZN1hFeHlPeUw0Sk54bDlRMUlDTnBHbDJ6bnkvUER4QnFRN1BjS2pEbGY1VWVyQW13bWZxcHl0cTJVT24wd0wwdUozK3FQaHRlK1AxeVNLdE8ydEtnSllkKzl6Ym5xc0NIZGlkcS9qdVZTNUgvL1dOOHZoWk1VelkyYVFFaVp3b2Yya2N3VnhPMk9nTWg2THBGUGpnUT09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------
+
+--- MOCK EMAIL ---
+To: stripe_milestone_client_20260813214023242@example.com
+Subject: تأكيد البريد الإلكتروني - المحكمة الذكية
+Body: <!DOCTYPE html>
+<html lang='ar' dir='rtl'>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .header {
+            background-color: #1a365d;
+            color: #ffffff;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .content {
+            padding: 40px 30px;
+            color: #333333;
+            line-height: 1.6;
+            text-align: right;
+        }
+        .content h2 {
+            color: #1a365d;
+            font-size: 20px;
+            margin-top: 0;
+        }
+        .btn-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #d4af37;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>المحكمة الذكية</h1>
+        </div>
+        <div class='content'>
+            <h2>مرحباً Stripe sandbox milestone client،</h2>
+            <p>شكراً لانضمامك إلى منصة المحكمة الذكية. يرجى تأكيد عنوان بريدك الإلكتروني لإكمال عملية التسجيل وتفعيل حسابك.</p>
+            
+            <div class='btn-container'>
+                <a href='http://localhost:5173/verify-email?userId=ba55ffb1-0d93-4cc0-9355-08def96a560b&amp;token=Q2ZESjhNenUwZzNvQjZ4UHRJeUhHc293MTI5YWgveG1xY0JseDYrOVlReWZOcUFPcWx5Q05POGFmMkhYSitEOXRKV3FjSG1kU1hTY3JwNStxM2g4M3hIMkhsVDFPRXR5a0YzVlhxeWZyTFovM29DN3hEM1Rsd1RwbDhjZHM1N2k1Z1VJRTcrQXlBZHZacW81MktrNi9CUWdwOThIR1JuOVVRS3R2OE9STjVuOFVWOFdiRUNsYW5lK3FXZDVEVW1OODRlUGtUclBQNDlnNXZ1OGpNWjViZ1FGWXE4RmRXb2FXRWhxVGdDWjU4d2QvYTJ3Q0VxU2xuT3E3UC9EdzduRCtuL2R3Zz09' class='btn'>تأكيد البريد الإلكتروني</a>
+            </div>
+            
+            <p>إذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.</p>
+        </div>
+        <div class='footer'>
+            <p>&copy; 2026 منصة المحكمة الذكية. جميع الحقوق محفوظة.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+------------------

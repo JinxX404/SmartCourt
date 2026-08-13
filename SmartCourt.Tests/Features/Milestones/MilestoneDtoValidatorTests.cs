@@ -1,4 +1,5 @@
 using SmartCourt.Features.Milestones.DTOs;
+using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Milestones.Validators;
 using Xunit;
 
@@ -24,6 +25,33 @@ public sealed class MilestoneDtoValidatorTests
             new FixedTimeProvider(CurrentTime)).Validate(request);
 
         Assert.True(result.IsValid);
+    }
+
+    [Fact]
+    public void AddExpense_RequiresNullDeliverablesAndDuration()
+    {
+        var valid = new AddMilestoneRequest(
+            "Court fee",
+            null,
+            null,
+            1,
+            500m,
+            null,
+            CurrentTime.AddDays(2).UtcDateTime,
+            MilestoneType.Expense);
+        var invalid = valid with
+        {
+            Deliverables = ["Receipt"],
+            DurationDays = 1
+        };
+
+        Assert.True(CreateAddValidator().Validate(valid).IsValid);
+        var result = CreateAddValidator().Validate(invalid);
+        Assert.False(result.IsValid);
+        Assert.Contains(result.Errors, error =>
+            error.PropertyName == nameof(AddMilestoneRequest.Deliverables));
+        Assert.Contains(result.Errors, error =>
+            error.PropertyName == nameof(AddMilestoneRequest.DurationDays));
     }
 
     [Theory]

@@ -444,7 +444,7 @@ public sealed class StripePaymentProvider :
                         LossesCollector = "application"
                     }
                 },
-                Include = ["configuration", "identity", "requirements", "defaults"],
+                Include = ["configuration.recipient", "identity", "requirements", "defaults"],
                 Metadata = new Dictionary<string, string>
                 {
                     ["smart_court_lawyer_user_id"] = request.LawyerUserId.ToString("N")
@@ -480,7 +480,7 @@ public sealed class StripePaymentProvider :
             providerAccountId,
             new global::Stripe.V2.Core.AccountGetOptions
             {
-                Include = ["configuration", "identity", "requirements", "defaults"]
+                Include = ["configuration.recipient", "identity", "requirements", "defaults"]
             },
             cancellationToken: cancellationToken);
         return MapAccount(account);

@@ -105,6 +105,42 @@ public sealed class PaymentEscrowServiceTests
     }
 
     [Fact]
+    public async Task FundAsync_ExpenseMovesDirectlyToReleasePending()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(type: MilestoneType.Expense);
+        context.Milestones.Add(milestone);
+        await context.SaveChangesAsync();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded);
+        var service = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        await service.FundAsync(
+            milestone.Id,
+            new FundMilestoneRequest("mock-card-success"),
+            "fund-expense-1",
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.ReleasePending, milestone.Status);
+        Assert.NotNull(milestone.FundedAt);
+        Assert.Null(milestone.SubmittedAt);
+        Assert.Null(milestone.AcceptedAt);
+        Assert.Null(milestone.HoldStartsAt);
+        Assert.Null(milestone.HoldExpiresAt);
+        var hold = await context.EscrowHolds.SingleAsync();
+        Assert.Null(hold.HoldStartsAt);
+        Assert.Null(hold.HoldExpiresAt);
+        var history = await context.MilestoneStateHistories
+            .OrderBy(item => item.CreatedAt)
+            .LastAsync();
+        Assert.Equal(MilestoneStatus.ReleasePending, history.NewStatus);
+    }
+
+    [Fact]
     public async Task FundAsync_ConfirmedFailureLeavesNoHoldAndReturnsToAwaitingFunding()
     {
         await using var context = CreateContext();
@@ -941,7 +977,8 @@ public sealed class PaymentEscrowServiceTests
 
     private Milestone CreateMilestone(
         int orderNumber = 1,
-        MilestoneStatus status = MilestoneStatus.AwaitingFunding)
+        MilestoneStatus status = MilestoneStatus.AwaitingFunding,
+        MilestoneType type = MilestoneType.Standard)
         => new(
             Guid.NewGuid(),
             _contractId,
@@ -949,9 +986,11 @@ public sealed class PaymentEscrowServiceTests
             null,
             orderNumber,
             1_000m,
-            14,
+            type == MilestoneType.Standard ? 14 : null,
             Now.AddDays(14),
-            Now.AddHours(-1))
+            null,
+            Now.AddHours(-1),
+            type)
         {
             Status = status,
             AcceptedByClientAt = Now.AddHours(-3),

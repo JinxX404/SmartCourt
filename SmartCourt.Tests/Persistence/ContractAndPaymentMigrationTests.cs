@@ -24,6 +24,9 @@ public sealed class ContractAndPaymentMigrationTests
     private const string FinancialManualActionMigrationId =
         "20260802153701_AddFinancialManualActionEscalation";
 
+    private const string MilestoneTypesMigrationId =
+        "20260813162345_AddMilestoneTypes";
+
     [Fact]
     public void ContractAndPaymentMigration_IsDiscoverableByApplicationDbContext()
     {
@@ -36,6 +39,7 @@ public sealed class ContractAndPaymentMigrationTests
         Assert.Contains(PaymentReleaseRecoveryMigrationId, migrations);
         Assert.Contains(CriticalFinancialUniquenessMigrationId, migrations);
         Assert.Contains(FinancialManualActionMigrationId, migrations);
+        Assert.Contains(MilestoneTypesMigrationId, migrations);
     }
 
     [Fact]
@@ -62,6 +66,9 @@ public sealed class ContractAndPaymentMigrationTests
         var financialManualActionIndex = Array.IndexOf(
             migrations,
             FinancialManualActionMigrationId);
+        var milestoneTypesIndex = Array.IndexOf(
+            migrations,
+            MilestoneTypesMigrationId);
 
         Assert.True(baselineIndex >= 0);
         Assert.True(featureIndex > baselineIndex);
@@ -73,6 +80,7 @@ public sealed class ContractAndPaymentMigrationTests
         Assert.True(
             financialManualActionIndex
                 > criticalFinancialUniquenessIndex);
+        Assert.True(milestoneTypesIndex > financialManualActionIndex);
     }
 
     [Fact]
@@ -148,6 +156,29 @@ public sealed class ContractAndPaymentMigrationTests
             "[ResourceType] = 'EscrowHoldSettlement'",
             "ResourceType",
             "ResourceId");
+    }
+
+    [Fact]
+    public void MilestoneTypesMigration_ExpandsStateHistoryStatusChecks()
+    {
+        using var context = CreateContext();
+        var assembly = context.GetService<IMigrationsAssembly>();
+        var migration = assembly.CreateMigration(
+            assembly.Migrations[MilestoneTypesMigrationId],
+            context.Database.ProviderName!);
+        var checks = migration.UpOperations
+            .OfType<AddCheckConstraintOperation>()
+            .Where(item => item.Table == "MilestoneStateHistories")
+            .ToArray();
+
+        Assert.Contains(
+            checks,
+            item => item.Name == "CK_MilestoneStateHistories_NewStatus_Range"
+                && item.Sql == "[NewStatus] BETWEEN 0 AND 10");
+        Assert.Contains(
+            checks,
+            item => item.Name == "CK_MilestoneStateHistories_PreviousStatus_Range"
+                && item.Sql == "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 10");
     }
 
     private static IReadOnlyList<CreateIndexOperation>

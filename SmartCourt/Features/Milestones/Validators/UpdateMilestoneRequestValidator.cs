@@ -1,5 +1,6 @@
 using FluentValidation;
 using SmartCourt.Features.Milestones.DTOs;
+using SmartCourt.Features.Milestones.Enums;
 
 namespace SmartCourt.Features.Milestones.Validators;
 
@@ -21,6 +22,10 @@ public sealed class UpdateMilestoneRequestValidator
             .WithMessage("وصف المرحلة لا يمكن أن يكون فارغًا.")
             .MaximumLength(10_000)
             .WithMessage("وصف المرحلة يجب ألا يتجاوز 10000 حرف.");
+        RuleFor(request => request.Type)
+            .IsInEnum()
+            .When(request => request.Type.HasValue)
+            .WithMessage("نوع المرحلة غير صالح.");
         RuleFor(request => request.DurationDays)
             .InclusiveBetween(1, 365)
             .When(request => request.DurationDays.HasValue)
@@ -40,5 +45,13 @@ public sealed class UpdateMilestoneRequestValidator
             .MaximumLength(500)
             .WithMessage("يجب ألا يتجاوز طول أي مخرج 500 حرف.")
             .When(request => request.Deliverables is not null);
+        RuleFor(request => request.DurationDays)
+            .Null()
+            .When(request => request.Type == MilestoneType.Expense)
+            .WithMessage("مرحلة المصروفات لا تقبل مدة تنفيذ.");
+        RuleFor(request => request.Deliverables)
+            .Null()
+            .When(request => request.Type == MilestoneType.Expense)
+            .WithMessage("مرحلة المصروفات لا تقبل مخرجات عمل.");
     }
 }

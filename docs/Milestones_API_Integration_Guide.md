@@ -1,35 +1,87 @@
 # Milestone API Contract and Frontend Integration Guide
 
-**Code snapshot analyzed:** 2026-08-12
-**Primary route prefixes:** `/api/contracts/{contractId}/milestones`, `/api/milestones/{milestoneId}/...`, `/api/change-requests/{changeRequestId}/...`
-**Audience:** Web/mobile frontend developers integrating the Milestone lifecycle for a Lawyer/Client legal-services platform
+**Authoritative code snapshot:** current working tree on 2026-08-13
 
-> This guide describes the implementation in source code, including its current inconsistencies. It does not substitute intended product behavior for actual wire behavior.
+**Runtime controller:** `MilestonesController` (`[Route("api")]`)
+**Audience:** frontend developers integrating Standard work milestones and Expense proposals
 
-## Wire-level conventions
+> This document describes the API that is currently reachable from the controller. Four change-request actions are commented out in `MilestonesController`; they are not runtime endpoints and are intentionally excluded. Milestone-related funding and contract-signing calls are identified as adjacent slice dependencies, not counted as Milestone endpoints.
 
-| Concern | Actual behavior |
+## 1. Frontend Workflow & Step-by-Step Integration Guide (MANDATORY)
+
+### 1.1 Non-negotiable wire rules
+
+| Concern | Frontend contract |
 |---|---|
-| Authentication | Every Milestone endpoint requiring a role is protected. Send `Authorization: Bearer <JWT>` or the application's `accessToken` HttpOnly cookie. The cookie wins if both are present. |
-| Content type | Send `Content-Type: application/json` for endpoints with a body. Success and middleware-handled errors are JSON. |
-| JSON naming | Response and request examples use `camelCase`. ASP.NET Core binding is case-insensitive, but frontend code should use the documented casing. |
-| Enum encoding | **Enum-valued JSON fields are numbers**, because MVC has no `JsonStringEnumConverter`. Query/route binding may accept a name or its numeric value; numerics are safest. The one exception is `MilestoneActionResultDto.status`, deliberately returned as a string enum name such as `"Draft"`. |
-| Dates | `DateTime` values serialize as ISO-8601 strings; stored timestamps are UTC and normally end in `Z`. Nullable dates are JSON `null` until the event occurs. |
-| Money | `decimal` JSON numbers. Currency is fixed to `"EGP"`; do not submit currency or compute authoritative totals client-side. |
-| Nulls | Null response properties are not suppressed. Envelopes include `message: null`, `errors: null`, and failed envelopes `data: null`. |
-| Error codes | **No machine-readable application error-code field.** HTTP status plus localized `message`/`errors` is the only discriminator. Do not branch on Arabic prose when status/resource state suffices. |
-| Rate limiting | All Milestone methods carry rate-limit metadata (`StandardMutation`, `SensitiveMutation`, `FinancialMutation`, `AuthenticatedQuery`) but `app.UseRateLimiter()` is commented out in `Program.cs`. The documented 429 policy is configured but inactive. |
+| Authentication | Every endpoint requires an authenticated user. Send `Authorization: Bearer <JWT>` or rely on the application's `accessToken` HttpOnly cookie. The JWT middleware checks the cookie after the bearer handler reads the request; use the application's established auth client. |
+| JSON | Use `Content-Type: application/json` for requests with bodies. Property names in this guide are `camelCase`; input matching is case-insensitive. |
+| Enum encoding | Send and receive enum-valued fields as **JSON numbers**. No `JsonStringEnumConverter` is configured. `MilestoneActionResultDto.status` is the exception: it is a string such as `"Draft"` or `"Cancelled"`. |
+| Dates | Send ISO-8601 UTC values with `Z`, for example `"2026-09-01T10:00:00Z"`. The Add flow additionally rejects a non-UTC `dueDate` at the entity boundary. |
+| Money | `amount` is a JSON decimal in EGP. There is no currency field in Milestone requests. Never infer a different currency. |
+| Refresh strategy | `GET /api/contracts/{contractId}/milestones` is the only Milestone read endpoint. There is no `GET /api/milestones/{id}`. Refresh the list after every mutation. |
+| UI actions | Prefer each returned milestone's `permittedActions` array over duplicating the state machine in UI code. Still handle server rejection because state may change between read and write. |
+| Concurrency | Update, approve, ready-for-funding, reject, and cancel require `If-Match` copied exactly from the latest `data.version`. Every successful mutation changes the row version; refresh before the next actor acts. |
+| Idempotency | No active endpoint in `MilestonesController` accepts `Idempotency-Key`. Do not automatically replay its POST/PUT requests after an ambiguous network failure; refresh state first. The adjacent Payments funding endpoint does require `Idempotency-Key`. |
 
-### **Critical difference from the Contract slice: `412 Precondition Failed` is real here**
+### 1.2 Standard milestone workflow (`type = 0`)
 
-The Milestones slice **does** throw `PreconditionFailedException`, which the shared middleware maps to HTTP `412` (see `ExceptionHandlingMiddleware.cs`). This happens when:
+1. **Initialize the screen.** Call `GET /api/contracts/{contractId}/milestones`. Render the ordered array and use `permittedActions` to enable buttons. Also obtain the Contract from the Contracts slice because contract status and contract-party acceptance are lifecycle prerequisites.
+2. **Append a draft (Lawyer).** Call `POST /api/contracts/{contractId}/milestones` with `type: 0`. `orderNumber` must be exactly `max(existing orderNumber) + 1`; use `1` when the array is empty. Standard milestones may only be added while the Contract is `Draft`.
+3. **Edit before approval (Lawyer, optional).** Call `PUT /api/contracts/{contractId}/milestones/{milestoneId}` with the latest `If-Match`. This is full replacement of editable fields, not PATCH: omitted nullable fields become `null`. `amount` and `orderNumber` cannot be changed by this endpoint. Refresh after the update.
+4. **Collect both milestone approvals.** The Lawyer and Client each call `POST /api/milestones/{milestoneId}/approve`. Each call must use the version from a fresh list response. The first approval leaves `status = 0` (`Draft`); the second changes it to `status = 1` (`AwaitingFunding`). A duplicate approval by the same actor is rejected.
+5. **Complete Contract activation prerequisites.** Contract-level Client and Lawyer acceptance occurs in the Contracts slice. When a Draft milestone gains both approvals, an asynchronous contract-activation request is emitted. Do not call ready-for-funding until the Contract actually reports `Active` (`ContractStatus = 1`).
+6. **Mark the current Standard milestone ready (Lawyer).** When `permittedActions` contains `"ReadyForFunding"`, call `POST /api/milestones/{milestoneId}/ready-for-funding` with current `If-Match`. Only the earliest nonterminal Standard milestone qualifies, and no other Standard milestone may have funding processing or an unsettled escrow hold.
+7. **Fund it (Client; adjacent Payments slice).** When the Client receives `"Fund"`, call either `POST /api/milestones/{milestoneId}/fund` or `POST /api/milestones/{milestoneId}/payment-session` as documented by Payments. Send a unique, stable `Idempotency-Key` (maximum 200 characters). Poll the list until the milestone is `status = 3` (`FundedInProgress`) and `fundingStatus = 2` (`Funded`); do not assume an asynchronous payment completed from the initial HTTP response alone.
+8. **Prepare submission files (Lawyer).** The Milestone slice has no upload endpoint. `storedFileIds` must already resolve to non-deleted `UserVerificationDocument` records owned by the current Lawyer. This is the current implementation contract, even though it is semantically narrower than a general deliverable upload system.
+9. **Submit work (Lawyer).** When `"Submit"` is permitted, call `POST /api/milestones/{milestoneId}/submit` with notes and at least one unique, nonempty stored file ID. The server verifies the EGP escrow chain, creates an immutable submission version, changes status to `Submitted` (`4`), and sets `autoAcceptEligibleAt` to seven days after submission.
+10. **Review (Client).** Refresh the list. The Client chooses exactly one:
+    - Call `POST /api/milestones/{milestoneId}/accept` to enter `AcceptedHold` (`5`) and start a 14-day hold.
+    - Call `POST /api/milestones/{milestoneId}/request-changes` with a reason to return to `FundedInProgress` (`3`). The prior submission remains immutable; the Lawyer repeats steps 8-9 and the next submission version is created.
+11. **Settlement/dispute (adjacent slices/background jobs).** If the Client does nothing, auto-accept may move `Submitted` to `AcceptedHold` after seven days. Disputes may move `AcceptedHold` to `Disputed`. Release/refund actions occur in Payments/Disputes/background processing, not through this controller.
 
-1. The controller's manual `If-Match` validation fails (`ValidateIfMatchAsync` → missing, empty, weak `W/"..."`, wildcard `*`, malformed Base64).
-2. A `DbUpdateConcurrencyException` occurs at save time in the Draft/ChangeRequest services (`SaveChangesAsync` rethrows as 412).
+> Integration gap: `MilestoneDto` does not expose submission notes, submission version, attachment metadata, download URLs, acceptance source, or rejection reason. This controller therefore cannot by itself render a complete Client review screen; the backend needs a submission-read contract or the frontend must use another explicitly documented source.
 
-A **well-formed but stale** `If-Match` (valid Base64 ETag that does not match the current rowversion) instead throws `ConflictException` → HTTP **`409`**. So the three-way contract is: malformed header → `400`-free `412`, valid-but-stale token → `409`, DB write race → `412`. The Contract slice's guide reported `400` for malformed `If-Match`; do **not** port that assumption here.
+### 1.3 Expense proposal workflow (`type = 1`)
 
-### Standard success envelope
+1. **List current milestones** with `GET /api/contracts/{contractId}/milestones`.
+2. **Propose the expense (Lawyer)** with `POST /api/contracts/{contractId}/milestones`, `type: 1`, `durationDays: null`, and `deliverables: null`. Expense proposals may be added while the Contract is `Draft` or `Active`. Creation automatically records the Lawyer's approval.
+3. **Optionally edit (Lawyer)** while it remains `Draft`, using `PUT ...` plus current `If-Match`. Editing resets the Client's approval and re-records the Lawyer's approval.
+4. **Resolve the proposal before funding:**
+    - Client approves via `POST /api/milestones/{id}/approve` with `If-Match`; this moves it directly to `AwaitingFunding` and internally marks it ready for funding.
+    - Client rejects via `POST /api/milestones/{id}/reject` with a reason and `If-Match`; status becomes `Cancelled`.
+    - Lawyer withdraws via `POST /api/milestones/{id}/cancel` with a reason and `If-Match`; status becomes `Cancelled`.
+5. **Fund an approved expense (Client; adjacent Payments slice).** When `"Fund"` is returned, call the Payments funding endpoint with `Idempotency-Key`. Expense milestones skip ready-for-funding, submission, review, and accepted-hold stages. Successful funding drives `AwaitingFunding -> FundingProcessing -> ReleasePending`, then the release workflow settles it to `Released`.
+
+### 1.4 Frontend retry and concurrency algorithm
+
+1. Read the milestone list and keep the complete quoted `version`, for example `"AAAAAAAAB9E="` as the string value.
+2. Set the HTTP header to that value exactly: `If-Match: "AAAAAAAAB9E="`. Do not send the JSON escape characters (`\`) and do not strip the quotes.
+3. On `409`, treat the version/state as stale, refresh the list, re-render, and require the user to confirm again.
+4. On `412`, the header was missing/malformed or a database write race occurred. Refresh and retry only after reconstructing the request from current state.
+5. On a timeout or lost response from an action without idempotency, refresh before deciding whether another mutation is necessary.
+
+## 2. Complete Endpoint Catalog (MANDATORY)
+
+### 2.1 Endpoint inventory
+
+| # | Method and exact route | Role gate | Body | `If-Match` | Success |
+|---:|---|---|---|---|---:|
+| 1 | `POST /api/contracts/{contractId}/milestones` | Lawyer | `AddMilestoneRequest` | No | `201` |
+| 2 | `GET /api/contracts/{contractId}/milestones` | Client, Lawyer, Moderator, SuperAdministrator | None | No | `200` |
+| 3 | `PUT /api/contracts/{contractId}/milestones/{milestoneId}` | Lawyer | `UpdateMilestoneRequest` | **Yes** | `200` |
+| 4 | `POST /api/milestones/{milestoneId}/approve` | Client, Lawyer | None | **Yes** | `200` |
+| 5 | `POST /api/milestones/{milestoneId}/ready-for-funding` | Lawyer | None | **Yes** | `200` |
+| 6 | `POST /api/milestones/{milestoneId}/reject` | Client | `ExpenseMilestoneDecisionRequest` | **Yes** | `200` |
+| 7 | `POST /api/milestones/{milestoneId}/cancel` | Lawyer | `ExpenseMilestoneDecisionRequest` | **Yes** | `200` |
+| 8 | `POST /api/milestones/{milestoneId}/submit` | Lawyer | `SubmitMilestoneRequest` | No | `200` |
+| 9 | `POST /api/milestones/{milestoneId}/accept` | Client | None | No | `200` |
+| 10 | `POST /api/milestones/{milestoneId}/request-changes` | Client | `RequestMilestoneChangesRequest` | No | `200` |
+
+There are no query parameters on any active Milestone endpoint. Every route ID uses the ASP.NET `guid` constraint. A non-GUID path fails route matching and normally returns a framework `404`.
+
+### 2.2 Shared success and error wire shapes
+
+All controller-produced successes use this envelope; nullable envelope fields are still serialized:
 
 ```json
 {
@@ -41,9 +93,7 @@ A **well-formed but stale** `If-Match` (valid Base64 ETag that does not match th
 }
 ```
 
-Creation endpoints (Add Milestone, Create Change Request) use `statusCode: 201`. `data` shape is endpoint-specific.
-
-### Middleware-handled error envelope
+Middleware-handled application failures use:
 
 ```json
 {
@@ -51,15 +101,11 @@ Creation endpoints (Add Milestone, Create Change Request) use `statusCode: 201`.
   "data": null,
   "message": "Localized or generic error message",
   "errors": null,
-  "statusCode": 400
+  "statusCode": 409
 }
 ```
 
-Exceptions mapped by the middleware: `ValidationException`→400 (+`errors` array `"Field: ..."`), `AuthenticationException`→401, `BusinessException`→400, `NotFoundException`→404, `ConflictException`→409, `ForbiddenAccessException`→403, `PreconditionFailedException`→412, `TooManyRequestsException`→429, `PayloadTooLargeException`→413. Unhandled →500.
-
-### Automatic binding/FluentValidation error shape
-
-FluentValidation runs through `AddFluentValidationAutoValidation()` + `[ApiController]`, so request-body rule failures produce the framework validation-problem shape:
+FluentValidation/model-binding failures use ASP.NET validation problem details, not `ApiResponse<T>`:
 
 ```json
 {
@@ -67,109 +113,55 @@ FluentValidation runs through `AddFluentValidationAutoValidation()` + `[ApiContr
   "title": "One or more validation errors occurred.",
   "status": 400,
   "errors": {
-    "Title": ["عنوان المرحلة مطلوب."],
-    "Amount": ["قيمة المرحلة يجب أن تكون أكبر من صفر بالجنيه المصري."]
+    "Title": ["Localized validation message"]
   },
   "traceId": "00-..."
 }
 ```
 
-A class-level rule (the "at least one change" rule on `CreateMilestoneChangeRequest`) produces an empty property key (`""`). Malformed JSON, missing non-nullable body data, invalid enum text, and route/model binding errors may use framework problem details or an empty framework response rather than this shape.
+| HTTP status | Exact class of outcome |
+|---:|---|
+| `400` | Invalid body rules or invalid business state/prerequisite. Validation failures use problem details; `BusinessException` uses the failed API envelope. |
+| `401` | Missing/invalid authentication usually comes from the authorization framework and may have an empty body. |
+| `403` | Wrong controller role usually has an empty framework body; authenticated-but-not-the-contract-actor failures use the failed API envelope. |
+| `404` | Existing route with absent Contract/Milestone uses the failed API envelope. Invalid GUID or unmatched route is a framework 404. |
+| `409` | Well-formed but stale `If-Match`, duplicate actor approval, already-ready state, funding collision, or unique-key race. Uses the failed API envelope when thrown by application code. |
+| `412` | Missing/weak/malformed `If-Match`, or `DbUpdateConcurrencyException` during save. Uses the failed API envelope. |
+| `415` | Unsupported content type is a framework response/problem detail. |
+| `429` | Policies are configured and attributes are present, but `app.UseRateLimiter()` is currently commented out, so enforcement is inactive. |
+| `500` | Unhandled failure; envelope message is exactly `"An internal server error occurred."`. |
 
-### Global HTTP error behavior
-
-| HTTP status | Source | Response behavior / meaning |
-|---:|---|---|
-| `400 Bad Request` | FluentValidation auto-validation or `BusinessException` | Validation problem details, otherwise custom failed envelope. Used for forbidden states (not Draft / not Active / wrong milestone status) and failed prerequisites. |
-| `401 Unauthorized` | Authorization framework or `AuthenticationException` | Missing/invalid token mostly framework 401 (possibly empty body); service-side auth error uses the custom envelope. |
-| `403 Forbidden` | Role policy or `ForbiddenAccessException` | Role mismatch normally framework 403; resource/actor denial uses the custom envelope. |
-| `404 Not Found` | `NotFoundException` or route mismatch | Valid GUID but absent entity → custom envelope (`المرحلة غير موجودة.`, `طلب التعديل المطلوب غير موجود.`). Non-GUID path does not match `:guid` routes → framework 404. |
-| `409 Conflict` | `ConflictException`, unique-index race, already-approved/decided/pending | Custom failed envelope. Distinct from Contract slice: stale-but-well-formed `If-Match` also yields 409 here. |
-| `412 Precondition Failed` | `PreconditionFailedException` | **Implemented for Milestones.** Malformed/missing `If-Match` (controller validation) and DB write races → custom envelope with `message` from the validator or `تم تعديل المرحلة بواسطة عملية أخرى...`. |
-| `429 Too Many Requests` | Configured limiter | Not enforced while `UseRateLimiter()` stays commented out. |
-| `500 Internal Server Error` | Unhandled exception | Custom envelope `message: "An internal server error occurred."`; implementation details not exposed. |
-
----
-
-## 1. Complete Endpoint Catalog
-
-### Endpoint overview
-
-All 12 routes below live on `MilestonesController` (`[Route("api")]`). `contractId`, `milestoneId`, and `changeRequestId` all use the ASP.NET `guid` route constraint.
-
-| # | Method | Exact route | Controller roles | Success | Request body | If-Match required |
-|---|---|---|---:|---|---|---|
-| 1 | `POST` | `/api/contracts/{contractId}/milestones` | Client, Lawyer | `201` | `AddMilestoneRequest` | No |
-| 2 | `GET` | `/api/contracts/{contractId}/milestones` | Client, Lawyer, Moderator, SuperAdministrator | `200` | None | No |
-| 3 | `PUT` | `/api/contracts/{contractId}/milestones/{milestoneId}` | Client, Lawyer | `200` | `UpdateMilestoneRequest` | **Yes** (milestone) |
-| 4 | `POST` | `/api/milestones/{milestoneId}/approve` | Client, Lawyer | `200` | None | **Yes** (milestone) |
-| 5 | `POST` | `/api/milestones/{milestoneId}/ready-for-funding` | Lawyer | `200` | None | **Yes** (milestone) |
-| 6 | `POST` | `/api/milestones/{milestoneId}/submit` | Lawyer | `200` | `SubmitMilestoneRequest` | No (unique-index guarded) |
-| 7 | `POST` | `/api/milestones/{milestoneId}/accept` | Client | `200` | None | No |
-| 8 | `POST` | `/api/milestones/{milestoneId}/request-changes` | Client | `200` | `RequestMilestoneChangesRequest` | No |
-| 9 | `POST` | `/api/milestones/{milestoneId}/change-requests` | Client, Lawyer | `201` | `CreateMilestoneChangeRequest` | **Yes** (milestone) |
-| 10 | `POST` | `/api/change-requests/{changeRequestId}/approve` | Client, Lawyer | `200` | None | **Yes** (change request) |
-| 11 | `POST` | `/api/change-requests/{changeRequestId}/reject` | Client, Lawyer | `200` | `RejectChangeRequest` | **Yes** (change request) |
-| 12 | `POST` | `/api/change-requests/{changeRequestId}/cancel` | Client, Lawyer | `200` | None | **Yes** (change request) |
-
-**Adjacent endpoints outside this slice** (referenced by the lifecycle but documented in their own slices): `POST /api/milestones/{milestoneId}/fund` (Payments, Client-only, consumes `Idempotency-Key`), `GET /api/contracts/{contractId}/payments`, `GET /api/milestones/{milestoneId}/payment`, `GET /api/contracts/{contractId}` (detail is the primary source of a milestone's current `version`), and the Disputes slice which drives `MilestoneStatus.Disputed` / `Refunded`.
-
----
-
-### 1.1 Add a Milestone (Draft)
+### 2.3 Add Milestone
 
 **HTTP Method & Exact Route:** `POST /api/contracts/{contractId}/milestones`
 
-**Purpose:** A party to a **Draft** Contract appends the next milestone with negotiated terms. Milestones are enforced as a strict sequential 1..N list (an `orderNumber` cannot be skipped or reused).
+**When to use:** Lawyer appends the next Standard milestone to a Draft Contract or proposes an Expense during a Draft/Active Contract. Never use it for updates or reordering.
 
-**Request Structure (What they send)**
+**Request structure**
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | `Client` or `Lawyer` role, and must be a party to the contract. |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `contractId` | Yes | UUID | Target Draft Contract. |
-| Body | `title` | Yes | string | 3–200 characters. |
-| Body | `description` | No | string | Nullable; max 10,000; whitespace-only invalid. |
-| Body | `orderNumber` | Yes | int | Must equal `maxExistingOrder + 1` (1 for the first milestone). |
-| Body | `amount` | Yes | decimal | `> 0`, at most 2 decimal places; currency is fixed `EGP`. |
-| Body | `durationDays` | No | int | 1–365 when provided. |
-| Body | `dueDate` | No | ISO-8601 | Must be in the future (UTC). |
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | User must have Lawyer role and be this Contract's Lawyer. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Route | `contractId` | Yes | UUID | Existing authorized Contract. |
+| Body | — | Yes | `AddMilestoneRequest` | Full dictionary in §3.2. |
 
-```json
-{
-  "title": "مرحلة الإيداع: تجهيز وتقديم صحيفة الدعوى",
-  "description": "تحضير المذكرة وتقديمها للمحكمة.",
-  "orderNumber": 1,
-  "amount": 5000.00,
-  "durationDays": 14,
-  "dueDate": "2026-09-01T00:00:00Z"
-}
-```
+The service calculates the required order from all existing milestones. It creates a `Draft`, emits a creation outbox event, and automatically records Lawyer acceptance only for Expense type. Standard creation is allowed only for a Draft Contract; Expense creation is allowed for Draft or Active.
 
-**Business preconditions**
-
-- Authenticated user is the Contract Client or Lawyer (`EnsureParticipant`).
-- Contract **must be `Draft`** (status `0`). The Draft service rejects Active with `يمكن تعديل المراحل أو التفاوض عليها أثناء مرحلة المسودة فقط.` (409).
-- `orderNumber` must be the next sequential integer; otherwise `ترتيب المرحلة الجديدة يجب أن يكون N.` (400).
-- A unique index `UX_Milestones_ContractId_OrderNumber` protects against simultaneous same-order inserts. In a real race the intended 409 `يوجد بالفعل مرحلة أخرى بنفس الترتيب داخل العقد.` is **not** reliably produced because the service matches a different index-name string (see 5.3) — the deterministic sequential gate normally returns 400 first.
-- A new milestone is `Draft` (status `0`), `Unfunded`, and emits a `milestone.created` notification to the counterparty. No `If-Match` is consumed.
-
-**Response Structure (What they get): `201 Created`**
-
-`ApiResponse<MilestoneDto>` — full field dictionary in section 2. Initial Draft example:
+**`201 Created` — `ApiResponse<MilestoneDto>`**
 
 ```json
 {
   "success": true,
   "data": {
-    "id": "22222222-2222-2222-2222-222222222222",
+    "id": "11111111-1111-1111-1111-111111111111",
     "orderNumber": 1,
-    "title": "مرحلة الإيداع: تجهيز وتقديم صحيفة الدعوى",
-    "description": "تحضير المذكرة وتقديمها للمحكمة.",
+    "title": "Prepare claim",
+    "description": "Draft and file the claim.",
+    "deliverables": ["Filed claim PDF"],
     "amount": 5000.00,
     "durationDays": 14,
-    "dueDate": "2026-09-01T00:00:00Z",
+    "dueDate": "2026-09-01T10:00:00Z",
     "status": 0,
     "fundingStatus": 0,
     "escrowHoldId": null,
@@ -179,6 +171,7 @@ All 12 routes below live on `MilestonesController` (`[Route("api")]`). `contract
     "holdExpiresAt": null,
     "netLawyerAmount": null,
     "version": "\"AAAAAAAAB9E=\"",
+    "type": 0,
     "permittedActions": ["Update", "Approve"]
   },
   "message": null,
@@ -187,45 +180,49 @@ All 12 routes below live on `MilestonesController` (`[Route("api")]`). `contract
 }
 ```
 
-**Endpoint-specific failures**
+Endpoint-specific failures include `400` for wrong next order, invalid amount/dates/fields; `403` for a Lawyer who is not this Contract's Lawyer; `404` for absent Contract; and `409` for a disallowed Contract status or concurrent order collision. The database index is named `UX_Milestones_ContractId_OrderNumber`, but the catch filter currently searches for `IX_Milestones_ContractId_OrderNumber`; a true simultaneous insert race can therefore leak to `500` instead of the intended `409`.
 
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Body validation (title/length/amount/order/duration/due-date) | Automatic validation problem. |
-| `400` | Wrong next `orderNumber` | `ترتيب المرحلة الجديدة يجب أن يكون N.` |
-| `404` | `contractId` valid GUID but Contract absent | Contract detail service `404`. |
-| `409` | Contract not Draft (e.g. Active/Terminated) | `يمكن تعديل المراحل أو التفاوض عليها أثناء مرحلة المسودة فقط.` |
-| `409` | Concurrent same-order insert (intended) | `يوجد بالفعل مرحلة أخرى بنفس الترتيب داخل العقد.` — only on the race path, and currently unreliable due to the index-name mismatch (5.3); the non-race duplicate hits the `400` sequential gate. |
-| `403` | Not a contract party | `هذا الإجراء متاح لطرفي العقد فقط.` |
-| `401/403` | Missing token / wrong role | Framework authorization response. |
-
---- 
-
-### 1.2 List the Contract's Milestones
+### 2.4 List Contract Milestones
 
 **HTTP Method & Exact Route:** `GET /api/contracts/{contractId}/milestones`
 
-**Purpose:** Returns **all** milestones of the contract as a flat array ordered by `orderNumber` ascending. No pagination, filtering, or sorting in this slice.
+**When to use:** Initial page load, polling after asynchronous funding/activation/release, and mandatory refresh after every mutation or concurrency error.
 
-**Request Structure (What they send)**
+**Request structure**
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Client/Lawyer participant, or Moderator/SuperAdministrator under the Contract detail access policy. |
-| Route | `contractId` | Yes | UUID | Target Contract. |
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Client/Lawyer contract participant, or eligible Moderator/SuperAdministrator. |
+| Route | `contractId` | Yes | UUID | Existing authorized Contract. |
 
-No query parameters or body.
+No body and no query string. The server returns all milestones ordered by `orderNumber`; there is no pagination or filter.
 
-**Response Structure (What they get): `200 OK`**
-
-`ApiResponse<IReadOnlyList<MilestoneDto>>` — `data` is a JSON **array** (not a paged object):
+**`200 OK` — `ApiResponse<MilestoneDto[]>`**
 
 ```json
 {
   "success": true,
   "data": [
-    { "id": "22222222-2222-2222-2222-222222222222", "orderNumber": 1, "status": 3, "fundingStatus": 2, "version": "\"AAAAAAAAB9E=\"", "permittedActions": ["Submit"], "...": "..." },
-    { "id": "33333333-3333-3333-3333-333333333333", "orderNumber": 2, "status": 0, "fundingStatus": 0, "version": "\"AAAAAAAACF0=\"", "permittedActions": ["Update","Approve"], "...": "..." }
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "orderNumber": 1,
+      "title": "Prepare claim",
+      "description": null,
+      "amount": 5000.00,
+      "durationDays": 14,
+      "dueDate": null,
+      "status": 1,
+      "fundingStatus": 0,
+      "escrowHoldId": null,
+      "fundedAt": null,
+      "submittedAt": null,
+      "autoAcceptEligibleAt": null,
+      "holdExpiresAt": null,
+      "netLawyerAmount": null,
+      "version": "\"AAAAAAAAB9F=\"",
+      "type": 0,
+      "permittedActions": ["ReadyForFunding"]
+    }
   ],
   "message": null,
   "errors": null,
@@ -233,104 +230,52 @@ No query parameters or body.
 }
 ```
 
-**Endpoint-specific failures**
+`deliverables` is uniquely omitted when it is `null`; other nullable `MilestoneDto` fields are included as `null`. Failures are primarily `401`, role/record-level `403`, and Contract `404`.
 
-| Status | Condition | Response |
-|---:|---|---|
-| `403` | Role allowed but user is neither participant nor eligible moderator/admin | Contract detail access denial envelope. |
-| `404` | Contract absent / non-GUID | Custom or framework 404. |
-
-> The "current sequential milestone" flag derives from the first non-terminal (`Released`/`Refunded`/`Cancelled`) milestone by `orderNumber`. Only that milestone can surface `ReadyForFunding`.
-
----
-
-### 1.3 Update a Draft Milestone
+### 2.5 Update Draft Milestone
 
 **HTTP Method & Exact Route:** `PUT /api/contracts/{contractId}/milestones/{milestoneId}`
 
-**Purpose:** Replaces the editable fields of a Draft milestone. Any edit **clears both parties' milestone acceptances**, forcing re-approval.
+**When to use:** Lawyer replaces editable terms before the milestone leaves Draft. It is not a partial update.
 
-**Request Structure (What they send)**
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Lawyer role and this Contract's Lawyer. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Header | `If-Match` | **Yes** | strong ETag | Exact latest `MilestoneDto.version`. |
+| Route | `contractId` | Yes | UUID | Parent Contract. |
+| Route | `milestoneId` | Yes | UUID | Draft milestone that must belong to that Contract. |
+| Body | — | Yes | `UpdateMilestoneRequest` | Full dictionary in §3.3. |
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | `Client` or `Lawyer` and a Contract party. |
-| Header | `If-Match` | **Yes** | string | Milestone ETag copied verbatim from `MilestoneDto.version`. |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `contractId` | Yes | UUID | Contract containing the milestone. |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | `title` | Yes | string | Complete replacement; 3–200. |
-| Body | `description` | No | string | Nullable; max 10,000. |
-| Body | `durationDays` | No | int | 1–365 when provided. |
-| Body | `dueDate` | No | ISO-8601 | Future when provided. |
+The service preserves type only when `type` is omitted/null; all other editable nullable fields are overwritten with `null` when omitted. It resets Client approval. Lawyer approval is reset for Standard or automatically set for Expense. Amount and order are immutable. During an Active Contract only a Draft Expense may be edited and it may not be converted to Standard.
 
-`amount` and `orderNumber` are **not** editable here.
+**`200 OK`:** the same complete `ApiResponse<MilestoneDto>` shape shown in §2.3, with `statusCode: 200`, updated values, a new `version`, and recalculated `permittedActions`.
 
-```json
-{
-  "title": "مرحلة الإيداع (محدثة)",
-  "description": "تم توسيع نطاق الإعداد ليشمل كشف المستندات.",
-  "durationDays": 21,
-  "dueDate": "2026-09-10T00:00:00Z"
-}
-```
+Failures: body `400`; milestone/contract mismatch or non-Draft state `400`; absent entities `404`; stale valid ETag `409`; missing/malformed ETag or save race `412`; wrong actor `403`.
 
-**Business preconditions**
-
-- Contract must be `Draft` and milestone must be `Draft`.
-- Milestone must belong to the routed contract (`المرحلة لا تنتمي إلى العقد المحدد.`).
-- Stale `If-Match` → 409; malformed → 412; DB race → 412.
-- Emits `milestone.draft-updated` to the counterparty and resets `AcceptedByClientAt`/`AcceptedByLawyerAt`.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneDto>` with a new `data.version` and `permittedActions`.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Body validation | Automatic validation problem. |
-| `400` | Milestone not Draft | `يمكن تنفيذ هذا الإجراء على مراحل المسودة فقط.` |
-| `403` | Not a party | `هذا الإجراء متاح لطرفي العقد فقط.` |
-| `404` | Milestone absent / belongs to another contract | `المرحلة المطلوبة غير موجودة.` / relation check. |
-| `409` | Contract not Draft **or** stale milestone version | Draft gate / `تم تعديل المرحلة بواسطة عملية أخرى. يرجى إعادة تحميلها والمحاولة مرة أخرى.` |
-| `412` | Malformed `If-Match` or save race | Manual validator message / same concurrency prose. |
-
----
-
-### 1.4 Approve Milestone Terms
+### 2.6 Approve Milestone Terms
 
 **HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/approve`
 
-**Purpose:** Records acceptance of the **current Draft milestone version** by the calling party. Both Client and Lawyer must approve independently; only the second approval transitions the milestone `Draft → AwaitingFunding`.
+**When to use:** Each party approves the current Draft terms. Standard needs one call by each party. Expense creation/update already counts as Lawyer approval, so the normal Expense UI exposes this only to Client.
 
-**Request Structure (What they send)**
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Client or Lawyer role and the matching Contract party. |
+| Header | `If-Match` | **Yes** | strong ETag | Latest milestone version. |
+| Route | `milestoneId` | Yes | UUID | Draft milestone. |
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | `Client` or `Lawyer`, and must be a Contract party. |
-| Header | `If-Match` | **Yes** | string | Milestone ETag. |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | — | No | — | Send none. `{}` is harmless. |
+No body. Contract must be Draft or Active; Active allows approval only for Expense. First approval records the actor and retains Draft. Once both approvals exist, status changes to AwaitingFunding. Expense also receives `readyForFundingAt` immediately. A Draft Contract emits an asynchronous activation request.
 
-**Business preconditions**
-
-- Contract must be `Draft` **or** `Active` (service gate allows both; Active is possible because a funded/active contract may host a still-Draft bonus milestone). Non-negotiable states → `لا يمكن التفاوض على مراحل عقد غير نشط أو غير موجود كمسودة.` (400).
-- Milestone must be `Draft` (`لا يمكن تعديل أو اعتماد شروط مرحلة خرجت من حالة المسودة.` → 400).
-- A party can approve once per version; repeat → `وافق العميل/المحامي على النسخة الحالية من المرحلة مسبقًا.` (409).
-- **No required order** — either party may approve first.
-- First approval emits `milestone.acceptance-recorded` to the counterparty; the second approval emits `milestone.approved` to both parties **and** enqueues an internal `ContractActivationRequested` outbox event that drives Contract-activation evaluation in the Contracts slice. Activation still requires both Contract signatures plus a positive priced milestone; it is **not** triggered by milestone approval alone.
-
-**Response Structure (What they get): `200 OK`**
-
-`ApiResponse<MilestoneActionResultDto>`:
+**`200 OK` — `ApiResponse<MilestoneActionResultDto>`**
 
 ```json
 {
   "success": true,
   "data": {
-    "entityId": "22222222-2222-2222-2222-222222222222",
+    "entityId": "11111111-1111-1111-1111-111111111111",
     "status": "AwaitingFunding",
-    "occurredAt": "2026-08-12T10:05:00Z"
+    "occurredAt": "2026-08-13T20:00:00Z"
   },
   "message": null,
   "errors": null,
@@ -338,870 +283,485 @@ No query parameters or body.
 }
 ```
 
-After the first signature, `status` remains `"Draft"`.
+`data.status` can be `"Draft"` for the first Standard approval or `"AwaitingFunding"` for the approval completing both sides. Duplicate actor approval and stale ETag return `409`; missing/malformed ETag returns `412`; invalid Contract/milestone state returns `400`; wrong participant returns `403`; missing milestone returns `404`.
 
-> The response contains **no new `version`** and sets no HTTP ETag. The counterparty must re-fetch the milestone (list or contract detail) to obtain a fresh `version` before approving. On full approval, also re-fetch to see the new `status`.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Contract in non-negotiable state | `لا يمكن التفاوض على مراحل عقد غير نشط أو غير موجود كمسودة.` |
-| `400` | Milestone not Draft | `لا يمكن تعديل أو اعتماد شروط مرحلة خرجت من حالة المسودة.` |
-| `403` | Role OK but not a party | `هذا الإجراء متاح لطرفي العقد فقط.` |
-| `404` | Milestone absent | `المرحلة غير موجودة.` |
-| `409` | Already approved by caller | `وافق العميل على النسخة الحالية من المرحلة مسبقًا.` / `وافق المحامي ...` |
-| `409` | Stale milestone version | Concurrency message. |
-| `412` | Malformed `If-Match` / save race | Manual validator message / concurrency prose. |
-| `401/403` | Role not Client/Lawyer | Framework authorization response. |
-
----
-
-### 1.5 Mark a Milestone Ready for Funding
+### 2.7 Mark Standard Milestone Ready for Funding
 
 **HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/ready-for-funding`
 
-**Purpose:** Lawyer signals the mutually approved milestone may now be funded by the Client. It does **not** change the milestone's enum status (stays `AwaitingFunding`); it only records `ReadyForFundingAt` and notifies the Client.
+**When to use:** Lawyer unlocks Client funding for the earliest unsettled Standard milestone after the Contract becomes Active. Never call for Expense.
 
-**Request Structure (What they send)**
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Lawyer role and this Contract's Lawyer. |
+| Header | `If-Match` | **Yes** | strong ETag | Latest version. |
+| Route | `milestoneId` | Yes | UUID | Standard milestone in AwaitingFunding. |
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Must be the Contract's **Lawyer** (service-enforced, beyond the controller role list). |
-| Header | `If-Match` | **Yes** | string | Milestone ETag. |
-| Route | `milestoneId` | Yes | UUID | Target. |
-| Body | — | No | — | None. |
+No body. The operation keeps status `AwaitingFunding`, sets `readyForFundingAt`, and emits an event. It rejects later Standard milestones, already-ready milestones, non-Active Contracts, Expense milestones, or a Contract with another Standard funding attempt/unsettled hold.
 
-**Business preconditions**
+**`200 OK`:** `ApiResponse<MilestoneActionResultDto>` as in §2.6, with `data.status: "AwaitingFunding"`.
 
-- Contract must be `Active` (`يجب أن يكون العقد نشطًا قبل تجهيز المرحلة للتمويل.` → 400).
-- Milestone must be `AwaitingFunding` (`يمكن تجهيز المرحلة للتمويل بعد موافقة الطرفين عليها فقط.` → 400).
-- It must be the **current sequential** milestone; earlier unresolved milestones block it (`يجب تسوية المراحل السابقة قبل تجهيز هذه المرحلة للتمويل.` → 400).
-- No other milestone may hold an unsettled `Funded`/`Frozen` escrow hold or be `FundingProcessing` (`لا يمكن تجهيز مرحلة جديدة قبل حسم التمويل أو التسوية الحالية.` → 409).
-- Already marked → `تم تجهيز المرحلة الحالية للتمويل مسبقًا.` (409).
+Failures: invalid prerequisites `400`; already ready or parallel unsettled funding `409`; stale ETag `409`; missing/malformed ETag/write race `412`; wrong actor `403`; absent milestone `404`.
 
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneActionResultDto>` with `status` `"AwaitingFunding"`, plus `milestone.ready-for-funding` notification to the Client. No new version returned.
+### 2.8 Reject Expense Proposal
 
-**Endpoint-specific failures**
+**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/reject`
 
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Contract not Active | `يجب أن يكون العقد نشطًا قبل تجهيز المرحلة للتمويل.` |
-| `400` | Milestone not AwaitingFunding | `يمكن تجهيز المرحلة للتمويل بعد موافقة الطرفين عليها فقط.` |
-| `400` | Not sequential | `يجب تسوية المراحل السابقة قبل تجهيز هذه المرحلة للتمويل.` |
-| `403` | Caller is not the contract Lawyer | `محامي العقد فقط هو من يمكنه تجهيز المرحلة للتمويل.` |
-| `404` | Milestone absent | `المرحلة غير موجودة.` |
-| `409` | Already marked / unsettled financial activity / stale version | Respective message. |
-| `412` | Malformed `If-Match` / save race | Respective message. |
+**When to use:** Contract Client rejects a pending Expense before approval/funding.
 
----
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Client role and this Contract's Client. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Header | `If-Match` | **Yes** | strong ETag | Latest version. |
+| Route | `milestoneId` | Yes | UUID | Draft Expense milestone. |
+| Body | `reason` | Yes | string | 1-2,000 characters after nonempty validation. |
 
-### 1.6 Submit Milestone Work (Lawyer)
+The service changes `Draft -> Cancelled`, stores the reason internally, writes state history, and evaluates Contract completion when the Contract is Active. The reason is not returned by `MilestoneDto`.
+
+**`200 OK`:** `ApiResponse<MilestoneActionResultDto>` with `status: "Cancelled"`.
+
+Failures: body/state/type `400`; stale ETag `409`; missing/malformed ETag/write race `412`; wrong actor `403`; missing milestone `404`.
+
+### 2.9 Cancel Expense Proposal
+
+**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/cancel`
+
+**When to use:** Contract Lawyer withdraws their pending Expense before Client approval/funding.
+
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Lawyer role and this Contract's Lawyer. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Header | `If-Match` | **Yes** | strong ETag | Latest version. |
+| Route | `milestoneId` | Yes | UUID | Draft Expense milestone. |
+| Body | `reason` | Yes | string | 1-2,000 characters after nonempty validation. |
+
+The service changes `Draft -> Cancelled`, stores the reason internally, writes state history, and evaluates Contract completion when the Contract is Active.
+
+**`200 OK`:** `ApiResponse<MilestoneActionResultDto>` with `entityId` equal to `milestoneId`, `status: "Cancelled"`, and UTC `occurredAt`. The reason is not exposed in `MilestoneDto`.
+
+Failures: body/state/type `400`; stale ETag `409`; missing/malformed ETag/write race `412`; wrong actor `403`; missing milestone `404`.
+
+### 2.10 Submit Standard Milestone Work
 
 **HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/submit`
 
-**Purpose:** Lawyer delivers the funded milestone's work for Client review, with mandatory notes and uploaded file references. Multiple submissions are supported via a monotonically-increasing submission version.
+**When to use:** Lawyer submits a funded Standard milestone or resubmits after Client-requested changes.
 
-**Request Structure (What they send)**
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Lawyer role and this Contract's Lawyer. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Route | `milestoneId` | Yes | UUID | Standard milestone in FundedInProgress. |
+| Body | — | Yes | `SubmitMilestoneRequest` | Notes plus owned stored file IDs; §3.4. |
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Must be the Contract's **Lawyer**. |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | `notes` | Yes | string | Non-empty; max 10,000. |
-| Body | `storedFileIds` | Yes | array of UUID | At least one; no `Guid.Empty`; **distinct**; every ID must be a stored file owned by the acting Lawyer. |
+No `If-Match` and no idempotency header are consumed. The service requires an Active Contract, Standard type, FundedInProgress state, valid funded EGP escrow whose gross amount equals milestone amount, and current-Lawyer ownership of every file. It creates the next immutable submission version, attachment links, `Submitted` state, and a seven-day auto-accept deadline.
 
-```json
-{
-  "notes": "تم إيداع صحيفة الدعوى وجميع مرفقاتها لدى المحكمة الابتدائية.",
-  "storedFileIds": ["aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"]
-}
-```
-
-**Business preconditions**
-
-- Contract must be `Active` (`يجب أن يكون العقد نشطًا قبل تسليم أعمال المرحلة.`).
-- Milestone must be `FundedInProgress` (`يمكن تسليم أعمال المرحلة عندما تكون ممولة وقيد التنفيذ فقط.`).
-- Verified funding must match the milestone's contract, gross `amount`, and `EGP` currency (`بيانات تمويل المرحلة لا تطابق العقد أو المبلغ أو العملة المطلوبة للتسليم.`).
-- All `storedFileIds` must pass `ContractFileAccessService.AuthorizeForUseAsync` (purpose `MilestoneSubmission`) **and** belong to the acting Lawyer (`تعذر التحقق من ملكية جميع ملفات تسليم المرحلة للمحامي الحالي.` → 403).
-- Creates a `MilestoneSubmission` (version = previous max + 1) plus one `MilestoneSubmissionAttachment` per file.
-- Unique index `UX_MilestoneSubmissions_MilestoneId_Version` turns concurrent double-submit into 409.
-- On success: status → `Submitted`, `SubmittedAt` set, `AutoAcceptEligibleAt = now + 7 days`, a background auto-accept job is scheduled.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneDto>` with `status: 4`, non-null `submittedAt`, `autoAcceptEligibleAt`, and `permittedActions` empty for the Lawyer (Client gets `Accept`/`RequestChanges`). Notifies `milestone.submitted` to the Client.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Body validation (notes / files / duplicates) | Automatic validation problem. |
-| `400` | Contract not Active / milestone not FundedInProgress | Respective message. |
-| `400` | Funding mismatch for submission | `بيانات تمويل المرحلة لا تطابق العقد أو المبلغ أو العملة المطلوبة للتسليم.` |
-| `403` | Not the contract Lawyer / files not owned by lawyer | `محامي العقد فقط هو من يمكنه تسليم أعمال المرحلة.` / file-ownership message. |
-| `404` | Milestone absent | `المرحلة غير موجودة.` |
-| `409` | Concurrent duplicate submission version | `تم تسجيل تسليم آخر لهذه المرحلة بالتزامن. يرجى إعادة تحميل المرحلة والمحاولة مرة أخرى.` |
-| `401/403` | Role not Lawyer | Framework authorization response. |
-
----
-
-### 1.7 Accept Submitted Work (Client)
-
-**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/accept`
-
-**Purpose:** Client approves the submitted work; the milestone moves `Submitted → AcceptedHold` and the escrow enters its **14-day hold/dispute window** before release.
-
-**Request Structure (What they send)**
-
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Must be the Contract's **Client**. |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | — | No | — | None. |
-
-**Business preconditions**
-
-- Contract `Active` (`يجب أن يكون العقد نشطًا قبل قبول تسليم المرحلة.`).
-- Milestone `Submitted` (`يمكن قبول تسليم المرحلة عندما تكون في حالة المراجعة فقط.`).
-- Current submission version verifies against the funded escrow hold.
-- Sets `AcceptedAt`, `AcceptanceSource = Manual`, `HoldStartsAt = now`, `HoldExpiresAt = now + 14 days`; cancels auto-accept.
-- **No `If-Match` header** exists on this endpoint.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneDto>` (`status: 5`, non-null `holdExpiresAt`, `fundingStatus: 2`). Notifies `milestone.accepted` to the Lawyer. Hold release is scheduled for expiry by a background job.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Contract not Active / milestone not Submitted | Respective message. |
-| `400` | No valid current submission / hold missing / funding mismatch | `لا يوجد إصدار تسليم حالي صالح للمراجعة.` / `تعذر العثور على حجز الضمان الممول المرتبط بالمرحلة.` / verification message. |
-| `403` | Caller not the contract Client | `عميل العقد فقط هو من يمكنه قبول تسليم المرحلة.` |
-| `404` | Milestone absent | `المرحلة غير موجودة.` |
-| `401/403` | Role not Client | Framework authorization response. |
-
----
-
-### 1.8 Request Changes on Submitted Work (Client)
-
-**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/request-changes`
-
-**Purpose:** Client sends the submitted work back to the Lawyer with feedback. Milestone returns `Submitted → FundedInProgress`, ready for resubmission.
-
-**Request Structure (What they send)**
-
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Must be the Contract's **Client**. |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | `reason` | Yes | string | Non-empty; max 2,000. Stored as the milestone's `RejectionReason`. |
-
-```json
-{
-  "reason": "يرجى استكمال المستندات الثبوتية وإعادة رفع شهادة المحكمة."
-}
-```
-
-**Business preconditions**
-
-- Contract `Active`; milestone `Submitted`.
-- On success: `SubmittedAt` cleared, `AutoAcceptEligibleAt`/`AutoAcceptJobId` cleared, `RejectionReason = reason`, milestone → `FundedInProgress`.
-- **No `If-Match`.** Concurrent `accept` vs `request-changes` is last-writer-wins with no optimistic guard.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneDto>` (`status: 3`, `submittedAt: null`). Notifies `milestone.changes-requested` to the Lawyer.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Reason empty / too long | Automatic validation problem. |
-| `400` | Contract not Active / milestone not Submitted | Respective message. |
-| `403` | Caller not the contract Client | `عميل العقد فقط هو من يمكنه طلب تعديلات على تسليم المرحلة.` |
-| `404` | Milestone absent | `المرحلة غير موجودة.` |
-
----
-
-### 1.9 Create a Milestone Extension Change Request
-
-**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/change-requests`
-
-**Purpose:** Either party proposes an **extension-only** amendment (description / duration / due date) to a currently executed (`FundedInProgress`) milestone. Amount is immutable. The other party must decide.
-
-**Request Structure (What they send)**
-
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | `Client` or `Lawyer` Contract party. |
-| Header | `If-Match` | **Yes** | string | **Milestone** ETag (`MilestoneDto.version`). |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `milestoneId` | Yes | UUID | Target milestone. |
-| Body | `proposedDescription` | No | string | Max 10,000; must differ from current description when provided. |
-| Body | `proposedDurationDays` | No | int | 1–365; **must be longer** than the current duration when provided. |
-| Body | `proposedDueDate` | No | ISO-8601 | Future; **must be later** than the current due date when provided. |
-| Body | `reason` | Yes | string | Non-empty; max 2,000. |
-
-At least one proposed field must be present and **actually different/more-forward** than the current milestone value.
-
-```json
-{
-  "proposedDescription": "تمديد مرحلة الإيداع لتشمل جولة تقصٍّ إضافية.",
-  "proposedDurationDays": 30,
-  "proposedDueDate": "2026-10-01T00:00:00Z",
-  "reason": "تعذر استلام رد المحكمة قبل الموعد الحالي."
-}
-```
-
-**Business preconditions**
-
-- Contract must be `Active` (via participant + milestone check), milestone must be `FundedInProgress` (`يمكن تقديم أو معالجة طلبات التعديل عندما تكون المرحلة مُمولة وقيد التنفيذ فقط.`).
-- Actual & forward change required (see section 3.3 for the third set of service-side rules).
-- One pending change request per milestone at a time — the `hasPendingRequest` pre-check throws `يوجد طلب تعديل معلق لهذه المرحلة بالفعل.` (409); the filtered unique index `UX_MilestoneChangeRequests_Pending` is the race backstop (also 409 intended, but degraded by the index-name mismatch in 5.3).
-- On success creates a `MilestoneChangeRequest` with `Status = Pending` (0) and notifies the counterparty `milestone.change-request-created`.
-
-**Response Structure (What they get): `201 Created`**
-
-`ApiResponse<MilestoneActionResultDto>`:
+**`200 OK`:** complete `ApiResponse<MilestoneDto>`; typical changed fields are:
 
 ```json
 {
   "success": true,
   "data": {
-    "entityId": "99999999-9999-9999-9999-999999999999",
-    "status": "Pending",
-    "occurredAt": "2026-08-12T11:00:00Z"
+    "id": "11111111-1111-1111-1111-111111111111",
+    "orderNumber": 1,
+    "title": "Prepare claim",
+    "description": null,
+    "deliverables": ["Filed claim PDF"],
+    "amount": 5000.00,
+    "durationDays": 14,
+    "dueDate": null,
+    "status": 4,
+    "fundingStatus": 2,
+    "escrowHoldId": "22222222-2222-2222-2222-222222222222",
+    "fundedAt": "2026-08-13T18:00:00Z",
+    "submittedAt": "2026-08-13T20:00:00Z",
+    "autoAcceptEligibleAt": "2026-08-20T20:00:00Z",
+    "holdExpiresAt": null,
+    "netLawyerAmount": 4500.00,
+    "version": "\"AAAAAAAAB9G=\"",
+    "type": 0,
+    "permittedActions": []
   },
   "message": null,
   "errors": null,
-  "statusCode": 201
+  "statusCode": 200
 }
 ```
 
-> The response returns **no change-request `version`**. As implemented, no API exposes `MilestoneChangeRequest` rowversion, so the decision endpoints' required `If-Match` cannot be satisfied by a client (see section 5.3). Treat create as a dead end in the current wire contract.
+For the Client, a refreshed list will expose `Accept` and `RequestChanges`. Failures: validation/business/funding-chain `400`; unauthorized file ownership or wrong contract Lawyer `403`; missing milestone `404`; simultaneous duplicate submission-version race `409`; unhandled persistence failure `500`.
 
-**Endpoint-specific failures**
+### 2.11 Accept Standard Milestone Submission
 
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Body validation (at-least-one-change, lengths, future date) | Automatic validation problem. |
-| `400` | Milestone not `FundedInProgress` / no real change / not forward extension | Respective messages. |
-| `403` | Not a party | `هذا الإجراء متاح لطرفي العقد فقط.` |
-| `404` | Milestone absent | `المرحلة المطلوبة غير موجودة.` |
-| `409` | Pending request already exists / stale **milestone** version | `يوجد طلب تعديل معلق لهذه المرحلة بالفعل.` / concurrency message. |
-| `412` | Malformed `If-Match` / save race | Respective message. |
+**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/accept`
 
----
+**When to use:** Contract Client accepts the current Standard submission after review.
 
-### 1.10 Approve a Milestone Extension Change Request
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Client role and this Contract's Client. |
+| Route | `milestoneId` | Yes | UUID | Standard milestone in Submitted. |
 
-**HTTP Method & Exact Route:** `POST /api/change-requests/{changeRequestId}/approve`
+No body, `If-Match`, or idempotency header. The service verifies the latest immutable submission against the funded hold, then sets `AcceptedHold`, manual acceptance, hold start now, and hold expiry now + 14 days. Auto-accept scheduling fields are cleared.
 
-**Purpose:** The **counterparty** (not the requester) approves the pending extension. Approved fields are applied to the milestone.
+**`200 OK`:** complete `ApiResponse<MilestoneDto>` with `status: 5`, `holdExpiresAt` populated, `autoAcceptEligibleAt: null`, and no Client actions.
 
-**Request Structure (What they send)**
+Failures: invalid Contract/type/state/funding/submission chain `400`; wrong Client `403`; missing milestone `404`. Because there is no concurrency header/idempotency reservation, a repeated call normally encounters the new state and returns `400`.
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | `Client` or `Lawyer` Contract party, **not** the requester. |
-| Header | `If-Match` | **Yes** | string | **Change-request** ETag (unobtainable today — see 1.9 note). |
-| Route | `changeRequestId` | Yes | UUID | Target change request. |
-| Body | — | No | — | None. |
+### 2.12 Request Changes to Standard Submission
 
-**Business preconditions**
+**HTTP Method & Exact Route:** `POST /api/milestones/{milestoneId}/request-changes`
 
-- Requester cannot decide own request (`لا يمكن لمقدم طلب التعديل اعتماد الطلب أو رفضه.` → 403).
-- Request must be `Pending`; milestone `FundedInProgress`; extension must still be forward at decision time.
-- Applies proposed description/duration/dueDate to the milestone; sets `Status = Approved` (1), `DecidedByUserId`, `DecidedAt`, fixed `DecisionReason`.
+**When to use:** Contract Client rejects the current delivery but keeps the milestone funded for Lawyer rework.
 
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneActionResultDto>` with `status: "Approved"`. Notifies requester `milestone.change-request-approved`.
+| Location | Name | Required | Type | Contract |
+|---|---|---:|---|---|
+| Header/cookie | Authentication | Yes | JWT/cookie | Client role and this Contract's Client. |
+| Header | `Content-Type` | Yes | string | `application/json`. |
+| Route | `milestoneId` | Yes | UUID | Standard milestone in Submitted. |
+| Body | `reason` | Yes | string | 1-2,000 characters after nonempty validation. |
 
-**Endpoint-specific failures**
+The service verifies the current submission/funding, moves `Submitted -> FundedInProgress`, clears `submittedAt` and auto-accept fields, stores the reason internally, and preserves the prior immutable submission and escrow hold.
 
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Milestone not FundedInProgress / no longer a forward extension | Respective message. |
-| `400` | Request not Pending | `طلب التعديل لم يعد في حالة الانتظار.` |
-| `403` | Caller is the requester / not a party | `لا يمكن لمقدم طلب التعديل اتخاذ القرار عليه بنفسه.` / `هذا الإجراء متاح لطرفي العقد فقط.` |
-| `404` | Change request or milestone absent | `طلب التعديل المطلوب غير موجود.` / `المرحلة المطلوبة غير موجودة.` |
-| `409` | Stale change-request version | `تم تعديل طلب التعديل بواسطة عملية أخرى. ...` |
-| `412` | Malformed `If-Match` / save race | Respective message. |
+**`200 OK`:** complete `ApiResponse<MilestoneDto>` with `status: 3`, `submittedAt: null`, `autoAcceptEligibleAt: null`, `fundingStatus: 2`; the Lawyer will see `permittedActions: ["Submit"]` on refresh.
 
----
+Failures: body/state/type/funding chain `400`; wrong Client `403`; missing milestone `404`. Repeated calls normally return `400` because the first call changed the state.
 
-### 1.11 Reject a Milestone Extension Change Request
+## 3. Exhaustive DTO & Field Dictionary (MANDATORY)
 
-**HTTP Method & Exact Route:** `POST /api/change-requests/{changeRequestId}/reject`
+### 3.1 JSON type conventions
 
-**Purpose:** The counterparty rejects the pending extension, recording a decision reason. No milestone fields change.
+| C# type | JSON representation |
+|---|---|
+| `Guid` / `Guid?` | UUID string / `null` |
+| `decimal` / `decimal?` | JSON number / `null` |
+| `int` / `int?` | JSON integer / `null` |
+| `DateTime?` | ISO-8601 string / `null` |
+| `IReadOnlyList<string>` | JSON string array |
+| `IReadOnlyList<Guid>` | JSON UUID-string array |
+| enum | JSON integer unless explicitly documented as a string |
 
-**Request Structure (What they send)**
+### 3.2 `AddMilestoneRequest`
 
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Counterparty (participant, not requester). |
-| Header | `If-Match` | **Yes** | string | Change-request ETag. |
-| Header | `Content-Type` | Yes | string | `application/json` |
-| Route | `changeRequestId` | Yes | UUID | Target. |
-| Body | `reason` | Yes | string | Non-empty; max 2,000. Stored as `DecisionReason`. |
-
-```json
-{
-  "reason": "المدة المقترحة لا تبرر التأخير في هذه المرحلة."
-}
-```
-
-**Business preconditions** — same as approve (pending, counterparty-only, current version); sets `Status = Rejected` (2) with requester notified `milestone.change-request-rejected`.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneActionResultDto>` with `status: "Rejected"`.
-
-**Endpoint-specific failures** — mirror approve: 400 (not pending / milestone state), 403 (requester / not party), 404 (absent), 409 (stale version), 412 (malformed `If-Match`), plus automatic 400 for empty/long `reason`.
-
----
-
-### 1.12 Cancel a Milestone Extension Change Request
-
-**HTTP Method & Exact Route:** `POST /api/change-requests/{changeRequestId}/cancel`
-
-**Purpose:** Only the **requester** withdraws their own pending request before the other party decides.
-
-**Request Structure (What they send)**
-
-| Location | Name | Required | Type | Details |
-|---|---|---|---:|---|---|
-| Header/cookie | Authentication | Yes | JWT | Must be the `RequestedByUserId` of the request. |
-| Header | `If-Match` | **Yes** | string | Change-request ETag. |
-| Route | `changeRequestId` | Yes | UUID | Target. |
-| Body | — | No | — | None. |
-
-**Business preconditions**
-
-- Requester-only: `مقدم طلب التعديل فقط هو من يمكنه إلغاء الطلب.` (403).
-- Pending only; sets `Status = Cancelled` (3); notifies counterparty `milestone.change-request-cancelled`.
-
-**Response Structure (What they get): `200 OK`** — `ApiResponse<MilestoneActionResultDto>` with `status: "Cancelled"`.
-
-**Endpoint-specific failures**
-
-| Status | Condition | Message / response |
-|---:|---|---|
-| `400` | Request not Pending | `طلب التعديل لم يعد في حالة الانتظار.` |
-| `403` | Not the requester | `مقدم طلب التعديل فقط هو من يمكنه إلغاء الطلب.` |
-| `404` | Request absent | `طلب التعديل المطلوب غير موجود.` |
-| `409` | Stale change-request version | Concurrency message. |
-| `412` | Malformed `If-Match` / save race | Respective message. |
-
----
-
-## 2. Exhaustive DTO & Field Dictionary
-
-### 2.1 Request DTOs
-
-#### `AddMilestoneRequest`
-
-| Field name | Data type | Required | Description / mechanics |
+| Field | JSON type | Required | What frontend sends |
 |---|---|---:|---|
-| `title` | string | Yes | User-facing milestone title; 3–200 chars. |
-| `description` | string | No | Optional details; max 10,000; whitespace-only rejected. |
-| `orderNumber` | int | Yes | Sequential position; must equal max existing + 1. Unique per contract. |
-| `amount` | decimal | Yes | **Agreed payment for this milestone** in EGP, `> 0`, ≤ 2 decimals. Immutable after creation. |
-| `durationDays` | int | No | Planned duration, 1–365 when set. |
-| `dueDate` | DateTime | No | Scheduled due date, must be future UTC when set. |
+| `title` | string | Yes | Human-readable milestone/expense title, 3-200 characters. |
+| `description` | string or null | No | Detailed scope. Omit or send `null` for none; whitespace-only is invalid; max 10,000. |
+| `deliverables` | string[] or null | No | Up to 100 expected outputs; each 1-500 characters. Must be `null`/omitted for Expense. Empty array is allowed for Standard. |
+| `orderNumber` | integer | Yes | Next append-only order, positive and exactly max+1. |
+| `amount` | decimal | Yes | Positive EGP amount with at most two decimal places. |
+| `durationDays` | integer or null | No | 1-365 for Standard; must be `null`/omitted for Expense. |
+| `dueDate` | string or null | No | Future UTC ISO-8601 timestamp. |
+| `type` | integer | No | `0` Standard (default when omitted) or `1` Expense. |
 
-#### `UpdateMilestoneRequest`
+### 3.3 `UpdateMilestoneRequest`
 
-| Field name | Data type | Required | Description / mechanics |
+| Field | JSON type | Required | What frontend sends |
 |---|---|---:|---|
-| `title` | string | Yes | Complete replacement; 3–200 chars; resets both acceptances. |
-| `description` | string | No | Max 10,000; whitespace-only rejected. |
-| `durationDays` | int | No | 1–365 when set. |
-| `dueDate` | DateTime | No | Future when set. |
+| `title` | string | Yes | Complete replacement title, 3-200 characters. |
+| `description` | string or null | No | Complete replacement; omit/null clears it. Whitespace-only invalid; max 10,000. |
+| `deliverables` | string[] or null | No | Complete replacement; omit/null clears. Up to 100, each 1-500. Must be null for Expense. |
+| `durationDays` | integer or null | No | Complete replacement; omit/null clears. 1-365 when present; null for Expense. |
+| `dueDate` | string or null | No | Complete replacement; omit/null clears. Must be future when present. |
+| `type` | integer or null | No | Omit/null preserves current type; `0` or `1` changes it subject to lifecycle/Expense rules. |
 
-`amount` and `orderNumber` are intentionally absent (immutable).
+`amount` and `orderNumber` deliberately do not exist in this DTO and are immutable through this endpoint.
 
-#### `SubmitMilestoneRequest`
+### 3.4 `SubmitMilestoneRequest`
 
-| Field name | Data type | Required | Description / mechanics |
+| Field | JSON type | Required | What frontend sends |
 |---|---|---:|---|
-| `notes` | string | Yes | Delivery notes; non-empty, max 10,000. |
-| `storedFileIds` | array of UUID | Yes | Pre-uploaded file references; ≥1, distinct, no `Guid.Empty`, all owned by the acting Lawyer. |
+| `notes` | string | Yes | Submission narrative, nonempty, maximum 10,000 characters. |
+| `storedFileIds` | UUID[] | Yes | At least one; every ID nonempty and unique. Each must belong to a non-deleted current-Lawyer `UserVerificationDocument` and its non-deleted stored file. No maximum list count is defined by the validator. |
 
-#### `RequestMilestoneChangesRequest`
+### 3.5 `RequestMilestoneChangesRequest`
 
-| Field name | Data type | Required | Description / mechanics |
+| Field | JSON type | Required | What frontend sends |
 |---|---|---:|---|
-| `reason` | string | Yes | Delivery-revision feedback; non-empty, max 2,000. Persisted as milestone `RejectionReason`. |
+| `reason` | string | Yes | Client's requested corrections; nonempty, maximum 2,000 characters. |
 
-#### `CreateMilestoneChangeRequest`
+### 3.6 `ExpenseMilestoneDecisionRequest`
 
-| Field name | Data type | Required | Description / mechanics |
+| Field | JSON type | Required | What frontend sends |
 |---|---|---:|---|
-| `proposedDescription` | string | No | Max 10,000; must differ from current. |
-| `proposedDurationDays` | int | No | 1–365; must exceed current duration. |
-| `proposedDueDate` | DateTime | No | Future; must be later than current due date. |
-| `reason` | string | Yes | Non-empty, max 2,000. |
+| `reason` | string | Yes | Client rejection or Lawyer cancellation reason; nonempty, maximum 2,000 characters. |
 
-At least one proposed field must be set. **No `amount` field — milestone price amendments are impossible.**
+### 3.7 `MilestoneDto`
 
-#### `RejectChangeRequest`
+| Field | JSON type | Null/omission behavior | Meaning |
+|---|---|---|---|
+| `id` | UUID string | Never null | Milestone identifier. |
+| `orderNumber` | integer | Never null | Append order within Contract. |
+| `title` | string | Never null | Current title. |
+| `description` | string or null | Included as null | Current optional description. |
+| `deliverables` | string[] | **Property omitted when null** | Current Standard deliverables; absent for Expense. |
+| `amount` | decimal | Never null | Gross EGP milestone amount. |
+| `durationDays` | integer or null | Included as null | Planned Standard duration; always null for Expense. |
+| `dueDate` | string or null | Included as null | Optional due date. |
+| `status` | integer | Never null | `MilestoneStatus`, §3.9. |
+| `fundingStatus` | integer | Never null | Derived `MilestoneFundingStatus`, §3.10. |
+| `escrowHoldId` | UUID string or null | Included as null | Escrow hold after funding exists. |
+| `fundedAt` | string or null | Included as null | UTC funding time. |
+| `submittedAt` | string or null | Included as null | UTC current Standard submission time; cleared on requested changes. |
+| `autoAcceptEligibleAt` | string or null | Included as null | Seven-day auto-accept eligibility time while Submitted. |
+| `holdExpiresAt` | string or null | Included as null | End of the post-acceptance 14-day hold. |
+| `netLawyerAmount` | decimal or null | Included as null | Net amount on the escrow hold after platform fee. |
+| `version` | string | Never null | Strong ETag string including quotes; optimistic-concurrency token. |
+| `type` | integer | Never null | `MilestoneType`, §3.11. |
+| `permittedActions` | string[] | Always array | Actor-specific UI commands; §3.12. |
 
-| Field name | Data type | Required | Description / mechanics |
-|---|---|---:|---|
-| `reason` | string | Yes | Rejection rationale for the counterparty; non-empty, max 2,000. Stored as `DecisionReason`. |
+### 3.8 `MilestoneActionResultDto`
 
-### 2.2 Response `data` DTOs
-
-#### `MilestoneDto`
-
-| Field name | Data type | Nullable | Description / frontend use |
-|---|---|---:|---|
-| `id` | UUID string | No | Milestone id used by all `/api/milestones/{id}/...` routes. |
-| `orderNumber` | int | No | Sequential execution order. |
-| `title` | string | No | Current title. |
-| `description` | string | Yes | Current description. |
-| `amount` | decimal | No | Agreed EGP amount; server-owned, read-only. |
-| `durationDays` | int | Yes | Current planned duration. |
-| `dueDate` | DateTime | Yes | Current due date. |
-| `status` | `MilestoneStatus` (JSON int) | No | Current lifecycle state (all values in 2.4). |
-| `fundingStatus` | `MilestoneFundingStatus` (JSON int) | No | Derived funding summary (2.4). |
-| `escrowHoldId` | UUID string | Yes | Escrow hold once funding is attempted/created. |
-| `fundedAt` | DateTime | Yes | Successful funding time. |
-| `submittedAt` | DateTime | Yes | Latest Lawyer submission time; cleared on revision request. |
-| `autoAcceptEligibleAt` | DateTime | Yes | Earliest automatic acceptance; set `submittedAt + 7 days`, cleared on accept/revision. |
-| `holdExpiresAt` | DateTime | Yes | End of accepted-hold/dispute window; `accepted + 14 days`. |
-| `netLawyerAmount` | decimal | Yes | Escrow net payable to Lawyer after platform fee. |
-| `version` | string | No | **Optimistic concurrency token:** strong quoted Base64 rowversion; send verbatim as `If-Match` for milestone mutations. |
-| `permittedActions` | array of string | No | UI hints; values `Update`, `Approve`, `ReadyForFunding`, `Submit`, `Accept`, `RequestChanges`. Do not treat as authorization truth (known gaps in section 5). |
-
-**Not exposed** (internal entity fields): `AcceptedByClientAt`, `AcceptedByLawyerAt`, `ReadyForFundingAt`, `AcceptedAt`, `AcceptanceSource`, `SubmissionVersion`, `RejectionReason`, `AutoAcceptJobId`, `HoldStartsAt`, `ReleasedAt`, `RefundedAt`, `CreatedAt`, `UpdatedAt`, raw rowversion bytes.
-
-#### `MilestoneActionResultDto`
-
-| Field name | Data type | Description |
+| Field | JSON type | Meaning |
 |---|---|---|
-| `entityId` | UUID string | The affected aggregate id (`milestoneId` for approve/ready, `changeRequestId` for change-request decisions). Generic name, not `milestoneId`. |
-| `status` | string | Enum **name as text**: `Draft`, `AwaitingFunding`, `Pending`, `Approved`, `Rejected`, `Cancelled`, etc. No new `version` is included. |
-| `occurredAt` | DateTime | Processing timestamp; populated even when no state transition occurred (e.g. first approval). |
+| `entityId` | UUID string | The affected milestone ID. |
+| `status` | string | Case-sensitive `MilestoneStatus` name. Active results here are `Draft`, `AwaitingFunding`, or `Cancelled`. |
+| `occurredAt` | ISO-8601 string | UTC server time at which the action was applied. |
 
-#### `MilestoneChangeRequestDto` (defined but **never returned**)
+### 3.9 `MilestoneStatus` — all values
 
-| Field name | Data type | Nullable | Description |
-|---|---|---:|---|
-| `id` | UUID string | No | Change-request id (used by decision routes). |
-| `milestoneId` | UUID string | No | Milestone being amended. |
-| `requestedByUserId` | UUID string | No | Requester (cannot self-decide). |
-| `proposedDescription` | string | Yes | Proposed description. |
-| `proposedDurationDays` | int | Yes | Proposed duration. |
-| `proposedDueDate` | DateTime | Yes | Proposed due date. |
-| `reason` | string | No | Requester's rationale. |
-| `status` | `ChangeRequestStatus` (JSON int) | No | `Pending`/`Approved`/`Rejected`/`Cancelled`. |
-| `decidedByUserId` | UUID string | Yes | Deciding participant. |
-| `decidedAt` | DateTime | Yes | Decision time. |
-| `createdAt` | DateTime | No | Creation time. |
-| `decisionReason` | string (init) | Yes | Decision prose (fixed text for approve/cancel, requester reason for reject). |
-
-> No controller action returns this DTO, and it declares **no `version` field**, so the rowversion needed by the `/approve`, `/reject`, `/cancel` `If-Match` header is unavailable over the API. See `5.3`.
-
-#### `PagedResult<T>` — **not used** by this slice
-
-Listing returns a bare array. There is no paging wrapper anywhere in `/api/.../milestones` routes.
-
-### 2.3 Shared response envelope
-
-#### `ApiResponse<T>`
-
-| Field name | Data type | Nullable | Description |
-|---|---|---:|---|
-| `success` | boolean | No | `true` success; `false` middleware failures. |
-| `data` | `T` | Yes | Payload; `null` on failure. |
-| `message` | string | Yes | Optional prose; Milestone successes do not set it. |
-| `errors` | array of string | Yes | Only some custom `ValidationException`s; automatic validation uses a dictionary in problem details. |
-| `statusCode` | int | No | HTTP status copied into the body (200/201 or failure code). |
-
-### 2.4 Complete enum dictionary
-
-#### `MilestoneStatus`
-
-| JSON value | Enum name | Meaning |
+| Numeric value | Name | Meaning / source |
 |---:|---|---|
-| `0` | `Draft` | Terms being drafted/approved; editable via PUT; acceptance required. |
-| `1` | `AwaitingFunding` | Mutually approved; Lawyer may mark ready for funding. |
-| `2` | `FundingProcessing` | Payment provider funding attempt in progress (set via Payments slice). |
-| `3` | `FundedInProgress` | Escrow funded; Lawyer executing work. |
-| `4` | `Submitted` | Work delivered for Client review. |
-| `5` | `AcceptedHold` | Work accepted (manual or auto); funds in 14-day hold/dispute window. |
-| `6` | `Disputed` | Under formal dispute (Disputes slice; hold frozen). |
-| `7` | `Released` | Escrow released to Lawyer. Terminal. |
-| `8` | `Refunded` | Escrow refunded to Client. Terminal. |
-| `9` | `Cancelled` | Cancelled (contract termination). Terminal. |
+| `0` | `Draft` | Terms proposed; approvals still negotiable. |
+| `1` | `AwaitingFunding` | Both parties approved. Standard still needs Lawyer readiness; Expense is made ready automatically. |
+| `2` | `FundingProcessing` | Payment attempt is in progress (Payments slice). |
+| `3` | `FundedInProgress` | Standard is funded and Lawyer work/resubmission is active. |
+| `4` | `Submitted` | Standard delivery awaits Client review or seven-day auto-accept. |
+| `5` | `AcceptedHold` | Delivery accepted; 14-day post-acceptance hold runs. |
+| `6` | `Disputed` | An active dispute froze settlement (Disputes slice). |
+| `7` | `Released` | Funds released to Lawyer; terminal. |
+| `8` | `Refunded` | Funds returned to Client; terminal. |
+| `9` | `Cancelled` | Proposal/work cancelled; terminal for sequencing. |
+| `10` | `ReleasePending` | Release still needs processing/recovery; normal funded Expense enters this state before immediate release. |
 
-#### `MilestoneFundingStatus`
+### 3.10 `MilestoneFundingStatus` — all values
 
-| JSON value | Enum name | Meaning |
+| Numeric value | Name | Derivation |
 |---:|---|---|
-| `0` | `Unfunded` | No escrow hold yet. |
-| `1` | `Processing` | Milestone is `FundingProcessing`. |
-| `2` | `Funded` | Escrow hold exists and is not settled. |
-| `3` | `Settled` | Milestone/hold released or refunded. |
+| `0` | `Unfunded` | No hold exists and status is not FundingProcessing/settled. |
+| `1` | `Processing` | Milestone status is FundingProcessing. |
+| `2` | `Funded` | An escrow hold exists and neither milestone/hold is settled. |
+| `3` | `Settled` | Milestone is Released/Refunded or hold status is Released/Refunded. |
 
-#### `ChangeRequestStatus`
+### 3.11 `MilestoneType` — all values
 
-| JSON value | Enum name | Meaning |
+| Numeric value | Name | Behavior |
 |---:|---|---|
-| `0` | `Pending` | Awaiting counterparty decision. |
-| `1` | `Approved` | Applied to the milestone. Terminal. |
-| `2` | `Rejected` | Declined with reason. Terminal. |
-| `3` | `Cancelled` | Withdrawn by requester. Terminal. |
+| `0` | `Standard` | Sequential work: approval, readiness, funding, submission, review, hold, settlement. |
+| `1` | `Expense` | Reimbursable/out-of-pocket proposal: no duration/deliverables/readiness/submission/review; funding proceeds toward immediate release. |
 
-#### `MilestoneAcceptanceSource` (internal, not in any DTO)
+### 3.12 `permittedActions` — every emitted string
 
-| JSON value | Enum name | Meaning |
-|---:|---|---|
-| `0` | `Manual` | Client explicitly accepted submission. |
-| `1` | `Automatic` | Auto-accepted after the 7-day review window. |
-
-### 2.5 Supported transitions (persistence-level guard)
-
-All Legally allowed `MilestoneStatus` transitions per `MilestoneTransitionGuard`:
-
-| From | To | Trigger |
+| String | Actor and condition | Endpoint |
 |---|---|---|
-| `Draft` | `AwaitingFunding` | Both parties approve terms (1.4). |
-| `Draft` | `Cancelled` | Contract termination. |
-| `AwaitingFunding` | `FundingProcessing` | Funding attempt (Payments). |
-| `AwaitingFunding` | `Cancelled` | Contract termination. |
-| `FundingProcessing` | `FundedInProgress` | Funding success (Payments). |
-| `FundingProcessing` | `AwaitingFunding` | Funding failure/rollback (Payments). |
-| `FundingProcessing` | `Cancelled` | Termination during processing. |
-| `FundedInProgress` | `Submitted` | Lawyer submits (1.6) **or re-submits after revision**. |
-| `FundedInProgress` | `Cancelled` | Contract termination. |
-| `FundedInProgress` | `Refunded` | Termination refund of executed milestone. |
-| `Submitted` | `FundedInProgress` | Client requests changes (1.8). |
-| `Submitted` | `AcceptedHold` | Client accepts (1.7) or auto-accept job. |
-| `Submitted` | `Refunded` | Termination while in review. |
-| `AcceptedHold` | `Disputed` | Dispute opened (Disputes slice). |
-| `AcceptedHold` | `Released` | Hold expiry release job. |
-| `AcceptedHold` | `Refunded` | Dispute/termination settlement to Client. |
-| `Disputed` | `Released` | Dispute resolution to Lawyer. |
-| `Disputed` | `Refunded` | Dispute resolution to Client. |
+| `Update` | Contract Lawyer; Draft | `PUT .../milestones/{id}` |
+| `Approve` | Client/Lawyer whose approval is not recorded; Draft | `POST /api/milestones/{id}/approve` |
+| `Reject` | Contract Client; Draft Expense | `POST /api/milestones/{id}/reject` |
+| `Cancel` | Contract Lawyer; Draft Expense | `POST /api/milestones/{id}/cancel` |
+| `ReadyForFunding` | Contract Lawyer; current Standard in AwaitingFunding, not already ready | `POST /api/milestones/{id}/ready-for-funding` |
+| `Fund` | Contract Client; AwaitingFunding with `readyForFundingAt` set | Payments slice funding endpoint |
+| `Submit` | Contract Lawyer; funded Standard in FundedInProgress | `POST /api/milestones/{id}/submit` |
+| `Accept` | Contract Client; Standard in Submitted | `POST /api/milestones/{id}/accept` |
+| `RequestChanges` | Contract Client; Standard in Submitted | `POST /api/milestones/{id}/request-changes` |
 
-`ChangeRequestStatus` transitions: `Pending → Approved | Rejected | Cancelled` only.
+The array is a convenience projection, not authorization proof. Backend rules remain authoritative.
 
-### 2.6 Advanced API mechanics
+### 3.13 Advanced API mechanics
 
 #### Optimistic concurrency
 
-| Operation | Token source | Required header | Failure behavior |
-|---|---|---|---|
-| Update Draft Milestone | `MilestoneDto.version` | `If-Match` | Malformed → 412; valid-but-stale → 409; write race → 412. |
-| Approve terms | `MilestoneDto.version` | `If-Match` | Same. Successful approve returns no new token; counterparty must re-fetch. |
-| Ready-for-funding | `MilestoneDto.version` | `If-Match` | Same. |
-| Create change request | `MilestoneDto.version` | `If-Match` | Same. |
-| Approve/Reject/Cancel change request | **None — not exposed** | `If-Match` (change-request rowversion) | Cannot be satisfied by clients as implemented (5.3). |
-| Submit | — | None | Unique `UX_MilestoneSubmissions_MilestoneId_Version` index → 409 on duplicate. |
-| Accept / Request-changes | — | None | **No concurrency guard**; last-writer-wins between the two actions. |
+| Endpoint | Token required | Conflict behavior |
+|---|---:|---|
+| Update | Yes | Missing/malformed `If-Match` -> `412`; well-formed stale token -> `409`; DB save race -> `412`. |
+| Approve | Yes | Same. Refresh between the two actors because the first approval changes the version. |
+| Ready for funding | Yes | Same. |
+| Reject Expense | Yes | Same. |
+| Cancel Expense | Yes | Same. |
+| Add/List/Submit/Accept/Request Changes | No | No frontend-supplied optimistic token is consumed. |
 
-Always send the token **verbatim with its surrounding quotes** (`"AAAAAAAAB9E="`). Weak tags (`W/"..."`) and `*` are rejected. `updatedAt` is internal and not a concurrency token.
+The ETag must be strong, quoted, nonempty Base64. Weak tags such as `W/"..."`, wildcard `*`, unquoted values, empty Base64, and invalid Base64 fail.
 
 #### Idempotency
 
-| Operation | `Idempotency-Key` support | Retry semantics |
-|---|---|---|
-| Add milestone | None | The sequential `orderNumber` gate returns 400 for any retry that used a stale `max+1`; a true race falls through to the unique index, but returns 409 only if the index-name catch matches (currently unreliable, see 5.3). Resolve by re-listing. |
-| Approve / Ready-for-funding | None | Guarded by rowversion; retry with stale token → 409. First-party approve is not repeatable. |
-| Submit | None | Duplicate submission version race → 409; subsequent intended re-submits are valid new versions. |
-| Accept / Request-changes | None | Not idempotent; retrying a timed-out accept/request produces a state-guard 400 rather than a duplicate record. |
-| Change requests | None | Unique pending-index → 409 on duplicate create; decisions guarded by change-request rowversion. |
-| **Fund milestone** (Payments slice) | **Yes** | `POST /api/milestones/{milestoneId}/fund` consumes `Idempotency-Key`; the only Milestone-adjacent idempotent mutation. |
+No active Milestone endpoint reads `Idempotency-Key`. State transitions make many duplicate calls fail, but that is not equivalent to safe response replay. The adjacent Client funding endpoints in Payments require a nonempty `Idempotency-Key` of at most 200 characters; reuse the same key only for retries of the exact same funding intent.
 
----
+#### Domain enum not exposed by `MilestoneDto`
 
-## 3. Validation Rules Summary
+`MilestoneAcceptanceSource` exists on the entity: `0 = Manual`, `1 = Automatic`. Accept sets Manual; the background auto-accept path sets Automatic. The response DTO does not expose this field.
 
-### 3.1 Exact field and query validation
+## 4. Validation Rules Summary
 
-| DTO / input | Field | Required | Exact rule | Validator message |
-|---|---|---:|---|---|
-| `AddMilestoneRequest` | `title` | Yes | Not empty; length 3–200 | `عنوان المرحلة مطلوب.` / `عنوان المرحلة يجب أن يكون بين 3 و200 حرف.` |
-| `AddMilestoneRequest` | `description` | No | Null or non-whitespace; max 10,000 | `وصف المرحلة لا يمكن أن يكون فارغًا.` / `وصف المرحلة يجب ألا يتجاوز 10000 حرف.` |
-| `AddMilestoneRequest` | `orderNumber` | Yes | > 0 | `ترتيب المرحلة يجب أن يكون أكبر من صفر.` |
-| `AddMilestoneRequest` | `amount` | Yes | > 0; ≤ 2 decimal places | `قيمة المرحلة يجب أن تكون أكبر من صفر بالجنيه المصري.` / `قيمة المرحلة يجب ألا تتجاوز منزلتين عشريتين.` |
-| `AddMilestoneRequest` | `durationDays` | No | 1–365 when set | `مدة المرحلة يجب أن تكون بين يوم واحد و365 يومًا.` |
-| `AddMilestoneRequest` | `dueDate` | No | Strictly future when set | `تاريخ استحقاق المرحلة يجب أن يكون في المستقبل.` |
-| `UpdateMilestoneRequest` | `title` | Yes | 3–200 | Same as Add. |
-| `UpdateMilestoneRequest` | `description` | No | Null/non-whitespace; max 10,000 | Same as Add. |
-| `UpdateMilestoneRequest` | `durationDays` | No | 1–365 when set | Same. |
-| `UpdateMilestoneRequest` | `dueDate` | No | Future when set | Same. |
-| `SubmitMilestoneRequest` | `notes` | Yes | Not empty; max 10,000 | `ملاحظات التسليم مطلوبة.` / `ملاحظات التسليم يجب ألا تتجاوز 10000 حرف.` |
-| `SubmitMilestoneRequest` | `storedFileIds` | Yes | Non-null; ≥1; no `Guid.Empty`; all distinct | `يجب إرفاق ملف واحد على الأقل.` / `يجب تحديد معرّفات ملفات صالحة ومصرح بها.` |
-| `RequestMilestoneChangesRequest` | `reason` | Yes | Not empty; max 2,000 | `سبب طلب التعديلات مطلوب.` / `سبب طلب التعديلات يجب ألا يتجاوز 2000 حرف.` |
-| `CreateMilestoneChangeRequest` | `proposedDescription` | No | Null/non-whitespace; max 10,000 | `الوصف المقترح يجب ألا يتجاوز 10000 حرف.` / `الوصف المقترح لا يمكن أن يكون فارغًا.` |
-| `CreateMilestoneChangeRequest` | `proposedDurationDays` | No | 1–365 when set | `المدة المقترحة يجب أن تكون بين يوم واحد و365 يومًا.` |
-| `CreateMilestoneChangeRequest` | `proposedDueDate` | No | Future when set | `تاريخ الاستحقاق المقترح يجب أن يكون في المستقبل.` |
-| `CreateMilestoneChangeRequest` | *(whole request)* | — | Class-level: at least one proposed change | `يجب أن يتضمن طلب التعديل تغييرًا واحدًا على الأقل.` |
-| `CreateMilestoneChangeRequest` | `reason` | Yes | Not empty; max 2,000 | `سبب طلب التعديل مطلوب.` / `سبب طلب التعديل يجب ألا يتجاوز 2000 حرف.` |
-| `RejectChangeRequest` | `reason` | Yes | Not empty; max 2,000 | `سبب رفض طلب التعديل مطلوب.` / `سبب رفض طلب التعديل يجب ألا يتجاوز 2000 حرف.` |
-| `If-Match` header | — | Yes on 7 endpoints | Strong quoted Base64 ETag; ≥1 decoded byte; weak/wildcard/empty rejected | Manual validator → `PreconditionFailedException` → **412**. |
+### 4.1 Form constraints to mirror
 
-### 3.2 Cross-property and domain validation
+| DTO.field | Required? | Exact rules |
+|---|---:|---|
+| `AddMilestoneRequest.title` | Yes | Not empty; length 3-200. |
+| `.description` | No | Null allowed; if provided cannot be null/empty/whitespace; maximum 10,000. |
+| `.deliverables` | No | Null or count <= 100. Each item not empty and max 500. Expense requires null, so `[]` is invalid for Expense. |
+| `.orderNumber` | Yes | Integer > 0 and must equal current max order + 1. |
+| `.amount` | Yes | Decimal > 0; at most two decimal places. No validator maximum; database storage is `decimal(18,2)` (practical maximum `9999999999999999.99`). |
+| `.durationDays` | No | Null or integer 1-365. Expense requires null. |
+| `.dueDate` | No | Null or strictly later than server UTC now. Add also requires UTC `DateTimeKind`, so send a `Z` timestamp. |
+| `.type` | No | Must be defined: 0 or 1; omitted Add value defaults to 0. |
+| `UpdateMilestoneRequest.title` | Yes | Not empty; length 3-200. |
+| `.description` | No | Same as Add; omission clears. |
+| `.deliverables` | No | Same list rules; Expense requires null; omission clears. |
+| `.durationDays` | No | Null or 1-365; Expense requires null; omission clears. |
+| `.dueDate` | No | Null or strictly future; omission clears. |
+| `.type` | No | Null preserves current; otherwise 0 or 1. |
+| `SubmitMilestoneRequest.notes` | Yes | Not empty; maximum 10,000. |
+| `.storedFileIds` | Yes | Non-null, count > 0, every GUID nonempty, all distinct. No validator maximum. |
+| `RequestMilestoneChangesRequest.reason` | Yes | Not empty; maximum 2,000. |
+| `ExpenseMilestoneDecisionRequest.reason` | Yes | Not empty; maximum 2,000. |
 
-| Rule | Where enforced | Frontend behavior to mirror |
-|---|---|---|
-| Milestones negotiable only while Contract is `Draft` (add/update); approve additionally allowed on `Active` | Draft/Service service gates | Disable add/update after activation; allow terms-approve while Active. |
-| Milestone add requires strict sequential `orderNumber` = max+1 | Draft service | Always send the next integer; a rejected add 400 should refresh the list (a counterparty may have added one). |
-| Only a Contract party may mutate a milestone | `EnsureParticipant` everywhere | Gate every control by the current user's party role AND identity (not just `permittedActions`). |
-| Only the Contract Lawyer may ready-for-fund / submit; only the Client may accept / request-changes | Service | Do not render Lawyer actions for Client and vice-versa. |
-| Funding must match contract/amount/EGP before submit/accept; hold must exist and be Funded | Funding verifier | Treat these as non-recoverable-from-form failures. |
-| Submitted work requires ≥1 owned file; files must belong to the acting Lawyer | File access service | Only offer already-uploaded files owned by the Lawyer; expect 403 otherwise. |
-| Change requests only while milestone is `FundedInProgress` | Change-request service | Do not offer amendment controls in other statuses. |
-| Extension-only change requests: duration must increase, due date must move later, description must change | Service `EnsureActualExtension`/`EnsureExtensionStillMovesForward` | Pre-validate forward changes in UI; server re-validates at decision time too. |
-| One pending change request per milestone at a time | Service + unique index | Disable Create while a `Pending` request exists; handle 409 races. |
-| Counterparty must decide; requester may cancel but not decide | `EnsureDecisionActor` in both services | Show decision controls only to the non-requester; cancel to requester. |
-| Approving a milestone twice per version is forbidden | Service | Disable `Approve` for a party whose acceptance is already recorded (`permittedActions` reflects this). |
-| Contract must be `Active` for ready/submit/accept/request-changes | Service | Gate those actions on Contract status 1. |
-| `orderNumber`, `amount`, acceptance state rows are immutable after creation | Entity + DTO shape | Reflect immutability in forms. |
+`NotEmpty()` rejects null, empty string, and whitespace-only string for the required text fields. String length is .NET character count, not UTF-8 byte count. No regex rules exist in this slice.
 
-### 3.3 Important validation non-rules
+### 4.2 Cross-property and service-level rules
 
-- No regex anywhere; strings are not trimmed or HTML-sanitized — escape all rendered user text.
-- No minimum beyond non-empty for `reason` texts (only max lengths).
-- `amount` may not carry currency; 2-decimal max enforced, no upper monetary bound.
-- `Accept`, `RequestChanges`, and `Submit` accept **no `If-Match`**; the only submit-gate is the unique submission-version index (409).
-- Unknown JSON properties are ignored (no reject-on-unknown); all server-owned fields (`status`, `fundingStatus`, `fundedAt`, `escrowHoldId`, `autoAcceptEligibleAt`, `platformFee`, `acceptanceSource`, timestamps, versions) are absent from request bodies by design.
-- Route ids have no FluentValidator; the `guid` constraint rejects non-GUIDs, while `Guid.Empty` reaches services and produces a business message depending on the operation.
-- No change-request read path: although `MilestoneChangeRequestDto` exists, no endpoint returns it, so the frontend can never render a request's fields. A milestone may hold at most one `Pending` request (filtered unique index), but there is no cap on total historical requests.
-- The auto-accept scheduling handler requires `AutoAcceptEligibleAt` and a single scheduled job id; a rejected/resubmitted submission re-schedules a fresh job.
+| Rule | Frontend implication |
+|---|---|
+| Expense requires `durationDays == null` and `deliverables == null`. | Hide/clear those controls when `type = 1`; send null, not empty array. |
+| New order must equal maximum stored order + 1. | Refresh before append; cancelled milestones still count in max order. |
+| Standard may be created only in Draft Contract; Expense in Draft or Active. | Gate creation by Contract status/type. |
+| Update is only for Draft milestone; Active Contract permits edits only to Expense. | Disable edit after approval; do not convert an Active expense to Standard. |
+| Any edit resets Client approval and recalculates Lawyer approval. | Require re-approval after edit. |
+| Standard readiness requires Active Contract and earliest nonterminal Standard milestone. | Do not expose readiness for later milestones. |
+| Readiness also blocks if another Standard has FundingProcessing or a Funded/Frozen hold. | Poll and settle prior funding before advancing. |
+| Submit/accept/request-changes verify Contract ID, gross amount, currency `EGP`, escrow hold, and current submission version. | Treat funding-chain `400` as a refresh/support condition; do not fabricate client values. |
+| Submission files must all be owned by the current Lawyer through non-deleted verification-document records. | Validate upload/source workflow before enabling Submit. |
+| Accept/request-changes operate only on Standard Submitted milestones in an Active Contract. | Expense never renders these actions. |
+| Reject/cancel operate only on Draft Expense in Draft/Active Contract. | Hide after approval/funding. |
 
----
+### 4.3 Read-model limitations frontend must account for
 
-## 4. Milestone Lifecycle Diagrams
+| Missing capability | Consequence |
+|---|---|
+| No single-milestone GET | Refresh the entire Contract milestone list. |
+| No delete/reorder endpoint | UI cannot remove/reorder; cancel only exists for pending Expense. |
+| No submission-read DTO/endpoint | Notes and attachments cannot be reviewed from this slice. |
+| No rejection reason in response | Client-requested-change and Expense-decision reason cannot be redisplayed from `MilestoneDto`. |
+| No submission version in response | Frontend cannot show version number although backend stores it. |
+| No acceptance source in response | UI cannot distinguish manual from automatic acceptance. |
+| Commented change-request routes | Do not call `/api/milestones/{id}/change-requests` or `/api/change-requests/{id}/...`; they are not mapped. |
 
-### 4.1 State machine diagram
+## 5. Lifecycle and Actor Diagrams
+
+### 5.1 State machine diagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Draft: Party adds milestone to Draft contract\n(MilestoneCreated)
+    [*] --> Draft: Lawyer adds milestone
+    Draft --> AwaitingFunding: Both parties approve
+    Draft --> Cancelled: Client rejects Expense or Lawyer cancels Expense
 
-    state Draft {
-        [*] --> AwaitingSignatures
-        AwaitingSignatures --> AwaitingSignatures: Party updates draft terms via PUT\nresets both acceptances
-        AwaitingSignatures --> OnePartySigned: Either party approves terms
-        OnePartySigned --> AwaitingSignatures: Draft updated\nclears both acceptances
-        OnePartySigned --> MutuallyApproved: Other party approves
-    }
+    AwaitingFunding --> FundingProcessing: Client starts funding (Payments)
+    FundingProcessing --> AwaitingFunding: Payment fails/reconciles for retry
+    FundingProcessing --> Cancelled: Payment/contract cancellation
+    FundingProcessing --> FundedInProgress: Standard funding succeeds
+    FundingProcessing --> ReleasePending: Expense funding succeeds
 
-    Draft --> AwaitingFunding: Both parties approved\n(MilestoneApproved)
-    Draft --> Cancelled: Contract termination
+    FundedInProgress --> Submitted: Lawyer submits Standard work
+    Submitted --> FundedInProgress: Client requests changes
+    Submitted --> AcceptedHold: Client accepts or 7-day auto-accept
 
-    AwaitingFunding --> FundingProcessing: Client funds (Payments slice)
-    AwaitingFunding --> Cancelled: Contract termination
+    AcceptedHold --> Disputed: Dispute opened
+    AcceptedHold --> Released: Hold/release completes
+    AcceptedHold --> Refunded: Settlement/refund
+    Disputed --> Released: Dispute awards release
+    Disputed --> Refunded: Dispute awards refund
+    ReleasePending --> Released: Expense/immediate release succeeds
 
-    FundingProcessing --> FundedInProgress: Funding success
-    FundingProcessing --> AwaitingFunding: Funding failure / rollback
-    FundingProcessing --> Cancelled: Termination during processing
-
-    FundedInProgress --> Submitted: Lawyer submits work\n(MilestoneSubmitted)
-    FundedInProgress --> Cancelled: Contract termination
-    FundedInProgress --> Refunded: Termination refund
-
-    Submitted --> FundedInProgress: Client requests changes\n(MilestoneChangesRequested)
-    Submitted --> AcceptedHold: Client accepts (Manual)\nor review window elapses (Automatic)\n(MilestoneAccepted / MilestoneAutoAccepted)
-    Submitted --> Refunded: Termination while in review
-
-    AcceptedHold --> Released: Hold expiry release job\nfunds to Lawyer
-    AcceptedHold --> Disputed: Dispute opened (Disputes slice)
-    AcceptedHold --> Refunded: Settlement to Client
-    Note right of AcceptedHold: 14-day Timer: hold/dispute window\nuntil HoldExpiresAt
-
-    Disputed --> Released: Dispute resolved to Lawyer
-    Disputed --> Refunded: Dispute resolved to Client
+    FundedInProgress --> Cancelled: Contract termination path
+    FundedInProgress --> Refunded: Settlement path
+    Submitted --> Refunded: Settlement path
 
     Released --> [*]
     Refunded --> [*]
     Cancelled --> [*]
 ```
 
-Every edge above is one of the 18 pairs in `MilestoneTransitionGuard.AllowedTransitions`. Re-submission after a revision is another `FundedInProgress → Submitted` firing with a new submission version (not a persisted state change). Timers (`AutoAcceptEligibleAt` = submit + 7 days; `HoldExpiresAt` = accept + 14 days) drive the automatic `Submitted → AcceptedHold` and `AcceptedHold → Released` edges via background jobs; the enum itself never encodes self-transitions.
+The transition guard also permits `FundingProcessing -> ReleasePending` for recovery and the external payment/settlement services own several transitions; not all arrows correspond to endpoints in this controller.
 
-### 4.2 Actor interaction sequence diagram
+### 5.2 Standard milestone actor interaction sequence
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Client
-    participant API as Smart Court API
-    actor Lawyer
-    participant Jobs as Outbox / background jobs
+    actor L as Browser / Lawyer
+    actor C as Browser / Client
+    participant B as SmartCourt Backend
+    participant P as Payments / Background Jobs
 
-    Note over Client,Lawyer: Contract is Draft; both parties have signed the Contract
-    Lawyer->>API: POST /api/contracts/{contractId}/milestones\nAddMilestoneRequest (orderNumber = next)
-    API-->>Lawyer: 201 MilestoneDto (Draft, version)
-    API-->>Client: Notification: milestone.created
-
-    opt Lawyer or Client revises draft terms
-        Lawyer->>API: PUT /api/contracts/{contractId}/milestones/{id}\nIf-Match + UpdateMilestoneRequest
-        API-->>Lawyer: 200 MilestoneDto (new version, acceptances cleared)
-        API-->>Client: Notification: milestone.draft-updated
+    L->>B: GET /api/contracts/{contractId}/milestones
+    B-->>L: 200 MilestoneDto[]
+    L->>B: POST /api/contracts/{contractId}/milestones (type 0)
+    B-->>L: 201 Draft + version
+    opt Edit current draft
+        L->>B: PUT /api/contracts/{contractId}/milestones/{id} + If-Match
+        B-->>L: 200 Draft + new version
     end
-
-    Lawyer->>API: GET /api/contracts/{contractId}/milestones\n(fetch version)
-    API-->>Lawyer: 200 [MilestoneDto...]
-    Lawyer->>API: POST /api/milestones/{id}/approve\nIf-Match: milestone version
-    API-->>Lawyer: 200 ActionResult (status "Draft", no version)
-    API-->>Client: Notification: milestone.acceptance-recorded
-
-    Client->>API: GET /api/contracts/{contractId}/milestones\n(refresh version after Lawyer signed)
-    API-->>Client: 200 [MilestoneDto...]
-    Client->>API: POST /api/milestones/{id}/approve\nIf-Match: fresh milestone version
-    API-->>Client: 200 ActionResult (status "AwaitingFunding")
-    API-->>Client: Notification: milestone.approved
-    API-->>Lawyer: Notification: milestone.approved
-    API-->>Jobs: ContractActivationRequested (activation re-evaluation)
-
-    Lawyer->>API: POST /api/milestones/{id}/ready-for-funding\nIf-Match: milestone version
-    API-->>Lawyer: 200 ActionResult (status "AwaitingFunding")
-    API-->>Client: Notification: milestone.ready-for-funding
-
-    Client->>API: POST /api/milestones/{id}/fund\nIdempotency-Key: unique funding key (Payments slice)
-    API-->>Client: 200/202 FundingOperationDto
-    Jobs->>API: Funding success -> milestone FundedInProgress + holds
-    API-->>Client: Notification: milestone.funded
-    API-->>Lawyer: Notification: milestone.funded
-
-    Lawyer->>API: POST /api/milestones/{id}/submit\nSubmitMilestoneRequest {notes, storedFileIds}
-    API-->>Lawyer: 200 MilestoneDto (Submitted, autoAcceptEligibleAt = +7d)
-    API-->>Client: Notification: milestone.submitted
-    Jobs->>API: Schedule auto-accept job at +7 days
-
-    alt Client approves work manually
-        Client->>API: POST /api/milestones/{id}/accept
-        API-->>Client: 200 MilestoneDto (AcceptedHold, holdExpiresAt = +14d)
-        API-->>Lawyer: Notification: milestone.accepted
-        Jobs->>API: Schedule hold release at holdExpiresAt
-        Jobs->>API: Release escrow -> Released; Contract completion re-evaluated
-        API-->>Client: Notification: milestone/accepted or contract completion
-        API-->>Lawyer: Notification: contract.completed
-    else Client requests revision
-        Client->>API: POST /api/milestones/{id}/request-changes\n{reason}
-        API-->>Client: 200 MilestoneDto (FundedInProgress, submittedAt = null)
-        API-->>Lawyer: Notification: milestone.changes-requested
-    else Client is inactive for 7 days
-        Jobs->>API: Auto-accept job fires (MilestoneAutoAcceptanceService)
-        API-->>Client: Notification: milestone.auto-accepted
-        API-->>Lawyer: Notification: milestone.auto-accepted
+    L->>B: GET milestones (refresh version)
+    L->>B: POST /api/milestones/{id}/approve + If-Match
+    B-->>L: 200 status Draft
+    C->>B: GET milestones (refresh after Lawyer approval)
+    C->>B: POST /api/milestones/{id}/approve + If-Match
+    B-->>C: 200 status AwaitingFunding
+    P-->>B: Contract activation evaluation
+    L->>B: GET milestones / verify Contract Active
+    L->>B: POST /api/milestones/{id}/ready-for-funding + If-Match
+    B-->>L: 200 status AwaitingFunding
+    C->>B: GET milestones
+    C->>B: POST /api/milestones/{id}/fund + Idempotency-Key
+    B->>P: Process payment and create escrow hold
+    P-->>B: Funding completed
+    C->>B: GET milestones until FundedInProgress
+    L->>B: POST /api/milestones/{id}/submit (notes, storedFileIds)
+    B-->>L: 200 status Submitted, autoAcceptEligibleAt
+    C->>B: GET milestones
+    alt Client accepts
+        C->>B: POST /api/milestones/{id}/accept
+        B-->>C: 200 status AcceptedHold, holdExpiresAt
+    else Client requests changes
+        C->>B: POST /api/milestones/{id}/request-changes (reason)
+        B-->>C: 200 status FundedInProgress
+        L->>B: POST /api/milestones/{id}/submit (new immutable version)
+        B-->>L: 200 status Submitted
+    else No Client decision for 7 days
+        P->>B: Auto-accept job
+        B-->>P: status AcceptedHold
     end
+    P->>B: Release/refund/dispute settlement
+```
 
-    opt Change request (extension) during FundedInProgress
-        Lawyer->>API: POST /api/milestones/{id}/change-requests\nIf-Match: milestone version + extension body
-        API-->>Lawyer: 201 ActionResult (Pending)  [no version returned]
-        API-->>Client: Notification: milestone.change-request-created
-        Note over Client,API: Decision endpoints need a change-request If-Match\nthat no response currently exposes (see 5.3)
-    end
+### 5.3 Expense actor interaction sequence
 
-    opt Qualification dispute on AcceptedHold
-        Client->>API: POST /api/disputes (Disputes slice)
-        API-->>Client: Milestone Disputed; Contract SuspendedByDispute
-        Note over API,Jobs: Moderator resolves dispute; milestone -> Released/Refunded
+```mermaid
+sequenceDiagram
+    autonumber
+    actor L as Browser / Lawyer
+    actor C as Browser / Client
+    participant B as SmartCourt Backend
+    participant P as Payments / Release Processing
+
+    L->>B: POST /api/contracts/{contractId}/milestones (type 1, no duration/deliverables)
+    B-->>L: 201 Draft; Lawyer approval pre-recorded
+    alt Client approves
+        C->>B: GET /api/contracts/{contractId}/milestones
+        C->>B: POST /api/milestones/{id}/approve + If-Match
+        B-->>C: 200 AwaitingFunding; ready internally
+        C->>B: POST /api/milestones/{id}/fund + Idempotency-Key
+        B->>P: FundingProcessing then ReleasePending
+        P-->>B: Released
+    else Client rejects
+        C->>B: POST /api/milestones/{id}/reject + If-Match + reason
+        B-->>C: 200 Cancelled
+    else Lawyer withdraws
+        L->>B: POST /api/milestones/{id}/cancel + If-Match + reason
+        B-->>L: 200 Cancelled
     end
 ```
 
-### Frontend refresh strategy
-
-- Use `/hubs/notifications` (SignalR) `NotificationCreated`/`NotificationRead`/`NotificationsReadAll`, or REST `GET /api/notifications` / `GET /api/notifications/unread-count`.
-- Milestone notification types: `milestone.created`, `milestone.draft-updated`, `milestone.acceptance-recorded`, `milestone.approved`, `milestone.ready-for-funding`, `milestone.submitted`, `milestone.changes-requested`, `milestone.accepted`, `milestone.auto-accepted`, `milestone.change-request-created`, `milestone.change-request-approved`, `milestone.change-request-rejected`, `milestone.change-request-cancelled`. Funding notifications (Payments mapper): `milestone.funding-started`, `milestone.funded`, `milestone.funding-failed`.
-- Notification payload `data` always carries `milestoneId`, `contractId`, `proposalId`, `legalCaseId` (+ `changeRequestId` for change-request events).
-- On any milestone notification, a 409 stale-version response, the first-party approve, or a payment/hold event, re-fetch `GET /api/contracts/{contractId}/milestones` (or the contract detail) **before** enabling a mutation, because approve/ready responses return no new `version`.
-- Milestone lifecycle events also append system chat messages to the contract conversation asynchronously.
-
 ---
 
-## 5. Gap Analysis & Missing Features Report
-
-### 5.1 CRUD and lifecycle coverage
-
-| Capability | Status | Evidence / impact |
-|---|---|---|
-| Create (Draft) | Implemented | Party-scoped, sequential `orderNumber`, one-milestone-at-a-time sync add, no bulk import/reorder. |
-| Read list | Implemented (limited) | Flat array, no pagination, no filtering, no sorting choice, no single-milestone GET, no change-request list, no submissions/attachments read. |
-| Read single milestone | Missing | Frontend must derive a single milestone from the list or contract detail. |
-| Update Draft | Implemented | Lawyer/Client party, `If-Match`, resets acceptances. Amount and order immutable. |
-| Update funded milestone | Partial | Only via extension change requests (description/duration/due-date); **no amount amendment** and no direct edit. |
-| Approve terms | Implemented | Two-party, per-version, concurrency-full; on the second signature transitions to `AwaitingFunding`. |
-| Ready / Fund / Submit / Accept / Revisions / Release | Implemented across slices | Sequence enforced; acceptance hold 14 days; auto-accept 7 days; release by background job. |
-| **Client reject with revision** | **Partially implemented** | `request-changes` (`Submitted → FundedInProgress`) is the revision path, but there is **no explicit "reject" action or status**, no structured revision list, and no feedback attachment support. |
-| Cancel / delete milestone | **Missing** | No per-milestone cancel/delete API or `Cancelled`-by-user action; only contract termination cancels milestones. Frontend cannot remove an erroneous Draft milestone except by contract-draft negotiation. |
-| Dispute | Implemented elsewhere | Disputes slice transitions `AcceptedHold → Disputed`; not exposed in this slice. |
-| State audit | **Missing** | `MilestoneStateHistory` rows are persisted for transitions, but **no endpoint returns them** (unlike Contract history). No correlation id (used internally) exposed. |
-
-### 5.2 Specific requested checks
-
-#### Reject / revise submitted work
-
-- Revision exists (`request-changes`, Client-only) and returns the milestone to `FundedInProgress` for resubmission, storing `RejectionReason`.
-- There is no negative review vocabulary (rejected/failed), no reject-with-files, no issue/screenshot cites, and no `If-Match` on accept/request-changes → a Client's direct `/accept` and `/request-changes` race is last-writer-wins rather than conflict-safe.
-
-#### Partial payments / price amendments
-
-- **Not supported.** `amount` is set once and immutable. Change requests can alter description, `durationDays`, and `dueDate` (extensions only) but **never `amount`**.
-- No partial release, no splits, no renegotiation of price, no fee recompute event surfaced to the frontend beyond the existing escrow net amounts.
-
-#### File attachments / deliverables
-
-- Submission **accepts** pre-uploaded `storedFileIds` and persists `MilestoneSubmissionAttachment` rows, but:
-  - No endpoint lists submissions, their versions, or their attachments.
-  - No endpoint reads/downloads the deliverable set (file download presumably lives in the Files slice, but there is no milestone-scoped association API).
-  - Change requests and revision requests accept **no file references**, so the review dialog cannot attach the revised deliverable set.
-  - There is no size/type remediation surfaced in this slice.
-
-#### List by Contract: pagination / sorting / filtering
-
-- Listing exists and is ordered fixed by `orderNumber` ascending.
-- **No pagination**, `page`/`pageSize`, status/due-date/amount filters, search, or client sorting. For many-milestone contracts this is effectively an unbounded array.
-- No moderation/admin list variant distinct from the participant view.
-
-#### Webhooks / notifications / polling
-
-- In-app notifications (outbox + SignalR + REST) are implemented with the types and data map above.
-- **No external/milestone-scoped outbound webhooks**, no long-poll/SSE for milestone state, and no event delivery status resource.
-- No dedicated milestone state-history or change-request query endpoint for polling; polling falls back to re-fetching the full milestone list.
-
-### 5.3 High-priority implementation inconsistencies and risks
-
-| Priority | Finding | Frontend consequence | Recommended backend correction |
-|---:|---|---|---|
-| Critical | **Change-request `If-Match` rowversion is unobtainable:** create/decision endpoints return `MilestoneActionResultDto` (no version), and `MilestoneChangeRequestDto` is never returned and has no `version`/`rowversion` field. | `/approve`, `/reject`, `/cancel` require an `If-Match` no client can ever construct → the entire change-request decision workflow is unusable end-to-end. | Return a change-request DTO with a `version` (and ideally list endpoint) after create; include it in notify data. |
-| Critical | No list/read endpoint for change requests. | Even if a `changeRequestId` is learned from a notification payload, the frontend cannot display pending/approved/rejected requests or their fields. | Add `GET /api/milestones/{id}/change-requests` (paged) returning `MilestoneChangeRequestDto`. |
-| High | `MilestoneActionResultDto` returns no new milestone `version`. | After approve/ready, the counterparty's next mutation needs a fresh GET or it gets 409/412 on stale tokens. | Include refreshed `version` (or returning `MilestoneDto`) on these responses, plus real `ETag` headers. |
-| High | **412 vs 409 split differs from Contracts slice.** | Don't port the Contract guide's “malformed If-Match → 400” assumption; Milestones returns 412 for format errors and 409 for stale values. | Document & standardize precondition semantics across slices (prefer 412 for *all* precondition mismatches). |
-| High | `permittedActions` grants `Update`+`Approve` to both roles in Draft, and never lists change-request or cancel actions; the flag only reflects status/role, not prerequisites. | UI can render `Update` for a party whose Draft contract isn't editable, or miss offered amendment/decide actions. | Compute permitted actions from the same gate the services use; add structured per-action booleans (`canUpdate`, `canCreateChangeRequest`, `canDecide`, ...). |
-| Medium | Accept/request-changes have **no concurrency token**. | Two clients racing accept vs request-changes silently pick a winner; UI may show a stale result. | Add `If-Match` (milestone version) to both, or a precondition on `SubmissionVersion`. |
-| Medium | `AddMilestoneRequest` adheres to a strict sequential `orderNumber` but exposes it in the body. | Clients must compute `max+1` themselves; a stale value gets the 400 `ترتيب المرحلة الجديدة يجب أن يكون N.` rather than a clean append. | Make `orderNumber` optional/server-assigned, or return the expected next value from the list response. |
-| Medium (race) | **Dead duplicate-guard catches:** `MilestoneDraftService.IsDuplicateOrderConstraintViolation` matches index `IX_Milestones_ContractId_OrderNumber` and `MilestoneChangeRequestService.IsDuplicatePendingRequestConstraintViolation` matches `IX_MilestoneChangeRequests_MilestoneId_Pending`, but the configured databases indexes are `UX_Milestones_ContractId_OrderNumber` and `UX_MilestoneChangeRequests_Pending`. | In a true simultaneous race the catch clause never matches, so the SQL exception escapes as a **500** instead of the intended 409; the deterministic pre-checks still return 400/409 in the normal path. | Align the string literals with the configured index names (or match on unique-constraint violation without index-name text), and add a race E2E test. |
-| Medium | No per-milestone cancel or delete. | A miskeyed Draft milestone is stuck until contract termination; no way to remove/rename out of a locked flow. | Add Draft-scoped cancel/remove with `If-Match` and completion re-evaluation. |
-| Medium | Change-request pending gate conflicts with auto-accept. | If a change request lingers past the 7-day window, auto-accept is skipped (`PendingMilestoneChangeRequestExists` no-op); frontend cannot see why. | Expose pending-request state via the list endpoint above. |
-
-### 5.4 Production-readiness feature backlog
-
-1. **Change-request visibility & versioning** — list/read endpoint, returned rowversion, decision `If-Match` usable, requester/decider context, notification round-trip.
-2. **Revision workflow** — first-class `Rejected`/`RevisionRequested` state, revision history per submission version, structured feedback with file attachments.
-3. **Amount/price amendments** — milestone amount change through a guarded amendment object (partial payments, price reduction in return-for-refund, fee recompute).
-4. **Milestone archive/cancel/delete** — Draft-scoped removal, cancellation with reason, state history coverage.
-5. **Reading layer** — paged/filtered/sorted list, single-milestone detail, milestone state-history endpoint (rows already exist), submission/attachment listing.
-6. **Concurrency UX** — real `ETag` response headers, version on action results, `If-Match` on accept/request-changes, `412` for every precondition mismatch, refreshed representation on conflict.
-7. **Event integration** — milestone outbound webhooks (signed, retryable) and a queryable outbox/delivery status, plus polling-friendly `updatedAt` exposure.
-8. **Consistency** — single source for permitted actions, stable numeric/string enum encoding policy shared with the Contract slice, machine-readable error codes.
-9. **Auto-accept transparency** — expose `autoAcceptEligibleAt`, pending-change-request blocker, and job status so the UI can explain a skipped auto-accept.
-
----
-
-## Frontend implementation checklist
-
-- Model `MilestoneStatus` 0–9 and `FundingStatus` 0–3 as numeric enums; model `MilestoneActionResultDto.status` as a string; keep the two models separate.
-- Always escape `title`, `description`, notes, and all `reason` texts when rendering.
-- Fetch the milestone list (or contract detail) immediately before Update/Approve/Ready/CreateChangeRequest and send `data.version` verbatim (with quotes) as `If-Match`.
-- Handle **both** stale-token `409` and malformed-token `412`; after either, re-fetch before retrying.
-- After first-party approve/ready, re-fetch the list because the response carries no new `version`.
-- Treat `request-changes` and `accept` as last-writer-wins today; minimize concurrent calls and re-fetch after either.
-- Gate controls by the user's actual role+identity and contract participation, not only `permittedActions`; remember the change-request decision/cancel endpoints are currently unusable due to the missing rowversion.
-- Mirror exact length/range constraints; still display server validation for domain gates (status, sequential ordering, funding verification, ownership checks, extension-only rules).
-- Subscribe to milestone notifications and re-fetch on every lifecycle/payment event; use notification payload ids (`milestoneId`, `contractId`, etc.) to deep-link.
-- Do not submit or calculate `status`, `fundingStatus`, `amount` changes, acceptance flags, escrow ids, or `version`.
-- Preserve both error parsers (`ApiResponse` and ValidationProblemDetails), plus graceful handling of empty framework 401/403/404 responses.
+**Double-validation basis:** active route attributes and role gates in `MilestonesController`; request/response records; all active FluentValidation validators; `Milestone`, submission and attachment entities/configurations; `MilestoneDraftService`; `MilestoneService`; transition/funding guards; shared response, authorization, JSON, exception, concurrency, rate-limit, file-access, Contracts, Payments, auto-accept, release, and dispute integration paths.

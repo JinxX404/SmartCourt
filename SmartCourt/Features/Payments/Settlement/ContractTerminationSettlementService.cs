@@ -475,6 +475,7 @@ public sealed class ContractTerminationSettlementService(
         Milestone milestone)
     {
         return hold.Status == EscrowHoldStatus.Funded
+            && milestone.Type == MilestoneType.Standard
             && milestone.Status == MilestoneStatus.FundedInProgress
             && !milestone.SubmittedAt.HasValue
             && !milestone.AcceptedAt.HasValue

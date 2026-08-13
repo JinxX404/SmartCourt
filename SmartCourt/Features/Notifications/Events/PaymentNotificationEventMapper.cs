@@ -98,7 +98,10 @@ internal sealed class PaymentNotificationEventMapper(
                     "milestone.funded",
                     NotificationSeverity.Success,
                     "تم تمويل المرحلة",
-                    "اكتمل تمويل المرحلة، ويمكنك الآن بدء العمل عليها.",
+                    context.Type
+                        == SmartCourt.Features.Milestones.Enums.MilestoneType.Expense
+                        ? "اكتمل تمويل المصروف وبدأ تحريره مباشرة إلى حسابك."
+                        : "اكتمل تمويل المرحلة، ويمكنك الآن بدء العمل عليها.",
                     data)
             ],
             ContractPaymentEventTypes.MilestoneFundingFailed =>

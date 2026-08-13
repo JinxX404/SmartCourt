@@ -145,9 +145,44 @@ public sealed class ContractAndPaymentEntityTests
             UtcTimestamp);
 
         Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+        Assert.Equal(MilestoneType.Standard, milestone.Type);
         Assert.Equal(0, milestone.SubmissionVersion);
         Assert.Null(typeof(MilestoneEntity).GetProperty("FundingStatus"));
         Assert.Null(typeof(MilestoneEntity).GetProperty("IsFunded"));
+    }
+
+    [Fact]
+    public void ExpenseMilestone_RejectsStandardOnlyFields()
+    {
+        var expense = new MilestoneEntity(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Court filing fee",
+            "Reimburse the filing fee.",
+            1,
+            500m,
+            null,
+            UtcTimestamp.AddDays(1),
+            null,
+            UtcTimestamp,
+            MilestoneType.Expense);
+
+        Assert.Equal(MilestoneType.Expense, expense.Type);
+        Assert.Null(expense.DurationDays);
+        Assert.Null(expense.Deliverables);
+
+        Assert.Throws<BusinessException>(() => new MilestoneEntity(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Court filing fee",
+            null,
+            1,
+            500m,
+            1,
+            null,
+            null,
+            UtcTimestamp,
+            MilestoneType.Expense));
     }
 
     [Fact]
@@ -413,7 +448,7 @@ public sealed class ContractAndPaymentEntityTests
         {
             typeof(MilestoneEntity),
             [
-                "Id", "ContractId", "Title", "Description", "OrderNumber", "Amount",
+                "Id", "ContractId", "Title", "Description", "Type", "OrderNumber", "Amount",
                 "DurationDays", "DueDate", "Status", "AcceptedByClientAt",
                 "AcceptedByLawyerAt", "ReadyForFundingAt", "FundedAt", "SubmittedAt",
                 "AutoAcceptEligibleAt", "AutoAcceptJobId", "AcceptedAt",

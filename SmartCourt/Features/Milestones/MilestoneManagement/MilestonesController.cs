@@ -116,6 +116,50 @@ public sealed class MilestonesController(
         return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
     }
 
+    [HttpPost("milestones/{milestoneId:guid}/reject")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
+    [Authorize(Roles = "Client")]
+    public async Task<
+        ActionResult<ApiResponse<MilestoneActionResultDto>>>
+        RejectExpenseAsync(
+            Guid milestoneId,
+            [FromBody] ExpenseMilestoneDecisionRequest request,
+            [FromHeader(Name = "If-Match")] string? ifMatch,
+            CancellationToken cancellationToken)
+    {
+        var validatedIfMatch = await ValidateIfMatchAsync(
+            ifMatch,
+            cancellationToken);
+        var result = await milestoneService.RejectExpenseAsync(
+            milestoneId,
+            request,
+            validatedIfMatch,
+            cancellationToken);
+        return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
+    }
+
+    [HttpPost("milestones/{milestoneId:guid}/cancel")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
+    [Authorize(Roles = "Lawyer")]
+    public async Task<
+        ActionResult<ApiResponse<MilestoneActionResultDto>>>
+        CancelExpenseAsync(
+            Guid milestoneId,
+            [FromBody] ExpenseMilestoneDecisionRequest request,
+            [FromHeader(Name = "If-Match")] string? ifMatch,
+            CancellationToken cancellationToken)
+    {
+        var validatedIfMatch = await ValidateIfMatchAsync(
+            ifMatch,
+            cancellationToken);
+        var result = await milestoneService.CancelExpenseAsync(
+            milestoneId,
+            request,
+            validatedIfMatch,
+            cancellationToken);
+        return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
+    }
+
     [HttpPost("milestones/{milestoneId:guid}/submit")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Lawyer")]

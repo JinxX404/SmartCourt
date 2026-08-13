@@ -13,6 +13,7 @@ internal static class MilestoneTransitionGuard
             (MilestoneStatus.AwaitingFunding, MilestoneStatus.FundingProcessing),
             (MilestoneStatus.AwaitingFunding, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.FundedInProgress),
+            (MilestoneStatus.FundingProcessing, MilestoneStatus.ReleasePending),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.AwaitingFunding),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundedInProgress, MilestoneStatus.Submitted),
@@ -25,7 +26,8 @@ internal static class MilestoneTransitionGuard
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Released),
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Refunded),
             (MilestoneStatus.Disputed, MilestoneStatus.Released),
-            (MilestoneStatus.Disputed, MilestoneStatus.Refunded)
+            (MilestoneStatus.Disputed, MilestoneStatus.Refunded),
+            (MilestoneStatus.ReleasePending, MilestoneStatus.Released)
         ];
 
     internal static void EnsureCanTransition(

@@ -72,8 +72,13 @@ public sealed class ContractAndPaymentEnumTests
                 "Disputed=6",
                 "Released=7",
                 "Refunded=8",
-                "Cancelled=9"
+                "Cancelled=9",
+                "ReleasePending=10"
             ]
+        },
+        {
+            typeof(MilestoneType),
+            ["Standard=0", "Expense=1"]
         },
         {
             typeof(EscrowHoldStatus),
@@ -185,6 +190,7 @@ public sealed class ContractAndPaymentEnumTests
     {
         { typeof(ContractStatus), "SmartCourt.Features.Contracts.Enums" },
         { typeof(MilestoneStatus), "SmartCourt.Features.Milestones.Enums" },
+        { typeof(MilestoneType), "SmartCourt.Features.Milestones.Enums" },
         { typeof(MilestoneFundingStatus), "SmartCourt.Features.Milestones.Enums" },
         { typeof(MilestoneAcceptanceSource), "SmartCourt.Features.Milestones.Enums" },
         { typeof(ChangeRequestStatus), "SmartCourt.Features.Milestones.Enums" },

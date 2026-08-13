@@ -181,7 +181,7 @@ public sealed class PartitionedRateLimiterTests
                 .Any())
             .ToArray();
 
-        Assert.Equal(35, actions.Length);
+        Assert.Equal(36, actions.Length);
         foreach (var action in actions)
         {
             var attribute = action.GetCustomAttribute<SecurityRateLimitAttribute>();

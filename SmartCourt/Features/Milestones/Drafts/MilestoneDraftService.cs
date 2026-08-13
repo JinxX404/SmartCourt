@@ -33,8 +33,8 @@ public sealed class MilestoneDraftService(
         var contract = await GetContractAsync(
             contractId,
             cancellationToken);
-        EnsureParticipant(contract, actorUserId);
-        EnsureNegotiationAllowed(contract);
+        EnsureLawyer(contract, actorUserId);
+        EnsureCreationAllowed(contract, request.Type);
 
         var expectedOrder = await dbContext.Milestones
             .Where(milestone => milestone.ContractId == contractId)
@@ -57,7 +57,12 @@ public sealed class MilestoneDraftService(
             request.DurationDays,
             request.DueDate,
             request.Deliverables,
-            now);
+            now,
+            request.Type);
+        if (milestone.Type == MilestoneType.Expense)
+        {
+            milestone.AcceptedByLawyerAt = now;
+        }
         dbContext.Milestones.Add(milestone);
         await EnqueueParticipantEventAsync(
             ContractPaymentEventTypes.MilestoneCreated,
@@ -107,7 +112,9 @@ public sealed class MilestoneDraftService(
                 hold => hold.MilestoneId,
                 cancellationToken);
         var currentSequentialId = milestones
-            .Where(milestone => !IsTerminal(milestone.Status))
+            .Where(milestone =>
+                milestone.Type == MilestoneType.Standard
+                && !IsTerminal(milestone.Status))
             .Select(milestone => (Guid?)milestone.Id)
             .FirstOrDefault();
 
@@ -136,23 +143,39 @@ public sealed class MilestoneDraftService(
         var contract = await GetContractAsync(
             contractId,
             cancellationToken);
-        EnsureParticipant(contract, actorUserId);
-        EnsureNegotiationAllowed(contract);
+        EnsureLawyer(contract, actorUserId);
         var milestone = await GetMilestoneForMutationAsync(
             milestoneId,
             cancellationToken);
         EnsureBelongsToContract(milestone, contractId);
         EnsureDraft(milestone);
+        EnsureDraftEditAllowed(contract, milestone);
         EnsureExpectedVersion(milestone, ifMatch);
+
+        var updatedType = request.Type ?? milestone.Type;
+        EnsureExpenseFields(
+            updatedType,
+            request.Deliverables,
+            request.DurationDays);
+        if (contract.Status == ContractStatus.Active
+            && updatedType != MilestoneType.Expense)
+        {
+            throw new BusinessException(
+                "لا يمكن تحويل مصروف مقترح أثناء العقد النشط إلى مرحلة عمل قياسية.");
+        }
 
         milestone.Title = request.Title;
         milestone.Description = request.Description;
         milestone.Deliverables = request.Deliverables?.ToList();
+        milestone.Type = updatedType;
         milestone.DurationDays = request.DurationDays;
         milestone.DueDate = request.DueDate;
         milestone.AcceptedByClientAt = null;
-        milestone.AcceptedByLawyerAt = null;
-        milestone.UpdatedAt = UtcNow;
+        var now = UtcNow;
+        milestone.AcceptedByLawyerAt = updatedType == MilestoneType.Expense
+            ? now
+            : null;
+        milestone.UpdatedAt = now;
         await EnqueueParticipantEventAsync(
             ContractPaymentEventTypes.MilestoneDraftUpdated,
             milestone.Id,
@@ -213,13 +236,76 @@ public sealed class MilestoneDraftService(
         }
     }
 
-    private static void EnsureNegotiationAllowed(
-        ContractDetailDto contract)
+    private static void EnsureLawyer(
+        ContractDetailDto contract,
+        Guid actorUserId)
     {
-        if (contract.Status != ContractStatus.Draft)
+        EnsureParticipant(contract, actorUserId);
+        if (contract.LawyerUserId != actorUserId)
         {
-            throw new ConflictException(
-                "يمكن تعديل المراحل أو التفاوض عليها أثناء مرحلة المسودة فقط.");
+            throw new ForbiddenAccessException(
+                "محامي العقد فقط هو من يمكنه اقتراح المراحل أو تعديلها.");
+        }
+    }
+
+    private static void EnsureCreationAllowed(
+        ContractDetailDto contract,
+        MilestoneType type)
+    {
+        if (!Enum.IsDefined(type))
+        {
+            throw new BusinessException("نوع المرحلة غير صالح.");
+        }
+
+        if (contract.Status == ContractStatus.Draft)
+        {
+            return;
+        }
+
+        if (contract.Status == ContractStatus.Active
+            && type == MilestoneType.Expense)
+        {
+            return;
+        }
+
+        throw new ConflictException(
+            "يمكن إضافة مراحل العمل القياسية أثناء مسودة العقد فقط، بينما يمكن اقتراح المصروفات أثناء المسودة أو العقد النشط.");
+    }
+
+    private static void EnsureDraftEditAllowed(
+        ContractDetailDto contract,
+        Milestone milestone)
+    {
+        if (contract.Status == ContractStatus.Draft)
+        {
+            return;
+        }
+
+        if (contract.Status == ContractStatus.Active
+            && milestone.Type == MilestoneType.Expense)
+        {
+            return;
+        }
+
+        throw new ConflictException(
+            "لا يمكن تعديل هذه المرحلة في حالة العقد الحالية.");
+    }
+
+    private static void EnsureExpenseFields(
+        MilestoneType type,
+        IReadOnlyList<string>? deliverables,
+        int? durationDays)
+    {
+        if (!Enum.IsDefined(type))
+        {
+            throw new BusinessException("نوع المرحلة غير صالح.");
+        }
+
+        if (type == MilestoneType.Expense
+            && (deliverables is not null || durationDays.HasValue))
+        {
+            throw new BusinessException(
+                "مرحلة المصروفات لا تقبل مدة أو مخرجات عمل.");
         }
     }
 
@@ -267,6 +353,7 @@ public sealed class MilestoneDraftService(
         var currentSequentialId = await dbContext.Milestones
             .AsNoTracking()
             .Where(item => item.ContractId == milestone.ContractId
+                && item.Type == MilestoneType.Standard
                 && item.Status != MilestoneStatus.Cancelled
                 && item.Status != MilestoneStatus.Refunded
                 && item.Status != MilestoneStatus.Released)
@@ -300,7 +387,8 @@ public sealed class MilestoneDraftService(
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
             hold?.NetAmount,
-            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"")
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
+            milestone.Type)
         {
             PermittedActions = GetPermittedActions(
                 milestone,
@@ -322,29 +410,47 @@ public sealed class MilestoneDraftService(
         if (milestone.Status == MilestoneStatus.Draft
             && (isClient || isLawyer))
         {
-            actions.Add("Update");
+            if (isLawyer)
+            {
+                actions.Add("Update");
+            }
             if (isClient && !milestone.AcceptedByClientAt.HasValue
                 || isLawyer && !milestone.AcceptedByLawyerAt.HasValue)
             {
                 actions.Add("Approve");
             }
+
+            if (milestone.Type == MilestoneType.Expense)
+            {
+                actions.Add(isClient ? "Reject" : "Cancel");
+            }
         }
 
         if (milestone.Status == MilestoneStatus.AwaitingFunding
             && isLawyer
+            && milestone.Type == MilestoneType.Standard
             && isCurrentSequentialMilestone
             && !milestone.ReadyForFundingAt.HasValue)
         {
             actions.Add("ReadyForFunding");
         }
 
+        if (milestone.Status == MilestoneStatus.AwaitingFunding
+            && isClient
+            && milestone.ReadyForFundingAt.HasValue)
+        {
+            actions.Add("Fund");
+        }
+
         if (milestone.Status == MilestoneStatus.FundedInProgress
+            && milestone.Type == MilestoneType.Standard
             && isLawyer)
         {
             actions.Add("Submit");
         }
 
         if (milestone.Status == MilestoneStatus.Submitted
+            && milestone.Type == MilestoneType.Standard
             && isClient)
         {
             actions.Add("Accept");

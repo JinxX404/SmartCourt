@@ -357,7 +357,8 @@ public sealed class ContractService
                     milestone.Amount,
                     milestone.AcceptedByClientAt,
                     milestone.AcceptedByLawyerAt,
-                    milestone.Status
+                    milestone.Status,
+                    milestone.Type
                 })
             .ToListAsync(cancellationToken);
         var approvedMilestones = milestones
@@ -366,6 +367,9 @@ public sealed class ContractService
                 && milestone.AcceptedByClientAt.HasValue
                 && milestone.AcceptedByLawyerAt.HasValue)
             .ToArray();
+        var hasPendingExpenseProposal = milestones.Any(milestone =>
+            milestone.Type == MilestoneType.Expense
+            && milestone.Status == MilestoneStatus.Draft);
         var hasActiveDispute = await _dbContext.Disputes.AnyAsync(
             dispute =>
                 dispute.ContractId == contract.Id
@@ -391,6 +395,7 @@ public sealed class ContractService
                     or MilestoneStatus.Refunded
                     or MilestoneStatus.Cancelled);
         if (allApprovedMilestonesFinished
+            && !hasPendingExpenseProposal
             && !contract.TerminatedByUserId.HasValue
             && !hasActiveDispute
             && !hasPendingProviderAttempt
@@ -628,6 +633,7 @@ public sealed class ContractService
                     || milestone.Status == MilestoneStatus.Submitted
                     || milestone.Status == MilestoneStatus.AcceptedHold
                     || milestone.Status == MilestoneStatus.Disputed
+                    || milestone.Status == MilestoneStatus.ReleasePending
                     || milestone.Status == MilestoneStatus.FundingProcessing),
             cancellationToken);
         if (blockingMilestone)
@@ -886,7 +892,9 @@ public sealed class ContractService
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
             hold?.NetAmount,
-            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"");
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
+            milestone.Type,
+            milestone.Deliverables);
     }
 
     private IReadOnlyList<string> GetPermittedActions(Contract contract)

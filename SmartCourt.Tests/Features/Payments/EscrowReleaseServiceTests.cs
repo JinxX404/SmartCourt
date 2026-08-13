@@ -168,6 +168,36 @@ public sealed class EscrowReleaseServiceTests
     }
 
     [Fact]
+    public async Task ExpenseRelease_BypassesSubmissionAcceptanceAndHoldDeadline()
+    {
+        await using var context = CreateContext();
+        var state = await AddAcceptedHoldAsync(
+            context,
+            holdExpiresAt: null,
+            type: MilestoneType.Expense);
+        var provider =
+            new TestPaymentProvider(ProviderOperationOutcome.Succeeded);
+
+        var result = await CreateService(context, provider)
+            .ReleaseExpiredHoldAsync(
+                state.Hold.Id,
+                CancellationToken.None);
+
+        Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
+        Assert.Equal(MilestoneStatus.Released, state.Milestone.Status);
+        Assert.Null(state.Milestone.SubmittedAt);
+        Assert.Null(state.Milestone.AcceptedAt);
+        Assert.Null(state.Milestone.HoldStartsAt);
+        Assert.Null(state.Milestone.HoldExpiresAt);
+        Assert.Null(state.Hold.HoldStartsAt);
+        Assert.Null(state.Hold.HoldExpiresAt);
+        Assert.Equal(950m, state.Wallet.AvailableBalance);
+        var history = await context.MilestoneStateHistories.SingleAsync();
+        Assert.Equal(MilestoneStatus.ReleasePending, history.PreviousStatus);
+        Assert.Equal(MilestoneStatus.Released, history.NewStatus);
+    }
+
+    [Fact]
     public async Task ForceReleaseMilestone_CompletesBeforeExpiry()
     {
         await using var context = CreateContext();
@@ -462,7 +492,8 @@ public sealed class EscrowReleaseServiceTests
 
     private async Task<AcceptedHoldState> AddAcceptedHoldAsync(
         ApplicationDbContext context,
-        DateTime holdExpiresAt)
+        DateTime? holdExpiresAt,
+        MilestoneType type = MilestoneType.Standard)
     {
         var contractId = Guid.NewGuid();
         var lawyerUserId = Guid.NewGuid();
@@ -487,18 +518,30 @@ public sealed class EscrowReleaseServiceTests
             null,
             1,
             1_000m,
-            14,
+            type == MilestoneType.Standard ? 14 : null,
             null,
-            createdAt)
+            null,
+            createdAt,
+            type)
         {
-            Status = MilestoneStatus.AcceptedHold,
+            Status = type == MilestoneType.Standard
+                ? MilestoneStatus.AcceptedHold
+                : MilestoneStatus.ReleasePending,
             FundedAt = createdAt,
-            SubmittedAt = createdAt.AddDays(1),
-            AcceptedAt = holdExpiresAt.AddDays(-14),
-            AcceptanceSource = MilestoneAcceptanceSource.Manual,
-            HoldStartsAt = holdExpiresAt.AddDays(-14),
+            SubmittedAt = type == MilestoneType.Standard
+                ? createdAt.AddDays(1)
+                : null,
+            AcceptedAt = type == MilestoneType.Standard
+                ? holdExpiresAt!.Value.AddDays(-14)
+                : null,
+            AcceptanceSource = type == MilestoneType.Standard
+                ? MilestoneAcceptanceSource.Manual
+                : null,
+            HoldStartsAt = type == MilestoneType.Standard
+                ? holdExpiresAt!.Value.AddDays(-14)
+                : null,
             HoldExpiresAt = holdExpiresAt,
-            SubmissionVersion = 1,
+            SubmissionVersion = type == MilestoneType.Standard ? 1 : 0,
             RowVersion = [1, 2, 3, 4]
         };
         var account = new EscrowAccount(
@@ -521,7 +564,9 @@ public sealed class EscrowReleaseServiceTests
             createdAt,
             createdAt)
         {
-            HoldStartsAt = holdExpiresAt.AddDays(-14),
+            HoldStartsAt = type == MilestoneType.Standard
+                ? holdExpiresAt!.Value.AddDays(-14)
+                : null,
             HoldExpiresAt = holdExpiresAt,
             RowVersion = [3, 4, 5, 6]
         };

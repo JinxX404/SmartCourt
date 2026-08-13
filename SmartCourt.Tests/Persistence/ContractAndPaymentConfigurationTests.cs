@@ -158,6 +158,21 @@ public sealed class ContractAndPaymentConfigurationTests
 
         AssertCheck<Contract>(context, "CK_Contracts_Currency_EGP");
         AssertCheck<Milestone>(context, "CK_Milestones_Amount_Positive");
+        AssertCheck<Milestone>(context, "CK_Milestones_Type_Range");
+        AssertCheck<Milestone>(context, "CK_Milestones_ExpenseFields");
+        AssertCheckSql<MilestoneStateHistory>(
+            context,
+            "CK_MilestoneStateHistories_NewStatus_Range",
+            "[NewStatus] BETWEEN 0 AND 10");
+        AssertCheckSql<MilestoneStateHistory>(
+            context,
+            "CK_MilestoneStateHistories_PreviousStatus_Range",
+            "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 10");
+        Assert.Contains(
+            context.Model.FindEntityType(typeof(Milestone))!
+                .GetIndexes(),
+            index => index.GetDatabaseName()
+                == "IX_Milestones_Type_Status_FundedAt");
         AssertCheck<EscrowHold>(context, "CK_EscrowHolds_Reconciliation");
         AssertCheck<PaymentTransaction>(
             context,
@@ -312,6 +327,20 @@ public sealed class ContractAndPaymentConfigurationTests
             .Model
             .FindEntityType(typeof(TEntity))!;
         Assert.Contains(entity.GetCheckConstraints(), check => check.Name == checkName);
+    }
+
+    private static void AssertCheckSql<TEntity>(
+        ApplicationDbContext context,
+        string checkName,
+        string expectedSql)
+    {
+        var entity = context.GetService<IDesignTimeModel>()
+            .Model
+            .FindEntityType(typeof(TEntity))!;
+        var check = Assert.Single(
+            entity.GetCheckConstraints(),
+            item => item.Name == checkName);
+        Assert.Equal(expectedSql, check.Sql);
     }
 
     private static void AssertNamedUniqueIndex<TEntity>(

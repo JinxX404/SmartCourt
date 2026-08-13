@@ -18,6 +18,7 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Settlement;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Persistence;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
@@ -603,6 +604,11 @@ public sealed class PaymentEscrowService(
                 "تعذر توثيق نتيجة تمويل المرحلة. تم إيقاف أي محاولة جديدة لحين مراجعة العملية.");
         }
 
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
+
         var now = UtcNow;
         var breakdown = SettlementCalculator.Calculate(
             milestone.Amount,
@@ -681,20 +687,25 @@ public sealed class PaymentEscrowService(
                 correlationId,
                 now));
 
+        var fundedStatus = milestone.Type == MilestoneType.Expense
+            ? MilestoneStatus.ReleasePending
+            : MilestoneStatus.FundedInProgress;
         MilestoneTransitionGuard.EnsureCanTransition(
             milestone.Status,
-            MilestoneStatus.FundedInProgress);
+            fundedStatus);
         var previousStatus = milestone.Status;
-        milestone.Status = MilestoneStatus.FundedInProgress;
+        milestone.Status = fundedStatus;
         milestone.FundedAt = now;
         milestone.UpdatedAt = now;
         AddHistory(
             milestone,
             previousStatus,
-            MilestoneStatus.FundedInProgress,
+            fundedStatus,
             ContractPaymentEventTypes.MilestoneFunded,
             actorUserId,
-            "تم تمويل المرحلة وإنشاء حجز الضمان بنجاح.",
+            milestone.Type == MilestoneType.Expense
+                ? "تم تمويل المصروف وبدأ تحريره الفوري للمحامي."
+                : "تم تمويل المرحلة وإنشاء حجز الضمان بنجاح.",
             correlationId,
             now);
         await EnqueueMilestoneEventAsync(
@@ -710,7 +721,29 @@ public sealed class PaymentEscrowService(
         }
         catch (DbUpdateException exception)
         {
+            await transaction.DisposeAsync();
             dbContext.ChangeTracker.Clear();
+            try
+            {
+                var pendingTransaction = await dbContext.PaymentTransactions
+                    .SingleAsync(
+                        item => item.Id == paymentTransaction.Id,
+                        CancellationToken.None);
+                ApplyProviderResult(pendingTransaction, providerResult);
+                pendingTransaction.Status = PaymentTransactionStatus.Processing;
+                pendingTransaction.FailureReason =
+                    "Provider payment succeeded, but local funding completion requires reconciliation.";
+                pendingTransaction.UpdatedAt = UtcNow;
+                await dbContext.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception recoveryException)
+            {
+                logger.LogCritical(
+                    recoveryException,
+                    "Could not persist the confirmed provider result for payment transaction {PaymentTransactionId} after local funding completion failed.",
+                    paymentTransaction.Id);
+                dbContext.ChangeTracker.Clear();
+            }
             throw new BusinessException(
                 "نجحت عملية الدفع لدى المزود، لكن تعذر توثيق التمويل. تم إيقاف إعادة الخصم وستتم مراجعة العملية تلقائيًا.",
                 exception);
@@ -725,6 +758,9 @@ public sealed class PaymentEscrowService(
                 hold.Id,
                 cancellationToken);
         }
+
+
+        await transaction.CommitAndCloseAsync(cancellationToken);
 
         return response;
     }
@@ -1130,10 +1166,25 @@ public sealed class PaymentEscrowService(
                 "يجب أن يجهز المحامي المرحلة للتمويل قبل تنفيذ الدفع.");
         }
 
+
+        if (await dbContext.EscrowHolds.AnyAsync(
+                hold => hold.MilestoneId == milestone.Id,
+                cancellationToken))
+        {
+            throw new ConflictException(
+                "تم إنشاء حجز ضمان لهذه المرحلة مسبقًا.");
+        }
+
+        if (milestone.Type == MilestoneType.Expense)
+        {
+            return;
+        }
+
         var hasUnsettledEarlierMilestone =
             await dbContext.Milestones.AnyAsync(
                 item =>
                     item.ContractId == milestone.ContractId
+                    && item.Type == MilestoneType.Standard
                     && item.OrderNumber < milestone.OrderNumber
                     && item.Status != MilestoneStatus.Released
                     && item.Status != MilestoneStatus.Refunded
@@ -1150,6 +1201,7 @@ public sealed class PaymentEscrowService(
                 item =>
                     item.ContractId == milestone.ContractId
                     && item.Id != milestone.Id
+                    && item.Type == MilestoneType.Standard
                     && (item.Status
                             == MilestoneStatus.FundingProcessing
                         || item.Status
@@ -1159,25 +1211,20 @@ public sealed class PaymentEscrowService(
                         || item.Status == MilestoneStatus.Disputed),
                 cancellationToken);
         var hasOtherUnsettledHold =
-            await dbContext.EscrowHolds.AnyAsync(
-                hold =>
-                    hold.ContractId == milestone.ContractId
-                    && hold.MilestoneId != milestone.Id
-                    && (hold.Status == EscrowHoldStatus.Funded
-                        || hold.Status == EscrowHoldStatus.Frozen),
+            await dbContext.Milestones.AnyAsync(
+                item =>
+                    item.ContractId == milestone.ContractId
+                    && item.Id != milestone.Id
+                    && item.Type == MilestoneType.Standard
+                    && dbContext.EscrowHolds.Any(hold =>
+                        hold.MilestoneId == item.Id
+                        && (hold.Status == EscrowHoldStatus.Funded
+                            || hold.Status == EscrowHoldStatus.Frozen)),
                 cancellationToken);
         if (hasOtherActiveMilestone || hasOtherUnsettledHold)
         {
             throw new BusinessException(
                 "لا يمكن تمويل مرحلة جديدة قبل حسم المرحلة الممولة أو المعلقة حاليًا.");
-        }
-
-        if (await dbContext.EscrowHolds.AnyAsync(
-                hold => hold.MilestoneId == milestone.Id,
-                cancellationToken))
-        {
-            throw new ConflictException(
-                "تم إنشاء حجز ضمان لهذه المرحلة مسبقًا.");
         }
     }
 

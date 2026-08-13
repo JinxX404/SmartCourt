@@ -209,7 +209,73 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
     }
 
     [Fact]
-    public async Task ChangeRequests_CreateApproveRejectCancelWorkflow()
+    public async Task ExpenseProposal_MidContractRequiresClientApprovalBeforeFunding()
+    {
+        var (lawyerId, clientId, contractId) =
+            await SeedActiveContractAsync();
+        var lawyerClient =
+            _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
+        var clientUserClient =
+            _factory.CreateAuthenticatedClient(clientId, "Client");
+        var request = new AddMilestoneRequest(
+            "Court filing fee",
+            "Reimburse the paid filing fee.",
+            null,
+            2,
+            750m,
+            null,
+            null,
+            MilestoneType.Expense);
+
+        var addResponse = await lawyerClient.PostAsJsonAsync(
+            $"/api/contracts/{contractId}/milestones",
+            request);
+
+        Assert.Equal(HttpStatusCode.Created, addResponse.StatusCode);
+        var addJson = await addResponse.Content.ReadAsStringAsync();
+        using (var document = JsonDocument.Parse(addJson))
+        {
+            var data = document.RootElement.GetProperty("data");
+            Assert.False(data.TryGetProperty("deliverables", out _));
+            Assert.False(data.TryGetProperty("durationDays", out _));
+        }
+
+        var created = JsonSerializer.Deserialize<ApiResponse<MilestoneDto>>(
+            addJson,
+            JsonOptions)!.Data!;
+        Assert.Equal(MilestoneType.Expense, created.Type);
+        Assert.Equal(MilestoneStatus.Draft, created.Status);
+        Assert.DoesNotContain("Fund", created.PermittedActions);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var entity = await db.Milestones.SingleAsync(
+            milestone => milestone.Id == created.Id);
+        var etag = $"\"{Convert.ToBase64String(entity.RowVersion)}\"";
+        var approve = new HttpRequestMessage(
+            HttpMethod.Post,
+            $"/api/milestones/{created.Id}/approve");
+        approve.Headers.TryAddWithoutValidation("If-Match", etag);
+
+        var approveResponse = await clientUserClient.SendAsync(approve);
+
+        Assert.Equal(HttpStatusCode.OK, approveResponse.StatusCode);
+        var listResponse = await clientUserClient.GetAsync(
+            $"/api/contracts/{contractId}/milestones");
+        var approved = (await listResponse.Content
+            .ReadFromJsonAsync<ApiResponse<IReadOnlyList<MilestoneDto>>>(
+                JsonOptions))!.Data!.Single(
+                    milestone => milestone.Id == created.Id);
+        Assert.Equal(MilestoneStatus.AwaitingFunding, approved.Status);
+        Assert.Contains("Fund", approved.PermittedActions);
+        await db.Entry(entity).ReloadAsync();
+        Assert.NotNull(entity.AcceptedByLawyerAt);
+        Assert.NotNull(entity.AcceptedByClientAt);
+        Assert.NotNull(entity.ReadyForFundingAt);
+    }
+
+    [Fact]
+    public async Task ChangeRequestEndpoint_RemainsDisabled()
     {
         var (lawyerId, clientId, contractId) = await SeedActiveContractAsync();
         var lawyerClient = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
@@ -257,10 +323,6 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         crMsg.Headers.TryAddWithoutValidation("If-Match", mEtagForCr);
 
         var crResp = await lawyerClient.SendAsync(crMsg);
-        Assert.Equal(HttpStatusCode.Created, crResp.StatusCode);
-        var crApiResp = await crResp.Content.ReadFromJsonAsync<ApiResponse<MilestoneActionResultDto>>(JsonOptions);
-        Assert.NotNull(crApiResp);
-        Assert.True(crApiResp.Success);
-        Assert.Equal("Pending", crApiResp.Data!.Status);
+        Assert.Equal(HttpStatusCode.NotFound, crResp.StatusCode);
     }
 }

@@ -1,5 +1,6 @@
 using FluentValidation;
 using SmartCourt.Features.Milestones.DTOs;
+using SmartCourt.Features.Milestones.Enums;
 
 namespace SmartCourt.Features.Milestones.Validators;
 
@@ -29,6 +30,9 @@ public sealed class AddMilestoneRequestValidator
             .WithMessage("قيمة المرحلة يجب أن تكون أكبر من صفر بالجنيه المصري.")
             .Must(HasAtMostTwoDecimalPlaces)
             .WithMessage("قيمة المرحلة يجب ألا تتجاوز منزلتين عشريتين.");
+        RuleFor(request => request.Type)
+            .IsInEnum()
+            .WithMessage("نوع المرحلة غير صالح.");
         RuleFor(request => request.DurationDays)
             .InclusiveBetween(1, 365)
             .When(request => request.DurationDays.HasValue)
@@ -42,6 +46,14 @@ public sealed class AddMilestoneRequestValidator
             .Must(list => list is null || list.Count <= 100)
             .WithMessage("لا يمكن أن تتجاوز المخرجات 100 عنصرًا.")
             .When(request => request.Deliverables is not null);
+        RuleFor(request => request.DurationDays)
+            .Null()
+            .When(request => request.Type == MilestoneType.Expense)
+            .WithMessage("مرحلة المصروفات لا تقبل مدة تنفيذ.");
+        RuleFor(request => request.Deliverables)
+            .Null()
+            .When(request => request.Type == MilestoneType.Expense)
+            .WithMessage("مرحلة المصروفات لا تقبل مخرجات عمل.");
         RuleForEach(request => request.Deliverables)
             .NotEmpty()
             .WithMessage("لا يمكن أن يكون أي مخرج فارغًا.")

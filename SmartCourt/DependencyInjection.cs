@@ -508,7 +508,17 @@ public static class DependencyInjection
             //    && !string.IsNullOrWhiteSpace(options.Password),
             //    "SMTP settings are incomplete or invalid.")
             .ValidateOnStart();
-        services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
+        if (string.Equals(
+                configuration["Email:Provider"],
+                "Mock",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddScoped<ISmtpEmailSender, MockSmtpEmailSender>();
+        }
+        else
+        {
+            services.AddScoped<ISmtpEmailSender, SmtpEmailSender>();
+        }
         services.AddScoped<IEmailProvider, DirectEmailProvider>();
 
         services.AddOptions<AuthEmailOptions>()
