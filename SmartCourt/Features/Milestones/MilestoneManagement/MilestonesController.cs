@@ -160,91 +160,91 @@ public sealed class MilestonesController(
         return Ok(ApiResponse<MilestoneDto>.Ok(milestone));
     }
 
-    [HttpPost("milestones/{milestoneId:guid}/change-requests")]
-    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
-    public async Task<
-        ActionResult<ApiResponse<MilestoneActionResultDto>>>
-        CreateChangeRequestAsync(
-            Guid milestoneId,
-            [FromBody] CreateMilestoneChangeRequest request,
-            [FromHeader(Name = "If-Match")] string? ifMatch,
-            CancellationToken cancellationToken)
-    {
-        var validatedIfMatch = await ValidateIfMatchAsync(
-            ifMatch,
-            cancellationToken);
-        var result = await milestoneChangeRequestService.CreateChangeRequestAsync(
-            milestoneId,
-            request,
-            validatedIfMatch,
-            cancellationToken);
-        return StatusCode(
-            StatusCodes.Status201Created,
-            ApiResponse<MilestoneActionResultDto>.Created(result));
-    }
+    // [HttpPost("milestones/{milestoneId:guid}/change-requests")]
+    // [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    // [Authorize(Roles = "Client,Lawyer")]
+    // public async Task<
+    //     ActionResult<ApiResponse<MilestoneActionResultDto>>>
+    //     CreateChangeRequestAsync(
+    //         Guid milestoneId,
+    //         [FromBody] CreateMilestoneChangeRequest request,
+    //         [FromHeader(Name = "If-Match")] string? ifMatch,
+    //         CancellationToken cancellationToken)
+    // {
+    //     var validatedIfMatch = await ValidateIfMatchAsync(
+    //         ifMatch,
+    //         cancellationToken);
+    //     var result = await milestoneChangeRequestService.CreateChangeRequestAsync(
+    //         milestoneId,
+    //         request,
+    //         validatedIfMatch,
+    //         cancellationToken);
+    //     return StatusCode(
+    //         StatusCodes.Status201Created,
+    //         ApiResponse<MilestoneActionResultDto>.Created(result));
+    // }
 
-    [HttpPost("change-requests/{changeRequestId:guid}/approve")]
-    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
-    public async Task<
-        ActionResult<ApiResponse<MilestoneActionResultDto>>>
-        ApproveChangeRequestAsync(
-            Guid changeRequestId,
-            [FromHeader(Name = "If-Match")] string? ifMatch,
-            CancellationToken cancellationToken)
-    {
-        var validatedIfMatch = await ValidateIfMatchAsync(
-            ifMatch,
-            cancellationToken);
-        var result = await milestoneChangeRequestService.ApproveChangeRequestAsync(
-            changeRequestId,
-            validatedIfMatch,
-            cancellationToken);
-        return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
-    }
+    // [HttpPost("change-requests/{changeRequestId:guid}/approve")]
+    // [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
+    // [Authorize(Roles = "Client,Lawyer")]
+    // public async Task<
+    //     ActionResult<ApiResponse<MilestoneActionResultDto>>>
+    //     ApproveChangeRequestAsync(
+    //         Guid changeRequestId,
+    //         [FromHeader(Name = "If-Match")] string? ifMatch,
+    //         CancellationToken cancellationToken)
+    // {
+    //     var validatedIfMatch = await ValidateIfMatchAsync(
+    //         ifMatch,
+    //         cancellationToken);
+    //     var result = await milestoneChangeRequestService.ApproveChangeRequestAsync(
+    //         changeRequestId,
+    //         validatedIfMatch,
+    //         cancellationToken);
+    //     return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
+    // }
 
-    [HttpPost("change-requests/{changeRequestId:guid}/reject")]
-    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
-    public async Task<
-        ActionResult<ApiResponse<MilestoneActionResultDto>>>
-        RejectChangeRequestAsync(
-            Guid changeRequestId,
-            [FromBody] RejectChangeRequest request,
-            [FromHeader(Name = "If-Match")] string? ifMatch,
-            CancellationToken cancellationToken)
-    {
-        var validatedIfMatch = await ValidateIfMatchAsync(
-            ifMatch,
-            cancellationToken);
-        var result = await milestoneChangeRequestService.RejectChangeRequestAsync(
-            changeRequestId,
-            request,
-            validatedIfMatch,
-            cancellationToken);
-        return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
-    }
+    // [HttpPost("change-requests/{changeRequestId:guid}/reject")]
+    // [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    // [Authorize(Roles = "Client,Lawyer")]
+    // public async Task<
+    //     ActionResult<ApiResponse<MilestoneActionResultDto>>>
+    //     RejectChangeRequestAsync(
+    //         Guid changeRequestId,
+    //         [FromBody] RejectChangeRequest request,
+    //         [FromHeader(Name = "If-Match")] string? ifMatch,
+    //         CancellationToken cancellationToken)
+    // {
+    //     var validatedIfMatch = await ValidateIfMatchAsync(
+    //         ifMatch,
+    //         cancellationToken);
+    //     var result = await milestoneChangeRequestService.RejectChangeRequestAsync(
+    //         changeRequestId,
+    //         request,
+    //         validatedIfMatch,
+    //         cancellationToken);
+    //     return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
+    // }
 
-    [HttpPost("change-requests/{changeRequestId:guid}/cancel")]
-    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
-    public async Task<
-        ActionResult<ApiResponse<MilestoneActionResultDto>>>
-        CancelChangeRequestAsync(
-            Guid changeRequestId,
-            [FromHeader(Name = "If-Match")] string? ifMatch,
-            CancellationToken cancellationToken)
-    {
-        var validatedIfMatch = await ValidateIfMatchAsync(
-            ifMatch,
-            cancellationToken);
-        var result = await milestoneChangeRequestService.CancelChangeRequestAsync(
-            changeRequestId,
-            validatedIfMatch,
-            cancellationToken);
-        return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
-    }
+    // [HttpPost("change-requests/{changeRequestId:guid}/cancel")]
+    // [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    // [Authorize(Roles = "Client,Lawyer")]
+    // public async Task<
+    //     ActionResult<ApiResponse<MilestoneActionResultDto>>>
+    //     CancelChangeRequestAsync(
+    //         Guid changeRequestId,
+    //         [FromHeader(Name = "If-Match")] string? ifMatch,
+    //         CancellationToken cancellationToken)
+    // {
+    //     var validatedIfMatch = await ValidateIfMatchAsync(
+    //         ifMatch,
+    //         cancellationToken);
+    //     var result = await milestoneChangeRequestService.CancelChangeRequestAsync(
+    //         changeRequestId,
+    //         validatedIfMatch,
+    //         cancellationToken);
+    //     return Ok(ApiResponse<MilestoneActionResultDto>.Ok(result));
+    // }
 
     private async Task<string> ValidateIfMatchAsync(
         string? ifMatch,
