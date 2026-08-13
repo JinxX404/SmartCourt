@@ -20,7 +20,7 @@ public sealed class MilestonesController(
 {
     [HttpPost("contracts/{contractId:guid}/milestones")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
+    [Authorize(Roles = "Lawyer")]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>> AddAsync(
         Guid contractId,
         [FromBody] AddMilestoneRequest request,
@@ -55,7 +55,7 @@ public sealed class MilestonesController(
     [HttpPut(
         "contracts/{contractId:guid}/milestones/{milestoneId:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
-    [Authorize(Roles = "Client,Lawyer")]
+    [Authorize(Roles = "Lawyer")]
     public async Task<ActionResult<ApiResponse<MilestoneDto>>>
         UpdateAsync(
             Guid contractId,
