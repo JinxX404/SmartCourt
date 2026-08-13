@@ -39,10 +39,8 @@ public sealed class AddMilestoneRequestValidator
                 || date.Value > clock.GetUtcNow().UtcDateTime)
             .WithMessage("تاريخ استحقاق المرحلة يجب أن يكون في المستقبل.");
         RuleFor(request => request.Deliverables)
-            .Must(list => list is null || list.Count > 0)
-            .WithMessage("قائمة المخرجات لا يمكن أن تكون فارغة.")
-            .Must(list => list is null || list.Count <= 20)
-            .WithMessage("لا يمكن أن تتجاوز المخرجات 20 عنصرًا.")
+            .Must(list => list is null || list.Count <= 100)
+            .WithMessage("لا يمكن أن تتجاوز المخرجات 100 عنصرًا.")
             .When(request => request.Deliverables is not null);
         RuleForEach(request => request.Deliverables)
             .NotEmpty()
