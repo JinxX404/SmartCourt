@@ -7,6 +7,7 @@ public sealed record MilestoneDto(
     int OrderNumber,
     string Title,
     string? Description,
+    IReadOnlyList<string>? Deliverables,
     decimal Amount,
     int? DurationDays,
     DateTime? DueDate,

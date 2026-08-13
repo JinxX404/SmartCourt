@@ -38,6 +38,18 @@ public sealed class AddMilestoneRequestValidator
                 !date.HasValue
                 || date.Value > clock.GetUtcNow().UtcDateTime)
             .WithMessage("تاريخ استحقاق المرحلة يجب أن يكون في المستقبل.");
+        RuleFor(request => request.Deliverables)
+            .Must(list => list is null || list.Count > 0)
+            .WithMessage("قائمة المخرجات لا يمكن أن تكون فارغة.")
+            .Must(list => list is null || list.Count <= 20)
+            .WithMessage("لا يمكن أن تتجاوز المخرجات 20 عنصرًا.")
+            .When(request => request.Deliverables is not null);
+        RuleForEach(request => request.Deliverables)
+            .NotEmpty()
+            .WithMessage("لا يمكن أن يكون أي مخرج فارغًا.")
+            .MaximumLength(500)
+            .WithMessage("يجب ألا يتجاوز طول أي مخرج 500 حرف.")
+            .When(request => request.Deliverables is not null);
     }
 
     private static bool HasAtMostTwoDecimalPlaces(decimal amount)

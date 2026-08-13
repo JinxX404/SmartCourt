@@ -26,6 +26,10 @@ public sealed class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
             .NullableUnicode(100);
         builder.Property(milestone => milestone.RejectionReason)
             .NullableUnicode(2_000);
+        builder.PrimitiveCollection(milestone => milestone.Deliverables)
+            .HasColumnName("Deliverables")
+            .HasColumnType("nvarchar(max)")
+            .IsRequired(false);
         builder.Property(milestone => milestone.AcceptanceSource)
             .HasConversion<int>();
         builder.Property(milestone => milestone.RowVersion)

@@ -18,6 +18,7 @@ public sealed class Milestone
         decimal amount,
         int? durationDays,
         DateTime? dueDate,
+        IReadOnlyList<string>? deliverables,
         DateTime createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
@@ -33,6 +34,7 @@ public sealed class Milestone
 
         DurationDays = durationDays;
         DueDate = EntityGuard.OptionalUtc(dueDate, nameof(dueDate));
+        Deliverables = deliverables?.ToList();
         Status = MilestoneStatus.Draft;
         SubmissionVersion = 0;
         CreatedAt = EntityGuard.Utc(createdAt, nameof(createdAt));
@@ -43,6 +45,7 @@ public sealed class Milestone
     public Guid ContractId { get; internal set; }
     public string Title { get; internal set; } = string.Empty;
     public string? Description { get; internal set; }
+    public List<string>? Deliverables { get; internal set; }
     public int OrderNumber { get; internal set; }
     public decimal Amount { get; internal set; }
     public int? DurationDays { get; internal set; }

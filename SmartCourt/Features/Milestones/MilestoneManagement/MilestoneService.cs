@@ -680,6 +680,7 @@ public sealed class MilestoneService(
             milestone.OrderNumber,
             milestone.Title,
             milestone.Description,
+            milestone.Deliverables,
             milestone.Amount,
             milestone.DurationDays,
             milestone.DueDate,

@@ -56,6 +56,7 @@ public sealed class MilestoneDraftService(
             request.Amount,
             request.DurationDays,
             request.DueDate,
+            request.Deliverables,
             now);
         dbContext.Milestones.Add(milestone);
         await EnqueueParticipantEventAsync(
@@ -146,6 +147,7 @@ public sealed class MilestoneDraftService(
 
         milestone.Title = request.Title;
         milestone.Description = request.Description;
+        milestone.Deliverables = request.Deliverables?.ToList();
         milestone.DurationDays = request.DurationDays;
         milestone.DueDate = request.DueDate;
         milestone.AcceptedByClientAt = null;
@@ -286,6 +288,7 @@ public sealed class MilestoneDraftService(
             milestone.OrderNumber,
             milestone.Title,
             milestone.Description,
+            milestone.Deliverables,
             milestone.Amount,
             milestone.DurationDays,
             milestone.DueDate,

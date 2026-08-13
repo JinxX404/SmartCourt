@@ -3,6 +3,7 @@ namespace SmartCourt.Features.Milestones.DTOs;
 public sealed record AddMilestoneRequest(
     string Title,
     string? Description,
+    IReadOnlyList<string>? Deliverables,
     int OrderNumber,
     decimal Amount,
     int? DurationDays,
@@ -11,6 +12,7 @@ public sealed record AddMilestoneRequest(
 public sealed record UpdateMilestoneRequest(
     string Title,
     string? Description,
+    IReadOnlyList<string>? Deliverables,
     int? DurationDays,
     DateTime? DueDate);
 
