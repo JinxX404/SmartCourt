@@ -1,105 +1,23 @@
-import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuthStore } from "../features/auth/store/useAuthStore";
+import { useEffect } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
 import { ProfilePage } from "../features/users";
-import { UserStatusBadge } from "../features/auth/components/UserStatusBadge";
 import { VerificationTab } from "../features/auth/components/VerificationTab";
 import { AdminVerificationsTab } from "../features/admin/verifications/components/AdminVerificationsTab";
 import { LawyersPage } from "./LawyersPage";
-import { useQuery } from "@tanstack/react-query";
-import { AuthApi } from "../features/auth/api/authApi";
-import { UsersApi } from "../features/users/api/usersApi";
-import { calculateProfileCompletion } from "../utils/profileCompletion";
+import { CreateCaseTab } from "../features/cases";
 
 import {
-  LuScale,
-  LuLayoutDashboard,
-  LuFolder,
-  LuFilePlus,
-  LuUsers,
-  LuShieldCheck,
-  LuMessageSquare,
-  LuSettings,
-  LuCircleHelp,
-  LuLogOut,
   LuSearch,
   LuSlidersHorizontal,
   LuTriangleAlert,
   LuClock,
   LuCircleCheck,
   LuFileText,
-  LuMenu,
-  LuX,
-  LuUser
 } from "react-icons/lu";
 
 export const Dashboard = () => {
-  const { user, logout } = useAuthStore();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  // Active tab state from URL or default to 'cases'
-  const tabFromUrl = searchParams.get("tab") || "cases";
-  const [activeTab, setActiveTab] = useState<string>(tabFromUrl);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  const { data: documentsData } = useQuery({
-    queryKey: ["user", "verifications", "documents", user?.id],
-    queryFn: () => AuthApi.getUserVerificationDocuments(user!.id),
-    enabled: !!user?.id && (user?.role === 'Lawyer' || user?.role === 'Client'),
-  });
-
-  const { data: profileData } = useQuery({
-    queryKey: ["user", "profile", user?.id],
-    queryFn: () => user?.role === 'Lawyer' ? UsersApi.getLawyerProfile() : UsersApi.getClientProfile(),
-    enabled: !!user?.id && (user?.role === 'Lawyer' || user?.role === 'Client'),
-  });
-
-  // Calculate actual progress based on profile and documents
-  const targetProgress = useMemo(() => {
-    return calculateProfileCompletion(
-      user, 
-      profileData || null, 
-      documentsData?.data?.documents || []
-    );
-  }, [user, profileData, documentsData]);
-
-  const [displayedProgress, setDisplayedProgress] = useState(0);
-  const [showCompletionText, setShowCompletionText] = useState(false);
-  
-  useEffect(() => {
-    // Reset states when targetProgress changes (or initially)
-    setDisplayedProgress(0);
-    setShowCompletionText(false);
-
-    // Start progress animation after 800ms delay
-    const progressTimer = setTimeout(() => {
-      setDisplayedProgress(targetProgress);
-    }, 800);
-    
-    // Show text after progress animation completes (800ms delay + 1500ms transition)
-    const textTimer = setTimeout(() => {
-      setShowCompletionText(true);
-    }, 2300);
-
-    return () => {
-      clearTimeout(progressTimer);
-      clearTimeout(textTimer);
-    };
-  }, [targetProgress]);
-
-  const profilePictureDoc = documentsData?.data?.documents?.find((d: any) =>
-    (d.documentType === 'OfficialProfilePicture' || d.documentType === 7) && d.isCurrent
-  );
-  const isPictureApproved = profilePictureDoc?.status === 'Verified' || profilePictureDoc?.status === 2;
-
-  const { data: profilePicContent } = useQuery({
-    queryKey: ["documentContent", profilePictureDoc?.documentId],
-    queryFn: () => AuthApi.getDocumentContent(profilePictureDoc!.documentId),
-    enabled: !!profilePictureDoc?.documentId && isPictureApproved,
-  });
-
-  const profilePictureUrl = isPictureApproved ? (profilePicContent?.data?.downloadUrl || null) : null;
+  const { user, activeTab } = useOutletContext<{ user: any; activeTab: string }>();
 
   useEffect(() => {
     if (!user) {
@@ -107,262 +25,8 @@ export const Dashboard = () => {
     }
   }, [user, navigate]);
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-    setSearchParams({ tab });
-    setSidebarOpen(false);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  const getRoleLabel = (role?: string) => {
-    switch (role) {
-      case "Lawyer":
-        return "محامي ";
-      case "Client":
-        return "موكل";
-      case "Admin":
-        return "مسؤول منصة";
-      default:
-        return "مستخدم";
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#f4f5f8] dark:bg-[#0d1017] text-text-primary flex flex-col md:flex-row transition-colors duration-300">
-
-      {/* Mobile Header Bar */}
-      <div className="md:hidden flex items-center justify-between p-4 bg-[#121620] text-white sticky top-0 z-40 border-b border-gray-800">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gold/20 text-gold flex items-center justify-center border border-gold/40 font-bold overflow-hidden">
-            {profilePictureUrl ? (
-              <img src={profilePictureUrl} alt={user?.fullName || "Profile"} className="w-full h-full object-cover" />
-            ) : user?.fullName ? (
-              user.fullName.charAt(0).toUpperCase()
-            ) : (
-              <LuScale className="w-5 h-5" />
-            )}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-bold text-white">{user?.fullName}</p>
-              <UserStatusBadge status={user?.status} role={user?.role} />
-            </div>
-            <p className="text-[10px] text-gold font-bold">{getRoleLabel(user?.role)}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-xl bg-gray-800 text-white"
-          >
-            {sidebarOpen ? <LuX className="w-6 h-6" /> : <LuMenu className="w-6 h-6" />}
-          </button>
-        </div>
-      </div>
-
-      {/* RIGHT SIDEBAR */}
-      <aside
-        className={`fixed md:sticky top-0 right-0 z-50 h-screen w-72 bg-[#121620] text-gray-300 flex flex-col p-6 transition-transform duration-300 border-l border-gray-800/60 overflow-visible gap-6 ${sidebarOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
-          }`}
-      >
-        <div className="absolute top-4 left-4 hidden md:block">
-
-        </div>
-        <div className="space-y-6">
-
-          {/* Top Profile Avatar Header */}
-          <div className="flex flex-col items-center text-center pt-2 pb-2">
-
-            {/* Avatar & Progress Wrapper */}
-            <div className="relative w-[140px] h-[140px] flex items-center justify-center mt-2 mb-4">
-
-              {/* SVG Progress Ring */}
-              <svg className="absolute top-0 left-0 w-full h-full -rotate-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.2)]" viewBox="0 0 140 140">
-                <defs>
-                  <linearGradient id="goldGradient" x1="100%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="#d4af37" />
-                    <stop offset="100%" stopColor="rgba(212, 175, 55, 0.2)" />
-                  </linearGradient>
-                </defs>
-                {/* Background Track */}
-                <circle
-                  cx="70" cy="70" r="66"
-                  fill="none"
-                  stroke="rgba(212, 175, 55, 0.05)"
-                  strokeWidth="3.5"
-                />
-                {/* Progress Stroke */}
-                <circle
-                  cx="70" cy="70" r="66"
-                  fill="none"
-                  stroke="url(#goldGradient)"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray={2 * Math.PI * 66}
-                  strokeDashoffset={(2 * Math.PI * 66) * (1 - displayedProgress / 100)}
-                  className="transition-[stroke-dashoffset] duration-[1500ms] ease-out"
-                />
-              </svg>
-
-              {/* Inner Avatar Image */}
-              <div className="w-[124px] h-[124px] rounded-full bg-[#121620] flex items-center justify-center overflow-hidden z-10 relative border-[3px] border-[#121620]">
-                {profilePictureUrl ? (
-                  <img src={profilePictureUrl} alt={user?.fullName || "Profile"} className="w-full h-full object-cover" />
-                ) : user?.fullName ? (
-                  <span className="text-gold font-bold text-5xl">{user.fullName.charAt(0).toUpperCase()}</span>
-                ) : (
-                  <LuUser className="w-12 h-12 text-gold" />
-                )}
-              </div>
-            </div>
-
-            {/* Account Completion Text */}
-            {(user?.role === 'Lawyer' || user?.role === 'Client') && (
-              <p className={`text-[11px] text-gold font-bold tracking-widest mt-1 mb-2 transition-opacity duration-700 ease-in-out ${showCompletionText ? 'opacity-100' : 'opacity-0'}`}>
-                نسبة اكتمال الحساب {targetProgress}%
-              </p>
-            )}
-
-            <div className="flex flex-col items-center justify-center mt-1 w-full px-2">
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-sm font-bold text-white tracking-wide">
-                  {user?.fullName || "مستخدم"}
-                </h2>
-                <UserStatusBadge status={user?.status} role={user?.role} />
-              </div>
-              <p className="text-xs text-gold font-bold tracking-wide">
-                {getRoleLabel(user?.role)}
-              </p>
-            </div>
-          </div>
-
-          {/* Main Navigation List */}
-          <nav className="space-y-1 pt-2">
-            <button
-              onClick={() => handleTabChange("overview")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "overview"
-                ? "bg-gold/15 text-gold border-r-4 border-gold"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <LuLayoutDashboard className="w-5 h-5" />
-              <span>الرئيسية</span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange("new-case")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "new-case"
-                ? "bg-gold/15 text-gold border-r-4 border-gold"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <LuFilePlus className="w-5 h-5" />
-              <span>رفع قضية جديدة</span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange("cases")}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "cases"
-                ? "bg-gold/20 text-gold border-r-4 border-gold shadow-sm"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <div className="flex items-center gap-3">
-                <LuFolder className="w-5 h-5" />
-                <span>قضاياي</span>
-              </div>
-              <span className="w-2 h-2 rounded-full bg-gold"></span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange("lawyers")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "lawyers"
-                ? "bg-gold/15 text-gold border-r-4 border-gold"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <LuUsers className="w-5 h-5" />
-              <span>البحث عن محامين</span>
-            </button>
-
-            {user?.role !== 'Admin' && (
-              <button
-                onClick={() => handleTabChange("verification")}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "verification"
-                  ? "bg-gold/15 text-gold border-r-4 border-gold"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
-              >
-                <LuShieldCheck className={`w-5 h-5 ${(user?.status === 'Unverified' || user?.status === 'Rejected') ? 'text-red-500' : user?.status === 'PendingReview' ? 'text-amber-500' : 'text-green-500'}`} />
-                <span>التوثيق</span>
-                {(user?.status === 'Unverified' || user?.status === 'Rejected') && <div className="mr-auto w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>}
-              </button>
-            )}
-
-            {/* Admin Only Tabs */}
-            {user?.role === 'Admin' && (
-              <button
-                onClick={() => handleTabChange("admin-verifications")}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "admin-verifications"
-                  ? "bg-gold/15 text-gold border-r-4 border-gold"
-                  : "text-gray-400 hover:text-white hover:bg-white/5"
-                  }`}
-              >
-                <div className="flex items-center gap-3">
-                  <LuShieldCheck className="w-5 h-5 text-amber-500" />
-                  <span>إدارة التوثيقات</span>
-                </div>
-              </button>
-            )}
-
-            <button
-              onClick={() => handleTabChange("chats")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "chats"
-                ? "bg-gold/15 text-gold border-r-4 border-gold"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <LuMessageSquare className="w-5 h-5" />
-              <span>المحادثات</span>
-            </button>
-
-            <button
-              onClick={() => handleTabChange("settings")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all cursor-pointer ${activeTab === "settings"
-                ? "bg-gold/15 text-gold border-r-4 border-gold"
-                : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <LuSettings className="w-5 h-5" />
-              <span>الإعدادات والبروفايل</span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Bottom Sidebar Footer */}
-        <div className="pt-6 border-t border-gray-800/80 space-y-2">
-          <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white transition-all cursor-pointer">
-            <LuCircleHelp className="w-5 h-5" />
-            <span>مركز المساعدة</span>
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-bold text-red-500 hover:bg-red-500/10 transition-all cursor-pointer"
-          >
-            <LuLogOut className="w-5 h-5" />
-            <span>تسجيل الخروج</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
+    <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full">
 
 
 
@@ -626,11 +290,17 @@ export const Dashboard = () => {
         {activeTab === "verification" && <VerificationTab />}
         {activeTab === "lawyers" && <LawyersPage />}
 
-        {(activeTab === "new-case" || activeTab === "chats") && (
+        {activeTab === "new-case" && (
+          <div className="animate-fade-in">
+            <CreateCaseTab />
+          </div>
+        )}
+
+        {activeTab === "chats" && (
           <div className="min-h-[50vh] flex flex-col items-center justify-center bg-white dark:bg-[#1a1d23] rounded-3xl p-12 text-center border border-gray-200 dark:border-gray-800">
             <LuFileText className="w-16 h-16 text-gold mb-4 animate-pulse" />
             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              صفحة {activeTab === "new-case" ? "رفع قضية جديدة" : "المحادثات"}
+              صفحة المحادثات
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 max-w-sm">
               جاري تجهيز هذه الصفحة بالتفصيل خطوة بخطوة حسب خطة التطوير والملاحظات...
@@ -639,7 +309,5 @@ export const Dashboard = () => {
         )}
 
       </main>
-
-    </div>
   );
 };

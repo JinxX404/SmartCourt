@@ -1,3 +1,9 @@
+export interface LawyerSpecializationDto {
+  specialization: number;
+  yearsOfExperience: number;
+  casesHandled: number;
+}
+
 export interface LawyerSearchDto {
   id: string;
   name: string;
@@ -7,6 +13,7 @@ export interface LawyerSearchDto {
   isAvailable: boolean;
   profilePictureUrl: string | null;
   specialization: number | null;
+  specializations: LawyerSpecializationDto[];
   rating: number;
   governorate: string | null;
 }
@@ -36,4 +43,28 @@ export interface PagedResponse<T> {
   message: string | null;
   errors: string[] | null;
   statusCode: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message: string | null;
+  errors: string[] | null;
+  statusCode: number;
+}
+
+export interface LawyerPublicProfileDto {
+  id: string;
+  name: string;
+  gender: number | null;
+  level: number;
+  bio: string | null;
+  governorate: string | null;
+  city: string | null;
+  isAvailable: boolean;
+  profilePictureUrl: string | null;
+  yearsOfExperience: number;
+  specializationName: string | null;
+  specializations: LawyerSpecializationDto[];
+  rating: number;
 }

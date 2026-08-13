@@ -11,8 +11,6 @@ export const AdminVerificationsTab = () => {
   const [selectedLawyerId, setSelectedLawyerId] = useState<string | null>(null);
   const [rejectingDocId, setRejectingDocId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [rejectingAccountId, setRejectingAccountId] = useState<string | null>(null);
-  const [accountRejectReason, setAccountRejectReason] = useState("");
   const [fullSizeImageUrl, setFullSizeImageUrl] = useState<string | null>(null);
 
   // Fetch pending verifications list
@@ -61,25 +59,6 @@ export const AdminVerificationsTab = () => {
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.message || "حدث خطأ أثناء الاعتماد");
-    },
-  });
-
-  // Mutation to reject entire user account profile
-  const { mutate: rejectAccount, isPending: isRejectingAccount } = useMutation({
-    mutationFn: ({ userId, reason }: { userId: string, reason: string }) => AdminVerificationsApi.rejectUserAccount(userId, reason),
-    onSuccess: (response) => {
-      if (response.success) {
-        toast.success("تم رفض بيانات الحساب بنجاح");
-        setRejectingAccountId(null);
-        setAccountRejectReason("");
-        queryClient.invalidateQueries({ queryKey: ["admin", "verifications", "pending"] });
-        queryClient.invalidateQueries({ queryKey: ["admin", "verifications", "details", selectedLawyerId] });
-      } else {
-        toast.error(response.message || "حدث خطأ");
-      }
-    },
-    onError: (err: any) => {
-      toast.error(err.response?.data?.message || "حدث خطأ أثناء الرفض");
     },
   });
 
@@ -194,65 +173,27 @@ export const AdminVerificationsTab = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {details.accountStatus === 'PendingReview' && (
-                        <div className="flex flex-col gap-2 relative items-end">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setRejectingAccountId(details.lawyerId)}
-                              disabled={isApprovingAccount || isRejectingAccount}
-                              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                              title="رفض التعديلات"
-                            >
-                              <LuX className="w-4 h-4" />
-                              <span>رفض التعديلات</span>
-                            </button>
-                            {details.modifiedFields?.length > 0 && (
-                              <button
-                                onClick={() => approveAccount(details.lawyerId)}
-                                disabled={isApprovingAccount || isRejectingAccount}
-                                className="flex items-center gap-1.5 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                                title="اعتماد التعديلات الشخصية أو المهنية"
-                              >
-                                {isApprovingAccount ? (
-                                  <LuLoader className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <LuCheck className="w-4 h-4" />
-                                )}
-                                <span>اعتماد الحساب والتعديلات</span>
-                              </button>
+                      {details.modifiedFields?.length > 0 && !details.documents?.some((d: any) => d.status === "Pending") && (
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => approveAccount(details.lawyerId)}
+                            disabled={isApprovingAccount}
+                            className={`flex items-center gap-1.5 px-4 py-2 text-white font-bold text-xs rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50 ${
+                              details.documents?.some((d: any) => d.status === "Rejected")
+                                ? "bg-orange-600 hover:bg-orange-700"
+                                : "bg-green-600 hover:bg-green-700"
+                            }`}
+                            title={details.documents?.some((d: any) => d.status === "Rejected") ? "اعتماد الرفض وإخطار المستخدم" : "اعتماد تعديل البيانات"}
+                          >
+                            {isApprovingAccount ? (
+                              <LuLoader className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <LuCheck className="w-4 h-4" />
                             )}
-                          </div>
-                          
-                          {rejectingAccountId === details.lawyerId && (
-                            <div className="absolute top-full mt-2 left-0 w-[300px] z-10 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 rounded-xl shadow-lg flex flex-col gap-2">
-                              <input
-                                type="text"
-                                value={accountRejectReason}
-                                onChange={(e) => setAccountRejectReason(e.target.value)}
-                                placeholder="اكتب سبب رفض التعديلات هنا..."
-                                className="w-full text-xs p-2 border border-red-200 dark:border-red-900/50 rounded-lg focus:outline-none focus:border-red-400 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                                autoFocus
-                              />
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => rejectAccount({ userId: details.lawyerId, reason: accountRejectReason })}
-                                  disabled={isRejectingAccount || !accountRejectReason.trim()}
-                                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-1.5 rounded-lg text-xs font-bold disabled:opacity-50"
-                                >
-                                  تأكيد الرفض
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setRejectingAccountId(null);
-                                    setAccountRejectReason("");
-                                  }}
-                                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-1.5 rounded-lg text-xs font-bold"
-                                >
-                                  إلغاء
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                            <span>
+                              {details.documents?.some((d: any) => d.status === "Rejected") ? "اعتماد الرفض" : "اعتماد البيانات"}
+                            </span>
+                          </button>
                         </div>
                       )}
                     </div>

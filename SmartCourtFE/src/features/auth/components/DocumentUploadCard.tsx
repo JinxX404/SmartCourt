@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { LuX, LuFileImage, LuUpload, LuPencil } from "react-icons/lu";
+import { LuX, LuFileImage, LuUpload, LuPencil, LuLoader } from "react-icons/lu";
 import { SecureImage } from "../../admin/verifications/components/SecureImage";
 
 interface DocumentUploadCardProps {
@@ -11,6 +11,8 @@ interface DocumentUploadCardProps {
   rejectionReason?: string | null;
   existingImageUrl?: string;
   error?: string | null;
+  onSubmit?: () => void;
+  isSubmitting?: boolean;
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -36,7 +38,9 @@ export const DocumentUploadCard = ({
   status,
   rejectionReason,
   existingImageUrl,
-  error
+  error,
+  onSubmit,
+  isSubmitting
 }: DocumentUploadCardProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -77,6 +81,7 @@ export const DocumentUploadCard = ({
       <div className="bg-white dark:bg-[#1a1d23] p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <span className="font-bold text-xs text-gray-800 dark:text-gray-200">
           {label}
+          <span className="text-red-500 mr-1">*</span>
         </span>
         <div className="flex items-center gap-2">
           {status && <StatusBadge status={status} />}
@@ -168,6 +173,32 @@ export const DocumentUploadCard = ({
           <p className="text-[11px] text-red-500 font-bold text-center truncate" title={rejectionReason}>
             سبب الرفض: {rejectionReason}
           </p>
+        </div>
+      )}
+
+      {/* Submit Footer */}
+      {selectedFile && onSubmit && (
+        <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-[#1a1d23]">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSubmit();
+            }}
+            disabled={isSubmitting}
+            className="w-full flex items-center justify-center gap-2 py-2 bg-gold hover:bg-gold-light text-black font-bold rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isSubmitting ? (
+              <>
+                <LuLoader className="w-4 h-4 animate-spin" />
+                <span>جاري الإرسال...</span>
+              </>
+            ) : (
+              <>
+                <LuUpload className="w-4 h-4" />
+                <span>إرسال المستند</span>
+              </>
+            )}
+          </button>
         </div>
       )}
     </div>

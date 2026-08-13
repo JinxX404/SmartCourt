@@ -13,27 +13,33 @@ export const SecureImage = ({ url, ...props }: SecureImageProps) => {
   useEffect(() => {
     let active = true;
 
-    const fetchImage = async () => {
+    const fetchImage = async (retryCount = 0) => {
       setLoading(true);
       setError(false);
       try {
         const response = await apiClient.get(url);
 
         if (active) {
-          // The API returns ApiResponse<VerificationDocumentContentDto>
-          // So we extract data.data.downloadUrl
           const downloadUrl = response.data?.data?.downloadUrl;
           if (downloadUrl) {
             setObjectUrl(downloadUrl);
+            setLoading(false);
           } else {
             setError("No downloadUrl in response");
+            setLoading(false);
           }
-          setLoading(false);
         }
       } catch (err: any) {
         if (active) {
-          setError(err.message || "Request failed");
-          setLoading(false);
+          if (retryCount < 3) {
+            // Retry after 1 second for eventual consistency issues
+            setTimeout(() => {
+              if (active) fetchImage(retryCount + 1);
+            }, 1000);
+          } else {
+            setError(err.message || "Request failed");
+            setLoading(false);
+          }
         }
       }
     };

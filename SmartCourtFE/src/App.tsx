@@ -11,7 +11,14 @@ import { Profile } from "./pages/Profile";
 import { Dashboard } from "./pages/Dashboard";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { LawyersPage } from "./pages/LawyersPage";
+import { LawyerProfilePage } from "./pages/LawyerProfilePage";
 import { Loader } from "./components/Loader";
+import { DashboardLayout } from "./layouts/DashboardLayout";
+import { CaseDetails } from "./pages/CaseDetails";
+import { CaseCandidates } from "./pages/CaseCandidates";
+import { ProposalDetailPage } from "./pages/ProposalDetailPage";
+import { ChatPage } from "./pages/ChatPage";
+import { ContractDetailPage } from "./pages/ContractDetailPage";
 
 import { Toaster } from "react-hot-toast";
 
@@ -61,6 +68,7 @@ function App() {
           <Route element={<MainLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/lawyers" element={<LawyersPage />} />
+            <Route path="/lawyers/:id" element={<LawyerProfilePage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -69,8 +77,21 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
           </Route>
-          {/* Routes without Navbar and Footer */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          {/* Dashboard Layout Routes (Sidebar & Mobile Header) */}
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/lawyers" element={<LawyersPage />} />
+            <Route path="/dashboard/lawyers/:id" element={<LawyerProfilePage />} />
+            <Route path="/dashboard/chat" element={<ChatPage />} />
+            <Route path="/dashboard/chat/:conversationId" element={<ChatPage />} />
+          </Route>
+
+          {/* Other routes without Navbar, Footer, or Sidebar */}
+          <Route path="/dashboard/cases/:id" element={<CaseDetails />} />
+          <Route path="/dashboard/cases/:id/candidates" element={<CaseCandidates />} />
+          <Route path="/dashboard/proposals/:id" element={<ProposalDetailPage />} />
+          <Route path="/dashboard/contracts/:id" element={<ContractDetailPage />} />
+          <Route path="/contract/:id" element={<ContractDetailPage />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>

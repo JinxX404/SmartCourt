@@ -1,33 +1,82 @@
-import React, { useState } from "react";
-import { LuSearch, LuFilter, LuSlidersHorizontal, LuScale } from "react-icons/lu";
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { LuSearch, LuSlidersHorizontal, LuScale } from "react-icons/lu";
 import { useSearchLawyers } from "../features/lawyers/hooks/useSearchLawyers";
 import { LawyerCard } from "../features/lawyers/components/LawyerCard";
+import { SearchableSelect } from "../components/SearchableSelect";
+
+const governorateOptions = [
+  "القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "البحر الأحمر", "البحيرة", "الفيوم",
+  "الغربية", "الإسماعيلية", "المنوفية", "المنيا", "القليوبية", "الوادي الجديد", "السويس",
+  "أسوان", "أسيوط", "بني سويف", "بورسعيد", "دمياط", "الشرقية", "جنوب سيناء",
+  "كفر الشيخ", "مطروح", "الأقصر", "قنا", "شمال سيناء", "سوهاج"
+].map(g => ({ value: g, label: g }));
+
+const specializationOptions = [
+  { value: 0, label: "أسرة" },
+  { value: 1, label: "مدني" },
+  { value: 2, label: "تجاري" },
+  { value: 3, label: "إداري ومجلس دولة" },
+  { value: 4, label: "جنائي" },
+  { value: 5, label: "عمالي" },
+  { value: 6, label: "دستوري" },
+  { value: 7, label: "ضرائب" },
+  { value: 8, label: "جمارك" },
+  { value: 9, label: "شركات" },
+  { value: 10, label: "عقود" },
+  { value: 11, label: "ملكية فكرية" },
+  { value: 12, label: "تحكيم" },
+  { value: 13, label: "بنوك وتمويل" },
+  { value: 14, label: "استثمار" },
+  { value: 15, label: "عقاري وشهر عقاري" },
+  { value: 16, label: "تنفيذ" },
+  { value: 17, label: "تأمين" },
+  { value: 18, label: "بيئة" },
+  { value: 19, label: "تكنولوجيا معلومات واتصالات" },
+  { value: 20, label: "جرائم إلكترونية" }
+];
 
 export const LawyersPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
   
-  // Example filters (could be expanded)
   const [level, setLevel] = useState<number | undefined>(undefined);
   const [specialization, setSpecialization] = useState<number | undefined>(undefined);
+  const [governorate, setGovernorate] = useState<string>("");
+  const [minRating, setMinRating] = useState<number | undefined>(undefined);
+  const [isAvailable, setIsAvailable] = useState<boolean | undefined>(undefined);
+  const [showFilters, setShowFilters] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
 
   const { data, isLoading, isError } = useSearchLawyers({
     searchTerm,
     level,
     specialization,
+    governorate: governorate || undefined,
+    minRating,
+    isAvailable,
     pageNumber,
     pageSize: 12,
   });
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm !== searchInput) {
+        setSearchTerm(searchInput);
+        setPageNumber(1);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput, searchTerm]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setSearchTerm(searchInput);
-    setPageNumber(1); // Reset to page 1 on new search
+    setPageNumber(1);
   };
 
   return (
-    <div className="space-y-6">
+    <main className="flex-1 p-4 sm:p-8 overflow-y-auto w-full space-y-6 bg-gray-50/50 dark:bg-transparent">
       <div className="max-w-7xl mx-auto space-y-6">
         
         {/* Header Section */}
@@ -44,64 +93,107 @@ export const LawyersPage = () => {
         </div>
 
         {/* Search & Filter Bar */}
-        <div className="bg-white dark:bg-navy border border-gray-200 dark:border-border-primary rounded-2xl p-4 shadow-sm">
-          <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white dark:bg-navy border border-gray-200 dark:border-border-primary rounded-2xl p-5 shadow-sm">
+          <form onSubmit={handleSearch} className="space-y-4">
             
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                <LuSearch className="h-5 w-5 text-gray-400" />
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
+                <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
+                  <LuSearch className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="ابحث بالاسم، التخصص، أو الكلمات المفتاحية..."
+                  className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
               </div>
-              <input
-                type="text"
-                placeholder="ابحث بالاسم، التخصص، أو الكلمات المفتاحية..."
-                className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-3 pr-12 pl-4 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-            </div>
 
-            <div className="flex gap-4">
-              <select 
-                className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-3 px-4 focus:outline-none focus:border-gold"
-                value={level || ""}
-                onChange={(e) => {
-                  setLevel(e.target.value ? Number(e.target.value) : undefined);
-                  setPageNumber(1);
-                }}
+              <button
+                type="button"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2 border font-medium ${showFilters ? 'bg-gold/10 text-gold border-gold/30' : 'bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
               >
-                <option value="">جميع الدرجات</option>
-                <option value="1">جدول عام</option>
-                <option value="2">ابتدائي</option>
-                <option value="3">استئناف</option>
-                <option value="4">نقض</option>
-              </select>
-
-              <select 
-                className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-3 px-4 focus:outline-none focus:border-gold"
-                value={specialization || ""}
-                onChange={(e) => {
-                  setSpecialization(e.target.value ? Number(e.target.value) : undefined);
-                  setPageNumber(1);
-                }}
-              >
-                <option value="">جميع التخصصات</option>
-                <option value="1">جنائي</option>
-                <option value="2">مدني</option>
-                <option value="3">أسرة</option>
-                <option value="4">شركات</option>
-                <option value="5">عقاري</option>
-                <option value="6">إداري</option>
-                <option value="7">جرائم إلكترونية</option>
-              </select>
-
-              <button 
-                type="submit"
-                className="bg-gold text-white font-bold px-6 py-3 rounded-xl hover:bg-gold-hover transition-colors flex items-center gap-2 shadow-sm"
-              >
-                <LuFilter className="w-5 h-5" />
-                بحث
+                <LuSlidersHorizontal className="w-5 h-5" />
+                فلاتر متقدمة
               </button>
             </div>
+
+            {/* Advanced Filters Panel */}
+            {showFilters && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="pt-4 border-t border-gray-100 dark:border-gray-800 overflow-hidden"
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <select 
+                  className="flex-1 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl py-3 px-4 focus:outline-none focus:border-gold"
+                  value={level || ""}
+                  onChange={(e) => {
+                    setLevel(e.target.value ? Number(e.target.value) : undefined);
+                    setPageNumber(1);
+                  }}
+                >
+                  <option value="">جميع الدرجات</option>
+                  <option value="1">جدول عام</option>
+                  <option value="2">ابتدائي</option>
+                  <option value="3">استئناف</option>
+                  <option value="4">نقض</option>
+                </select>
+
+                <SearchableSelect
+                  options={specializationOptions}
+                  value={specialization}
+                  placeholder="جميع التخصصات"
+                  onChange={(val) => {
+                    setSpecialization(val as number | undefined);
+                    setPageNumber(1);
+                  }}
+                />
+                
+                <SearchableSelect
+                  options={governorateOptions}
+                  value={governorate}
+                  placeholder="كل المحافظات"
+                  onChange={(val) => {
+                    setGovernorate(val as string || "");
+                    setPageNumber(1);
+                  }}
+                />
+              </div>
+              
+              <div className="flex gap-6 mt-4 items-center flex-wrap px-2">
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-gold bg-gray-100 border-gray-300 rounded focus:ring-gold"
+                    checked={isAvailable || false}
+                    onChange={(e) => {
+                      setIsAvailable(e.target.checked ? true : undefined);
+                      setPageNumber(1);
+                    }}
+                  />
+                  متاح حالياً فقط
+                </label>
+                
+                <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                  <input 
+                    type="checkbox" 
+                    className="w-4 h-4 text-gold bg-gray-100 border-gray-300 rounded focus:ring-gold"
+                    checked={minRating === 4}
+                    onChange={(e) => {
+                      setMinRating(e.target.checked ? 4 : undefined);
+                      setPageNumber(1);
+                    }}
+                  />
+                  تقييم 4 نجوم فأكثر
+                </label>
+              </div>
+              </motion.div>
+            )}
           </form>
         </div>
 
@@ -126,8 +218,15 @@ export const LawyersPage = () => {
             </div>
           ) : data?.data && data.data.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-              {data.data.map((lawyer) => (
-                <LawyerCard key={lawyer.id} lawyer={lawyer} />
+              {data.data.map((lawyer, index) => (
+                <motion.div 
+                  key={lawyer.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+                >
+                  <LawyerCard lawyer={lawyer} />
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -176,6 +275,6 @@ export const LawyersPage = () => {
         </div>
 
       </div>
-    </div>
+    </main>
   );
 };

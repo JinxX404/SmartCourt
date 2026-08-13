@@ -25,15 +25,29 @@ const getLevelName = (level: number) => {
 };
 
 const getSpecializationName = (spec: number | null) => {
-  if (!spec) return "تخصص عام";
+  if (spec === null || spec === undefined) return "تخصص عام";
   switch (spec) {
-    case 1: return "جنائي";
-    case 2: return "مدني";
-    case 3: return "أسرة";
-    case 4: return "شركات";
-    case 5: return "عقاري";
-    case 6: return "إداري";
-    case 7: return "جرائم إلكترونية";
+    case 0: return "أسرة";
+    case 1: return "مدني";
+    case 2: return "تجاري";
+    case 3: return "إداري ومجلس دولة";
+    case 4: return "جنائي";
+    case 5: return "عمالي";
+    case 6: return "دستوري";
+    case 7: return "ضرائب";
+    case 8: return "جمارك";
+    case 9: return "شركات";
+    case 10: return "عقود";
+    case 11: return "ملكية فكرية";
+    case 12: return "تحكيم";
+    case 13: return "بنوك وتمويل";
+    case 14: return "استثمار";
+    case 15: return "عقاري وشهر عقاري";
+    case 16: return "تنفيذ";
+    case 17: return "تأمين";
+    case 18: return "بيئة";
+    case 19: return "تكنولوجيا معلومات واتصالات";
+    case 20: return "جرائم إلكترونية";
     default: return "تخصص عام";
   }
 };
@@ -66,6 +80,15 @@ export const LawyerCard: React.FC<LawyerCardProps> = ({ lawyer }) => {
                 <LuShieldCheck className="w-4 h-4 text-gold" />
                 محامي {getLevelName(lawyer.level)}
               </p>
+              <div className="flex items-center gap-1.5 mt-2">
+                <LuStar className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                  {lawyer.rating > 0 ? lawyer.rating.toFixed(1) : "جديد"}
+                </span>
+                {lawyer.rating > 0 && (
+                  <span className="text-xs text-gray-400 font-normal mr-1">(تقييم عشوائي)</span>
+                )}
+              </div>
             </div>
           </div>
           
@@ -79,23 +102,35 @@ export const LawyerCard: React.FC<LawyerCardProps> = ({ lawyer }) => {
         </div>
 
         <div className="mb-6">
-          <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed line-clamp-2">
-            {lawyer.bio || "لا توجد نبذة تعريفية."}
+          <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed line-clamp-2" title={lawyer.bio || ""}>
+            {lawyer.bio ? (lawyer.bio.length > 100 ? lawyer.bio.substring(0, 100) + '...' : lawyer.bio) : "لا توجد نبذة تعريفية."}
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2 mb-6">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
-            <LuAward className="w-3.5 h-3.5 text-gold" />
-            {getSpecializationName(lawyer.specialization)}
-          </span>
+          {lawyer.specializations && lawyer.specializations.length > 0 ? (
+            <>
+              {lawyer.specializations.slice(0, 2).map((spec, index) => (
+                <span key={index} className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
+                  <LuAward className="w-3.5 h-3.5 text-gold" />
+                  {getSpecializationName(spec.specialization)}
+                </span>
+              ))}
+              {lawyer.specializations.length > 2 && (
+                <span className="inline-flex items-center gap-1 text-xs font-semibold bg-gold/10 text-gold px-3 py-1.5 rounded-full border border-gold/20" title="اضغط على عرض الملف الشخصي لمعرفة باقي التخصصات">
+                  +{lawyer.specializations.length - 2} تخصص آخر
+                </span>
+              )}
+            </>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
+              <LuAward className="w-3.5 h-3.5 text-gold" />
+              {getSpecializationName(lawyer.specialization)}
+            </span>
+          )}
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
             <LuMapPin className="w-3.5 h-3.5 text-gold" />
             {lawyer.governorate || "لم يحدد"}
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700">
-            <LuStar className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-            {lawyer.rating ? lawyer.rating.toFixed(1) : "جديد"}
           </span>
         </div>
 

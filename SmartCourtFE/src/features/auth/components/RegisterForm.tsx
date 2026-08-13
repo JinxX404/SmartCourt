@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
+import { TermsModal } from "../../../components/TermsModal";
 import { AuthApi } from "../api/authApi";
 import {
   LuScale,
@@ -23,6 +24,7 @@ export const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [terms, setTerms] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -404,8 +406,15 @@ export const RegisterForm = () => {
                       className="w-4 h-4 text-gold border-gray-300 dark:border-gray-600 rounded focus:ring-gold bg-transparent cursor-pointer disabled:opacity-50"
                     />
                   </div>
-                  <label htmlFor="terms" className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer select-none">
-                    أوافق على <Link to="/terms" className="text-gold font-bold hover:underline">الشروط والأحكام</Link> و<Link to="/privacy" className="text-gold font-bold hover:underline">سياسة الخصوصية</Link>
+                  <label className="text-sm text-gray-500 dark:text-gray-400 select-none flex flex-wrap items-center gap-1">
+                    أوافق على 
+                    <button 
+                      type="button" 
+                      onClick={() => setIsTermsModalOpen(true)}
+                      className="text-gold font-bold hover:underline cursor-pointer"
+                    >
+                      الشروط والأحكام وسياسة الخصوصية
+                    </button>
                   </label>
                 </div>
 
@@ -485,6 +494,13 @@ export const RegisterForm = () => {
           </div>
         </div>
       </main>
+
+      {/* Terms & Conditions Modal */}
+      <TermsModal 
+        isOpen={isTermsModalOpen} 
+        onClose={() => setIsTermsModalOpen(false)} 
+        onAccept={() => setTerms(true)} 
+      />
     </div>
   );
 };
