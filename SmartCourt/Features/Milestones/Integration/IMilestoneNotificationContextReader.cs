@@ -1,3 +1,5 @@
+using SmartCourt.Features.Milestones.Enums;
+
 namespace SmartCourt.Features.Milestones.Integration;
 
 public interface IMilestoneNotificationContextReader
@@ -17,7 +19,8 @@ public sealed record MilestoneNotificationContext(
     Guid ProposalId,
     Guid LegalCaseId,
     Guid ClientUserId,
-    Guid LawyerUserId);
+    Guid LawyerUserId,
+    MilestoneType Type = MilestoneType.Standard);
 
 public sealed record MilestoneChangeRequestNotificationContext(
     Guid ChangeRequestId,

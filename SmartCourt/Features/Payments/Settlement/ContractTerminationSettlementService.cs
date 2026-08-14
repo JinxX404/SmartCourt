@@ -268,13 +268,38 @@ public sealed class ContractTerminationSettlementService(
         ProviderResult? providerResult = null;
         if (refundTransaction.Status != PaymentTransactionStatus.Completed)
         {
+            string sourceProviderTransactionId = string.Empty;
+            if (paymentProvider is ILawyerPayoutAccountProvider)
+            {
+                var depositTransaction = await dbContext.PaymentTransactions
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        item => item.Id == hold.ProviderDepositTransactionId
+                            && item.OperationType == PaymentOperationType.Deposit
+                            && item.Status == PaymentTransactionStatus.Completed,
+                        cancellationToken);
+                if (depositTransaction is null
+                    || string.IsNullOrWhiteSpace(
+                        depositTransaction.ProviderTransactionId))
+                {
+                    refundTransaction.FailureReason =
+                        "معرّف عملية الإيداع لدى مزود الدفع غير متاح لتنفيذ الرد.";
+                    refundTransaction.UpdatedAt = now;
+                    return false;
+                }
+
+                sourceProviderTransactionId =
+                    depositTransaction.ProviderTransactionId;
+            }
+
             var providerRequest = new ProviderRefundRequest(
                 hold.GrossAmount,
                 account.Currency,
                 hold.Id,
                 refundTransaction.IdempotencyKey,
                 refundTransaction.Id,
-                reason);
+                reason,
+                sourceProviderTransactionId);
             await dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAndCloseAsync(cancellationToken);
             try
@@ -349,6 +374,15 @@ public sealed class ContractTerminationSettlementService(
 
             refundTransaction.ProviderTransactionId =
                 providerResult.ProviderTransactionId;
+            refundTransaction.ProviderRelatedTransactionId =
+                providerResult.RelatedProviderTransactionId;
+            refundTransaction.ProviderStatus = providerResult.ProviderStatus;
+            refundTransaction.ProviderObjectType =
+                providerResult.ProviderObjectType;
+            refundTransaction.ProviderAmountMinor =
+                providerResult.ProviderMoney?.AmountMinor;
+            refundTransaction.ProviderCurrency =
+                providerResult.ProviderMoney?.Currency;
             refundTransaction.Status =
                 PaymentTransactionStatus.Completed;
             refundTransaction.FailureReason = null;
@@ -441,6 +475,7 @@ public sealed class ContractTerminationSettlementService(
         Milestone milestone)
     {
         return hold.Status == EscrowHoldStatus.Funded
+            && milestone.Type == MilestoneType.Standard
             && milestone.Status == MilestoneStatus.FundedInProgress
             && !milestone.SubmittedAt.HasValue
             && !milestone.AcceptedAt.HasValue

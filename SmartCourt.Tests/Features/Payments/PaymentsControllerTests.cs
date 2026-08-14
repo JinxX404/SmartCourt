@@ -50,24 +50,40 @@ public sealed class PaymentsControllerTests
                 CancellationToken.None);
         var retry = await controller.RetryAsync(
             transactionId,
+            new RetryPaymentRequest("pm_retry"),
             "retry-key",
             CancellationToken.None);
+        var session = await controller.CreatePaymentSessionAsync(
+            milestoneId,
+            new CreateMilestonePaymentSessionRequest("ctoken_demo_success"),
+            "session-key",
+            CancellationToken.None);
+        var retrySession = await controller.RetryPaymentSessionAsync(
+            transactionId,
+            new RetryPaymentSessionRequest("ctoken_demo_retry"),
+            "retry-session-key",
+            CancellationToken.None);
 
-        AssertWrappedOk(fund, service.Payment);
+        AssertWrappedOk(fund, service.FundingOperation);
         AssertWrappedOk(
             contractPayments,
             service.PaymentHistory);
         AssertWrappedOk(milestonePayment, service.Payment);
-        AssertWrappedOk(retry, service.Payment);
+        AssertWrappedOk(retry, service.FundingOperation);
+        AssertWrappedOk(session, service.FundingOperation);
+        AssertWrappedOk(retrySession, service.FundingOperation);
         Assert.Equal(milestoneId, service.FundMilestoneId);
         Assert.Same(fundRequest, service.FundRequest);
-        Assert.Equal("fund-key", service.FundIdempotencyKey);
+        Assert.Equal("session-key", service.FundIdempotencyKey);
         Assert.Equal(contractId, service.ContractPaymentsId);
         Assert.Equal(
             milestoneId,
             service.MilestonePaymentId);
         Assert.Equal(transactionId, service.RetryTransactionId);
-        Assert.Equal("retry-key", service.RetryIdempotencyKey);
+        Assert.Equal("pm_retry", service.RetryPaymentMethodReference);
+        Assert.Equal("retry-session-key", service.RetryIdempotencyKey);
+        Assert.Equal("ctoken_demo_success", service.ConfirmationTokenReference);
+        Assert.Equal("ctoken_demo_retry", service.RetryConfirmationTokenReference);
     }
 
     [Fact]
@@ -79,6 +95,7 @@ public sealed class PaymentsControllerTests
         var exception = await Assert.ThrowsAsync<BusinessException>(() =>
             controller.RetryAsync(
                 Guid.NewGuid(),
+                new RetryPaymentRequest("pm_retry"),
                 null,
                 CancellationToken.None));
 
@@ -222,6 +239,14 @@ public sealed class PaymentsControllerTests
             nameof(PaymentsController.RetryAsync),
             "payments/{paymentTransactionId:guid}/retry",
             "FinanceAdministrator,SuperAdministrator");
+        AssertEndpoint(
+            nameof(PaymentsController.CreatePaymentSessionAsync),
+            "milestones/{milestoneId:guid}/payment-session",
+            "Client");
+        AssertEndpoint(
+            nameof(PaymentsController.RetryPaymentSessionAsync),
+            "payments/{paymentTransactionId:guid}/retry-session",
+            "Client");
 
         var webhook = typeof(PaymentsController).GetMethod(
             nameof(PaymentsController.HandleWebhookAsync));
@@ -242,6 +267,8 @@ public sealed class PaymentsControllerTests
             service,
             service,
             new RetryPaymentRequestValidator(),
+            new CreateMilestonePaymentSessionRequestValidator(),
+            new RetryPaymentSessionRequestValidator(),
             new PaymentWebhookRequestValidator(),
             Options.Create(
                 providerOptions ?? new PaymentProviderOptions()));
@@ -283,6 +310,19 @@ public sealed class PaymentsControllerTests
     private sealed class RecordingPaymentApi
         : IPaymentEscrowService, IPaymentQueryService, IPaymentWebhookService
     {
+        public RecordingPaymentApi()
+        {
+            FundingOperation = new FundingOperationDto(
+                Guid.NewGuid(),
+                Payment.MilestoneId,
+                "Succeeded",
+                null,
+                null,
+                null,
+                Payment,
+                DateTime.UtcNow);
+        }
+
         public PaymentDto Payment { get; } = new(
             Guid.NewGuid(),
             Guid.NewGuid(),
@@ -293,6 +333,8 @@ public sealed class PaymentsControllerTests
             EscrowHoldStatus.Funded,
             null,
             null);
+
+        public FundingOperationDto FundingOperation { get; }
 
         public PaymentHistoryDto PaymentHistory { get; } = new(
             [],
@@ -317,12 +359,15 @@ public sealed class PaymentsControllerTests
         public Guid? ContractPaymentsId { get; private set; }
         public Guid? MilestonePaymentId { get; private set; }
         public Guid? RetryTransactionId { get; private set; }
+        public string? RetryPaymentMethodReference { get; private set; }
         public string? RetryIdempotencyKey { get; private set; }
+        public string? ConfirmationTokenReference { get; private set; }
+        public string? RetryConfirmationTokenReference { get; private set; }
         public PaymentWebhookRequest? WebhookRequest { get; private set; }
         public string? WebhookEventId { get; private set; }
         public string? WebhookRawBody { get; private set; }
 
-        public Task<PaymentDto> FundAsync(
+        public Task<FundingOperationDto> FundAsync(
             Guid milestoneId,
             FundMilestoneRequest request,
             string? idempotencyKey,
@@ -331,7 +376,19 @@ public sealed class PaymentsControllerTests
             FundMilestoneId = milestoneId;
             FundRequest = request;
             FundIdempotencyKey = idempotencyKey;
-            return Task.FromResult(Payment);
+            return Task.FromResult(FundingOperation);
+        }
+
+        public Task<FundingOperationDto> FundWithConfirmationTokenAsync(
+            Guid milestoneId,
+            string confirmationTokenReference,
+            string? idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            FundMilestoneId = milestoneId;
+            ConfirmationTokenReference = confirmationTokenReference;
+            FundIdempotencyKey = idempotencyKey;
+            return Task.FromResult(FundingOperation);
         }
 
         public Task<PaymentHistoryDto> GetContractPaymentsAsync(
@@ -350,14 +407,28 @@ public sealed class PaymentsControllerTests
             return Task.FromResult(Payment);
         }
 
-        public Task<PaymentDto> RetryAsync(
+        public Task<FundingOperationDto> RetryAsync(
             Guid paymentTransactionId,
+            string paymentMethodReference,
             string? idempotencyKey,
             CancellationToken cancellationToken)
         {
             RetryTransactionId = paymentTransactionId;
+            RetryPaymentMethodReference = paymentMethodReference;
             RetryIdempotencyKey = idempotencyKey;
-            return Task.FromResult(Payment);
+            return Task.FromResult(FundingOperation);
+        }
+
+        public Task<FundingOperationDto> RetryWithConfirmationTokenAsync(
+            Guid paymentTransactionId,
+            string confirmationTokenReference,
+            string? idempotencyKey,
+            CancellationToken cancellationToken)
+        {
+            RetryTransactionId = paymentTransactionId;
+            RetryConfirmationTokenReference = confirmationTokenReference;
+            RetryIdempotencyKey = idempotencyKey;
+            return Task.FromResult(FundingOperation);
         }
 
         public Task<PaymentDto> CompleteFundingAsync(

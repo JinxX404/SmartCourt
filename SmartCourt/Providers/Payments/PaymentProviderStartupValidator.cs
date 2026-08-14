@@ -14,11 +14,6 @@ public sealed class PaymentProviderStartupValidator(
 
     public void Validate()
     {
-        // =========================================================================
-        // TESTING MODE: Commented out payment provider startup restrictions.
-        // To re-enable strict single-provider validation, uncomment the code below:
-        // =========================================================================
-        /*
         if (_paymentProviders.Count != 1)
         {
             throw new InvalidOperationException(
@@ -38,6 +33,5 @@ public sealed class PaymentProviderStartupValidator(
             throw new InvalidOperationException(
                 "يجب أن تستخدم عمليات الدفع والمطابقة نسخة المزود نفسها داخل نطاق الطلب.");
         }
-        */
     }
 }

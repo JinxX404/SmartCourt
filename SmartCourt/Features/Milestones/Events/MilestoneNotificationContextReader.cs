@@ -22,7 +22,8 @@ internal sealed class MilestoneNotificationContextReader(
                     contract.ProposalId,
                     contract.LegalCaseId,
                     contract.ClientUserId,
-                    contract.LawyerUserId))
+                    contract.LawyerUserId,
+                    milestone.Type))
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new InvalidOperationException(
                 "تعذر إنشاء الإشعار لأن المرحلة المرتبطة بالحدث غير موجودة.");

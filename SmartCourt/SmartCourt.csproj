@@ -31,6 +31,7 @@
     <PackageReference Include="Qdrant.Client" Version="1.18.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Supabase" Version="1.1.1" />
+    <PackageReference Include="Stripe.net" Version="52.2.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="Twilio" Version="7.14.9" />
     <PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />

@@ -2,6 +2,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging.Abstractions;
+using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Contracts;
@@ -55,6 +56,29 @@ public sealed class DisputeServiceTests
         Assert.Equal(
             ContractPaymentEventTypes.DisputeOpened,
             (await context.OutboxMessages.SingleAsync()).EventType);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExpenseMilestoneIsNotDisputable()
+    {
+        var state = await CreateFundedStateAsync(
+            MilestoneStatus.ReleasePending,
+            type: MilestoneType.Expense);
+        await using var context = state.Context;
+        var service = CreateService(context, state.ClientUserId);
+
+        await Assert.ThrowsAsync<BusinessException>(() => service.CreateAsync(
+            new CreateDisputeRequest(
+                state.Milestone.Id,
+                DisputeCategory.Other,
+                "Expense",
+                "Expenses are released without an acceptance hold.",
+                DisputeRequestedOutcome.Refund,
+                []),
+            CancellationToken.None));
+
+        Assert.Equal(EscrowHoldStatus.Funded, state.Hold.Status);
+        Assert.Equal(MilestoneStatus.ReleasePending, state.Milestone.Status);
     }
 
     [Fact]
@@ -239,7 +263,8 @@ public sealed class DisputeServiceTests
 
     private static async Task<TestState> CreateFundedStateAsync(
         MilestoneStatus milestoneStatus,
-        ApplicationDbContext? context = null)
+        ApplicationDbContext? context = null,
+        MilestoneType type = MilestoneType.Standard)
     {
         if (context is null)
         {
@@ -274,15 +299,19 @@ public sealed class DisputeServiceTests
             null,
             1,
             1_000m,
-            10,
+            type == MilestoneType.Standard ? 10 : null,
             null,
-            Now)
+            null,
+            Now,
+            type)
         {
             Status = milestoneStatus,
             FundedAt = Now,
-            AcceptedAt = Now,
-            HoldStartsAt = Now,
-            HoldExpiresAt = Now.AddDays(14),
+            AcceptedAt = type == MilestoneType.Standard ? Now : null,
+            HoldStartsAt = type == MilestoneType.Standard ? Now : null,
+            HoldExpiresAt = type == MilestoneType.Standard
+                ? Now.AddDays(14)
+                : null,
             AcceptedByClientAt = Now,
             AcceptedByLawyerAt = Now
         };

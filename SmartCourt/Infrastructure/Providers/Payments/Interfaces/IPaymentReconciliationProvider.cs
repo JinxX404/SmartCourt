@@ -24,25 +24,30 @@ public sealed record ProviderDepositStatusRequest(
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId);
+    Guid CorrelationId,
+    string? ProviderTransactionId = null) : IProviderOperationRequest;
 
 public sealed record ProviderReleaseStatusRequest(
     decimal Amount,
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId);
+    Guid CorrelationId,
+    string? ProviderTransactionId = null) : IProviderOperationRequest;
 
 public sealed record ProviderRefundStatusRequest(
     decimal Amount,
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId);
+    Guid CorrelationId,
+    string? ProviderTransactionId = null) : IProviderOperationRequest;
 
 public sealed record ProviderWithdrawalStatusRequest(
     decimal Amount,
     string Currency,
     Guid BusinessId,
     string ProviderIdempotencyKey,
-    Guid CorrelationId);
+    Guid CorrelationId,
+    string? ProviderTransactionId = null,
+    string? ConnectedAccountId = null) : IProviderOperationRequest;

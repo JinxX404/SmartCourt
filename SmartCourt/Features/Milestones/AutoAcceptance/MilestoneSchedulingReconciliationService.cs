@@ -29,6 +29,7 @@ public sealed class MilestoneSchedulingReconciliationService
     {
         var scheduled = await ReconcileAutoAcceptAsync(cancellationToken);
         scheduled += await ReconcileExpiredHoldsAsync(cancellationToken);
+        scheduled += await ReconcileExpenseReleasesAsync(cancellationToken);
         return scheduled == 0
             ? JobExecutionResult.NoOp("NoMissingSchedulesFound")
             : JobExecutionResult.Completed(
@@ -41,7 +42,8 @@ public sealed class MilestoneSchedulingReconciliationService
     {
         var milestones = await _dbContext.Milestones
             .Where(milestone =>
-                milestone.Status == MilestoneStatus.Submitted
+                milestone.Type == MilestoneType.Standard
+                && milestone.Status == MilestoneStatus.Submitted
                 && milestone.AutoAcceptEligibleAt != null
                 && milestone.AutoAcceptJobId == null)
             .OrderBy(milestone => milestone.AutoAcceptEligibleAt)
@@ -87,7 +89,8 @@ public sealed class MilestoneSchedulingReconciliationService
         var milestones = await _dbContext.Milestones
             .AsNoTracking()
             .Where(milestone =>
-                milestone.Status == MilestoneStatus.AcceptedHold
+                milestone.Type == MilestoneType.Standard
+                && milestone.Status == MilestoneStatus.AcceptedHold
                 && milestone.HoldExpiresAt != null
                 && milestone.HoldExpiresAt <= now)
             .OrderBy(milestone => milestone.HoldExpiresAt)
@@ -110,6 +113,44 @@ public sealed class MilestoneSchedulingReconciliationService
 
             await _jobScheduler.ScheduleReleaseExpiredHoldAsync(
                 submission.EscrowHoldId,
+                now,
+                cancellationToken);
+            scheduled++;
+        }
+
+        return scheduled;
+    }
+
+    private async Task<int> ReconcileExpenseReleasesAsync(
+        CancellationToken cancellationToken)
+    {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var milestones = await _dbContext.Milestones
+            .AsNoTracking()
+            .Where(milestone =>
+                milestone.Type == MilestoneType.Expense
+                && milestone.Status == MilestoneStatus.ReleasePending
+                && milestone.FundedAt != null)
+            .OrderBy(milestone => milestone.FundedAt)
+            .Take(BatchSize)
+            .ToListAsync(cancellationToken);
+        var scheduled = 0;
+        foreach (var milestone in milestones)
+        {
+            var escrowHoldId = await _dbContext.EscrowHolds
+                .AsNoTracking()
+                .Where(hold => hold.MilestoneId == milestone.Id
+                    && hold.Status
+                        == SmartCourt.Features.Payments.Enums.EscrowHoldStatus.Funded)
+                .Select(hold => (Guid?)hold.Id)
+                .SingleOrDefaultAsync(cancellationToken);
+            if (!escrowHoldId.HasValue)
+            {
+                continue;
+            }
+
+            await _jobScheduler.ScheduleReleaseExpiredHoldAsync(
+                escrowHoldId.Value,
                 now,
                 cancellationToken);
             scheduled++;

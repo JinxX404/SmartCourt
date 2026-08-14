@@ -1,6 +1,7 @@
 using System.Data;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Payments.DTOs;
@@ -59,6 +60,27 @@ public sealed class WalletService(
             totalReleased);
     }
 
+    public async Task<IReadOnlyList<WithdrawalDto>> GetWithdrawalsAsync(
+        CancellationToken cancellationToken)
+    {
+        var lawyerUserId = GetActorUserId();
+        return await dbContext.WithdrawalRequests
+            .AsNoTracking()
+            .Where(item => item.LawyerUserId == lawyerUserId)
+            .OrderByDescending(item => item.RequestedAt)
+            .Select(item => new WithdrawalDto(
+                item.Id,
+                item.Amount,
+                item.Currency,
+                item.Status,
+                item.ProviderStatus,
+                item.FailureReason,
+                item.RequiresManualAction,
+                item.RequestedAt,
+                item.ProcessedAt))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<PaymentActionResultDto> WithdrawAsync(
         CreateWithdrawalRequest request,
         string? idempotencyKey,
@@ -73,6 +95,18 @@ public sealed class WalletService(
                 cancellationToken)
             ?? throw new BusinessException(
                 "لا توجد محفظة مالية متاحة لهذا المحامي.");
+        LawyerPayoutAccount? payoutAccount = null;
+        if (paymentProvider is ILawyerPayoutAccountProvider)
+        {
+            payoutAccount = await dbContext.LawyerPayoutAccounts
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.LawyerUserId == lawyerUserId
+                        && item.Status == LawyerPayoutAccountStatus.Enabled,
+                    cancellationToken)
+                ?? throw new BusinessException(
+                    "يجب إكمال وتفعيل حساب السحب لدى مزود الدفع قبل طلب السحب.");
+        }
         var scope = new IdempotencyScope(
             lawyerUserId,
             WithdrawalOperation,
@@ -103,6 +137,7 @@ public sealed class WalletService(
 
         var withdrawal = await ReserveBalanceAsync(
             wallet.Id,
+            payoutAccount?.Id,
             lawyerUserId,
             request.Amount,
             reservation.RecordId,
@@ -113,7 +148,14 @@ public sealed class WalletService(
             withdrawal.Id,
             withdrawal.IdempotencyKey,
             withdrawal.Id,
-            request.DestinationReference.Trim());
+            request.DestinationReference.Trim(),
+            withdrawal.ProviderAccountId ?? string.Empty,
+            withdrawal.ProviderAmountMinor.HasValue
+                && !string.IsNullOrWhiteSpace(withdrawal.ProviderCurrency)
+                    ? new ProviderMoney(
+                        withdrawal.ProviderAmountMinor.Value,
+                        withdrawal.ProviderCurrency)
+                    : null);
 
         ProviderResult providerResult;
         try
@@ -148,6 +190,11 @@ public sealed class WalletService(
                 "تعذر التحقق من نتيجة طلب السحب. ظل المبلغ محجوزًا لحين المراجعة.");
         }
 
+        await ApplyProviderResultAsync(
+            withdrawal.Id,
+            providerResult,
+            cancellationToken);
+
         if (providerResult.Outcome == ProviderOperationOutcome.Failed)
         {
             const string message =
@@ -164,6 +211,17 @@ public sealed class WalletService(
                 withdrawal.Id,
                 cancellationToken);
             throw new BusinessException(message);
+        }
+
+        if (providerResult.Outcome
+            is ProviderOperationOutcome.Processing
+                or ProviderOperationOutcome.RequiresCustomerAction)
+        {
+            var processingResponse = new PaymentActionResultDto(
+                withdrawal.Id,
+                WithdrawalStatus.Processing.ToString(),
+                UtcNow);
+            return processingResponse;
         }
 
         if (providerResult.Outcome != ProviderOperationOutcome.Succeeded)
@@ -239,7 +297,9 @@ public sealed class WalletService(
                 withdrawal.Currency,
                 withdrawal.Id,
                 withdrawal.IdempotencyKey,
-                withdrawal.Id);
+                withdrawal.Id,
+                withdrawal.ProviderTransactionId,
+                withdrawal.ProviderAccountId);
             ProviderResult? providerResult;
             try
             {
@@ -309,6 +369,11 @@ public sealed class WalletService(
 
                 continue;
             }
+
+            await ApplyProviderResultAsync(
+                withdrawal.Id,
+                providerResult,
+                cancellationToken);
 
             var reservation = await dbContext.IdempotencyRecords
                 .AsNoTracking()
@@ -382,6 +447,7 @@ public sealed class WalletService(
 
     private async Task<WithdrawalRequest> ReserveBalanceAsync(
         Guid walletId,
+        Guid? payoutAccountId,
         Guid lawyerUserId,
         decimal amount,
         Guid reservationId,
@@ -389,32 +455,24 @@ public sealed class WalletService(
     {
         await using var transaction = dbContext.Database.IsRelational()
             ? await dbContext.Database.BeginTransactionAsync(
-                IsolationLevel.ReadCommitted,
+                IsolationLevel.Serializable,
                 cancellationToken)
             : null;
         var now = UtcNow;
-        var balanceReserved = dbContext.Database.IsRelational()
-            ? await dbContext.LawyerWallets
-                .Where(item =>
-                    item.Id == walletId
-                    && item.LawyerUserId == lawyerUserId
-                    && item.AvailableBalance >= amount)
-                .ExecuteUpdateAsync(
-                    setters => setters
-                        .SetProperty(
-                            item => item.AvailableBalance,
-                            item => item.AvailableBalance - amount)
-                        .SetProperty(
-                            item => item.UpdatedAt,
-                            now),
-                    cancellationToken) == 1
-            : await ReserveInMemoryAsync(
-                walletId,
-                lawyerUserId,
-                amount,
-                now,
-                cancellationToken);
-        if (!balanceReserved)
+        var wallet = await dbContext.LawyerWallets.SingleAsync(
+            item => item.Id == walletId
+                && item.LawyerUserId == lawyerUserId,
+            cancellationToken);
+        var payoutAccount = payoutAccountId.HasValue
+            ? await dbContext.LawyerPayoutAccounts.SingleAsync(
+                item => item.Id == payoutAccountId.Value
+                    && item.LawyerUserId == lawyerUserId,
+                cancellationToken)
+            : null;
+        if (wallet.AvailableBalance < amount
+            || (payoutAccountId.HasValue
+                && payoutAccount?.Status
+                    != LawyerPayoutAccountStatus.Enabled))
         {
             if (transaction is not null)
             {
@@ -432,13 +490,55 @@ public sealed class WalletService(
             throw new BusinessException(message);
         }
 
+        var providerAmountMinor = payoutAccount is null
+            ? (long?)null
+            : AllocateProviderMinorAmount(
+                payoutAccount.AvailableProviderAmountMinor,
+                amount,
+                wallet.AvailableBalance);
+        if (payoutAccount is not null
+            && (providerAmountMinor <= 0
+                || payoutAccount.AvailableProviderAmountMinor
+                    < providerAmountMinor))
+        {
+            const string message =
+                "رصيد مزود الدفع المتاح لا يكفي لتنفيذ طلب السحب.";
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            await idempotencyService.FailAsync(
+                reservationId,
+                409,
+                new WithdrawalFailureResponse(message),
+                null,
+                cancellationToken);
+            throw new BusinessException(message);
+        }
+
+        wallet.AvailableBalance -= amount;
+        wallet.UpdatedAt = now;
+        if (payoutAccount is not null && providerAmountMinor.HasValue)
+        {
+            payoutAccount.AvailableProviderAmountMinor -=
+                providerAmountMinor.Value;
+            payoutAccount.UpdatedAt = now;
+        }
+
         var withdrawalId = Guid.NewGuid();
         var withdrawal = new WithdrawalRequest(
             withdrawalId,
             lawyerUserId,
             amount,
             $"withdrawal-{withdrawalId:N}",
-            now);
+            now)
+        {
+            LawyerPayoutAccountId = payoutAccount?.Id,
+            ProviderAccountId = payoutAccount?.ProviderAccountId,
+            ProviderAmountMinor = providerAmountMinor,
+            ProviderCurrency = payoutAccount?.DefaultCurrency
+        };
         dbContext.WithdrawalRequests.Add(withdrawal);
         var idempotencyRecord =
             await dbContext.IdempotencyRecords.SingleAsync(
@@ -459,30 +559,14 @@ public sealed class WalletService(
                 "تغير رصيد المحفظة أثناء إنشاء طلب السحب. يرجى إعادة تحميل المحفظة والمحاولة مرة أخرى.",
                 exception);
         }
-
-        return withdrawal;
-    }
-
-    private async Task<bool> ReserveInMemoryAsync(
-        Guid walletId,
-        Guid lawyerUserId,
-        decimal amount,
-        DateTime now,
-        CancellationToken cancellationToken)
-    {
-        var wallet = await dbContext.LawyerWallets.SingleAsync(
-            item =>
-                item.Id == walletId
-                && item.LawyerUserId == lawyerUserId,
-            cancellationToken);
-        if (wallet.AvailableBalance < amount)
+        catch (Exception exception) when (IsSqlDeadlock(exception))
         {
-            return false;
+            throw new BusinessException(
+                "تغير رصيد المحفظة أثناء إنشاء طلب السحب. يرجى إعادة تحميل المحفظة والمحاولة مرة أخرى.",
+                exception);
         }
 
-        wallet.AvailableBalance -= amount;
-        wallet.UpdatedAt = now;
-        return true;
+        return withdrawal;
     }
 
     private async Task<PaymentActionResultDto> CompleteAsync(
@@ -541,6 +625,18 @@ public sealed class WalletService(
             var now = UtcNow;
             wallet.AvailableBalance += withdrawal.Amount;
             wallet.UpdatedAt = now;
+            if (withdrawal.LawyerPayoutAccountId.HasValue
+                && withdrawal.ProviderAmountMinor.HasValue)
+            {
+                var payoutAccount = await dbContext.LawyerPayoutAccounts
+                    .SingleAsync(
+                        item => item.Id
+                            == withdrawal.LawyerPayoutAccountId.Value,
+                        cancellationToken);
+                payoutAccount.AvailableProviderAmountMinor +=
+                    withdrawal.ProviderAmountMinor.Value;
+                payoutAccount.UpdatedAt = now;
+            }
             withdrawal.Status = WithdrawalStatus.Failed;
             withdrawal.FailureReason = failureReason;
             withdrawal.RequiresManualAction = false;
@@ -572,6 +668,38 @@ public sealed class WalletService(
             withdrawal.FailureReason = reason;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+    }
+
+    private static bool IsSqlDeadlock(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            if (current is SqlException { Number: 1205 })
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task ApplyProviderResultAsync(
+        Guid withdrawalId,
+        ProviderResult result,
+        CancellationToken cancellationToken)
+    {
+        var withdrawal = await dbContext.WithdrawalRequests.SingleAsync(
+            item => item.Id == withdrawalId,
+            cancellationToken);
+        withdrawal.ProviderTransactionId = result.ProviderTransactionId;
+        withdrawal.ProviderStatus = result.ProviderStatus;
+        withdrawal.ProviderAmountMinor =
+            result.ProviderMoney?.AmountMinor
+            ?? withdrawal.ProviderAmountMinor;
+        withdrawal.ProviderCurrency =
+            result.ProviderMoney?.Currency
+            ?? withdrawal.ProviderCurrency;
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private async Task RequireManualActionAsync(
@@ -752,6 +880,28 @@ public sealed class WalletService(
             withdrawal.Id,
             withdrawal.Status.ToString(),
             withdrawal.ProcessedAt ?? withdrawal.RequestedAt);
+    }
+
+    private static long AllocateProviderMinorAmount(
+        long availableProviderAmountMinor,
+        decimal requestedBusinessAmount,
+        decimal availableBusinessAmount)
+    {
+        if (availableProviderAmountMinor <= 0
+            || requestedBusinessAmount <= 0m
+            || availableBusinessAmount <= 0m)
+        {
+            return 0;
+        }
+
+        var allocated = decimal.Floor(
+            availableProviderAmountMinor
+            * requestedBusinessAmount
+            / availableBusinessAmount);
+        return allocated > long.MaxValue
+            ? throw new BusinessException(
+                "تجاوز مبلغ السحب لدى مزود الدفع الحد العددي المسموح به.")
+            : (long)allocated;
     }
 
     private DateTime UtcNow =>

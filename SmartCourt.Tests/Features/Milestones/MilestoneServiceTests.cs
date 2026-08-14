@@ -33,7 +33,7 @@ public sealed class MilestoneServiceTests
     public async Task AddAsync_RequiresTheNextSequentialOrder()
     {
         await using var context = CreateContext();
-        var currentUser = new MutableCurrentUser(_clientUserId);
+        var currentUser = new MutableCurrentUser(_lawyerUserId);
         var contracts = CreateContractStub(ContractStatus.Draft);
         var draftService = CreateDraftService(context, currentUser, contracts);
 
@@ -60,7 +60,7 @@ public sealed class MilestoneServiceTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Assert.NotNull(createdPayload);
         Assert.Equal(created.Id, createdPayload.MilestoneId);
-        Assert.Equal(_clientUserId, createdPayload.ActorUserId);
+        Assert.Equal(_lawyerUserId, createdPayload.ActorUserId);
     }
 
     [Fact]
@@ -102,6 +102,125 @@ public sealed class MilestoneServiceTests
         Assert.NotNull(updatedPayload);
         Assert.Equal(milestone.Id, updatedPayload.MilestoneId);
         Assert.Equal(_lawyerUserId, updatedPayload.ActorUserId);
+    }
+
+    [Fact]
+    public async Task AddExpenseAsync_ActiveContractCreatesClientPendingProposal()
+    {
+        await using var context = CreateContext();
+        var draftService = CreateDraftService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var expense = await draftService.AddAsync(
+            _contractId,
+            new AddMilestoneRequest(
+                "Court filing expense",
+                "Reimburse the filing fee.",
+                null,
+                1,
+                750m,
+                null,
+                _utcNow.AddDays(2),
+                MilestoneType.Expense),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneType.Expense, expense.Type);
+        Assert.Equal(MilestoneStatus.Draft, expense.Status);
+        Assert.Null(expense.Deliverables);
+        Assert.Null(expense.DurationDays);
+        var entity = await context.Milestones.SingleAsync();
+        Assert.Equal(_utcNow, entity.AcceptedByLawyerAt);
+        Assert.Null(entity.AcceptedByClientAt);
+        Assert.Contains("Cancel", expense.PermittedActions);
+    }
+
+    [Fact]
+    public async Task ApproveExpenseAsync_ClientApprovalMakesItImmediatelyFundable()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(
+            MilestoneStatus.Draft,
+            1,
+            MilestoneType.Expense);
+        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
+        await AddMilestonesAsync(context, milestone);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await service.ApproveAsync(
+            milestone.Id,
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+        Assert.Equal(_utcNow, milestone.AcceptedByClientAt);
+        Assert.Equal(_utcNow, milestone.ReadyForFundingAt);
+        Assert.Equal(MilestoneStatus.AwaitingFunding.ToString(), result.Status);
+    }
+
+    [Fact]
+    public async Task UpdateExpenseAsync_RequiresFreshClientApproval()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(
+            MilestoneStatus.Draft,
+            1,
+            MilestoneType.Expense);
+        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-2);
+        milestone.AcceptedByClientAt = _utcNow.AddMinutes(-1);
+        await AddMilestonesAsync(context, milestone);
+        var draftService = CreateDraftService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        await draftService.UpdateDraftAsync(
+            _contractId,
+            milestone.Id,
+            new UpdateMilestoneRequest(
+                "Updated expense",
+                "Updated receipt details.",
+                null,
+                null,
+                _utcNow.AddDays(3),
+                MilestoneType.Expense),
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        Assert.Null(milestone.AcceptedByClientAt);
+        Assert.Equal(_utcNow, milestone.AcceptedByLawyerAt);
+        Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+    }
+
+    [Fact]
+    public async Task RejectExpenseAsync_ClientCancelsPendingProposal()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(
+            MilestoneStatus.Draft,
+            1,
+            MilestoneType.Expense);
+        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
+        await AddMilestonesAsync(context, milestone);
+        var contracts = CreateContractStub(ContractStatus.Active);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            contracts);
+
+        await service.RejectExpenseAsync(
+            milestone.Id,
+            new ExpenseMilestoneDecisionRequest("Receipt is not valid."),
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.Cancelled, milestone.Status);
+        Assert.Equal("Receipt is not valid.", milestone.RejectionReason);
+        Assert.Equal(1, contracts.EvaluateCompletionCallCount);
     }
 
     [Fact]
@@ -284,7 +403,7 @@ public sealed class MilestoneServiceTests
             CancellationToken.None);
 
         Assert.Equal(2, result.Count);
-        Assert.Contains("Update", result[0].PermittedActions);
+        Assert.DoesNotContain("Update", result[0].PermittedActions);
         Assert.Contains("Approve", result[0].PermittedActions);
         Assert.Equal(
             MilestoneFundingStatus.Funded,
@@ -976,7 +1095,8 @@ public sealed class MilestoneServiceTests
 
     private Milestone CreateMilestone(
         MilestoneStatus status,
-        int orderNumber)
+        int orderNumber,
+        MilestoneType type = MilestoneType.Standard)
     {
         return new Milestone(
             Guid.NewGuid(),
@@ -985,9 +1105,11 @@ public sealed class MilestoneServiceTests
             null,
             orderNumber,
             1_000m,
-            14,
+            type == MilestoneType.Standard ? 14 : null,
             _utcNow.AddDays(14),
-            _utcNow.AddHours(-1))
+            null,
+            _utcNow.AddHours(-1),
+            type)
         {
             Status = status,
             RowVersion = [1, 2, 3, (byte)orderNumber]
@@ -1071,6 +1193,7 @@ public sealed class MilestoneServiceTests
         DateTime utcNow) : IContractService
     {
         public int EvaluateActivationCallCount { get; private set; }
+        public int EvaluateCompletionCallCount { get; private set; }
 
         public Task<ContractDetailDto> GetAsync(
             Guid contractId,
@@ -1126,7 +1249,15 @@ public sealed class MilestoneServiceTests
         public Task<ContractActionResultDto> EvaluateCompletionAsync(
             Guid contractId,
             CancellationToken cancellationToken)
-            => throw new NotSupportedException();
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            EvaluateCompletionCallCount++;
+            return Task.FromResult(
+                new ContractActionResultDto(
+                    contractId,
+                    contract.Status.ToString(),
+                    utcNow));
+        }
 
         public Task<ContractDetailDto> TerminateAsync(
             Guid contractId,

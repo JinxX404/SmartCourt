@@ -104,37 +104,54 @@ public sealed class EscrowReleaseService(
                 item => item.Id == hold.MilestoneId,
                 cancellationToken);
         if (milestone is null
-            || milestone.ContractId != hold.ContractId
-            || milestone.Status != MilestoneStatus.AcceptedHold)
+            || milestone.ContractId != hold.ContractId)
         {
             return NoOp(
-                "MilestoneNoLongerInAcceptedHold",
+                "MilestoneReleaseOwnershipIsInvalid",
+                escrowHoldId);
+        }
+
+
+        var isStandardRelease = milestone.Type == MilestoneType.Standard
+            && milestone.Status == MilestoneStatus.AcceptedHold;
+        var isExpenseRelease = milestone.Type == MilestoneType.Expense
+            && milestone.Status == MilestoneStatus.ReleasePending;
+        if (!isStandardRelease && !isExpenseRelease)
+        {
+            return NoOp(
+                milestone.Type == MilestoneType.Standard
+                    ? "MilestoneNoLongerInAcceptedHold"
+                    : "MilestoneNotEligibleForRelease",
                 escrowHoldId);
         }
 
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        if (!hold.HoldExpiresAt.HasValue
-            || !milestone.HoldExpiresAt.HasValue
-            || hold.HoldExpiresAt.Value
-                != milestone.HoldExpiresAt.Value)
+        if (isStandardRelease
+            && (!hold.HoldExpiresAt.HasValue
+                || !milestone.HoldExpiresAt.HasValue
+                || hold.HoldExpiresAt.Value
+                    != milestone.HoldExpiresAt.Value))
         {
             return NoOp("HoldExpiryIsInvalid", escrowHoldId);
         }
 
-        if (hold.HoldExpiresAt.Value > now)
+        if (isStandardRelease && hold.HoldExpiresAt!.Value > now)
         {
             return NoOp("HoldReleaseDeadlineNotElapsed", escrowHoldId);
         }
 
-        var hasActiveDispute = await dbContext.Disputes.AnyAsync(
-            dispute =>
-                dispute.MilestoneId == milestone.Id
-                && dispute.Status != DisputeStatus.Resolved
-                && dispute.Status != DisputeStatus.Closed,
-            cancellationToken);
-        if (hasActiveDispute)
+        if (isStandardRelease)
         {
-            return NoOp("ActiveDisputeExists", escrowHoldId);
+            var hasActiveDispute = await dbContext.Disputes.AnyAsync(
+                dispute =>
+                    dispute.MilestoneId == milestone.Id
+                    && dispute.Status != DisputeStatus.Resolved
+                    && dispute.Status != DisputeStatus.Closed,
+                cancellationToken);
+            if (hasActiveDispute)
+            {
+                return NoOp("ActiveDisputeExists", escrowHoldId);
+            }
         }
 
         var account = await dbContext.EscrowAccounts
@@ -161,6 +178,37 @@ public sealed class EscrowReleaseService(
         if (wallet is null)
         {
             return NoOp("LawyerWalletNotFound", escrowHoldId);
+        }
+
+        LawyerPayoutAccount? payoutAccount = null;
+        PaymentTransaction? depositTransaction = null;
+        if (paymentProvider is ILawyerPayoutAccountProvider)
+        {
+            payoutAccount = await dbContext.LawyerPayoutAccounts
+                .SingleOrDefaultAsync(
+                    item => item.LawyerUserId == contract.LawyerUserId
+                        && item.Status == LawyerPayoutAccountStatus.Enabled,
+                    cancellationToken);
+            if (payoutAccount is null)
+            {
+                return NoOp("LawyerPayoutAccountNotEnabled", escrowHoldId);
+            }
+
+            depositTransaction = await dbContext.PaymentTransactions
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.Id == hold.ProviderDepositTransactionId
+                        && item.OperationType == PaymentOperationType.Deposit
+                        && item.Status == PaymentTransactionStatus.Completed,
+                    cancellationToken);
+            if (depositTransaction is null
+                || string.IsNullOrWhiteSpace(
+                    depositTransaction.ProviderTransactionId)
+                || string.IsNullOrWhiteSpace(
+                    depositTransaction.ProviderRelatedTransactionId))
+            {
+                return NoOp("ProviderDepositIdentifiersMissing", escrowHoldId);
+            }
         }
 
         if (!FinancialStateIsValid(hold, account, wallet))
@@ -218,7 +266,7 @@ public sealed class EscrowReleaseService(
                 PaymentOperationType.Release,
                 paymentProvider.GetType().Name,
                 providerIdempotencyKey,
-                hold.GrossAmount,
+                hold.NetAmount,
                 now)
             {
                 EscrowHoldId = hold.Id
@@ -271,11 +319,16 @@ public sealed class EscrowReleaseService(
                 releaseTransaction,
                 now);
             var providerRequest = new ProviderReleaseRequest(
-                hold.GrossAmount,
+                hold.NetAmount,
                 account.Currency,
                 hold.Id,
                 releaseTransaction.IdempotencyKey,
-                releaseTransaction.Id);
+                releaseTransaction.Id,
+                depositTransaction?.ProviderTransactionId ?? string.Empty,
+                depositTransaction?.ProviderRelatedTransactionId
+                    ?? string.Empty,
+                payoutAccount?.ProviderAccountId ?? string.Empty,
+                hold.GrossAmount);
             await SaveAttemptAndCommitAsync(
                 transaction,
                 cancellationToken);
@@ -380,6 +433,16 @@ public sealed class EscrowReleaseService(
 
             releaseTransaction.ProviderTransactionId =
                 providerResult.ProviderTransactionId;
+            releaseTransaction.ProviderRelatedTransactionId =
+                providerResult.RelatedProviderTransactionId;
+            releaseTransaction.ProviderStatus =
+                providerResult.ProviderStatus;
+            releaseTransaction.ProviderObjectType =
+                providerResult.ProviderObjectType;
+            releaseTransaction.ProviderAmountMinor =
+                providerResult.ProviderMoney?.AmountMinor;
+            releaseTransaction.ProviderCurrency =
+                providerResult.ProviderMoney?.Currency;
             PaymentReleaseRetryPolicy.RecordSuccess(
                 releaseTransaction,
                 now);
@@ -430,6 +493,23 @@ public sealed class EscrowReleaseService(
         wallet.PendingBalance -= hold.NetAmount;
         wallet.AvailableBalance += hold.NetAmount;
         wallet.UpdatedAt = now;
+        if (payoutAccount is not null
+            && releaseTransaction.ProviderAmountMinor.HasValue)
+        {
+            if (payoutAccount.AvailableProviderAmountMinor >
+                long.MaxValue - releaseTransaction.ProviderAmountMinor.Value)
+            {
+                throw new BusinessException(
+                    "تجاوز رصيد مزود الدفع الحد العددي المسموح به.");
+            }
+
+            payoutAccount.AvailableProviderAmountMinor +=
+                releaseTransaction.ProviderAmountMinor.Value;
+            payoutAccount.DefaultCurrency =
+                releaseTransaction.ProviderCurrency
+                ?? payoutAccount.DefaultCurrency;
+            payoutAccount.UpdatedAt = now;
+        }
 
         EscrowHoldTransitionGuard.EnsureCanTransition(
             hold.Status,
@@ -442,6 +522,7 @@ public sealed class EscrowReleaseService(
         MilestoneTransitionGuard.EnsureCanTransition(
             milestone.Status,
             MilestoneStatus.Released);
+        var previousMilestoneStatus = milestone.Status;
         milestone.Status = MilestoneStatus.Released;
         milestone.ReleasedAt = now;
         milestone.UpdatedAt = now;
@@ -449,11 +530,13 @@ public sealed class EscrowReleaseService(
             MilestoneStateHistoryFactory.Create(
                 Guid.NewGuid(),
                 milestone.Id,
-                MilestoneStatus.AcceptedHold,
+                previousMilestoneStatus,
                 MilestoneStatus.Released,
                 ContractPaymentEventTypes.FundsReleased,
                 actorUserId: null,
-                "انتهت مدة الحجز وتم تحرير مستحقات المحامي ورسوم المنصة.",
+                isExpenseRelease
+                    ? "تم تحرير المصروف الممول مباشرة للمحامي."
+                    : "انتهت مدة الحجز وتم تحرير مستحقات المحامي ورسوم المنصة.",
                 correlationId,
                 now));
         await outboxWriter.EnqueueAsync(

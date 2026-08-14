@@ -242,7 +242,9 @@ public sealed class ContractQueryService(
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
             hold?.NetAmount,
-            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"");
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
+            milestone.Type,
+            milestone.Deliverables);
     }
 
     private static IReadOnlyList<string> GetPermittedActions(

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Enums;
@@ -21,6 +22,7 @@ public sealed record ContractMilestoneDto(
     string Title,
     string? Description,
     decimal Amount,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? DurationDays,
     DateTime? DueDate,
     MilestoneStatus Status,
@@ -31,7 +33,10 @@ public sealed record ContractMilestoneDto(
     DateTime? AutoAcceptEligibleAt,
     DateTime? HoldExpiresAt,
     decimal? NetLawyerAmount,
-    string Version);
+    string Version,
+    MilestoneType Type = MilestoneType.Standard,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    IReadOnlyList<string>? Deliverables = null);
 
 public sealed record ContractPaymentDto(
     Guid Id,

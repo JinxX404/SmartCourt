@@ -66,22 +66,15 @@ public sealed class PaymentProviderRegistrationTests
     }
 
     [Fact]
-    public void DisabledMockProvider_DoesNotThrowValidationException_InTestingMode()
+    public void DisabledMockProvider_RequiresAnExplicitSupportedProvider()
     {
-        using var provider = BuildProvider(
+        Assert.Throws<InvalidOperationException>(() => BuildProvider(
             useMockProvider: false,
-            isDevelopment: false);
-
-        // In testing mode, startup validator restrictions are commented out so Validate() does not throw
-        var exception = Record.Exception(() =>
-            provider
-                .GetRequiredService<IPaymentProviderStartupValidator>()
-                .Validate());
-        Assert.Null(exception);
+            isDevelopment: false));
     }
 
     [Fact]
-    public void SplitOperationalAndReconciliationInstances_DoesNotThrow_InTestingMode()
+    public void SplitOperationalAndReconciliationInstances_AreRejected()
     {
         var options = Options.Create(new PaymentProviderOptions
         {
@@ -97,9 +90,7 @@ public sealed class PaymentProviderRegistrationTests
             [operational],
             [reconciliation]);
 
-        // In testing mode, startup validator restrictions are commented out so Validate() does not throw
-        var exception = Record.Exception(validator.Validate);
-        Assert.Null(exception);
+        Assert.Throws<InvalidOperationException>(validator.Validate);
     }
 
     [Theory]

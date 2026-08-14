@@ -40,29 +40,11 @@ public sealed class MilestonesControllerTests
         var listAction = await controller.ListAsync(
             contractId,
             CancellationToken.None);
-        var changeRequestAction = await controller.CreateChangeRequestAsync(
-            Guid.NewGuid(),
-            new CreateMilestoneChangeRequest(
-                "وصف محدث",
-                21,
-                null,
-                "تحتاج المرحلة إلى وقت إضافي."),
-            ValidIfMatch,
-            CancellationToken.None);
-        var changeRequestResult = ConvertAction(changeRequestAction);
-
         var addResult = Assert.IsType<ObjectResult>(
             ConvertAction(addAction));
         AssertWrapped(addResult.Value, service.Milestone);
         Assert.Equal(StatusCodes.Status201Created, addResult.StatusCode);
         AssertWrappedOk(listAction, service.Milestones);
-        Assert.Equal(
-            StatusCodes.Status201Created,
-            Assert.IsType<ObjectResult>(changeRequestResult).StatusCode);
-        AssertWrapped(
-            Assert.IsType<ObjectResult>(changeRequestResult).Value,
-            service.ActionResult);
-        Assert.Equal(ValidIfMatch, service.LastIfMatch);
     }
 
     [Fact]
@@ -72,8 +54,6 @@ public sealed class MilestonesControllerTests
         var controller = CreateController(service);
         var contractId = Guid.NewGuid();
         var milestoneId = Guid.NewGuid();
-        var changeRequestId = Guid.NewGuid();
-
         var update = await controller.UpdateAsync(
             contractId,
             milestoneId,
@@ -105,30 +85,13 @@ public sealed class MilestonesControllerTests
             milestoneId,
             new RequestMilestoneChangesRequest("يرجى استكمال المستندات."),
             CancellationToken.None);
-        var approveRequest = await controller.ApproveChangeRequestAsync(
-            changeRequestId,
-            ValidIfMatch,
-            CancellationToken.None);
-        var rejectRequest = await controller.RejectChangeRequestAsync(
-            changeRequestId,
-            new RejectChangeRequest("السبب"),
-            ValidIfMatch,
-            CancellationToken.None);
-        var cancelRequest = await controller.CancelChangeRequestAsync(
-            changeRequestId,
-            ValidIfMatch,
-            CancellationToken.None);
-
         AssertWrappedOk(update, service.Milestone);
         AssertWrappedOk(approve, service.ActionResult);
         AssertWrappedOk(ready, service.ActionResult);
         AssertWrappedOk(submit, service.Milestone);
         AssertWrappedOk(accept, service.Milestone);
         AssertWrappedOk(requestChanges, service.Milestone);
-        AssertWrappedOk(approveRequest, service.ActionResult);
-        AssertWrappedOk(rejectRequest, service.ActionResult);
-        AssertWrappedOk(cancelRequest, service.ActionResult);
-        Assert.Equal(6, service.IfMatchCallCount);
+        Assert.Equal(3, service.IfMatchCallCount);
     }
 
     [Theory]
@@ -159,7 +122,7 @@ public sealed class MilestonesControllerTests
             nameof(MilestonesController.AddAsync),
             typeof(HttpPostAttribute),
             "contracts/{contractId:guid}/milestones",
-            "Client,Lawyer");
+            "Lawyer");
         AssertEndpoint(
             nameof(MilestonesController.ListAsync),
             typeof(HttpGetAttribute),
@@ -169,7 +132,7 @@ public sealed class MilestonesControllerTests
             nameof(MilestonesController.UpdateAsync),
             typeof(HttpPutAttribute),
             "contracts/{contractId:guid}/milestones/{milestoneId:guid}",
-            "Client,Lawyer");
+            "Lawyer");
         AssertEndpoint(
             nameof(MilestonesController.MarkReadyForFundingAsync),
             typeof(HttpPostAttribute),
@@ -191,10 +154,15 @@ public sealed class MilestonesControllerTests
             "milestones/{milestoneId:guid}/request-changes",
             "Client");
         AssertEndpoint(
-            nameof(MilestonesController.RejectChangeRequestAsync),
+            nameof(MilestonesController.RejectExpenseAsync),
             typeof(HttpPostAttribute),
-            "change-requests/{changeRequestId:guid}/reject",
-            "Client,Lawyer");
+            "milestones/{milestoneId:guid}/reject",
+            "Client");
+        AssertEndpoint(
+            nameof(MilestonesController.CancelExpenseAsync),
+            typeof(HttpPostAttribute),
+            "milestones/{milestoneId:guid}/cancel",
+            "Lawyer");
     }
 
     private static MilestonesController CreateController(
@@ -318,6 +286,26 @@ public sealed class MilestonesControllerTests
 
         public Task<MilestoneActionResultDto> MarkReadyForFundingAsync(
             Guid milestoneId,
+            string ifMatch,
+            CancellationToken cancellationToken)
+        {
+            RecordIfMatch(ifMatch);
+            return Task.FromResult(ActionResult);
+        }
+
+        public Task<MilestoneActionResultDto> RejectExpenseAsync(
+            Guid milestoneId,
+            ExpenseMilestoneDecisionRequest request,
+            string ifMatch,
+            CancellationToken cancellationToken)
+        {
+            RecordIfMatch(ifMatch);
+            return Task.FromResult(ActionResult);
+        }
+
+        public Task<MilestoneActionResultDto> CancelExpenseAsync(
+            Guid milestoneId,
+            ExpenseMilestoneDecisionRequest request,
             string ifMatch,
             CancellationToken cancellationToken)
         {

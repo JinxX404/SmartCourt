@@ -18,6 +18,7 @@ using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Features.Payments.Settlement;
 using SmartCourt.Features.Users.Integration;
 using SmartCourt.Infrastructure.Idempotency;
+using SmartCourt.Infrastructure.Persistence;
 using SmartCourt.Infrastructure.Persistence.Enums;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
@@ -47,13 +48,46 @@ public sealed class PaymentEscrowService(
     private static readonly JsonSerializerOptions SerializerOptions =
         new(JsonSerializerDefaults.Web);
 
-    public async Task<PaymentDto> FundAsync(
+    public async Task<FundingOperationDto> FundWithConfirmationTokenAsync(
+        Guid milestoneId,
+        string confirmationTokenReference,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var customerReference = await GetClientCustomerReferenceAsync(
+            actorUserId,
+            cancellationToken);
+        return await FundAsync(
+            milestoneId,
+            new FundMilestoneRequest(
+                string.Empty,
+                confirmationTokenReference,
+                customerReference),
+            idempotencyKey,
+            cancellationToken);
+    }
+
+    public async Task<FundingOperationDto> FundAsync(
         Guid milestoneId,
         FundMilestoneRequest request,
         string? idempotencyKey,
         CancellationToken cancellationToken)
     {
         var actorUserId = GetActorUserId();
+        if (string.IsNullOrWhiteSpace(request.CustomerReference)
+            && request.PaymentMethodReference.StartsWith(
+                "pm_",
+                StringComparison.Ordinal))
+        {
+            request = request with
+            {
+                CustomerReference = await ResolveCustomerForPaymentMethodAsync(
+                    actorUserId,
+                    request.PaymentMethodReference,
+                    cancellationToken)
+            };
+        }
         var normalizedIdempotencyKey =
             RequireIdempotencyKey(idempotencyKey);
         var milestone = await dbContext.Milestones
@@ -186,7 +220,9 @@ public sealed class PaymentEscrowService(
             milestone.Id,
             providerIdempotencyKey,
             correlationId,
-            request.PaymentMethodReference);
+            request.PaymentMethodReference,
+            request.ConfirmationTokenReference,
+            request.CustomerReference);
 
         ProviderResult providerResult;
         try
@@ -221,7 +257,7 @@ public sealed class PaymentEscrowService(
         return providerResult.Outcome switch
         {
             ProviderOperationOutcome.Succeeded =>
-                await CompleteFundingAsync(
+                CompletedFunding(await CompleteFundingAsync(
                     milestone,
                     contract.LawyerUserId,
                     paymentTransaction,
@@ -229,7 +265,7 @@ public sealed class PaymentEscrowService(
                     reservation.RecordId,
                     actorUserId,
                     correlationId,
-                    cancellationToken),
+                    cancellationToken), paymentTransaction),
             ProviderOperationOutcome.Failed =>
                 await FailFundingAsync(
                     milestone,
@@ -242,6 +278,14 @@ public sealed class PaymentEscrowService(
                 await KeepUnknownAndThrowAsync(
                     paymentTransaction,
                     cancellationToken),
+            ProviderOperationOutcome.Processing
+                or ProviderOperationOutcome.RequiresCustomerAction =>
+                await KeepPendingFundingAsync(
+                    milestone,
+                    paymentTransaction,
+                    providerResult,
+                    reservation.RecordId,
+                    cancellationToken),
             _ => throw new BusinessException(
                 "أعاد مزود الدفع نتيجة غير صالحة لعملية تمويل المرحلة.")
         };
@@ -249,15 +293,56 @@ public sealed class PaymentEscrowService(
 
 
 
-    public async Task<PaymentDto> RetryAsync(
+    public async Task<FundingOperationDto> RetryAsync(
         Guid paymentTransactionId,
+        string paymentMethodReference,
+        string? idempotencyKey,
+        CancellationToken cancellationToken)
+        => await RetryCoreAsync(
+            paymentTransactionId,
+            paymentMethodReference,
+            string.Empty,
+            string.Empty,
+            idempotencyKey,
+            requireFinanceOperator: true,
+            cancellationToken);
+
+    public async Task<FundingOperationDto> RetryWithConfirmationTokenAsync(
+        Guid paymentTransactionId,
+        string confirmationTokenReference,
         string? idempotencyKey,
         CancellationToken cancellationToken)
     {
         var actorUserId = GetActorUserId();
-        await EnsureFinanceOperatorAsync(
+        var customerReference = await GetClientCustomerReferenceAsync(
             actorUserId,
             cancellationToken);
+        return await RetryCoreAsync(
+            paymentTransactionId,
+            string.Empty,
+            confirmationTokenReference,
+            customerReference,
+            idempotencyKey,
+            requireFinanceOperator: false,
+            cancellationToken);
+    }
+
+    private async Task<FundingOperationDto> RetryCoreAsync(
+        Guid paymentTransactionId,
+        string paymentMethodReference,
+        string confirmationTokenReference,
+        string customerReference,
+        string? idempotencyKey,
+        bool requireFinanceOperator,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        if (requireFinanceOperator)
+        {
+            await EnsureFinanceOperatorAsync(
+                actorUserId,
+                cancellationToken);
+        }
         if (paymentTransactionId == Guid.Empty)
         {
             throw new BusinessException(
@@ -304,14 +389,25 @@ public sealed class PaymentEscrowService(
                 cancellationToken)
             ?? throw new NotFoundException(
                 "العقد المرتبط بمعاملة الدفع غير موجود.");
+        if (!requireFinanceOperator && contract.ClientUserId != actorUserId)
+        {
+            throw new ForbiddenAccessException(
+                "عميل العقد فقط هو من يمكنه إعادة محاولة دفع المرحلة.");
+        }
 
         var scope = new IdempotencyScope(
             actorUserId,
             RetryOperation,
             PaymentTransactionResource,
             originalTransaction.Id);
-        var retryRequest = new RetryPaymentRequest(
-            normalizedIdempotencyKey);
+        object retryRequest = string.IsNullOrWhiteSpace(
+                confirmationTokenReference)
+            ? new RetryPaymentRequest(
+                paymentMethodReference,
+                normalizedIdempotencyKey)
+            : new RetryPaymentSessionRequest(
+                confirmationTokenReference,
+                normalizedIdempotencyKey);
         var reservation = await idempotencyService.ReserveAsync(
             scope,
             normalizedIdempotencyKey,
@@ -411,7 +507,10 @@ public sealed class PaymentEscrowService(
             providerIdempotencyKey,
             correlationId,
             originalTransaction.IdempotencyKey,
-            originalTransaction.ProviderTransactionId);
+            originalTransaction.ProviderTransactionId,
+            paymentMethodReference,
+            confirmationTokenReference,
+            customerReference);
         ProviderResult providerResult;
         try
         {
@@ -445,7 +544,7 @@ public sealed class PaymentEscrowService(
         return providerResult.Outcome switch
         {
             ProviderOperationOutcome.Succeeded =>
-                await CompleteFundingAsync(
+                CompletedFunding(await CompleteFundingAsync(
                     milestone,
                     contract.LawyerUserId,
                     retryTransaction,
@@ -453,7 +552,7 @@ public sealed class PaymentEscrowService(
                     reservation.RecordId,
                     actorUserId,
                     correlationId,
-                    cancellationToken),
+                    cancellationToken), retryTransaction),
             ProviderOperationOutcome.Failed =>
                 await FailFundingAsync(
                     milestone,
@@ -465,6 +564,14 @@ public sealed class PaymentEscrowService(
             ProviderOperationOutcome.Unknown =>
                 await KeepUnknownAndThrowAsync(
                     retryTransaction,
+                    cancellationToken),
+            ProviderOperationOutcome.Processing
+                or ProviderOperationOutcome.RequiresCustomerAction =>
+                await KeepPendingFundingAsync(
+                    milestone,
+                    retryTransaction,
+                    providerResult,
+                    reservation.RecordId,
                     cancellationToken),
             _ => throw new BusinessException(
                 "أعاد مزود الدفع نتيجة غير صالحة لإعادة محاولة التمويل.")
@@ -496,6 +603,11 @@ public sealed class PaymentEscrowService(
             throw new BusinessException(
                 "تعذر توثيق نتيجة تمويل المرحلة. تم إيقاف أي محاولة جديدة لحين مراجعة العملية.");
         }
+
+        await using var transaction =
+            await SerializableOperationTransaction.CreateAsync(
+                dbContext,
+                cancellationToken);
 
         var now = UtcNow;
         var breakdown = SettlementCalculator.Calculate(
@@ -548,6 +660,7 @@ public sealed class PaymentEscrowService(
         paymentTransaction.EscrowHoldId = hold.Id;
         paymentTransaction.ProviderTransactionId =
             providerResult.ProviderTransactionId;
+        ApplyProviderResult(paymentTransaction, providerResult);
         paymentTransaction.Status =
             PaymentTransactionStatus.Completed;
         paymentTransaction.FailureReason = null;
@@ -574,20 +687,25 @@ public sealed class PaymentEscrowService(
                 correlationId,
                 now));
 
+        var fundedStatus = milestone.Type == MilestoneType.Expense
+            ? MilestoneStatus.ReleasePending
+            : MilestoneStatus.FundedInProgress;
         MilestoneTransitionGuard.EnsureCanTransition(
             milestone.Status,
-            MilestoneStatus.FundedInProgress);
+            fundedStatus);
         var previousStatus = milestone.Status;
-        milestone.Status = MilestoneStatus.FundedInProgress;
+        milestone.Status = fundedStatus;
         milestone.FundedAt = now;
         milestone.UpdatedAt = now;
         AddHistory(
             milestone,
             previousStatus,
-            MilestoneStatus.FundedInProgress,
+            fundedStatus,
             ContractPaymentEventTypes.MilestoneFunded,
             actorUserId,
-            "تم تمويل المرحلة وإنشاء حجز الضمان بنجاح.",
+            milestone.Type == MilestoneType.Expense
+                ? "تم تمويل المصروف وبدأ تحريره الفوري للمحامي."
+                : "تم تمويل المرحلة وإنشاء حجز الضمان بنجاح.",
             correlationId,
             now);
         await EnqueueMilestoneEventAsync(
@@ -603,7 +721,29 @@ public sealed class PaymentEscrowService(
         }
         catch (DbUpdateException exception)
         {
+            await transaction.DisposeAsync();
             dbContext.ChangeTracker.Clear();
+            try
+            {
+                var pendingTransaction = await dbContext.PaymentTransactions
+                    .SingleAsync(
+                        item => item.Id == paymentTransaction.Id,
+                        CancellationToken.None);
+                ApplyProviderResult(pendingTransaction, providerResult);
+                pendingTransaction.Status = PaymentTransactionStatus.Processing;
+                pendingTransaction.FailureReason =
+                    "Provider payment succeeded, but local funding completion requires reconciliation.";
+                pendingTransaction.UpdatedAt = UtcNow;
+                await dbContext.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception recoveryException)
+            {
+                logger.LogCritical(
+                    recoveryException,
+                    "Could not persist the confirmed provider result for payment transaction {PaymentTransactionId} after local funding completion failed.",
+                    paymentTransaction.Id);
+                dbContext.ChangeTracker.Clear();
+            }
             throw new BusinessException(
                 "نجحت عملية الدفع لدى المزود، لكن تعذر توثيق التمويل. تم إيقاف إعادة الخصم وستتم مراجعة العملية تلقائيًا.",
                 exception);
@@ -619,10 +759,13 @@ public sealed class PaymentEscrowService(
                 cancellationToken);
         }
 
+
+        await transaction.CommitAndCloseAsync(cancellationToken);
+
         return response;
     }
 
-    private async Task<PaymentDto> FailFundingAsync(
+    private async Task<FundingOperationDto> FailFundingAsync(
         Milestone milestone,
         PaymentTransaction paymentTransaction,
         Guid reservationId,
@@ -669,7 +812,7 @@ public sealed class PaymentEscrowService(
         throw new BusinessException(message);
     }
 
-    private async Task<PaymentDto> KeepUnknownAndThrowAsync(
+    private async Task<FundingOperationDto> KeepUnknownAndThrowAsync(
         PaymentTransaction paymentTransaction,
         CancellationToken cancellationToken)
     {
@@ -698,6 +841,38 @@ public sealed class PaymentEscrowService(
         {
             dbContext.ChangeTracker.Clear();
         }
+    }
+
+    private async Task<FundingOperationDto> KeepPendingFundingAsync(
+        Milestone milestone,
+        PaymentTransaction paymentTransaction,
+        ProviderResult providerResult,
+        Guid reservationId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(providerResult.ProviderTransactionId))
+        {
+            return await KeepUnknownAndThrowAsync(
+                paymentTransaction,
+                cancellationToken);
+        }
+
+        ApplyProviderResult(paymentTransaction, providerResult);
+        paymentTransaction.Status = PaymentTransactionStatus.Processing;
+        paymentTransaction.FailureReason = null;
+        paymentTransaction.UpdatedAt = UtcNow;
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var response = new FundingOperationDto(
+            paymentTransaction.Id,
+            milestone.Id,
+            providerResult.Outcome.ToString(),
+            providerResult.ClientAction?.Type.ToString(),
+            providerResult.ClientAction?.ClientSecret,
+            providerResult.ClientAction?.RedirectUrl,
+            null,
+            UtcNow);
+        return response;
     }
 
     private void ValidateWebhookAuthentication(
@@ -991,10 +1166,25 @@ public sealed class PaymentEscrowService(
                 "يجب أن يجهز المحامي المرحلة للتمويل قبل تنفيذ الدفع.");
         }
 
+
+        if (await dbContext.EscrowHolds.AnyAsync(
+                hold => hold.MilestoneId == milestone.Id,
+                cancellationToken))
+        {
+            throw new ConflictException(
+                "تم إنشاء حجز ضمان لهذه المرحلة مسبقًا.");
+        }
+
+        if (milestone.Type == MilestoneType.Expense)
+        {
+            return;
+        }
+
         var hasUnsettledEarlierMilestone =
             await dbContext.Milestones.AnyAsync(
                 item =>
                     item.ContractId == milestone.ContractId
+                    && item.Type == MilestoneType.Standard
                     && item.OrderNumber < milestone.OrderNumber
                     && item.Status != MilestoneStatus.Released
                     && item.Status != MilestoneStatus.Refunded
@@ -1011,6 +1201,7 @@ public sealed class PaymentEscrowService(
                 item =>
                     item.ContractId == milestone.ContractId
                     && item.Id != milestone.Id
+                    && item.Type == MilestoneType.Standard
                     && (item.Status
                             == MilestoneStatus.FundingProcessing
                         || item.Status
@@ -1020,29 +1211,24 @@ public sealed class PaymentEscrowService(
                         || item.Status == MilestoneStatus.Disputed),
                 cancellationToken);
         var hasOtherUnsettledHold =
-            await dbContext.EscrowHolds.AnyAsync(
-                hold =>
-                    hold.ContractId == milestone.ContractId
-                    && hold.MilestoneId != milestone.Id
-                    && (hold.Status == EscrowHoldStatus.Funded
-                        || hold.Status == EscrowHoldStatus.Frozen),
+            await dbContext.Milestones.AnyAsync(
+                item =>
+                    item.ContractId == milestone.ContractId
+                    && item.Id != milestone.Id
+                    && item.Type == MilestoneType.Standard
+                    && dbContext.EscrowHolds.Any(hold =>
+                        hold.MilestoneId == item.Id
+                        && (hold.Status == EscrowHoldStatus.Funded
+                            || hold.Status == EscrowHoldStatus.Frozen)),
                 cancellationToken);
         if (hasOtherActiveMilestone || hasOtherUnsettledHold)
         {
             throw new BusinessException(
                 "لا يمكن تمويل مرحلة جديدة قبل حسم المرحلة الممولة أو المعلقة حاليًا.");
         }
-
-        if (await dbContext.EscrowHolds.AnyAsync(
-                hold => hold.MilestoneId == milestone.Id,
-                cancellationToken))
-        {
-            throw new ConflictException(
-                "تم إنشاء حجز ضمان لهذه المرحلة مسبقًا.");
-        }
     }
 
-    private async Task<PaymentDto> ReplayAsync(
+    private async Task<FundingOperationDto> ReplayAsync(
         IdempotencyReservation reservation,
         CancellationToken cancellationToken)
     {
@@ -1057,12 +1243,44 @@ public sealed class PaymentEscrowService(
 
         if (!string.IsNullOrWhiteSpace(reservation.ResponseBody))
         {
-            var response = JsonSerializer.Deserialize<PaymentDto>(
+            FundingOperationDto? operationResponse = null;
+            try
+            {
+                operationResponse =
+                    JsonSerializer.Deserialize<FundingOperationDto>(
+                        reservation.ResponseBody,
+                        SerializerOptions);
+            }
+            catch (JsonException)
+            {
+                // Completed records from versions before the current provider flow
+                // contain PaymentDto directly and are handled below.
+            }
+            if (operationResponse is not null)
+            {
+                return operationResponse;
+            }
+
+            var paymentResponse = JsonSerializer.Deserialize<PaymentDto>(
                 reservation.ResponseBody,
                 SerializerOptions);
-            if (response is not null)
+            if (paymentResponse is not null)
             {
-                return response;
+                var transactionId = await dbContext.EscrowHolds
+                    .AsNoTracking()
+                    .Where(item => item.Id == paymentResponse.Id)
+                    .Select(item => (Guid?)item.ProviderDepositTransactionId)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? Guid.Empty;
+                return new FundingOperationDto(
+                    transactionId,
+                    paymentResponse.MilestoneId,
+                    ProviderOperationOutcome.Succeeded.ToString(),
+                    null,
+                    null,
+                    null,
+                    paymentResponse,
+                    paymentResponse.SettledAt ?? UtcNow);
             }
         }
 
@@ -1077,7 +1295,16 @@ public sealed class PaymentEscrowService(
                     cancellationToken);
             if (hold is not null)
             {
-                return MapPayment(hold);
+                var payment = MapPayment(hold);
+                return new FundingOperationDto(
+                    hold.ProviderDepositTransactionId,
+                    hold.MilestoneId,
+                    ProviderOperationOutcome.Succeeded.ToString(),
+                    null,
+                    null,
+                    null,
+                    payment,
+                    hold.CreatedAt);
             }
         }
 
@@ -1302,6 +1529,71 @@ public sealed class PaymentEscrowService(
             hold.Status,
             hold.HoldExpiresAt,
             hold.SettledAt);
+    }
+
+    private async Task<string> GetClientCustomerReferenceAsync(
+        Guid clientUserId,
+        CancellationToken cancellationToken)
+    {
+        return await dbContext.ClientPaymentCustomers
+            .AsNoTracking()
+            .Where(item => item.ClientUserId == clientUserId
+                && item.ProviderCode == paymentProviderOptions.Value.ProviderCode)
+            .Select(item => item.ProviderCustomerId)
+            .SingleOrDefaultAsync(cancellationToken)
+            ?? string.Empty;
+    }
+
+    private async Task<string> ResolveCustomerForPaymentMethodAsync(
+        Guid clientUserId,
+        string paymentMethodReference,
+        CancellationToken cancellationToken)
+    {
+        var customerReference = await GetClientCustomerReferenceAsync(
+            clientUserId,
+            cancellationToken);
+        if (string.IsNullOrWhiteSpace(customerReference)
+            || paymentProvider is not IClientPaymentMethodProvider
+                paymentMethodProvider)
+        {
+            return string.Empty;
+        }
+
+        var savedMethods = await paymentMethodProvider.ListPaymentMethodsAsync(
+            customerReference,
+            cancellationToken);
+        return savedMethods.Any(item => string.Equals(
+            item.ProviderPaymentMethodId,
+            paymentMethodReference,
+            StringComparison.Ordinal))
+            ? customerReference
+            : string.Empty;
+    }
+
+    private static FundingOperationDto CompletedFunding(
+        PaymentDto payment,
+        PaymentTransaction transaction)
+        => new(
+            transaction.Id,
+            payment.MilestoneId,
+            ProviderOperationOutcome.Succeeded.ToString(),
+            null,
+            null,
+            null,
+            payment,
+            transaction.ProcessedAt ?? transaction.UpdatedAt);
+
+    private static void ApplyProviderResult(
+        PaymentTransaction transaction,
+        ProviderResult result)
+    {
+        transaction.ProviderTransactionId = result.ProviderTransactionId;
+        transaction.ProviderRelatedTransactionId =
+            result.RelatedProviderTransactionId;
+        transaction.ProviderStatus = result.ProviderStatus;
+        transaction.ProviderObjectType = result.ProviderObjectType;
+        transaction.ProviderAmountMinor = result.ProviderMoney?.AmountMinor;
+        transaction.ProviderCurrency = result.ProviderMoney?.Currency;
     }
 
     private static PaymentFailureResponse? DeserializeFailure(

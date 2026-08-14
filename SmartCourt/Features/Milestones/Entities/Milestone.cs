@@ -1,4 +1,5 @@
 using SmartCourt.Common.Domain;
+using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Milestones.Enums;
 
 namespace SmartCourt.Features.Milestones.Entities;
@@ -19,6 +20,32 @@ public sealed class Milestone
         int? durationDays,
         DateTime? dueDate,
         DateTime createdAt)
+        : this(
+            id,
+            contractId,
+            title,
+            description,
+            orderNumber,
+            amount,
+            durationDays,
+            dueDate,
+            deliverables: null,
+            createdAt)
+    {
+    }
+
+    internal Milestone(
+        Guid id,
+        Guid contractId,
+        string title,
+        string? description,
+        int orderNumber,
+        decimal amount,
+        int? durationDays,
+        DateTime? dueDate,
+        IReadOnlyList<string>? deliverables,
+        DateTime createdAt,
+        MilestoneType type = MilestoneType.Standard)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ContractId = EntityGuard.NotEmpty(contractId, nameof(contractId));
@@ -31,8 +58,22 @@ public sealed class Milestone
             EntityGuard.Positive(durationDays.Value, nameof(durationDays));
         }
 
+        if (!Enum.IsDefined(type))
+        {
+            throw new BusinessException("نوع المرحلة غير صالح.");
+        }
+
+        if (type == MilestoneType.Expense
+            && (durationDays.HasValue || deliverables is not null))
+        {
+            throw new BusinessException(
+                "مرحلة المصروفات لا تقبل مدة أو مخرجات عمل.");
+        }
+
+        Type = type;
         DurationDays = durationDays;
         DueDate = EntityGuard.OptionalUtc(dueDate, nameof(dueDate));
+        Deliverables = deliverables?.ToList();
         Status = MilestoneStatus.Draft;
         SubmissionVersion = 0;
         CreatedAt = EntityGuard.Utc(createdAt, nameof(createdAt));
@@ -43,6 +84,8 @@ public sealed class Milestone
     public Guid ContractId { get; internal set; }
     public string Title { get; internal set; } = string.Empty;
     public string? Description { get; internal set; }
+    public List<string>? Deliverables { get; internal set; }
+    public MilestoneType Type { get; internal set; }
     public int OrderNumber { get; internal set; }
     public decimal Amount { get; internal set; }
     public int? DurationDays { get; internal set; }

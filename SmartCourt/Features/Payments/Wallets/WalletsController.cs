@@ -25,6 +25,16 @@ public sealed class WalletsController(
         return Ok(ApiResponse<WalletDto>.Ok(wallet));
     }
 
+    [HttpGet("withdrawals")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialQuery)]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<WithdrawalDto>>>>
+        GetWithdrawalsAsync(CancellationToken cancellationToken)
+    {
+        var withdrawals = await walletService.GetWithdrawalsAsync(
+            cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<WithdrawalDto>>.Ok(withdrawals));
+    }
+
     [HttpPost("withdrawals")]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     public async Task<ActionResult<ApiResponse<PaymentActionResultDto>>>

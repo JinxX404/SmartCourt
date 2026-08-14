@@ -43,6 +43,7 @@ public sealed class MilestoneService(
         EnsureParticipant(contract, actorUserId);
         EnsureNegotiationAllowed(contract);
         EnsureDraft(milestone);
+        EnsureMilestoneApprovalAllowed(contract, milestone);
         EnsureExpectedVersion(milestone, ifMatch);
 
         var now = UtcNow;
@@ -77,6 +78,10 @@ public sealed class MilestoneService(
                 previousStatus,
                 MilestoneStatus.AwaitingFunding);
             milestone.Status = MilestoneStatus.AwaitingFunding;
+            if (milestone.Type == MilestoneType.Expense)
+            {
+                milestone.ReadyForFundingAt = now;
+            }
             dbContext.MilestoneStateHistories.Add(
                 MilestoneStateHistoryFactory.Create(
                     Guid.NewGuid(),
@@ -98,17 +103,20 @@ public sealed class MilestoneService(
                     milestone.Id,
                     correlationId),
                 cancellationToken);
-            await outboxWriter.EnqueueAsync(
-                new OutboxEvent(
-                    ContractPaymentEventTypes.ContractActivationRequested,
-                    1,
-                    new ContractActivationRequestedEventPayload(
+            if (contract.Status == ContractStatus.Draft)
+            {
+                await outboxWriter.EnqueueAsync(
+                    new OutboxEvent(
+                        ContractPaymentEventTypes.ContractActivationRequested,
+                        1,
+                        new ContractActivationRequestedEventPayload(
+                            contract.Id,
+                            actorUserId),
+                        "Contract",
                         contract.Id,
-                        actorUserId),
-                    "Contract",
-                    contract.Id,
-                    correlationId),
-                cancellationToken);
+                        correlationId),
+                    cancellationToken);
+            }
         }
         else
         {
@@ -127,6 +135,100 @@ public sealed class MilestoneService(
 
         milestone.UpdatedAt = now;
         await SaveChangesAsync(cancellationToken);
+
+        return ToActionResult(milestone, now);
+    }
+
+    public async Task<MilestoneActionResultDto> RejectExpenseAsync(
+        Guid milestoneId,
+        ExpenseMilestoneDecisionRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        return await ResolveExpenseProposalAsync(
+            milestoneId,
+            request.Reason,
+            ifMatch,
+            rejectByClient: true,
+            cancellationToken);
+    }
+
+    public async Task<MilestoneActionResultDto> CancelExpenseAsync(
+        Guid milestoneId,
+        ExpenseMilestoneDecisionRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        return await ResolveExpenseProposalAsync(
+            milestoneId,
+            request.Reason,
+            ifMatch,
+            rejectByClient: false,
+            cancellationToken);
+    }
+
+    private async Task<MilestoneActionResultDto> ResolveExpenseProposalAsync(
+        Guid milestoneId,
+        string reason,
+        string ifMatch,
+        bool rejectByClient,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        var contract = await GetContractAsync(
+            milestone.ContractId,
+            cancellationToken);
+        EnsureParticipant(contract, actorUserId);
+        EnsureNegotiationAllowed(contract);
+        EnsureDraft(milestone);
+        if (milestone.Type != MilestoneType.Expense)
+        {
+            throw new BusinessException(
+                "هذا الإجراء متاح لمقترحات المصروفات فقط.");
+        }
+
+        var expectedActorUserId = rejectByClient
+            ? contract.ClientUserId
+            : contract.LawyerUserId;
+        if (actorUserId != expectedActorUserId)
+        {
+            throw new ForbiddenAccessException(
+                rejectByClient
+                    ? "عميل العقد فقط هو من يمكنه رفض المصروف المقترح."
+                    : "محامي العقد فقط هو من يمكنه سحب المصروف المقترح.");
+        }
+
+        EnsureExpectedVersion(milestone, ifMatch);
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+        MilestoneTransitionGuard.EnsureCanTransition(
+            milestone.Status,
+            MilestoneStatus.Cancelled);
+        milestone.Status = MilestoneStatus.Cancelled;
+        milestone.RejectionReason = reason;
+        milestone.UpdatedAt = now;
+        dbContext.MilestoneStateHistories.Add(
+            MilestoneStateHistoryFactory.Create(
+                Guid.NewGuid(),
+                milestone.Id,
+                MilestoneStatus.Draft,
+                MilestoneStatus.Cancelled,
+                rejectByClient ? "ExpenseRejected" : "ExpenseCancelled",
+                actorUserId,
+                reason,
+                correlationId,
+                now));
+        await SaveChangesAsync(cancellationToken);
+
+        if (contract.Status == ContractStatus.Active)
+        {
+            await contractService.EvaluateCompletionAsync(
+                contract.Id,
+                cancellationToken);
+        }
 
         return ToActionResult(milestone, now);
     }
@@ -155,6 +257,8 @@ public sealed class MilestoneService(
                 "يجب أن يكون العقد نشطًا قبل تجهيز المرحلة للتمويل.");
         }
 
+        EnsureStandardMilestone(milestone);
+
         if (milestone.Status != MilestoneStatus.AwaitingFunding)
         {
             throw new BusinessException(
@@ -176,17 +280,21 @@ public sealed class MilestoneService(
                 "يجب تسوية المراحل السابقة قبل تجهيز هذه المرحلة للتمويل.");
         }
 
-        var hasUnsettledHold = await dbContext.EscrowHolds.AnyAsync(
-            hold =>
-                hold.ContractId == contract.Id
-                && hold.MilestoneId != milestone.Id
-                && (hold.Status == EscrowHoldStatus.Funded
-                    || hold.Status == EscrowHoldStatus.Frozen),
+        var hasUnsettledHold = await dbContext.Milestones.AnyAsync(
+            item =>
+                item.ContractId == contract.Id
+                && item.Id != milestone.Id
+                && item.Type == MilestoneType.Standard
+                && dbContext.EscrowHolds.Any(hold =>
+                    hold.MilestoneId == item.Id
+                    && (hold.Status == EscrowHoldStatus.Funded
+                        || hold.Status == EscrowHoldStatus.Frozen)),
             cancellationToken);
         var hasProcessingMilestone = await dbContext.Milestones.AnyAsync(
             item =>
                 item.ContractId == contract.Id
                 && item.Id != milestone.Id
+                && item.Type == MilestoneType.Standard
                 && item.Status == MilestoneStatus.FundingProcessing,
             cancellationToken);
         if (hasUnsettledHold || hasProcessingMilestone)
@@ -236,6 +344,8 @@ public sealed class MilestoneService(
             throw new BusinessException(
                 "يجب أن يكون العقد نشطًا قبل تسليم أعمال المرحلة.");
         }
+
+        EnsureStandardMilestone(milestone);
 
         if (milestone.Status != MilestoneStatus.FundedInProgress)
         {
@@ -396,6 +506,8 @@ public sealed class MilestoneService(
                 "يجب أن يكون العقد نشطًا قبل قبول تسليم المرحلة.");
         }
 
+        EnsureStandardMilestone(milestone);
+
         if (milestone.Status != MilestoneStatus.Submitted)
         {
             throw new BusinessException(
@@ -492,6 +604,8 @@ public sealed class MilestoneService(
             throw new BusinessException(
                 "يجب أن يكون العقد نشطًا قبل طلب تعديلات على المرحلة.");
         }
+
+        EnsureStandardMilestone(milestone);
 
         if (milestone.Status != MilestoneStatus.Submitted)
         {
@@ -661,6 +775,7 @@ public sealed class MilestoneService(
         return !await dbContext.Milestones.AnyAsync(
             item =>
                 item.ContractId == milestone.ContractId
+                && item.Type == MilestoneType.Standard
                 && item.OrderNumber < milestone.OrderNumber
                 && item.Status != MilestoneStatus.Released
                 && item.Status != MilestoneStatus.Refunded
@@ -680,6 +795,7 @@ public sealed class MilestoneService(
             milestone.OrderNumber,
             milestone.Title,
             milestone.Description,
+            milestone.Deliverables,
             milestone.Amount,
             milestone.DurationDays,
             milestone.DueDate,
@@ -691,7 +807,8 @@ public sealed class MilestoneService(
             milestone.AutoAcceptEligibleAt,
             milestone.HoldExpiresAt,
             hold?.NetAmount,
-            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"")
+            "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
+            milestone.Type)
         {
             PermittedActions = GetPermittedActions(
                 milestone,
@@ -732,29 +849,48 @@ public sealed class MilestoneService(
         if (milestone.Status == MilestoneStatus.Draft
             && (isClient || isLawyer))
         {
-            actions.Add("Update");
+            if (isLawyer)
+            {
+                actions.Add("Update");
+            }
             if (isClient && !milestone.AcceptedByClientAt.HasValue
                 || isLawyer && !milestone.AcceptedByLawyerAt.HasValue)
             {
                 actions.Add("Approve");
             }
+
+
+            if (milestone.Type == MilestoneType.Expense)
+            {
+                actions.Add(isClient ? "Reject" : "Cancel");
+            }
         }
 
         if (milestone.Status == MilestoneStatus.AwaitingFunding
             && isLawyer
+            && milestone.Type == MilestoneType.Standard
             && isCurrentSequentialMilestone
             && !milestone.ReadyForFundingAt.HasValue)
         {
             actions.Add("ReadyForFunding");
         }
 
+        if (milestone.Status == MilestoneStatus.AwaitingFunding
+            && isClient
+            && milestone.ReadyForFundingAt.HasValue)
+        {
+            actions.Add("Fund");
+        }
+
         if (milestone.Status == MilestoneStatus.FundedInProgress
+            && milestone.Type == MilestoneType.Standard
             && isLawyer)
         {
             actions.Add("Submit");
         }
 
         if (milestone.Status == MilestoneStatus.Submitted
+            && milestone.Type == MilestoneType.Standard
             && isClient)
         {
             actions.Add("Accept");
@@ -787,6 +923,27 @@ public sealed class MilestoneService(
         }
     }
 
+    private static void EnsureMilestoneApprovalAllowed(
+        ContractDetailDto contract,
+        Milestone milestone)
+    {
+        if (contract.Status == ContractStatus.Active
+            && milestone.Type != MilestoneType.Expense)
+        {
+            throw new BusinessException(
+                "لا يمكن اعتماد مرحلة عمل قياسية جديدة بعد تنشيط العقد.");
+        }
+    }
+
+    private static void EnsureStandardMilestone(Milestone milestone)
+    {
+        if (milestone.Type != MilestoneType.Standard)
+        {
+            throw new BusinessException(
+                "مراحل المصروفات لا تمر بمراحل التجهيز أو التسليم أو القبول.");
+        }
+    }
+
     private static void EnsureBelongsToContract(
         Milestone milestone,
         Guid contractId)
@@ -809,6 +966,7 @@ public sealed class MilestoneService(
 
     private static void EnsureFundedWorkCanBeChanged(Milestone milestone)
     {
+        EnsureStandardMilestone(milestone);
         if (milestone.Status != MilestoneStatus.FundedInProgress
             || !milestone.FundedAt.HasValue)
         {

@@ -61,10 +61,11 @@ public sealed class PaymentEscrowServiceTests
             "fund-success-1",
             CancellationToken.None);
 
-        Assert.Equal(EscrowHoldStatus.Funded, result.Status);
-        Assert.Equal(1_000m, result.GrossAmount);
-        Assert.Equal(50m, result.PlatformFee);
-        Assert.Equal(950m, result.NetAmount);
+        var payment = Assert.IsType<PaymentDto>(result.Payment);
+        Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
+        Assert.Equal(1_000m, payment.GrossAmount);
+        Assert.Equal(50m, payment.PlatformFee);
+        Assert.Equal(950m, payment.NetAmount);
         Assert.Equal(1, provider.DepositCalls);
         Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
         Assert.NotNull(milestone.FundedAt);
@@ -80,7 +81,7 @@ public sealed class PaymentEscrowServiceTests
 
         Assert.Equal(PaymentTransactionStatus.Completed, transaction.Status);
         Assert.Equal(hold.Id, transaction.EscrowHoldId);
-        Assert.Equal(hold.Id, result.Id);
+        Assert.Equal(hold.Id, payment.Id);
         Assert.Equal(1_000m, account.TotalDeposited);
         Assert.Equal(950m, wallet.PendingBalance);
         Assert.Equal(1_000m, ledger.Amount);
@@ -101,6 +102,42 @@ public sealed class PaymentEscrowServiceTests
                 .Select(item => item.EventType)
                 .ToArrayAsync());
         Assert.Equal(IdempotencyStatus.Completed, idempotency.Status);
+    }
+
+    [Fact]
+    public async Task FundAsync_ExpenseMovesDirectlyToReleasePending()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(type: MilestoneType.Expense);
+        context.Milestones.Add(milestone);
+        await context.SaveChangesAsync();
+        var provider = new TestPaymentProvider(
+            ProviderOperationOutcome.Succeeded);
+        var service = CreateService(
+            context,
+            provider,
+            new TestIdempotencyService(),
+            new MutableCurrentUser(_clientUserId));
+
+        await service.FundAsync(
+            milestone.Id,
+            new FundMilestoneRequest("mock-card-success"),
+            "fund-expense-1",
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.ReleasePending, milestone.Status);
+        Assert.NotNull(milestone.FundedAt);
+        Assert.Null(milestone.SubmittedAt);
+        Assert.Null(milestone.AcceptedAt);
+        Assert.Null(milestone.HoldStartsAt);
+        Assert.Null(milestone.HoldExpiresAt);
+        var hold = await context.EscrowHolds.SingleAsync();
+        Assert.Null(hold.HoldStartsAt);
+        Assert.Null(hold.HoldExpiresAt);
+        var history = await context.MilestoneStateHistories
+            .OrderBy(item => item.CreatedAt)
+            .LastAsync();
+        Assert.Equal(MilestoneStatus.ReleasePending, history.NewStatus);
     }
 
     [Fact]
@@ -760,10 +797,12 @@ public sealed class PaymentEscrowServiceTests
 
         var result = await service.RetryAsync(
             originalTransaction.Id,
+            "pm_retry",
             "retry-payment-1",
             CancellationToken.None);
 
-        Assert.Equal(EscrowHoldStatus.Funded, result.Status);
+        var payment = Assert.IsType<PaymentDto>(result.Payment);
+        Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
         Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
         Assert.Equal(1, provider.DepositCalls);
         var attempts = await context.PaymentTransactions
@@ -785,7 +824,7 @@ public sealed class PaymentEscrowServiceTests
             await queryService.GetMilestonePaymentAsync(
                 milestone.Id,
                 CancellationToken.None);
-        Assert.Equal(result, milestonePayment);
+        Assert.Equal(payment, milestonePayment);
     }
 
     [Fact]
@@ -804,6 +843,7 @@ public sealed class PaymentEscrowServiceTests
         await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
             service.RetryAsync(
                 originalTransaction.Id,
+                "pm_retry",
                 "retry-payment-unauthorized",
                 CancellationToken.None));
 
@@ -937,7 +977,8 @@ public sealed class PaymentEscrowServiceTests
 
     private Milestone CreateMilestone(
         int orderNumber = 1,
-        MilestoneStatus status = MilestoneStatus.AwaitingFunding)
+        MilestoneStatus status = MilestoneStatus.AwaitingFunding,
+        MilestoneType type = MilestoneType.Standard)
         => new(
             Guid.NewGuid(),
             _contractId,
@@ -945,9 +986,11 @@ public sealed class PaymentEscrowServiceTests
             null,
             orderNumber,
             1_000m,
-            14,
+            type == MilestoneType.Standard ? 14 : null,
             Now.AddDays(14),
-            Now.AddHours(-1))
+            null,
+            Now.AddHours(-1),
+            type)
         {
             Status = status,
             AcceptedByClientAt = Now.AddHours(-3),

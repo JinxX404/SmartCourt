@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Milestones.Events;
+using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Infrastructure.Providers.Jobs;
@@ -146,6 +147,43 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
             scheduler.ReleaseCall);
     }
 
+    [Fact]
+    public async Task FundedExpenseEvent_SchedulesImmediateRelease()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(
+            MilestoneStatus.ReleasePending,
+            0,
+            MilestoneType.Expense);
+        milestone.FundedAt = NowUtc;
+        var hold = new EscrowHold(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            milestone.ContractId,
+            milestone.Id,
+            1_000m,
+            50m,
+            950m,
+            Guid.NewGuid(),
+            NowUtc,
+            NowUtc);
+        context.Milestones.Add(milestone);
+        context.EscrowHolds.Add(hold);
+        await context.SaveChangesAsync();
+        var scheduler = new RecordingScheduler();
+        var handler = new MilestoneSchedulingOutboxHandler(
+            context,
+            scheduler);
+
+        await handler.HandleAsync(
+            CreateMessage(
+                ContractPaymentEventTypes.MilestoneFunded,
+                new ContractPaymentAggregateEventPayload(milestone.Id)),
+            CancellationToken.None);
+
+        Assert.Equal((hold.Id, NowUtc), scheduler.ReleaseCall);
+    }
+
     private static ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -156,7 +194,8 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
 
     private static Milestone CreateMilestone(
         MilestoneStatus status,
-        int submissionVersion)
+        int submissionVersion,
+        MilestoneType type = MilestoneType.Standard)
     {
         var milestone = new Milestone(
             Guid.NewGuid(),
@@ -165,9 +204,11 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
             null,
             1,
             1_000m,
-            10,
+            type == MilestoneType.Standard ? 10 : null,
             NowUtc.AddDays(10),
-            NowUtc);
+            null,
+            NowUtc,
+            type);
         milestone.Status = status;
         milestone.SubmissionVersion = submissionVersion;
         return milestone;

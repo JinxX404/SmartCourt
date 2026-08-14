@@ -16,7 +16,23 @@ public sealed class PaymentWebhookEventConfiguration
             .IsRequired()
             .IsUnicode(false)
             .HasMaxLength(200);
+        builder.Property(item => item.ProviderCode)
+            .IsRequired()
+            .IsUnicode(false)
+            .HasMaxLength(50);
+        builder.Property(item => item.EventType)
+            .IsRequired()
+            .IsUnicode(false)
+            .HasMaxLength(100);
+        builder.Property(item => item.ProviderObjectId)
+            .IsUnicode(false)
+            .HasMaxLength(200);
+        builder.Property(item => item.ConnectedAccountId)
+            .IsUnicode(false)
+            .HasMaxLength(200);
         builder.Property(item => item.ReceivedAt).Utc();
+        builder.Property(item => item.ProcessedAt);
+        builder.Property(item => item.ProcessingError).HasMaxLength(1000);
 
         builder.HasOne<PaymentTransaction>()
             .WithMany()

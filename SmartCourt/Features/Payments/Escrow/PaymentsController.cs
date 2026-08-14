@@ -23,6 +23,8 @@ public sealed class PaymentsController(
     IPaymentQueryService paymentQueryService,
     IPaymentWebhookService paymentWebhookService,
     IValidator<RetryPaymentRequest> retryValidator,
+    IValidator<CreateMilestonePaymentSessionRequest> paymentSessionValidator,
+    IValidator<RetryPaymentSessionRequest> retrySessionValidator,
     IValidator<PaymentWebhookRequest> webhookValidator,
     IOptions<PaymentProviderOptions> paymentProviderOptions)
     : ControllerBase
@@ -33,7 +35,7 @@ public sealed class PaymentsController(
     [HttpPost("milestones/{milestoneId:guid}/fund")]
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(Roles = "Client")]
-    public async Task<ActionResult<ApiResponse<PaymentDto>>> FundAsync(
+    public async Task<ActionResult<ApiResponse<FundingOperationDto>>> FundAsync(
         Guid milestoneId,
         [FromBody] FundMilestoneRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
@@ -44,7 +46,33 @@ public sealed class PaymentsController(
             request,
             idempotencyKey,
             cancellationToken);
-        return Ok(ApiResponse<PaymentDto>.Ok(payment));
+        return payment.Payment is null
+            ? Accepted(ApiResponse<FundingOperationDto>.Ok(payment))
+            : Ok(ApiResponse<FundingOperationDto>.Ok(payment));
+    }
+
+    [HttpPost("milestones/{milestoneId:guid}/payment-session")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
+    [Authorize(Roles = "Client")]
+    public async Task<ActionResult<ApiResponse<FundingOperationDto>>>
+        CreatePaymentSessionAsync(
+            Guid milestoneId,
+            [FromBody] CreateMilestonePaymentSessionRequest request,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
+    {
+        await paymentSessionValidator.ValidateAndThrowBusinessExceptionAsync(
+            request,
+            cancellationToken);
+        var payment = await paymentEscrowService
+            .FundWithConfirmationTokenAsync(
+                milestoneId,
+                request.ConfirmationTokenReference,
+                idempotencyKey,
+                cancellationToken);
+        return payment.Payment is null
+            ? Accepted(ApiResponse<FundingOperationDto>.Ok(payment))
+            : Ok(ApiResponse<FundingOperationDto>.Ok(payment));
     }
 
     [HttpGet("contracts/{contractId:guid}/payments")]
@@ -85,21 +113,52 @@ public sealed class PaymentsController(
     [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
     [Authorize(
         Roles = "FinanceAdministrator,SuperAdministrator")]
-    public async Task<ActionResult<ApiResponse<PaymentDto>>> RetryAsync(
+    public async Task<ActionResult<ApiResponse<FundingOperationDto>>> RetryAsync(
         Guid paymentTransactionId,
+        [FromBody] RetryPaymentRequest request,
         [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
         CancellationToken cancellationToken)
     {
-        var request = new RetryPaymentRequest(
-            idempotencyKey ?? string.Empty);
+        request = request with
+        {
+            IdempotencyKey = idempotencyKey ?? string.Empty
+        };
         await retryValidator.ValidateAndThrowBusinessExceptionAsync(
             request,
             cancellationToken);
         var payment = await paymentEscrowService.RetryAsync(
             paymentTransactionId,
+            request.PaymentMethodReference,
             request.IdempotencyKey,
             cancellationToken);
-        return Ok(ApiResponse<PaymentDto>.Ok(payment));
+        return payment.Payment is null
+            ? Accepted(ApiResponse<FundingOperationDto>.Ok(payment))
+            : Ok(ApiResponse<FundingOperationDto>.Ok(payment));
+    }
+
+    [HttpPost("payments/{paymentTransactionId:guid}/retry-session")]
+    [SecurityRateLimit(RateLimitPolicyNames.FinancialMutation)]
+    [Authorize(Roles = "Client")]
+    public async Task<ActionResult<ApiResponse<FundingOperationDto>>>
+        RetryPaymentSessionAsync(
+            Guid paymentTransactionId,
+            [FromBody] RetryPaymentSessionRequest request,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
+    {
+        request = request with { IdempotencyKey = idempotencyKey ?? string.Empty };
+        await retrySessionValidator.ValidateAndThrowBusinessExceptionAsync(
+            request,
+            cancellationToken);
+        var payment = await paymentEscrowService
+            .RetryWithConfirmationTokenAsync(
+                paymentTransactionId,
+                request.ConfirmationTokenReference,
+                request.IdempotencyKey,
+                cancellationToken);
+        return payment.Payment is null
+            ? Accepted(ApiResponse<FundingOperationDto>.Ok(payment))
+            : Ok(ApiResponse<FundingOperationDto>.Ok(payment));
     }
 
     [HttpPost("payments/webhook")]

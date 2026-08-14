@@ -280,6 +280,12 @@ public sealed class MilestoneChangeRequestService(
 
     private static void EnsureFundedWorkCanBeChanged(Milestone milestone)
     {
+        if (milestone.Type != MilestoneType.Standard)
+        {
+            throw new BusinessException(
+                "طلبات تعديل العمل متاحة للمراحل القياسية فقط.");
+        }
+
         if (milestone.Status != MilestoneStatus.FundedInProgress)
         {
             throw new BusinessException(

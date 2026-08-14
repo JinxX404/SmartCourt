@@ -90,7 +90,12 @@ public sealed class ProviderContractTests
             commonProperties
                 .Append(nameof(ProviderResult.Outcome))
                 .Append(nameof(ProviderResult.ProviderTransactionId))
-                .Append(nameof(ProviderResult.FailureReason)),
+                .Append(nameof(ProviderResult.FailureReason))
+                .Append(nameof(ProviderResult.ProviderStatus))
+                .Append(nameof(ProviderResult.ProviderObjectType))
+                .Append(nameof(ProviderResult.ProviderMoney))
+                .Append(nameof(ProviderResult.ClientAction))
+                .Append(nameof(ProviderResult.RelatedProviderTransactionId)),
             typeof(ProviderResult)
                 .GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Select(property => property.Name));
@@ -100,7 +105,14 @@ public sealed class ProviderContractTests
     public void ProviderOutcomes_DistinguishSuccessFailureAndUnknown()
     {
         Assert.Equal(
-            new[] { "Succeeded", "Failed", "Unknown" },
+            new[]
+            {
+                "Succeeded",
+                "Failed",
+                "Unknown",
+                "Processing",
+                "RequiresCustomerAction"
+            },
             Enum.GetNames<ProviderOperationOutcome>());
     }
 

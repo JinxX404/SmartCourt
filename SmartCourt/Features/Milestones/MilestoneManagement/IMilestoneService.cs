@@ -14,6 +14,18 @@ public interface IMilestoneService
         string ifMatch,
         CancellationToken cancellationToken);
 
+    Task<MilestoneActionResultDto> RejectExpenseAsync(
+        Guid milestoneId,
+        ExpenseMilestoneDecisionRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken);
+
+    Task<MilestoneActionResultDto> CancelExpenseAsync(
+        Guid milestoneId,
+        ExpenseMilestoneDecisionRequest request,
+        string ifMatch,
+        CancellationToken cancellationToken);
+
     Task<MilestoneDto> SubmitAsync(
         Guid milestoneId,
         SubmitMilestoneRequest request,

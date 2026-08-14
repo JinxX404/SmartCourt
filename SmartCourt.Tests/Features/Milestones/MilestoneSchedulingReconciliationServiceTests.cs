@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
+using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Infrastructure.Providers.Jobs;
 using SmartCourt.Persistence;
 using Xunit;
@@ -48,6 +49,25 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
                 1,
                 "Accepted",
                 NowUtc.AddDays(-20)));
+
+        var expense = CreateMilestone(
+            MilestoneStatus.ReleasePending,
+            0,
+            MilestoneType.Expense);
+        expense.FundedAt = NowUtc.AddMinutes(-2);
+        var expenseHold = new EscrowHold(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            expense.ContractId,
+            expense.Id,
+            1_000m,
+            50m,
+            950m,
+            Guid.NewGuid(),
+            expense.FundedAt.Value,
+            expense.FundedAt.Value);
+        context.Milestones.Add(expense);
+        context.EscrowHolds.Add(expenseHold);
         await context.SaveChangesAsync();
 
         var scheduler = new RecordingScheduler();
@@ -60,13 +80,16 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
             CancellationToken.None);
 
         Assert.Equal(JobExecutionOutcome.Completed, result.Outcome);
-        Assert.Equal(2, result.AffectedCount);
+        Assert.Equal(3, result.AffectedCount);
         Assert.NotNull(submitted.AutoAcceptJobId);
         Assert.Contains(
             (submitted.Id, submittedHoldId, 1, submitted.AutoAcceptEligibleAt.Value),
             scheduler.AutoAcceptCalls);
         Assert.Contains(
             (acceptedHoldId, NowUtc),
+            scheduler.ReleaseCalls);
+        Assert.Contains(
+            (expenseHold.Id, NowUtc),
             scheduler.ReleaseCalls);
     }
 
@@ -96,7 +119,8 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
     private static Milestone CreateMilestone(
         MilestoneStatus status,
-        int submissionVersion)
+        int submissionVersion,
+        MilestoneType type = MilestoneType.Standard)
     {
         var milestone = new Milestone(
             Guid.NewGuid(),
@@ -105,9 +129,11 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
             null,
             1,
             1_000m,
-            10,
+            type == MilestoneType.Standard ? 10 : null,
             NowUtc.AddDays(10),
-            NowUtc);
+            null,
+            NowUtc,
+            type);
         milestone.Status = status;
         milestone.SubmissionVersion = submissionVersion;
         return milestone;

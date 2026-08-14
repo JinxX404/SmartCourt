@@ -40,9 +40,9 @@ public sealed class MilestoneStateHistoryConfiguration
         .HasDatabaseName("IX_MilestoneStateHistories_MilestoneId_CreatedAt");
         builder.HasCheckConstraint(
             "CK_MilestoneStateHistories_NewStatus_Range",
-            "[NewStatus] BETWEEN 0 AND 9");
+            "[NewStatus] BETWEEN 0 AND 10");
         builder.HasCheckConstraint(
             "CK_MilestoneStateHistories_PreviousStatus_Range",
-            "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 9");
+            "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 10");
     }
 }

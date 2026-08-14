@@ -32,7 +32,8 @@ public sealed class MilestoneSchedulingOutboxHandler
     [
         ContractPaymentEventTypes.MilestoneSubmitted,
         ContractPaymentEventTypes.MilestoneAccepted,
-        ContractPaymentEventTypes.MilestoneAutoAccepted
+        ContractPaymentEventTypes.MilestoneAutoAccepted,
+        ContractPaymentEventTypes.MilestoneFunded
     ];
 
     public async Task HandleAsync(
@@ -48,7 +49,44 @@ public sealed class MilestoneSchedulingOutboxHandler
             case ContractPaymentEventTypes.MilestoneAutoAccepted:
                 await ScheduleHoldReleaseAsync(message, cancellationToken);
                 break;
+            case ContractPaymentEventTypes.MilestoneFunded:
+                await ScheduleExpenseReleaseAsync(message, cancellationToken);
+                break;
         }
+    }
+
+    private async Task ScheduleExpenseReleaseAsync(
+        OutboxMessage message,
+        CancellationToken cancellationToken)
+    {
+        var payload = Deserialize<ContractPaymentAggregateEventPayload>(message);
+        var milestone = await _dbContext.Milestones
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == payload.EntityId,
+                cancellationToken);
+        if (milestone is null
+            || milestone.Type != MilestoneType.Expense
+            || milestone.Status != MilestoneStatus.ReleasePending
+            || !milestone.FundedAt.HasValue)
+        {
+            return;
+        }
+
+        var escrowHoldId = await _dbContext.EscrowHolds
+            .AsNoTracking()
+            .Where(hold => hold.MilestoneId == milestone.Id)
+            .Select(hold => (Guid?)hold.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (!escrowHoldId.HasValue)
+        {
+            return;
+        }
+
+        await _jobScheduler.ScheduleReleaseExpiredHoldAsync(
+            escrowHoldId.Value,
+            milestone.FundedAt.Value,
+            cancellationToken);
     }
 
     private async Task ScheduleAutoAcceptAsync(
@@ -61,6 +99,7 @@ public sealed class MilestoneSchedulingOutboxHandler
                 item => item.Id == payload.MilestoneId,
                 cancellationToken);
         if (milestone is null
+            || milestone.Type != MilestoneType.Standard
             || milestone.Status != MilestoneStatus.Submitted
             || milestone.SubmissionVersion != payload.SubmissionVersion
             || !milestone.AutoAcceptEligibleAt.HasValue
@@ -105,6 +144,7 @@ public sealed class MilestoneSchedulingOutboxHandler
                 item => item.Id == identifiers.MilestoneId,
                 cancellationToken);
         if (milestone is null
+            || milestone.Type != MilestoneType.Standard
             || milestone.Status != MilestoneStatus.AcceptedHold
             || !milestone.HoldExpiresAt.HasValue)
         {

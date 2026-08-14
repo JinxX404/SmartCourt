@@ -70,6 +70,12 @@ public sealed class DisputeService(
             ?? throw new NotFoundException("العقد المرتبط بالمرحلة غير موجود.");
         EnsureParticipant(contract.ClientUserId, contract.LawyerUserId, actorUserId);
 
+        if (milestone.Type != MilestoneType.Standard)
+        {
+            throw new BusinessException(
+                "لا يمكن فتح نزاع على مرحلة مصروفات لأنها تُحرر مباشرة بعد التمويل.");
+        }
+
         if (contract.Status != ContractStatus.Active
             || milestone.Status != MilestoneStatus.AcceptedHold)
         {
@@ -496,13 +502,13 @@ public sealed class DisputeService(
             dbContext.PaymentTransactions.Add(refundTransaction);
         }
 
-        if (breakdown.LawyerGrossAllocation > 0m)
+        if (breakdown.LawyerNetAmount > 0m)
         {
             releaseTransaction = CreateProviderTransaction(
                 dispute,
                 hold,
                 PaymentOperationType.Release,
-                breakdown.LawyerGrossAllocation,
+                breakdown.LawyerNetAmount,
                 $"dispute-release-{dispute.Id:N}",
                 now);
             dbContext.PaymentTransactions.Add(releaseTransaction);
@@ -788,8 +794,7 @@ public sealed class DisputeService(
             pendingTransactionIds,
             transaction,
             cancellationToken);
-        var releaseGrossAmount = resolution.LawyerReleaseAmount
-            + resolution.PlatformFeeAmount;
+        var releaseGrossAmount = resolution.LawyerReleaseAmount;
         var releaseTransaction = await RecoverProviderSettlementAsync(
             dispute,
             resolution,
@@ -1016,6 +1021,29 @@ public sealed class DisputeService(
         wallet.PendingBalance -= hold.NetAmount;
         wallet.AvailableBalance += resolution.LawyerReleaseAmount;
         wallet.UpdatedAt = now;
+        if (releaseTransaction?.ProviderAmountMinor is > 0)
+        {
+            var payoutAccount = await dbContext.LawyerPayoutAccounts
+                .SingleOrDefaultAsync(
+                    item => item.LawyerUserId == contract.LawyerUserId
+                        && item.Status == LawyerPayoutAccountStatus.Enabled,
+                    cancellationToken)
+                ?? throw new BusinessException(
+                    "حساب سحب المحامي غير متاح لإتمام تسوية النزاع.");
+            if (payoutAccount.AvailableProviderAmountMinor >
+                long.MaxValue - releaseTransaction.ProviderAmountMinor.Value)
+            {
+                throw new BusinessException(
+                    "تجاوز رصيد مزود الدفع الحد العددي المسموح به.");
+            }
+
+            payoutAccount.AvailableProviderAmountMinor +=
+                releaseTransaction.ProviderAmountMinor.Value;
+            payoutAccount.DefaultCurrency =
+                releaseTransaction.ProviderCurrency
+                ?? payoutAccount.DefaultCurrency;
+            payoutAccount.UpdatedAt = now;
+        }
 
         var targetHoldStatus = resolution.ResolutionType
             == DisputeResolutionType.FullRefund
@@ -1391,6 +1419,10 @@ public sealed class DisputeService(
     {
         try
         {
+            var depositTransaction = paymentProvider
+                is ILawyerPayoutAccountProvider
+                ? await GetProviderDepositAsync(hold, cancellationToken)
+                : null;
             return await paymentProvider.RefundAsync(
                 new ProviderRefundRequest(
                     transaction.Amount,
@@ -1398,7 +1430,9 @@ public sealed class DisputeService(
                     hold.Id,
                     transaction.IdempotencyKey,
                     transaction.Id,
-                    reason),
+                    reason,
+                    depositTransaction?.ProviderTransactionId
+                        ?? string.Empty),
                 cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -1422,13 +1456,40 @@ public sealed class DisputeService(
     {
         try
         {
+            PaymentTransaction? depositTransaction = null;
+            LawyerPayoutAccount? payoutAccount = null;
+            if (paymentProvider is ILawyerPayoutAccountProvider)
+            {
+                depositTransaction = await GetProviderDepositAsync(
+                    hold,
+                    cancellationToken);
+                var contract = await dbContext.Contracts
+                    .AsNoTracking()
+                    .SingleAsync(
+                        item => item.Id == hold.ContractId,
+                        cancellationToken);
+                payoutAccount = await dbContext.LawyerPayoutAccounts
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        item => item.LawyerUserId == contract.LawyerUserId
+                            && item.Status == LawyerPayoutAccountStatus.Enabled,
+                        cancellationToken)
+                    ?? throw new BusinessException(
+                        "يجب تفعيل حساب سحب المحامي قبل تحرير أموال النزاع.");
+            }
             return await paymentProvider.ReleaseAsync(
                 new ProviderReleaseRequest(
                     transaction.Amount,
                     transaction.Currency,
                     hold.Id,
                     transaction.IdempotencyKey,
-                    transaction.Id),
+                    transaction.Id,
+                    depositTransaction?.ProviderTransactionId
+                        ?? string.Empty,
+                    depositTransaction?.ProviderRelatedTransactionId
+                        ?? string.Empty,
+                    payoutAccount?.ProviderAccountId ?? string.Empty,
+                    hold.GrossAmount),
                 cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -1443,6 +1504,27 @@ public sealed class DisputeService(
                 hold.Id);
             return UnknownResult(transaction, hold.Id);
         }
+    }
+
+    private async Task<PaymentTransaction> GetProviderDepositAsync(
+        EscrowHold hold,
+        CancellationToken cancellationToken)
+    {
+        var deposit = await dbContext.PaymentTransactions
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == hold.ProviderDepositTransactionId
+                    && item.OperationType == PaymentOperationType.Deposit
+                    && item.Status == PaymentTransactionStatus.Completed,
+                cancellationToken);
+        if (deposit is null
+            || string.IsNullOrWhiteSpace(deposit.ProviderTransactionId))
+        {
+            throw new BusinessException(
+                "معرّف عملية الإيداع لدى مزود الدفع غير متاح للتسوية.");
+        }
+
+        return deposit;
     }
 
     private static ProviderResult UnknownResult(
@@ -1489,6 +1571,12 @@ public sealed class DisputeService(
             == ProviderOperationOutcome.Succeeded
             ? result.ProviderTransactionId
             : null;
+        transaction.ProviderRelatedTransactionId =
+            result.RelatedProviderTransactionId;
+        transaction.ProviderStatus = result.ProviderStatus;
+        transaction.ProviderObjectType = result.ProviderObjectType;
+        transaction.ProviderAmountMinor = result.ProviderMoney?.AmountMinor;
+        transaction.ProviderCurrency = result.ProviderMoney?.Currency;
         if (transaction.Status == PaymentTransactionStatus.Completed
             && (string.IsNullOrWhiteSpace(transaction.ProviderTransactionId)
                 || transaction.ProviderTransactionId.Length > 200))

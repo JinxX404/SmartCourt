@@ -11,5 +11,6 @@ public enum MilestoneStatus : int
     Disputed = 6,
     Released = 7,
     Refunded = 8,
-    Cancelled = 9
+    Cancelled = 9,
+    ReleasePending = 10
 }

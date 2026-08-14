@@ -10,6 +10,11 @@ Exhaustive provider research for the **escrow-style legal platform** flow:
 
 | File | Provider / Topic |
 |---|---|
+| [`Phase_1_End_To_End_Payment_Gateway_Analysis.md`](./Phase_1_End_To_End_Payment_Gateway_Analysis.md) | Current code trace, Stripe vs. Paymob architecture, gaps, and Phase 1 decision |
+| [`StripeConnect_Setup_Guide.md`](./StripeConnect_Setup_Guide.md) | Phase 2 dashboard setup for the approved Stripe Connect test MVP |
+| [`StripeConnect_Implementation_Plan.md`](./StripeConnect_Implementation_Plan.md) | Phase 3 pre-code plan for the complete Stripe Connect lifecycle |
+| [`StripeConnect_MVP_Runbook.md`](./StripeConnect_MVP_Runbook.md) | Phase 4 configuration, endpoints, demo sequence, and verification handoff |
+| [`StripeConnect_Frontend_Sandbox_Guide.md`](./StripeConnect_Frontend_Sandbox_Guide.md) | Exact frontend Stripe Elements sequence for the complete zero-seeding sandbox lifecycle |
 | [`Comparison.md`](./Comparison.md) | Matrix + recommendation + decision list (read first) |
 | [`Paymob.md`](./Paymob.md) | **Paymob** — recommended Egypt-first (MarketPlace, Payouts/Send, Auth-Capture) |
 | [`TapPayments.md`](./TapPayments.md) | **Tap Payments** — marketplace Delayed Split (escrow-like wallet hold) |

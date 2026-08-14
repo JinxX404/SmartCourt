@@ -51,6 +51,7 @@ public sealed class ContractAndPaymentInvariantTests
             (MilestoneStatus.AwaitingFunding, MilestoneStatus.FundingProcessing),
             (MilestoneStatus.AwaitingFunding, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.FundedInProgress),
+            (MilestoneStatus.FundingProcessing, MilestoneStatus.ReleasePending),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.AwaitingFunding),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundedInProgress, MilestoneStatus.Submitted),
@@ -63,7 +64,8 @@ public sealed class ContractAndPaymentInvariantTests
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Released),
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Refunded),
             (MilestoneStatus.Disputed, MilestoneStatus.Released),
-            (MilestoneStatus.Disputed, MilestoneStatus.Refunded)
+            (MilestoneStatus.Disputed, MilestoneStatus.Refunded),
+            (MilestoneStatus.ReleasePending, MilestoneStatus.Released)
         ];
 
         AssertTransitionMatrix(

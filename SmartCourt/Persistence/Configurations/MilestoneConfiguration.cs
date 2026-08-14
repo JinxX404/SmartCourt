@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using SmartCourt.Features.Milestones.Entities;
+using SmartCourt.Features.Milestones.Enums;
 
 namespace SmartCourt.Persistence.Configurations;
 
@@ -19,6 +20,10 @@ public sealed class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
         builder.Property(milestone => milestone.Amount)
             .IsRequired()
             .Money();
+        builder.Property(milestone => milestone.Type)
+            .IsRequired()
+            .HasConversion<int>()
+            .HasDefaultValue(MilestoneType.Standard);
         builder.Property(milestone => milestone.Status)
             .IsRequired()
             .HasConversion<int>();
@@ -26,6 +31,9 @@ public sealed class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
             .NullableUnicode(100);
         builder.Property(milestone => milestone.RejectionReason)
             .NullableUnicode(2_000);
+        builder.PrimitiveCollection(milestone => milestone.Deliverables)
+            .HasColumnName("Deliverables")
+            .IsRequired(false);
         builder.Property(milestone => milestone.AcceptanceSource)
             .HasConversion<int>();
         builder.Property(milestone => milestone.RowVersion)
@@ -70,6 +78,13 @@ public sealed class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
             milestone.AutoAcceptEligibleAt
         })
         .HasDatabaseName("IX_Milestones_Status_AutoAcceptEligibleAt");
+        builder.HasIndex(milestone => new
+        {
+            milestone.Type,
+            milestone.Status,
+            milestone.FundedAt
+        })
+        .HasDatabaseName("IX_Milestones_Type_Status_FundedAt");
 
         builder.HasCheckConstraint(
             "CK_Milestones_OrderNumber_Positive",
@@ -82,7 +97,13 @@ public sealed class MilestoneConfiguration : IEntityTypeConfiguration<Milestone>
             "[DurationDays] IS NULL OR [DurationDays] BETWEEN 1 AND 365");
         builder.HasCheckConstraint(
             "CK_Milestones_Status_Range",
-            "[Status] BETWEEN 0 AND 9");
+            "[Status] BETWEEN 0 AND 10");
+        builder.HasCheckConstraint(
+            "CK_Milestones_Type_Range",
+            "[Type] BETWEEN 0 AND 1");
+        builder.HasCheckConstraint(
+            "CK_Milestones_ExpenseFields",
+            "[Type] <> 1 OR ([Deliverables] IS NULL AND [DurationDays] IS NULL)");
         builder.HasCheckConstraint(
             "CK_Milestones_SubmissionVersion_Positive",
             "[SubmissionVersion] >= 0");

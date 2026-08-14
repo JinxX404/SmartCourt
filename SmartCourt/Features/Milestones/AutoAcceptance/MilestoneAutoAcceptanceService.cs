@@ -52,7 +52,8 @@ public sealed class MilestoneAutoAcceptanceService(
                 submissionVersion);
         }
 
-        if (milestone.Status != MilestoneStatus.Submitted)
+        if (milestone.Type != MilestoneType.Standard
+            || milestone.Status != MilestoneStatus.Submitted)
         {
             return NoOp(
                 "MilestoneNoLongerSubmitted",
