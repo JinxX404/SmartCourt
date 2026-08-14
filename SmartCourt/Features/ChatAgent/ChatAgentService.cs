@@ -379,7 +379,7 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
 
         phaseStopwatch.Restart();
         var aiResponseText = await _chatModelProvider.GenerateAsync(
-            systemPromptText,
+            systemPromptBuilder.ToString(),
             userPromptBuilder.ToString(),
             cancellationToken);
         phaseStopwatch.Stop();

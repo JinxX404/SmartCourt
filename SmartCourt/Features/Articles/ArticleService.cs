@@ -8,6 +8,8 @@ using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using Microsoft.AspNetCore.Http;
+using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Features.Articles.Events;
 
 namespace SmartCourt.Features.Articles;
 
@@ -17,17 +19,20 @@ public class ArticleService : IArticleService
     private readonly ICurrentUserService _currentUserService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IOutboxWriter _outboxWriter;
 
     public ArticleService(
         ApplicationDbContext context, 
         ICurrentUserService currentUserService, 
         IHttpContextAccessor httpContextAccessor,
-        IFileStorageService fileStorageService)
+        IFileStorageService fileStorageService,
+        IOutboxWriter outboxWriter)
     {
         _context = context;
         _currentUserService = currentUserService;
         _httpContextAccessor = httpContextAccessor;
         _fileStorageService = fileStorageService;
+        _outboxWriter = outboxWriter;
     }
 
     private bool IsAdmin() => _httpContextAccessor.HttpContext?.User.IsInRole("Admin") == true;
@@ -238,6 +243,20 @@ public class ArticleService : IArticleService
         {
             _context.ArticleLikes.Add(new ArticleLike { ArticleId = id, UserId = userId });
             article.LikesCount++;
+
+            // Batch/threshold likes notifications
+            if (article.LikesCount % 5 == 0)
+            {
+                await _outboxWriter.EnqueueAsync(
+                    new OutboxEvent(
+                        EventType: ArticleEventTypes.ArticleLikeThresholdReached,
+                        EventVersion: 1,
+                        Payload: new ArticleLikeThresholdReachedV1(article.Id, article.AuthorId, article.LikesCount),
+                        AggregateType: nameof(LegalArticle),
+                        AggregateId: article.Id,
+                        CorrelationId: Guid.NewGuid()),
+                    cancellationToken);
+            }
         }
         
         await _context.SaveChangesAsync(cancellationToken);
@@ -262,6 +281,17 @@ public class ArticleService : IArticleService
 
         _context.ArticleComments.Add(comment);
         article.CommentsCount++;
+
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleCommentAdded,
+                EventVersion: 1,
+                Payload: new ArticleCommentAddedV1(article.Id, comment.Id, article.AuthorId, userId),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         var createdComment = await _context.ArticleComments
@@ -346,6 +376,17 @@ public class ArticleService : IArticleService
         };
 
         _context.ArticleReports.Add(report);
+
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleReported,
+                EventVersion: 1,
+                Payload: new ArticleReportedV1(article.Id, report.Id),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
     }
@@ -601,6 +642,16 @@ public class ArticleService : IArticleService
             try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
         }
         
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleDeletedByAdmin,
+                EventVersion: 1,
+                Payload: new ArticleDeletedByAdminV1(article.Id, article.AuthorId, article.Title),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
     }

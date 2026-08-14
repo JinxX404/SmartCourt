@@ -41,6 +41,8 @@ using SmartCourt.Features.Milestones.Events;
 using SmartCourt.Features.Milestones.Integration;
 using SmartCourt.Features.Notifications;
 using SmartCourt.Features.Notifications.Events;
+using SmartCourt.Features.Articles;
+using SmartCourt.Features.Articles.Events;
 using SmartCourt.Features.Notifications.Realtime;
 using SmartCourt.Entities;
 using SmartCourt.Features.Admin.Verifications.Events;
@@ -230,6 +232,9 @@ public static class DependencyInjection
         services.AddScoped<INotificationEventMapper, PaymentNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, VerificationNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, AuthNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, ArticleNotificationEventMapper>();
+        
+        services.AddScoped<IArticleNotificationContextReader, ArticleNotificationContextReader>();
         services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
         services.AddScoped<IOutboxEventHandler, ProposalConversationOutboxHandler>();
         services.AddScoped<INotificationService, NotificationService>();
