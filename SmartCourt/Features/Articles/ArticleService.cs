@@ -5,6 +5,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Features.Articles.DTOs;
 using SmartCourt.Interfaces;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using Microsoft.AspNetCore.Http;
 
@@ -15,12 +16,18 @@ public class ArticleService : IArticleService
     private readonly ApplicationDbContext _context;
     private readonly ICurrentUserService _currentUserService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IFileStorageService _fileStorageService;
 
-    public ArticleService(ApplicationDbContext context, ICurrentUserService currentUserService, IHttpContextAccessor httpContextAccessor)
+    public ArticleService(
+        ApplicationDbContext context, 
+        ICurrentUserService currentUserService, 
+        IHttpContextAccessor httpContextAccessor,
+        IFileStorageService fileStorageService)
     {
         _context = context;
         _currentUserService = currentUserService;
         _httpContextAccessor = httpContextAccessor;
+        _fileStorageService = fileStorageService;
     }
 
     private bool IsAdmin() => _httpContextAccessor.HttpContext?.User.IsInRole("Admin") == true;
@@ -128,12 +135,17 @@ public class ArticleService : IArticleService
 
         var total = await query.CountAsync(cancellationToken);
         
-        var articles = await query
+        var articlesList = await query
             .OrderByDescending(a => a.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => MapToArticleSummaryDto(a))
             .ToListAsync(cancellationToken);
+
+        var articles = new List<ArticleSummaryDto>();
+        foreach (var a in articlesList)
+        {
+            articles.Add(await MapToArticleSummaryDtoAsync(a, cancellationToken));
+        }
 
         var totalPages = (int)Math.Ceiling(total / (double)pageSize);
         return PagedResponse<List<ArticleSummaryDto>>.OkPaged(articles, pageNumber, pageSize, total, totalPages);
@@ -172,7 +184,7 @@ public class ArticleService : IArticleService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        return ApiResponse<ArticleDto>.Ok(MapToArticleDto(article, isLikedByCurrentUser));
+        return ApiResponse<ArticleDto>.Ok(await MapToArticleDtoAsync(article, isLikedByCurrentUser, cancellationToken));
     }
 
     public async Task<PagedResponse<List<ArticleCommentDto>>> GetArticleCommentsAsync(Guid id, int pageNumber, int pageSize, CancellationToken cancellationToken)
@@ -354,12 +366,21 @@ public class ArticleService : IArticleService
         if (!await _context.LegalArticleCategories.AnyAsync(c => c.Id == request.CategoryId && !c.IsDeleted, cancellationToken))
             throw new NotFoundException("التصنيف غير موجود.");
 
+        string? featuredImageUrl = null;
+        if (request.FeaturedImage is { Length: > 0 })
+        {
+            var storagePath = $"articles/{Guid.NewGuid()}_{request.FeaturedImage.FileName}";
+            using var stream = request.FeaturedImage.OpenReadStream();
+            var uploadResult = await _fileStorageService.UploadAsync(stream, storagePath, request.FeaturedImage.FileName, cancellationToken);
+            featuredImageUrl = uploadResult.StoragePath;
+        }
+
         var article = new LegalArticle
         {
             Title = request.Title,
             Content = request.Content,
             Tags = request.Tags,
-            FeaturedImageUrl = request.FeaturedImageUrl,
+            FeaturedImageUrl = featuredImageUrl,
             CategoryId = request.CategoryId,
             AuthorId = userId,
             Status = request.IsDraft ? ArticleStatus.Draft : ArticleStatus.Published,
@@ -374,7 +395,7 @@ public class ArticleService : IArticleService
             .Include(a => a.Author)
             .FirstAsync(a => a.Id == article.Id, cancellationToken);
 
-        return ApiResponse<ArticleDto>.Created(MapToArticleDto(createdArticle));
+        return ApiResponse<ArticleDto>.Created(await MapToArticleDtoAsync(createdArticle, false, cancellationToken));
     }
 
     public async Task<ApiResponse<ArticleDto>> UpdateArticleAsync(Guid id, UpdateArticleRequest request, CancellationToken cancellationToken)
@@ -396,13 +417,25 @@ public class ArticleService : IArticleService
         article.Title = request.Title;
         article.Content = request.Content;
         article.Tags = request.Tags;
-        article.FeaturedImageUrl = request.FeaturedImageUrl;
         article.CategoryId = request.CategoryId;
         article.Status = request.IsDraft ? ArticleStatus.Draft : ArticleStatus.Published;
 
+        if (request.FeaturedImage is { Length: > 0 })
+        {
+            if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
+            {
+                try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
+            }
+
+            var storagePath = $"articles/{Guid.NewGuid()}_{request.FeaturedImage.FileName}";
+            using var stream = request.FeaturedImage.OpenReadStream();
+            var uploadResult = await _fileStorageService.UploadAsync(stream, storagePath, request.FeaturedImage.FileName, cancellationToken);
+            article.FeaturedImageUrl = uploadResult.StoragePath;
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<ArticleDto>.Ok(MapToArticleDto(article));
+        return ApiResponse<ArticleDto>.Ok(await MapToArticleDtoAsync(article, false, cancellationToken));
     }
 
     public async Task<ApiResponse<bool>> DeleteArticleAsync(Guid id, CancellationToken cancellationToken)
@@ -418,6 +451,11 @@ public class ArticleService : IArticleService
 
         article.IsDeleted = true;
         article.IsDeletedByAdmin = false;
+
+        if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
+        {
+            try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
+        }
         
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
@@ -439,7 +477,7 @@ public class ArticleService : IArticleService
         article.Status = article.Status == ArticleStatus.Draft ? ArticleStatus.Published : ArticleStatus.Draft;
         await _context.SaveChangesAsync(cancellationToken);
 
-        return ApiResponse<ArticleDto>.Ok(MapToArticleDto(article));
+        return ApiResponse<ArticleDto>.Ok(await MapToArticleDtoAsync(article, false, cancellationToken));
     }
 
     public async Task<ApiResponse<ArticleDto>> GetMyArticleAsync(Guid id, CancellationToken cancellationToken)
@@ -452,7 +490,7 @@ public class ArticleService : IArticleService
             .FirstOrDefaultAsync(a => a.Id == id && a.AuthorId == userId && !a.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("المقال غير موجود.");
 
-        return ApiResponse<ArticleDto>.Ok(MapToArticleDto(article));
+        return ApiResponse<ArticleDto>.Ok(await MapToArticleDtoAsync(article, false, cancellationToken));
     }
 
     public async Task<PagedResponse<List<ArticleSummaryDto>>> GetMyDraftsAsync(int pageNumber, int pageSize, CancellationToken cancellationToken)
@@ -557,6 +595,11 @@ public class ArticleService : IArticleService
 
         article.IsDeleted = true;
         article.IsDeletedByAdmin = true;
+
+        if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
+        {
+            try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
+        }
         
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
@@ -578,24 +621,29 @@ public class ArticleService : IArticleService
     {
         var total = await query.CountAsync(cancellationToken);
         
-        var articles = await query
+        var articlesList = await query
             .OrderByDescending(a => a.CreatedAt)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
-            .Select(a => MapToArticleSummaryDto(a))
             .ToListAsync(cancellationToken);
+
+        var articles = new List<ArticleSummaryDto>();
+        foreach (var a in articlesList)
+        {
+            articles.Add(await MapToArticleSummaryDtoAsync(a, cancellationToken));
+        }
 
         var totalPages = (int)Math.Ceiling(total / (double)pageSize);
         return PagedResponse<List<ArticleSummaryDto>>.OkPaged(articles, pageNumber, pageSize, total, totalPages);
     }
 
-    private static ArticleDto MapToArticleDto(LegalArticle a, bool isLikedByCurrentUser = false) => new()
+    private async Task<ArticleDto> MapToArticleDtoAsync(LegalArticle a, bool isLikedByCurrentUser, CancellationToken cancellationToken) => new()
     {
         Id = a.Id,
         Title = a.Title,
         Content = a.Content,
         Tags = a.Tags,
-        FeaturedImageUrl = a.FeaturedImageUrl,
+        FeaturedImageUrl = string.IsNullOrEmpty(a.FeaturedImageUrl) ? null : await _fileStorageService.GetDownloadUrlAsync(a.FeaturedImageUrl, cancellationToken),
         ViewCount = a.ViewCount,
         LikesCount = a.LikesCount,
         CommentsCount = a.CommentsCount,
@@ -615,11 +663,11 @@ public class ArticleService : IArticleService
         UpdatedAt = a.UpdatedAt
     };
 
-    private static ArticleSummaryDto MapToArticleSummaryDto(LegalArticle a) => new()
+    private async Task<ArticleSummaryDto> MapToArticleSummaryDtoAsync(LegalArticle a, CancellationToken cancellationToken) => new()
     {
         Id = a.Id,
         Title = a.Title,
-        FeaturedImageUrl = a.FeaturedImageUrl,
+        FeaturedImageUrl = string.IsNullOrEmpty(a.FeaturedImageUrl) ? null : await _fileStorageService.GetDownloadUrlAsync(a.FeaturedImageUrl, cancellationToken),
         ViewCount = a.ViewCount,
         LikesCount = a.LikesCount,
         CommentsCount = a.CommentsCount,

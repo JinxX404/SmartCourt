@@ -98,7 +98,7 @@ public class ArticlesController : ControllerBase
 
     [HttpPost("lawyer")]
     [Authorize(Roles = "Lawyer")]
-    public async Task<ActionResult<ApiResponse<ArticleDto>>> CreateArticle([FromBody] CreateArticleRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ArticleDto>>> CreateArticle([FromForm] CreateArticleRequest request, CancellationToken cancellationToken)
     {
         var response = await _articleService.CreateArticleAsync(request, cancellationToken);
         return Created(string.Empty, response);
@@ -106,7 +106,7 @@ public class ArticlesController : ControllerBase
 
     [HttpPut("lawyer/{id}")]
     [Authorize(Roles = "Lawyer")]
-    public async Task<ActionResult<ApiResponse<ArticleDto>>> UpdateArticle(Guid id, [FromBody] UpdateArticleRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<ArticleDto>>> UpdateArticle(Guid id, [FromForm] UpdateArticleRequest request, CancellationToken cancellationToken)
     {
         var response = await _articleService.UpdateArticleAsync(id, request, cancellationToken);
         return Ok(response);

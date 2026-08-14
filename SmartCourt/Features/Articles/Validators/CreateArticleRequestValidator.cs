@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Http;
 using SmartCourt.Features.Articles.DTOs;
 
 namespace SmartCourt.Features.Articles.Validators;
@@ -22,7 +23,16 @@ public class CreateArticleRequestValidator : AbstractValidator<CreateArticleRequ
         RuleFor(x => x.Tags)
             .MaximumLength(500).WithMessage("يجب ألا تتجاوز الوسوم 500 حرف.");
 
-        RuleFor(x => x.FeaturedImageUrl)
-            .MaximumLength(1000).WithMessage("رابط الصورة تجاوز الحد المسموح به.");
+        RuleFor(x => x.FeaturedImage)
+            .Must(f => f == null || f.Length <= 5 * 1024 * 1024)
+            .WithMessage("حجم الصورة يجب ألا يتجاوز 5 ميجابايت.")
+            .Must(f => f == null || IsAllowedImageExtension(f.FileName))
+            .WithMessage("صيغة الصورة غير مدعومة. الصيغ المسموحة: jpg, jpeg, png, webp.");
+    }
+
+    private static bool IsAllowedImageExtension(string fileName)
+    {
+        var ext = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+        return ext is ".jpg" or ".jpeg" or ".png" or ".webp";
     }
 }
