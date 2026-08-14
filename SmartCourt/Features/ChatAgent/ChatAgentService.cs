@@ -336,6 +336,7 @@ public class ChatAgentService(
 
         systemPromptBuilder.AppendLine(@"
 [تعليمات تنسيق الإخراج - Markdown]:
+You MUST format your response using Markdown. Use ** for bold text. You MUST use line breaks \n and bullet points - for lists. DO NOT use inline numbering like (1) or (a) in a single paragraph.
 1. صِغ إجابتك بالكامل بتنسيق ماركداون قياسي (Standard GitHub Flavored Markdown) متوافق تماماً مع مكتبة react-markdown في الواجهة الأمامية.
 2. استخدم العناوين الرئيسية والفرعية بأسلوب واضح (مثل: ## و ###) مع ترك مسافة بعد الهاش (مثال: ## العنوان).
 3. عند الاقتباس من مواد وقوانين، استخدم مربع الاقتباس الماركداون بأسلوب ( > **مادة (رقم):** نص المادة...).
