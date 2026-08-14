@@ -18,6 +18,10 @@ namespace SmartCourt.Entities
         public LawyerProfile? LawyerProfile { get; set; }
         public ICollection<CaseDocument> Documents { get; set; } = new List<CaseDocument>();
         public CaseProfile? CaseProfile { get; set; }
+        public Guid? LastReviewId { get; set; }
+        public CaseReviewReport? LastReview { get; set; }
+        public Guid? ChatId { get; set; }
+        public SmartCourt.Features.Chat.Entities.ChatConversation? Chat { get; set; }
         public ICollection<CaseReviewReport> ReviewReports { get; set; } = new List<CaseReviewReport>();
         public ICollection<CaseRecommendation> Recommendations { get; set; } = new List<CaseRecommendation>();
     }

@@ -30,7 +30,7 @@ public sealed class CaseReviewRetrievalAndLoopTests
     }
 
     [Fact]
-    public async Task GetLatestReviewReport_ReturnsOnlyIsLatestReport()
+    public async Task GetReviewReport_ReturnsRequestedReportById()
     {
         // Arrange
         var dbOptions = CreateInMemoryOptions();
@@ -75,16 +75,21 @@ public sealed class CaseReviewRetrievalAndLoopTests
             NullLogger<CaseReviewService>.Instance);
 
         // Act
-        var result = await service.GetLatestReviewReportAsync(caseId);
+        var resultOld = await service.GetReviewReportAsync(caseId, oldReport.Id);
+        var resultLatest = await service.GetReviewReportAsync(caseId, latestReport.Id);
 
         // Assert
-        Assert.NotNull(result);
-        Assert.Equal(latestReport.Id, result.Id);
-        Assert.True(result.IsLatest);
+        Assert.NotNull(resultOld);
+        Assert.Equal(oldReport.Id, resultOld.Id);
+        Assert.False(resultOld.IsLatest);
+
+        Assert.NotNull(resultLatest);
+        Assert.Equal(latestReport.Id, resultLatest.Id);
+        Assert.True(resultLatest.IsLatest);
     }
 
     [Fact]
-    public async Task GetLatestReviewReport_NoReportsExist_ThrowsNotFoundException()
+    public async Task GetReviewReport_NoReportExistsForGivenId_ThrowsNotFoundException()
     {
         // Arrange
         var dbOptions = CreateInMemoryOptions();
@@ -112,11 +117,11 @@ public sealed class CaseReviewRetrievalAndLoopTests
             NullLogger<CaseReviewService>.Instance);
 
         // Act & Assert
-        await Assert.ThrowsAsync<NotFoundException>(() => service.GetLatestReviewReportAsync(caseId));
+        await Assert.ThrowsAsync<NotFoundException>(() => service.GetReviewReportAsync(caseId, Guid.NewGuid()));
     }
 
     [Fact]
-    public async Task GetLatestReviewReport_NonOwner_ThrowsForbiddenAccessException()
+    public async Task GetReviewReport_NonOwner_ThrowsForbiddenAccessException()
     {
         // Arrange
         var dbOptions = CreateInMemoryOptions();
@@ -125,6 +130,7 @@ public sealed class CaseReviewRetrievalAndLoopTests
         var ownerId = Guid.NewGuid();
         var callerId = Guid.NewGuid();
         var caseId = Guid.NewGuid();
+        var reportId = Guid.NewGuid();
 
         var caseEntity = new CaseEntity
         {
@@ -135,6 +141,15 @@ public sealed class CaseReviewRetrievalAndLoopTests
             Status = CaseStatus.Reviewed
         };
         dbContext.Cases.Add(caseEntity);
+
+        var report = new CaseReviewReport
+        {
+            Id = reportId,
+            CaseId = caseId,
+            IsLatest = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        dbContext.CaseReviewReports.Add(report);
         await dbContext.SaveChangesAsync();
 
         var currentUserService = new TestCurrentUserService { UserId = callerId };
@@ -145,7 +160,7 @@ public sealed class CaseReviewRetrievalAndLoopTests
             NullLogger<CaseReviewService>.Instance);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.GetLatestReviewReportAsync(caseId));
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.GetReviewReportAsync(caseId, reportId));
     }
 
     [Fact]
@@ -217,8 +232,10 @@ public sealed class CaseReviewRetrievalAndLoopTests
         Assert.True(reportsInDb[0].IsLatest);
         Assert.False(reportsInDb[1].IsLatest);
 
-        var latestReport = await reviewService.GetLatestReviewReportAsync(caseId);
-        Assert.Equal(report2.Id, latestReport.Id);
+        var fetchedReport1 = await reviewService.GetReviewReportAsync(caseId, report1.Id);
+        var fetchedReport2 = await reviewService.GetReviewReportAsync(caseId, report2.Id);
+        Assert.Equal(report1.Id, fetchedReport1.Id);
+        Assert.Equal(report2.Id, fetchedReport2.Id);
     }
 
     private sealed class TestCurrentUserService : ICurrentUserService

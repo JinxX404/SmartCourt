@@ -36,6 +36,8 @@ public class GetCaseByIdHandler : IRequestHandler<GetCaseByIdQuery, ApiResponse<
             Id = existing.Id,
             ClientId = existing.ClientId,
             LawyerId = lawyerId,
+            LastReviewId = existing.LastReviewId,
+            ChatId = existing.ChatId,
             Title = existing.Title,
             Description = existing.Description,
             Governorate = existing.Governorate,

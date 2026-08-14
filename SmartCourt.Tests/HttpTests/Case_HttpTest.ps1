@@ -16,23 +16,40 @@ $baseUrl = "http://localhost:5049"
 function Invoke-ApiForm {
     param([string]$title, [string]$method, [string]$endpoint, [hashtable]$form, [string]$token = "")
     
-    $headers = @{}
-    if ($token) {
-        $headers["Authorization"] = "Bearer $token"
-    }
-    
     $url = "$baseUrl$endpoint"
     try {
-        if ($method -eq "POST" -or $method -eq "PUT") {
-            $response = Invoke-WebRequest -Method $method -Uri $url -Headers $headers -Form $form -SkipHttpErrorCheck
-            $status = $response.StatusCode
-            $responseBody = $response.Content
-            Log-Test -title $title -method $method -url $url -body "(multipart/form-data)" -responseStatus $status -responseBody $responseBody -reportFile $reportFile
-            return ($responseBody | ConvertFrom-Json -ErrorAction SilentlyContinue)
+        $client = New-Object System.Net.Http.HttpClient
+        if ($token) {
+            $client.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $token)
         }
+        
+        $content = New-Object System.Net.Http.MultipartFormDataContent
+
+        foreach ($key in $form.Keys) {
+            $val = $form[$key]
+            if ($val -is [System.IO.FileInfo]) {
+                $fileBytes = [System.IO.File]::ReadAllBytes($val.FullName)
+                $byteContent = New-Object System.Net.Http.ByteArrayContent($fileBytes, 0, $fileBytes.Length)
+                $byteContent.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf")
+                $content.Add($byteContent, $key, $val.Name)
+            } else {
+                $stringContent = New-Object System.Net.Http.StringContent([string]$val)
+                $content.Add($stringContent, $key)
+            }
+        }
+
+        $httpMethod = New-Object System.Net.Http.HttpMethod($method)
+        $request = New-Object System.Net.Http.HttpRequestMessage($httpMethod, $url)
+        $request.Content = $content
+
+        $response = $client.SendAsync($request).GetAwaiter().GetResult()
+        $status = [int]$response.StatusCode
+        $responseBody = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+
+        Log-Test -title $title -method $method -url $url -body "(multipart/form-data)" -responseStatus $status -responseBody $responseBody -reportFile $reportFile
+        return ($responseBody | ConvertFrom-Json -ErrorAction SilentlyContinue)
     } catch {
         $status = "Error"
-        if ($_.Exception.Response.StatusCode) { $status = [int]$_.Exception.Response.StatusCode }
         $errorResponse = $_.Exception.Message
         Log-Test -title $title -method $method -url $url -body "(multipart/form-data)" -responseStatus $status -responseBody $errorResponse -reportFile $reportFile
         return ($errorResponse | ConvertFrom-Json -ErrorAction SilentlyContinue)
@@ -125,8 +142,13 @@ if (-not $caseId) {
     exit 1
 }
 
-# Get Case By ID - Success
-$getByIdResp = Invoke-Api -title "Get Case By ID" -method "GET" -endpoint "/api/Case/$caseId" -token $clientToken -reportFile $reportFile
+# Get Case By ID - Success (Verify LastReviewId is null initially)
+$getByIdResp = Invoke-Api -title "Get Case By ID (Before Review)" -method "GET" -endpoint "/api/Case/$caseId" -token $clientToken -reportFile $reportFile
+if ($null -ne $getByIdResp.data.lastReviewId) {
+    Write-Error "Assertion Failed: Initial lastReviewId should be null."
+} else {
+    Write-Host "SUCCESS Assertion Passed: Initial lastReviewId is null as expected." -ForegroundColor Green
+}
 
 # Get Case By ID - 404
 $randomGuid = [Guid]::NewGuid().ToString()
@@ -160,9 +182,31 @@ Write-Host "Starting Orchestration..."
 
 # Client Reviews Case
 $reviewResp = Invoke-Api -title "Review Case (AI Request)" -method "POST" -endpoint "/api/cases/$caseId/review" -body "{}" -token $clientToken -reportFile $reportFile
+$reviewReportId = $reviewResp.data.id
 
-# Get Latest Review
-Invoke-Api -title "Get Latest Review" -method "GET" -endpoint "/api/cases/$caseId/reviews/latest" -token $clientToken -reportFile $reportFile | Out-Null
+if (-not $reviewReportId) {
+    Write-Error "Failed: Review Report ID was null in review response."
+}
+
+# Get Review Report By ID
+Invoke-Api -title "Get Review Report" -method "GET" -endpoint "/api/cases/$caseId/reviews/$reviewReportId" -token $clientToken -reportFile $reportFile | Out-Null
+
+# Get Case By ID After Review - Verify LastReviewId matches newly created review report ID
+$getByIdAfterReviewResp = Invoke-Api -title "Get Case By ID (After Review)" -method "GET" -endpoint "/api/Case/$caseId" -token $clientToken -reportFile $reportFile
+if ($getByIdAfterReviewResp.data.lastReviewId -ne $reviewReportId) {
+    Write-Error "Assertion Failed: lastReviewId ($($getByIdAfterReviewResp.data.lastReviewId)) does not match reviewReportId ($reviewReportId)."
+} else {
+    Write-Host "SUCCESS Assertion Passed: lastReviewId ($reviewReportId) successfully populated on Case!" -ForegroundColor Green
+}
+
+# Get All Cases After Review - Verify LastReviewId in list
+$getAllAfterReviewResp = Invoke-Api -title "Get All Cases (After Review)" -method "GET" -endpoint "/api/Case" -token $clientToken -reportFile $reportFile
+$matchingCaseInList = $getAllAfterReviewResp.data | Where-Object { $_.id -eq $caseId }
+if ($matchingCaseInList.lastReviewId -ne $reviewReportId) {
+    Write-Error "Assertion Failed: lastReviewId in Get All Cases list ($($matchingCaseInList.lastReviewId)) does not match expected reviewReportId ($reviewReportId)."
+} else {
+    Write-Host "SUCCESS Assertion Passed: lastReviewId ($reviewReportId) successfully populated in Get All Cases list!" -ForegroundColor Green
+}
 
 # Client Finalizes Case (Matches)
 $finalizeResp = Invoke-Api -title "Finalize Case (Transition to Matched)" -method "POST" -endpoint "/api/Case/$caseId/finalize" -body "{}" -token $clientToken -reportFile $reportFile
@@ -181,6 +225,10 @@ Invoke-Api -title "Lawyer Get Proposals" -method "GET" -endpoint "/api/proposals
 
 # Lawyer Accepts Proposal
 Invoke-Api -title "Lawyer Accepts Proposal" -method "POST" -endpoint "/api/proposals/$proposalId/accept" -body "{}" -token $lawyerToken -reportFile $reportFile | Out-Null
+
+# Verify ChatId field exists in Case endpoints
+$getByIdAfterProposalResp = Invoke-Api -title "Get Case By ID (After Proposal Acceptance)" -method "GET" -endpoint "/api/Case/$caseId" -token $clientToken -reportFile $reportFile
+Write-Host "SUCCESS Verified ChatId field in CaseDto response." -ForegroundColor Green
 
 Write-Host "Script Execution Completed. Report written to $reportFile"
 Remove-Item $dummyDocPath -ErrorAction SilentlyContinue

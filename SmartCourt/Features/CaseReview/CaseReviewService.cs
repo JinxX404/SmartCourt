@@ -83,15 +83,16 @@ public class CaseReviewService(
 
         _dbContext.CaseReviewReports.Add(newReport);
 
-        // 4. Update Case status
+        // 4. Update Case status and last review ID
         caseEntity.Status = CaseStatus.Reviewed;
+        caseEntity.LastReviewId = newReport.Id;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return MapToDto(newReport);
     }
 
-    public async Task<CaseReviewReportDto> GetLatestReviewReportAsync(Guid caseId, CancellationToken cancellationToken = default)
+    public async Task<CaseReviewReportDto> GetReviewReportAsync(Guid caseId, Guid reviewId, CancellationToken cancellationToken = default)
     {
         if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
         {
@@ -114,18 +115,18 @@ public class CaseReviewService(
             throw new ForbiddenAccessException("غير مصرح لك بالوصول لمراجعة هذه القضية.");
         }
 
-        var latestReport = await _dbContext.CaseReviewReports
+        var report = await _dbContext.CaseReviewReports
             .AsNoTracking()
-            .Where(r => r.CaseId == caseId && r.IsLatest)
+            .Where(r => r.Id == reviewId && r.CaseId == caseId)
             .Include(r => r.ReviewPoints)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (latestReport == null)
+        if (report == null)
         {
-            throw new NotFoundException("لا يوجد تقرير مراجعة لهذه القضية.");
+            throw new NotFoundException("تقرير المراجعة غير موجود.");
         }
 
-        return MapToDto(latestReport);
+        return MapToDto(report);
     }
 
     private async Task<List<ReviewPoint>> RequestAiReviewPointsAsync(CaseEntity caseEntity, CancellationToken cancellationToken)
@@ -143,6 +144,8 @@ public class CaseReviewService(
 
             ABSOLUTE STRICT RULE FOR SUGGESTIONS:
             Do NOT ever suggest consulting, hiring, or taking guidance/advice from a lawyer. All suggestions must focus strictly on how the client can structure the case description, quantify claims, and gather required evidence directly.
+
+            You MUST format your response using Markdown. Use ** for bold text. You MUST use line breaks \n and bullet points - for lists. DO NOT use inline numbering like (1) or (a) in a single paragraph.
 
             You MUST output ONLY a valid JSON array of objects following this exact schema:
             [

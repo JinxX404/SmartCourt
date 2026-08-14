@@ -1,4 +1,5 @@
 # TestHelpers.psm1
+Add-Type -AssemblyName System.Net.Http -ErrorAction SilentlyContinue
 $global:baseUrl = "https://localhost:7119"
 $global:httpUrl = "http://localhost:5049"
 

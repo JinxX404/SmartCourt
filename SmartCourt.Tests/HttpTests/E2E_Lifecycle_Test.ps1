@@ -206,9 +206,10 @@ $caseResp = Invoke-ApiForm "Create Case" POST "/api/Case" -form $caseForm -token
 $caseId   = $caseResp.Data.CaseId
 Write-Assert "Case Created" (-not [string]::IsNullOrEmpty($caseId))
 
-Invoke-ApiRaw "Request Case AI Review" POST "/api/cases/$caseId/review" -body "{}" -token $clientToken | Out-Null
+$revResp = Invoke-ApiRaw "Request Case AI Review" POST "/api/cases/$caseId/review" -body "{}" -token $clientToken
+$reviewReportId = $revResp.Data.id
 Start-Sleep -Seconds 2
-Invoke-ApiRaw "Get Latest Review" GET "/api/cases/$caseId/reviews/latest" -token $clientToken | Out-Null
+Invoke-ApiRaw "Get Review Report" GET "/api/cases/$caseId/reviews/$reviewReportId" -token $clientToken | Out-Null
 
 $finResp = Invoke-ApiRaw "Finalize Case" POST "/api/Case/$caseId/finalize" -body "{}" -token $clientToken
 Write-Assert "Case Finalized" ($finResp -ne $null)

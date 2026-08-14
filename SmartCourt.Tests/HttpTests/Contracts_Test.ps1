@@ -97,8 +97,9 @@ $createResp = Invoke-ApiForm -title "Setup - Create Case" -method "POST" -endpoi
 $caseId = $createResp.Data.CaseId
 
 # Client Reviews Case (Required before Finalize)
-Invoke-Api -title "Setup - Review Case (AI Request)" -method "POST" -endpoint "/api/cases/$caseId/review" -body "{}" -token $clientToken -reportFile $reportFile | Out-Null
-Invoke-Api -title "Setup - Get Latest Review" -method "GET" -endpoint "/api/cases/$caseId/reviews/latest" -token $clientToken -reportFile $reportFile | Out-Null
+$reviewResp = Invoke-Api -title "Setup - Review Case (AI Request)" -method "POST" -endpoint "/api/cases/$caseId/review" -body "{}" -token $clientToken -reportFile $reportFile
+$reviewReportId = $reviewResp.data.id
+Invoke-Api -title "Setup - Get Review Report" -method "GET" -endpoint "/api/cases/$caseId/reviews/$reviewReportId" -token $clientToken -reportFile $reportFile | Out-Null
 
 # Client Finalizes Case
 Invoke-Api -title "Setup - Finalize Case" -method "POST" -endpoint "/api/Case/$caseId/finalize" -body "{}" -token $clientToken -reportFile $reportFile | Out-Null

@@ -55,6 +55,8 @@ public class GetCasesHandler : IRequestHandler<GetCasesQuery, ApiResponse<List<C
             c.Title,
             c.Status,
             c.CreatedAt,
+            c.LastReviewId,
+            c.ChatId,
             DocumentCount = c.Documents.Count(),
             LawyerId = c.LawyerId ?? _context.Contracts
                 .Where(ct => ct.LegalCaseId == c.Id && ct.Status == ContractStatus.Active)
@@ -69,7 +71,9 @@ public class GetCasesHandler : IRequestHandler<GetCasesQuery, ApiResponse<List<C
             Status = c.Status.ToString(),
             CreatedAt = c.CreatedAt,
             DocumentCount = c.DocumentCount,
-            LawyerId = c.LawyerId
+            LawyerId = c.LawyerId,
+            LastReviewId = c.LastReviewId,
+            ChatId = c.ChatId
         }).ToList();
 
         return ApiResponse<List<CaseListItemDto>>.Ok(result);

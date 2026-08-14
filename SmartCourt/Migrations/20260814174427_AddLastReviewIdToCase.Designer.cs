@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SmartCourt.Persistence;
 
@@ -11,9 +12,11 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260814174427_AddLastReviewIdToCase")]
+    partial class AddLastReviewIdToCase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -728,9 +731,6 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid?>("ChatId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -778,8 +778,6 @@ namespace SmartCourt.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ChatId");
 
                     b.HasIndex("ClientId");
 
@@ -3454,11 +3452,6 @@ namespace SmartCourt.Migrations
 
             modelBuilder.Entity("SmartCourt.Entities.Case", b =>
                 {
-                    b.HasOne("SmartCourt.Features.Chat.Entities.ChatConversation", "Chat")
-                        .WithMany()
-                        .HasForeignKey("ChatId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("SmartCourt.Common.Entities.ClientProfile", "ClientProfile")
                         .WithMany("Cases")
                         .HasForeignKey("ClientId")
@@ -3474,8 +3467,6 @@ namespace SmartCourt.Migrations
                         .WithMany()
                         .HasForeignKey("LawyerId")
                         .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Chat");
 
                     b.Navigation("ClientProfile");
 
