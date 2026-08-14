@@ -1,6 +1,10 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using SmartCourt.Common.Configuration;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.ChatAgent.DTOs;
@@ -20,9 +24,12 @@ public class ChatAgentService(
     IVectorStoreProvider vectorStoreProvider,
     IFileStorageService fileStorageService,
     IDocumentParsingProvider documentParsingProvider,
+    IRerankerProvider rerankerProvider,
+    IOptions<RagOptions> ragOptions,
     IHttpContextAccessor? httpContextAccessor = null,
     TimeProvider? timeProvider = null,
-    ILogger<ChatAgentService>? logger = null) : IChatAgentService
+    ILogger<ChatAgentService>? logger = null,
+    IServiceScopeFactory? serviceScopeFactory = null) : IChatAgentService
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly ICurrentUserService _currentUserService = currentUserService;
@@ -31,9 +38,12 @@ public class ChatAgentService(
     private readonly IVectorStoreProvider _vectorStoreProvider = vectorStoreProvider;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
+    private readonly IRerankerProvider _rerankerProvider = rerankerProvider;
+    private readonly RagOptions _ragOptions = ragOptions.Value;
     private readonly IHttpContextAccessor? _httpContextAccessor = httpContextAccessor;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly ILogger<ChatAgentService>? _logger = logger;
+    private readonly IServiceScopeFactory? _serviceScopeFactory = serviceScopeFactory;
 
     public async Task<AgentConversationDto> CreateConversationAsync(
         CreateAgentConversationRequest request,
@@ -179,6 +189,8 @@ public class ChatAgentService(
         SendAgentMessageRequest request,
         CancellationToken cancellationToken = default)
     {
+        var totalStopwatch = Stopwatch.StartNew();
+        var phaseStopwatch = new Stopwatch();
         if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
         {
             throw new AuthenticationException("المستخدم غير مسجل الدخول.");
@@ -207,9 +219,14 @@ public class ChatAgentService(
             request.Content,
             utcNow);
 
+        phaseStopwatch.Restart();
         _dbContext.AgentMessages.Add(userMessage);
         conversation.MarkMessageAdded(utcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // Perform RAG embedding API call in parallel with DB operations
+        var normalizedQuery = SmartCourt.Providers.PdfParser.ArabicTextNormalizer.Normalize(request.Content);
+        var embeddingTask = _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
 
         // Load conversation history (last 20 messages before the current one)
         var historyMessages = await _dbContext.AgentMessages
@@ -218,35 +235,61 @@ public class ChatAgentService(
             .Take(20)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
+        phaseStopwatch.Stop();
+        var dbOpsMs = phaseStopwatch.ElapsedMilliseconds;
 
+        phaseStopwatch.Restart();
         // Fetch or get cached case context
         var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
+        phaseStopwatch.Stop();
+        var caseContextMs = phaseStopwatch.ElapsedMilliseconds;
 
-        // Perform RAG law retrieval
-        var normalizedQuery = SmartCourt.Providers.PdfParser.ArabicTextNormalizer.Normalize(request.Content);
+        phaseStopwatch.Restart();
         List<string> retrievedLawArticles = [];
-
+        long rerankMs = 0;
         try
         {
-            var queryEmbeddings = await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
+            var queryEmbeddings = await embeddingTask;
             if (queryEmbeddings.Count > 0)
             {
                 var searchResults = await _vectorStoreProvider.SearchAsync(
-                    "egyptian_law",
+                    _ragOptions.LegalCollectionName,
                     queryEmbeddings[0],
-                    topK: 5,
+                    topK: _ragOptions.CandidateCount,
                     filters: null,
                     cancellationToken: cancellationToken);
 
-                foreach (var result in searchResults)
+                // Extract chunks above minimum similarity
+                retrievedLawArticles = searchResults
+                    .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
+                    .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
+                               : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t!)
+                    .ToList();
+
+                // Rerank to keep only the most relevant chunks
+                if (retrievedLawArticles.Count > 0)
                 {
-                    if (result.Payload.TryGetValue("chunk_text", out var chunkVal) && chunkVal != null)
+                    try
                     {
-                        retrievedLawArticles.Add(chunkVal.ToString()!);
+                        var rerankStopwatch = Stopwatch.StartNew();
+                        var topN = Math.Min(_ragOptions.RerankedCount, retrievedLawArticles.Count);
+                        var reranked = await _rerankerProvider.RerankAsync(
+                            normalizedQuery, retrievedLawArticles, topN, cancellationToken);
+                            
+                        retrievedLawArticles = reranked
+                            .Where(r => r.Index >= 0 && r.Index < retrievedLawArticles.Count)
+                            .OrderByDescending(r => r.RelevanceScore)
+                            .Select(r => retrievedLawArticles[r.Index])
+                            .ToList();
+                        
+                        rerankStopwatch.Stop();
+                        rerankMs = rerankStopwatch.ElapsedMilliseconds;
                     }
-                    else if (result.Payload.TryGetValue("text", out var textVal) && textVal != null)
+                    catch (Exception ex)
                     {
-                        retrievedLawArticles.Add(textVal.ToString()!);
+                        _logger?.LogWarning(ex, "Reranker failed for conversation {ConversationId}; using unranked results", conversationId);
                     }
                 }
             }
@@ -255,6 +298,8 @@ public class ChatAgentService(
         {
             _logger?.LogWarning(ex, "Failed to perform RAG vector search for conversation {ConversationId}", conversationId);
         }
+        phaseStopwatch.Stop();
+        var ragRetrievalMs = phaseStopwatch.ElapsedMilliseconds;
 
         // Determine role-based prompt guidelines
         bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
@@ -329,8 +374,9 @@ public class ChatAgentService(
 
         userPromptBuilder.AppendLine($"المستخدم: {request.Content}");
 
+        phaseStopwatch.Restart();
         var aiResponseText = await _chatModelProvider.GenerateAsync(
-            systemPromptBuilder.ToString(),
+            systemPromptText,
             userPromptBuilder.ToString(),
             cancellationToken);
 
@@ -343,6 +389,7 @@ public class ChatAgentService(
             aiResponseText = SanitizeMarkdown(aiResponseText);
         }
 
+        phaseStopwatch.Restart();
         var responseTime = _timeProvider.GetUtcNow().UtcDateTime;
         var assistantMessage = AgentMessage.CreateAssistantMessage(
             Guid.NewGuid(),
@@ -354,7 +401,25 @@ public class ChatAgentService(
         conversation.MarkMessageAdded(responseTime);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        await TryGenerateTitleAsync(conversation, request.Content, cancellationToken);
+        if (_serviceScopeFactory != null)
+        {
+            _ = Task.Run(() => TryGenerateTitleAsync(conversation.Id, request.Content));
+        }
+        else
+        {
+            await TryGenerateTitleAsync(conversation.Id, request.Content, cancellationToken);
+        }
+        phaseStopwatch.Stop();
+        var postProcessMs = phaseStopwatch.ElapsedMilliseconds;
+
+        totalStopwatch.Stop();
+
+        _logger?.LogInformation(
+            "[ChatAgent Perf] ConversationId={ConversationId} " +
+            "Total={TotalMs}ms | DB={DbMs}ms | CaseCtx={CaseCtxMs}ms | " +
+            "RAG={RagMs}ms | Rerank={RerankMs}ms | LLM={LlmMs}ms | PostProcess={PostMs}ms",
+            conversationId, totalStopwatch.ElapsedMilliseconds,
+            dbOpsMs, caseContextMs, ragRetrievalMs, rerankMs, llmGenerationMs, postProcessMs);
 
         return new AgentMessageDto(
             assistantMessage.Id,
@@ -364,47 +429,70 @@ public class ChatAgentService(
     }
 
     private async Task TryGenerateTitleAsync(
-        AgentConversation conversation,
+        Guid conversationId,
         string userMessageContent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken = default)
     {
-        if (!string.IsNullOrWhiteSpace(conversation.Title))
-        {
-            return;
-        }
-
         try
         {
-            const string systemPrompt = "أنت صانع عناوين محادثات قانونية. صغ عنواناً عربياً مختصراً جداً (من 3 إلى 6 كلمات) يخص موضوع استفسار المستخدم بدون علامات تنصيص أو رموز خاصة.";
-            var generatedTitle = await _chatModelProvider.GenerateAsync(systemPrompt, userMessageContent, cancellationToken);
+            ApplicationDbContext dbContext = _dbContext;
+            IChatModelProvider chatModelProvider = _chatModelProvider;
+            TimeProvider timeProvider = _timeProvider;
+            IServiceScope? scope = null;
 
-            if (!string.IsNullOrWhiteSpace(generatedTitle))
+            if (_serviceScopeFactory != null)
             {
-                var cleanTitle = generatedTitle
-                    .Replace("\"", "")
-                    .Replace("'", "")
-                    .Replace("«", "")
-                    .Replace("»", "")
-                    .Replace("\r", "")
-                    .Replace("\n", " ")
-                    .Trim();
+                scope = _serviceScopeFactory.CreateScope();
+                dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                chatModelProvider = scope.ServiceProvider.GetRequiredService<IChatModelProvider>();
+                timeProvider = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
+            }
 
-                if (cleanTitle.Length > 150)
+            try
+            {
+                var conversation = await dbContext.AgentConversations
+                    .FirstOrDefaultAsync(c => c.Id == conversationId, cancellationToken);
+
+                if (conversation is null || !string.IsNullOrWhiteSpace(conversation.Title))
                 {
-                    cleanTitle = cleanTitle[..150].Trim();
+                    return;
                 }
 
-                if (!string.IsNullOrWhiteSpace(cleanTitle))
+                var systemPrompt = ChatAgentPrompts.GetTitleGenerationPrompt();
+                var generatedTitle = await chatModelProvider.GenerateAsync(systemPrompt, userMessageContent, cancellationToken);
+
+                if (!string.IsNullOrWhiteSpace(generatedTitle))
                 {
-                    var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
-                    conversation.UpdateTitle(cleanTitle, utcNow);
-                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    var cleanTitle = generatedTitle
+                        .Replace("\"", "")
+                        .Replace("'", "")
+                        .Replace("«", "")
+                        .Replace("»", "")
+                        .Replace("\r", "")
+                        .Replace("\n", " ")
+                        .Trim();
+
+                    if (cleanTitle.Length > 150)
+                    {
+                        cleanTitle = cleanTitle[..150].Trim();
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(cleanTitle))
+                    {
+                        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
+                        conversation.UpdateTitle(cleanTitle, utcNow);
+                        await dbContext.SaveChangesAsync(cancellationToken);
+                    }
                 }
+            }
+            finally
+            {
+                scope?.Dispose();
             }
         }
         catch (Exception ex)
         {
-            _logger?.LogWarning(ex, "Failed to auto-generate conversation title for ConversationId {ConversationId}", conversation.Id);
+            _logger?.LogWarning(ex, "Failed to auto-generate conversation title for ConversationId {ConversationId}", conversationId);
         }
     }
 
