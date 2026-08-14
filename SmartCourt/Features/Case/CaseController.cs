@@ -48,11 +48,9 @@ namespace SmartCourt.Features.Case
             return Ok(result);
         }
 
-        [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<UpdateCaseResponse>>> Update([FromRoute] Guid id, [FromForm] UpdateCaseCommand command)
+        [HttpPut]
+        public async Task<ActionResult<ApiResponse<UpdateCaseResponse>>> Update([FromForm] UpdateCaseCommand command)
         {
-            command.CaseId = id;
-
             var result = await _mediator.Send(command);
 
             if (!result.Success)
