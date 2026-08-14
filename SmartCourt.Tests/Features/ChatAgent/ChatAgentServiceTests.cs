@@ -748,4 +748,66 @@ public sealed class ChatAgentServiceTests
         Assert.Equal("رسالة 1", result.Items[0].Content);
         Assert.Equal("رسالة 2", result.Items[1].Content);
     }
+
+    [Fact]
+    public void SanitizeMarkdown_ConvertsHtmlBreaksStripsTagsAndFixesHeaders()
+    {
+        // Arrange
+        var rawInput = "##التكييف القانوني<br/>فقرة تفصيلية تحتوي على <span>وسم إتش تي إم إم</span><br><br>###الدفوع الموضوعية";
+
+        // Act
+        var sanitized = ChatAgentService.SanitizeMarkdown(rawInput);
+
+        // Assert
+        Assert.DoesNotContain("<br", sanitized, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<span>", sanitized);
+        Assert.Contains("## التكييف القانوني", sanitized);
+        Assert.Contains("### الدفوع الموضوعية", sanitized);
+        Assert.Contains("وسم إتش تي إم إم", sanitized);
+    }
+
+    [Fact]
+    public async Task SendMessage_SanitizesAiResponseMarkdown_SavesAndReturnsCleanMarkdown()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
+        dbContext.AgentConversations.Add(conversation);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var chatModelProvider = new TestChatModelProvider
+        {
+            DefaultResponse = "##الاستشارة القانونية<br>هذا نص الاستشارة الإجرائية مع <b>وسم غامق</b>."
+        };
+
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            chatModelProvider,
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider());
+
+        var request = new SendAgentMessageRequest("ما هي إجراءات رفع دعوى صحة ونفاذ؟");
+
+        // Act
+        var responseDto = await service.SendMessageAsync(conversation.Id, request);
+
+        // Assert
+        Assert.NotNull(responseDto);
+        Assert.Contains("## الاستشارة القانونية", responseDto.Content);
+        Assert.DoesNotContain("<br>", responseDto.Content);
+        Assert.DoesNotContain("<b>", responseDto.Content);
+        Assert.Contains("هذا نص الاستشارة الإجرائية مع وسم غامق.", responseDto.Content);
+
+        var savedAssistantMessage = await dbContext.AgentMessages.FirstOrDefaultAsync(m => m.Id == responseDto.Id);
+        Assert.NotNull(savedAssistantMessage);
+        Assert.Equal(responseDto.Content, savedAssistantMessage.Content);
+    }
 }
+

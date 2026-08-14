@@ -289,6 +289,15 @@ public class ChatAgentService(
 5. اربط إجابتك ببيانات ومستندات القضية المرفقة بأسلوب إجرائي مبسط وعملي.");
         }
 
+        systemPromptBuilder.AppendLine(@"
+[تعليمات تنسيق الإخراج - Markdown]:
+1. صِغ إجابتك بالكامل بتنسيق ماركداون قياسي (Standard GitHub Flavored Markdown) متوافق تماماً مع مكتبة react-markdown في الواجهة الأمامية.
+2. استخدم العناوين الرئيسية والفرعية بأسلوب واضح (مثل: ## و ###) مع ترك مسافة بعد الهاش (مثال: ## العنوان).
+3. عند الاقتباس من مواد وقوانين، استخدم مربع الاقتباس الماركداون بأسلوب ( > **مادة (رقم):** نص المادة...).
+4. استخدم القوائم المنقطة (- بند) أو الرقمية (1. بند) مع ترك أسطر فارغة قبل القوائم وبعدها.
+5. يمنع منعاً باتاً استخدام وسوم HTML مثل (<br>, <div>, <b>, <span>) ويجب الاستعاضة عنها بالتنسيق القياسي للماركداون.
+6. اترك أسطراً فارغة بين الأقسام الرئيسية لضمان الوضوح والرؤية البصرية بأسلوب منظم وسلس.");
+
         if (retrievedLawArticles.Count > 0)
         {
             systemPromptBuilder.AppendLine("\n[مواد ونصوص القانون المصري ذات الصلة]:");
@@ -328,6 +337,10 @@ public class ChatAgentService(
         if (string.IsNullOrWhiteSpace(aiResponseText))
         {
             aiResponseText = "تمت مراجعة طلبك، ويرجى توضيح السؤال للحصول على تفاصيل أكثر.";
+        }
+        else
+        {
+            aiResponseText = SanitizeMarkdown(aiResponseText);
         }
 
         var responseTime = _timeProvider.GetUtcNow().UtcDateTime;
@@ -580,6 +593,41 @@ public class ChatAgentService(
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return contextText;
+    }
+
+    public static string SanitizeMarkdown(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return string.Empty;
+        }
+
+        // Convert HTML breaks to Markdown double newlines
+        var sanitized = System.Text.RegularExpressions.Regex.Replace(
+            input,
+            @"<br\s*/?>",
+            "\n\n",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Strip remaining HTML tags (e.g. <div>, <span>, <b>, <i>, <p>)
+        sanitized = System.Text.RegularExpressions.Regex.Replace(
+            sanitized,
+            @"<[^>]+>",
+            string.Empty);
+
+        // Ensure space after markdown header hashes (#Title -> # Title, ##Title -> ## Title)
+        sanitized = System.Text.RegularExpressions.Regex.Replace(
+            sanitized,
+            @"(?m)^(#{1,6})([^\s#])",
+            "$1 $2");
+
+        // Normalize 3+ consecutive newlines down to 2 newlines
+        sanitized = System.Text.RegularExpressions.Regex.Replace(
+            sanitized,
+            @"(\r?\n){3,}",
+            "\n\n");
+
+        return sanitized.Trim();
     }
 
     private static AgentConversationDto MapToDto(AgentConversation conversation, string? caseTitle)
