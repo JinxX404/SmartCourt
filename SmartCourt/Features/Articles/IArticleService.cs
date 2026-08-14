@@ -22,6 +22,8 @@ public interface IArticleService
     Task<ApiResponse<ArticleCommentDto>> UpdateCommentAsync(Guid articleId, Guid commentId, UpdateCommentRequest request, CancellationToken cancellationToken);
     Task<ApiResponse<bool>> DeleteCommentAsync(Guid articleId, Guid commentId, CancellationToken cancellationToken);
     Task<ApiResponse<bool>> ReportArticleAsync(Guid id, ReportArticleRequest request, CancellationToken cancellationToken);
+    Task<PagedResponse<List<ArticleLikerDto>>> GetArticleLikersAsync(Guid articleId, int pageNumber, int pageSize, CancellationToken cancellationToken);
+
 
     // Lawyer Methods
     Task<ApiResponse<ArticleDto>> CreateArticleAsync(CreateArticleRequest request, CancellationToken cancellationToken);

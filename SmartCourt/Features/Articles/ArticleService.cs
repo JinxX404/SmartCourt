@@ -391,6 +391,33 @@ public class ArticleService : IArticleService
         return ApiResponse<bool>.Ok(true);
     }
 
+    public async Task<PagedResponse<List<ArticleLikerDto>>> GetArticleLikersAsync(Guid articleId, int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+        if (!await _context.LegalArticles.AnyAsync(a => a.Id == articleId && a.Status == ArticleStatus.Published && !a.IsDeleted, cancellationToken))
+            throw new NotFoundException("المقال غير موجود.");
+
+        var query = _context.ArticleLikes
+            .AsNoTracking()
+            .Include(l => l.User)
+            .Where(l => l.ArticleId == articleId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => new ArticleLikerDto(
+                l.User.Id,
+                l.User.FullName,
+                l.User.ProfilePictureUrl
+            ));
+
+        var total = await query.CountAsync(cancellationToken);
+        var likers = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+        return PagedResponse<List<ArticleLikerDto>>.OkPaged(likers, pageNumber, pageSize, total, totalPages);
+    }
+
+
     // Lawyer Methods
     public async Task<ApiResponse<ArticleDto>> CreateArticleAsync(CreateArticleRequest request, CancellationToken cancellationToken)
     {

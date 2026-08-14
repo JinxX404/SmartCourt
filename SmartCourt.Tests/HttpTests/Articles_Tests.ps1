@@ -56,8 +56,8 @@ $articleBody = @{
     Tags = "Law,Test"
     CategoryId = $categoryId
     IsDraft = $true
-} | ConvertTo-Json
-$articleRes = Invoke-Api -title "3a. Create Draft Article (Lawyer)" -method "POST" -endpoint "/api/Articles/lawyer" -body $articleBody -token $lawyerToken -reportFile $ReportPath
+}
+$articleRes = Invoke-Api -title "3a. Create Draft Article (Lawyer)" -method "POST" -endpoint "/api/Articles/lawyer" -body $articleBody -token $lawyerToken -reportFile $ReportPath -contentType ""
 $articleId = $articleRes.data.id
 
 # Lawyer views drafts
@@ -70,8 +70,8 @@ $articleUpdateBody = @{
     Tags = "Law,Test"
     CategoryId = $categoryId
     IsDraft = $true
-} | ConvertTo-Json
-Invoke-Api -title "3c. Update Article (Lawyer)" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId" -body $articleUpdateBody -token $lawyerToken -reportFile $ReportPath | Out-Null
+}
+Invoke-Api -title "3c. Update Article (Lawyer)" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId" -body $articleUpdateBody -token $lawyerToken -reportFile $ReportPath -contentType "" | Out-Null
 
 # Lawyer publishes article via Change Status
 Invoke-Api -title "3d. Publish Article via Status Change" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId/status" -token $lawyerToken -reportFile $ReportPath | Out-Null
@@ -110,6 +110,9 @@ Invoke-Api -title "4h. View My Liked Articles (Client)" -method "GET" -endpoint 
 
 # Client views specific article again to check IsLikedByCurrentUser
 Invoke-Api -title "4i. View Article Check IsLiked (Client Token)" -method "GET" -endpoint "/api/Articles/public/$articleId" -token $clientToken -reportFile $ReportPath | Out-Null
+
+# Client views article likers
+Invoke-Api -title "4j. View Article Likers (Client Token)" -method "GET" -endpoint "/api/Articles/$articleId/likers?pageNumber=1&pageSize=10" -token $clientToken -reportFile $ReportPath | Out-Null
 
 # --- 5. Admin Moderation ---
 # View Reports

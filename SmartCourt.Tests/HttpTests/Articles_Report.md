@@ -1,6 +1,6 @@
 ﻿# Articles Feature Test Report
 
-Run at: 2026-08-12 18:52:43
+Run at: 2026-08-14 23:17:51
 
 ### 1a. Login Admin
 
@@ -28,10 +28,10 @@ Run at: 2026-08-12 18:52:43
                               "status":  "Active",
                               "rejectionReason":  null
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3Yjg4YjFmOC04ZTc1LTRjODEtODE0Zi0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjdiODhiMWY4LThlNzUtNGM4MS04MTRmLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoiYWRtaW5Ac21hcnRjb3VydC5jb20iLCJuYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJzZWN1cml0eV9zdGFtcCI6IjRDUVNJQVJOWU9aN1VVTjVMRVU1TUlONzdOTUxQVDc1IiwianRpIjoiYTQwZmI3ODUtMGFjZi00YzliLTkyNjEtNmRlM2UxMTM0NDQxIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODY1NDk5NjQsImV4cCI6MTc4NjU1MzU2NCwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.29cSxeaty0dMCW7I1qo1MtflHBq7sCByM4JNaliTRPk",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3Yjg4YjFmOC04ZTc1LTRjODEtODE0Zi0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjdiODhiMWY4LThlNzUtNGM4MS04MTRmLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoiYWRtaW5Ac21hcnRjb3VydC5jb20iLCJuYW1lIjoiU3lzdGVtIEFkbWluaXN0cmF0b3IiLCJzZWN1cml0eV9zdGFtcCI6IjRDUVNJQVJOWU9aN1VVTjVMRVU1TUlONzdOTUxQVDc1IiwianRpIjoiNGU1ZTY3ODktY2FlYS00MTg2LWI4OGItZTQwZDFhNWJiMWZiIiwiaHR0cDovL3NjaGVtYXMubWljcm9zb2Z0LmNvbS93cy8yMDA4LzA2L2lkZW50aXR5L2NsYWltcy9yb2xlIjoiQWRtaW4iLCJuYmYiOjE3ODY3Mzg2NzIsImV4cCI6MTc4Njc0MjI3MiwiaXNzIjoiU21hcnRDb3VydEFQSSIsImF1ZCI6IlNtYXJ0Q291cnRDbGllbnQifQ.AmuXXiu2mwa7TR7bs63jw2BZ9CFbD2YUxsL-oamvLNY",
                  "expiresIn":  3600,
-                 "refreshToken":  "1ul2P+d5K2KE/K52kgZoooR0qv8dkmPNyWXyfA4uNIshYL32lS3/3oBK6nRCsoG45NgSgob/Ha5kwc0TKXgBgQ==",
-                 "refreshTokenExpiration":  "2026-08-19T15:52:44.3483616Z"
+                 "refreshToken":  "d/QgHKroy/yaCOMCTliaE9Wg8+jVlp4EfWKfRwHjK/v2sfRGhZpFji2+db4LuVol+jAau5CP3wvAL0sDYqDsZQ==",
+                 "refreshTokenExpiration":  "2026-08-21T20:17:52.0055619Z"
              },
     "message":  null,
     "errors":  null,
@@ -66,10 +66,10 @@ Run at: 2026-08-12 18:52:43
                               "status":  "Active",
                               "rejectionReason":  null
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZGVhNDk5MS05NzMzLTQ0MDAtODE1MS0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImNkZWE0OTkxLTk3MzMtNDQwMC04MTUxLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoibGF3eWVyQHNtYXJ0Y291cnQuY29tIiwibmFtZSI6IlRlc3QgTGF3eWVyIiwic2VjdXJpdHlfc3RhbXAiOiIyV0kzRk83TlNOUlNOSktXVkpRQ001RzQ1Q1JWV0tISyIsImp0aSI6ImQwMGJiYTFkLWY1NDUtNGI1Ni1iNmI3LTE1MDViNWY1Nzc5MCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NjU0OTk2NCwiZXhwIjoxNzg2NTUzNTY0LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.6P2DrszvHI85y3Qt5iVog0Tuaue_DE1XeCoKT1TtVJk",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjZGVhNDk5MS05NzMzLTQ0MDAtODE1MS0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImNkZWE0OTkxLTk3MzMtNDQwMC04MTUxLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoibGF3eWVyQHNtYXJ0Y291cnQuY29tIiwibmFtZSI6IlRlc3QgTGF3eWVyIiwic2VjdXJpdHlfc3RhbXAiOiIyV0kzRk83TlNOUlNOSktXVkpRQ001RzQ1Q1JWV0tISyIsImp0aSI6IjRjNTU4YjA0LWVmZjAtNGY3ZC1hODYyLTRhN2NhZDdkOTI1OCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6Ikxhd3llciIsIm5iZiI6MTc4NjczODY3MiwiZXhwIjoxNzg2NzQyMjcyLCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.IkHxXx7LCtazAzhAPBqwjDvGiH63IL250I5E1HZxJ7o",
                  "expiresIn":  3600,
-                 "refreshToken":  "S4bbpnZjnoTn8Uj2Gm+eSxokECUBcW2tz3qm0qw935xfVsdg0fbhUfNsuDLCp/IJ5JQmIioGph6gPxyZzvXtIQ==",
-                 "refreshTokenExpiration":  "2026-08-19T15:52:44.7481736Z"
+                 "refreshToken":  "P13tC1Jzm30+ScoSCCul2jCu41J2ugIM1sfG6JMg1ochdD1UM7vlGmm3ZQ+kDthnlaFebZm1ZjwZVqgn3/YMxw==",
+                 "refreshTokenExpiration":  "2026-08-21T20:17:52.1898074Z"
              },
     "message":  null,
     "errors":  null,
@@ -104,10 +104,10 @@ Run at: 2026-08-12 18:52:43
                               "status":  "Active",
                               "rejectionReason":  null
                           },
-                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NDEzNjdmOS00OGYzLTRlYWEtODE1Mi0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjY0MTM2N2Y5LTQ4ZjMtNGVhYS04MTUyLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoiY2xpZW50QHNtYXJ0Y291cnQuY29tIiwibmFtZSI6IlRlc3QgQ2xpZW50Iiwic2VjdXJpdHlfc3RhbXAiOiJTN0FaNk1BRk1SUEZWU0RZUjNXN0k2TEhESEFLVVBIMyIsImp0aSI6IjUyZjYxNDEyLTA0ZjMtNDMyZC1iZTU2LWQ4MDRkNDg5YmIwZiIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNsaWVudCIsIm5iZiI6MTc4NjU0OTk2NSwiZXhwIjoxNzg2NTUzNTY1LCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.34WdZ7KRyGC89e6iDuJpoBDR7LfWVRILRT2RmgS5uD4",
+                 "accessToken":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2NDEzNjdmOS00OGYzLTRlYWEtODE1Mi0wOGRlZTkxZDdjOGYiLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjY0MTM2N2Y5LTQ4ZjMtNGVhYS04MTUyLTA4ZGVlOTFkN2M4ZiIsImVtYWlsIjoiY2xpZW50QHNtYXJ0Y291cnQuY29tIiwibmFtZSI6IlRlc3QgQ2xpZW50Iiwic2VjdXJpdHlfc3RhbXAiOiJTN0FaNk1BRk1SUEZWU0RZUjNXN0k2TEhESEFLVVBIMyIsImp0aSI6IjAwZmRiYzAwLWYzMWUtNDdlMS05ZTY0LTI2YTA1N2E2Y2ZmZCIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkNsaWVudCIsIm5iZiI6MTc4NjczODY3MiwiZXhwIjoxNzg2NzQyMjcyLCJpc3MiOiJTbWFydENvdXJ0QVBJIiwiYXVkIjoiU21hcnRDb3VydENsaWVudCJ9.DWTtfQ2yX_TZ18fn4nHnLLlnc5RSH0dw2-Fno7CukXk",
                  "expiresIn":  3600,
-                 "refreshToken":  "JgGBE7UjIqzA4ediwCz+4hidD7iamwHNKGlclK2Zvu4gDOZ9aAq/F63ORfv4d1PvlgFzg5optG0BiSyXIvsn/Q==",
-                 "refreshTokenExpiration":  "2026-08-19T15:52:45.0168706Z"
+                 "refreshToken":  "UI+C0pdSGR1w8wgoel9VQsqyGfOCxV4mESk705u3MGP8juBs1sQjj2VcbMdh3GE/Xtdbqv1rQ90JMHY0qjYRAw==",
+                 "refreshTokenExpiration":  "2026-08-21T20:17:52.3306476Z"
              },
     "message":  null,
     "errors":  null,
@@ -123,8 +123,8 @@ Run at: 2026-08-12 18:52:43
 **Body:**
 `json
 {
-    "Code":  "ARTCAT_819149806",
-    "NameAr":  "Test Category 819149806",
+    "Code":  "ARTCAT_648577975",
+    "NameAr":  "Test Category 648577975",
     "Description":  "Category Description"
 }
 ``n
@@ -135,9 +135,9 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                 "code":  "ARTCAT_819149806",
-                 "nameAr":  "Test Category 819149806",
+                 "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                 "code":  "ARTCAT_648577975",
+                 "nameAr":  "Test Category 648577975",
                  "description":  "Category Description"
              },
     "message":  null,
@@ -149,12 +149,12 @@ Run at: 2026-08-12 18:52:43
 
 ### 2b. Update Category (Admin)
 
-**Request:** PUT http://localhost:5049/api/ArticleCategories/admin/e698bf27-35f4-4f0a-307b-08def889c03b
+**Request:** PUT http://localhost:5049/api/ArticleCategories/admin/d7afc08d-63fe-4acd-f1f9-08defa40c741
 
 **Body:**
 `json
 {
-    "NameAr":  "Updated Category 819149806",
+    "NameAr":  "Updated Category 648577975",
     "Description":  "Updated Description"
 }
 ``n
@@ -165,9 +165,9 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                 "code":  "ARTCAT_819149806",
-                 "nameAr":  "Updated Category 819149806",
+                 "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                 "code":  "ARTCAT_648577975",
+                 "nameAr":  "Updated Category 648577975",
                  "description":  "Updated Description"
              },
     "message":  null,
@@ -189,9 +189,9 @@ Run at: 2026-08-12 18:52:43
     "success":  true,
     "data":  [
                  {
-                     "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                     "code":  "ARTCAT_819149806",
-                     "nameAr":  "Updated Category 819149806",
+                     "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                     "code":  "ARTCAT_648577975",
+                     "nameAr":  "Updated Category 648577975",
                      "description":  "Updated Description"
                  },
                  {
@@ -231,15 +231,8 @@ Run at: 2026-08-12 18:52:43
 **Request:** POST http://localhost:5049/api/Articles/lawyer
 
 **Body:**
-`json
-{
-    "Title":  "Test Article 819149806",
-    "Tags":  "Law,Test",
-    "CategoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-    "Content":  "Test Article Content long...",
-    "IsDraft":  true
-}
-``n
+System.Collections.Hashtable
+
 **Response Status:** 201
 
 **Response Body:**
@@ -247,8 +240,8 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                 "title":  "Test Article 819149806",
+                 "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                 "title":  "Test Article 648577975",
                  "content":  "Test Article Content long...",
                  "tags":  "Law,Test",
                  "featuredImageUrl":  null,
@@ -257,17 +250,17 @@ Run at: 2026-08-12 18:52:43
                  "commentsCount":  0,
                  "isLikedByCurrentUser":  false,
                  "status":  1,
-                 "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
+                 "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
                  "category":  {
-                                  "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                                  "code":  "ARTCAT_819149806",
-                                  "nameAr":  "Updated Category 819149806",
+                                  "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                                  "code":  "ARTCAT_648577975",
+                                  "nameAr":  "Updated Category 648577975",
                                   "description":  "Updated Description"
                               },
                  "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                  "authorName":  "Test Lawyer",
-                 "createdAt":  "2026-08-12T15:52:45.6540335Z",
-                 "updatedAt":  "2026-08-12T15:52:45.5808575Z"
+                 "createdAt":  "2026-08-14T20:17:52.6487838Z",
+                 "updatedAt":  "2026-08-14T20:17:52.5875082Z"
              },
     "message":  null,
     "errors":  null,
@@ -294,18 +287,18 @@ Run at: 2026-08-12 18:52:43
     "success":  true,
     "data":  [
                  {
-                     "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                     "title":  "Test Article 819149806",
+                     "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                     "title":  "Test Article 648577975",
                      "featuredImageUrl":  null,
                      "viewCount":  0,
                      "likesCount":  0,
                      "commentsCount":  0,
                      "status":  1,
-                     "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                     "categoryNameAr":  "Updated Category 819149806",
+                     "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                     "categoryNameAr":  "Updated Category 648577975",
                      "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                      "authorName":  "Test Lawyer",
-                     "createdAt":  "2026-08-12T15:52:45.6540335"
+                     "createdAt":  "2026-08-14T20:17:52.6487838"
                  }
              ],
     "message":  null,
@@ -317,57 +310,38 @@ Run at: 2026-08-12 18:52:43
 
 ### 3c. Update Article (Lawyer)
 
-**Request:** PUT http://localhost:5049/api/Articles/lawyer/f57c4b21-791e-4005-b59c-08def889c06e
+**Request:** PUT http://localhost:5049/api/Articles/lawyer/79831ff7-0057-40da-71f4-08defa411e92
 
 **Body:**
-`json
-{
-    "Title":  "Updated Article 819149806",
-    "Tags":  "Law,Test",
-    "CategoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-    "Content":  "Updated Article Content...",
-    "IsDraft":  true
-}
-``n
-**Response Status:** 200
+System.Collections.Hashtable
+
+**Response Status:** 400
 
 **Response Body:**
 `json
 {
-    "success":  true,
-    "data":  {
-                 "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                 "title":  "Updated Article 819149806",
-                 "content":  "Updated Article Content...",
-                 "tags":  "Law,Test",
-                 "featuredImageUrl":  null,
-                 "viewCount":  0,
-                 "likesCount":  0,
-                 "commentsCount":  0,
-                 "isLikedByCurrentUser":  false,
-                 "status":  1,
-                 "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                 "category":  {
-                                  "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                                  "code":  "ARTCAT_819149806",
-                                  "nameAr":  "Updated Category 819149806",
-                                  "description":  "Updated Description"
-                              },
-                 "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
-                 "authorName":  "Test Lawyer",
-                 "createdAt":  "2026-08-12T15:52:45.6540335",
-                 "updatedAt":  "2026-08-12T15:52:45.920353Z"
-             },
-    "message":  null,
-    "errors":  null,
-    "statusCode":  200
+    "type":  "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+    "title":  "One or more validation errors occurred.",
+    "status":  400,
+    "errors":  {
+                   "Title":  [
+                                 "عنوان المقال مطلوب."
+                             ],
+                   "Content":  [
+                                   "محتوى المقال مطلوب عند النشر."
+                               ],
+                   "CategoryId":  [
+                                      "التصنيف مطلوب."
+                                  ]
+               },
+    "traceId":  "00-dd15a76d8dff0db66a4b3f5391614cb7-23f7fec67da0f2a0-00"
 }
 ``n---
 
 
 ### 3d. Publish Article via Status Change
 
-**Request:** PUT http://localhost:5049/api/Articles/lawyer/f57c4b21-791e-4005-b59c-08def889c06e/status
+**Request:** PUT http://localhost:5049/api/Articles/lawyer/79831ff7-0057-40da-71f4-08defa411e92/status
 
 **Response Status:** 200
 
@@ -376,9 +350,9 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                 "title":  "Updated Article 819149806",
-                 "content":  "Updated Article Content...",
+                 "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                 "title":  "Test Article 648577975",
+                 "content":  "Test Article Content long...",
                  "tags":  "Law,Test",
                  "featuredImageUrl":  null,
                  "viewCount":  0,
@@ -386,17 +360,17 @@ Run at: 2026-08-12 18:52:43
                  "commentsCount":  0,
                  "isLikedByCurrentUser":  false,
                  "status":  2,
-                 "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
+                 "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
                  "category":  {
-                                  "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                                  "code":  "ARTCAT_819149806",
-                                  "nameAr":  "Updated Category 819149806",
+                                  "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                                  "code":  "ARTCAT_648577975",
+                                  "nameAr":  "Updated Category 648577975",
                                   "description":  "Updated Description"
                               },
                  "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                  "authorName":  "Test Lawyer",
-                 "createdAt":  "2026-08-12T15:52:45.6540335",
-                 "updatedAt":  "2026-08-12T15:52:45.9689788Z"
+                 "createdAt":  "2026-08-14T20:17:52.6487838",
+                 "updatedAt":  "2026-08-14T20:17:52.9332345Z"
              },
     "message":  null,
     "errors":  null,
@@ -423,18 +397,18 @@ Run at: 2026-08-12 18:52:43
     "success":  true,
     "data":  [
                  {
-                     "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                     "title":  "Updated Article 819149806",
+                     "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                     "title":  "Test Article 648577975",
                      "featuredImageUrl":  null,
                      "viewCount":  0,
                      "likesCount":  0,
                      "commentsCount":  0,
                      "status":  2,
-                     "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                     "categoryNameAr":  "Updated Category 819149806",
+                     "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                     "categoryNameAr":  "Updated Category 648577975",
                      "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                      "authorName":  "Test Lawyer",
-                     "createdAt":  "2026-08-12T15:52:45.6540335"
+                     "createdAt":  "2026-08-14T20:17:52.6487838"
                  }
              ],
     "message":  null,
@@ -456,29 +430,43 @@ Run at: 2026-08-12 18:52:43
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  2,
+    "totalRecords":  3,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
     "data":  [
                  {
-                     "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                     "title":  "Updated Article 819149806",
+                     "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                     "title":  "Test Article 648577975",
                      "featuredImageUrl":  null,
                      "viewCount":  0,
                      "likesCount":  0,
                      "commentsCount":  0,
                      "status":  2,
-                     "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                     "categoryNameAr":  "Updated Category 819149806",
+                     "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                     "categoryNameAr":  "Updated Category 648577975",
                      "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                      "authorName":  "Test Lawyer",
-                     "createdAt":  "2026-08-12T15:52:45.6540335"
+                     "createdAt":  "2026-08-14T20:17:52.6487838"
+                 },
+                 {
+                     "id":  "cea4c6fe-2431-41cf-c6ea-08defa1a3d26",
+                     "title":  "قانون المرافعات",
+                     "featuredImageUrl":  "https://msahvjipdwvgdartpeqj.supabase.co/storage/v1/object/sign/smart-court-files/articles/e2cfbfd7-b512-46c6-a7e1-1675495d82fd_IMG-20251204-WA0011.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9hMWU2MTdkZi01NzZkLTQ3ZTItYWJiYy1iYzI1OThmZDRiNWUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJzbWFydC1jb3VydC1maWxlcy9hcnRpY2xlcy9lMmNmYmZkNy1iNTEyLTQ2YzYtYTdlMS0xNjc1NDk1ZDgyZmRfSU1HLTIwMjUxMjA0LVdBMDAxMS5qcGciLCJzY29wZSI6ImRvd25sb2FkIiwiaWF0IjoxNzg2NzM4NjczLCJleHAiOjE3ODY3NDIyNzN9.qSurkPh0_3-YCz2a-08EU3sYbMNXYBeVNnGEvbV5pPU",
+                     "viewCount":  0,
+                     "likesCount":  0,
+                     "commentsCount":  0,
+                     "status":  2,
+                     "categoryId":  "a0b711e7-f1e1-450a-9d9f-3d12c5b96904",
+                     "categoryNameAr":  "القانون الجنائي",
+                     "authorId":  "a8e576cb-9d0f-4f36-5288-08def86410ad",
+                     "authorName":  "mahmoud",
+                     "createdAt":  "2026-08-14T15:39:33.6321212"
                  },
                  {
                      "id":  "ed4c3439-8b97-44db-a5ab-08def865ac1c",
                      "title":  "لماذا يعد التعدي على شغل الباك مخالف للقانون؟",
-                     "featuredImageUrl":  "",
+                     "featuredImageUrl":  null,
                      "viewCount":  1,
                      "likesCount":  0,
                      "commentsCount":  0,
@@ -499,7 +487,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4b. View Article (Client Token)
 
-**Request:** GET http://localhost:5049/api/Articles/public/f57c4b21-791e-4005-b59c-08def889c06e
+**Request:** GET http://localhost:5049/api/Articles/public/79831ff7-0057-40da-71f4-08defa411e92
 
 **Response Status:** 200
 
@@ -508,9 +496,9 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                 "title":  "Updated Article 819149806",
-                 "content":  "Updated Article Content...",
+                 "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                 "title":  "Test Article 648577975",
+                 "content":  "Test Article Content long...",
                  "tags":  "Law,Test",
                  "featuredImageUrl":  null,
                  "viewCount":  1,
@@ -518,17 +506,17 @@ Run at: 2026-08-12 18:52:43
                  "commentsCount":  0,
                  "isLikedByCurrentUser":  false,
                  "status":  2,
-                 "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
+                 "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
                  "category":  {
-                                  "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                                  "code":  "ARTCAT_819149806",
-                                  "nameAr":  "Updated Category 819149806",
+                                  "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                                  "code":  "ARTCAT_648577975",
+                                  "nameAr":  "Updated Category 648577975",
                                   "description":  "Updated Description"
                               },
                  "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                  "authorName":  "Test Lawyer",
-                 "createdAt":  "2026-08-12T15:52:45.6540335",
-                 "updatedAt":  "2026-08-12T15:52:46.2508372Z"
+                 "createdAt":  "2026-08-14T20:17:52.6487838",
+                 "updatedAt":  "2026-08-14T20:17:53.4309838Z"
              },
     "message":  null,
     "errors":  null,
@@ -539,7 +527,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4c. Like Article (Client)
 
-**Request:** POST http://localhost:5049/api/Articles/f57c4b21-791e-4005-b59c-08def889c06e/like
+**Request:** POST http://localhost:5049/api/Articles/79831ff7-0057-40da-71f4-08defa411e92/like
 
 **Response Status:** 200
 
@@ -557,7 +545,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4d. Comment on Article (Client)
 
-**Request:** POST http://localhost:5049/api/Articles/f57c4b21-791e-4005-b59c-08def889c06e/comments
+**Request:** POST http://localhost:5049/api/Articles/79831ff7-0057-40da-71f4-08defa411e92/comments
 
 **Body:**
 `json
@@ -572,12 +560,12 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "1091a300-3781-4417-8a59-7949fc38e3c4",
-                 "articleId":  "f57c4b21-791e-4005-b59c-08def889c06e",
+                 "id":  "d695e1c4-01e1-4498-a2fb-f4ee6b9bd893",
+                 "articleId":  "79831ff7-0057-40da-71f4-08defa411e92",
                  "userId":  "641367f9-48f3-4eaa-8152-08dee91d7c8f",
                  "userName":  "Test Client",
                  "content":  "Great Article!",
-                 "createdAt":  "2026-08-12T15:52:46.4360898Z"
+                 "createdAt":  "2026-08-14T20:17:53.5803062Z"
              },
     "message":  null,
     "errors":  null,
@@ -588,7 +576,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4e. Update Comment (Client)
 
-**Request:** PUT http://localhost:5049/api/Articles/f57c4b21-791e-4005-b59c-08def889c06e/comments/1091a300-3781-4417-8a59-7949fc38e3c4
+**Request:** PUT http://localhost:5049/api/Articles/79831ff7-0057-40da-71f4-08defa411e92/comments/d695e1c4-01e1-4498-a2fb-f4ee6b9bd893
 
 **Body:**
 `json
@@ -603,12 +591,12 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "1091a300-3781-4417-8a59-7949fc38e3c4",
-                 "articleId":  "f57c4b21-791e-4005-b59c-08def889c06e",
+                 "id":  "d695e1c4-01e1-4498-a2fb-f4ee6b9bd893",
+                 "articleId":  "79831ff7-0057-40da-71f4-08defa411e92",
                  "userId":  "641367f9-48f3-4eaa-8152-08dee91d7c8f",
                  "userName":  "Test Client",
                  "content":  "Great Article! Updated.",
-                 "createdAt":  "2026-08-12T15:52:46.4360898"
+                 "createdAt":  "2026-08-14T20:17:53.5803062"
              },
     "message":  null,
     "errors":  null,
@@ -619,7 +607,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4f. View Article Comments Paginated (Public)
 
-**Request:** GET http://localhost:5049/api/Articles/public/f57c4b21-791e-4005-b59c-08def889c06e/comments?pageNumber=1&pageSize=10
+**Request:** GET http://localhost:5049/api/Articles/public/79831ff7-0057-40da-71f4-08defa411e92/comments?pageNumber=1&pageSize=10
 
 **Response Status:** 200
 
@@ -635,12 +623,12 @@ Run at: 2026-08-12 18:52:43
     "success":  true,
     "data":  [
                  {
-                     "id":  "1091a300-3781-4417-8a59-7949fc38e3c4",
-                     "articleId":  "f57c4b21-791e-4005-b59c-08def889c06e",
+                     "id":  "d695e1c4-01e1-4498-a2fb-f4ee6b9bd893",
+                     "articleId":  "79831ff7-0057-40da-71f4-08defa411e92",
                      "userId":  "641367f9-48f3-4eaa-8152-08dee91d7c8f",
                      "userName":  "Test Client",
                      "content":  "Great Article! Updated.",
-                     "createdAt":  "2026-08-12T15:52:46.4360898"
+                     "createdAt":  "2026-08-14T20:17:53.5803062"
                  }
              ],
     "message":  null,
@@ -652,7 +640,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 4g. Report Article (Client)
 
-**Request:** POST http://localhost:5049/api/Articles/f57c4b21-791e-4005-b59c-08def889c06e/report
+**Request:** POST http://localhost:5049/api/Articles/79831ff7-0057-40da-71f4-08defa411e92/report
 
 **Body:**
 `json
@@ -674,9 +662,27 @@ Run at: 2026-08-12 18:52:43
 ``n---
 
 
+### 4h. View My Liked Articles (Client)
+
+**Request:** GET http://localhost:5049/api/Articles/my-likes
+
+**Response Status:** 500
+
+**Response Body:**
+`json
+{
+    "success":  false,
+    "data":  null,
+    "message":  "An internal server error occurred.",
+    "errors":  null,
+    "statusCode":  500
+}
+``n---
+
+
 ### 4i. View Article Check IsLiked (Client Token)
 
-**Request:** GET http://localhost:5049/api/Articles/public/f57c4b21-791e-4005-b59c-08def889c06e
+**Request:** GET http://localhost:5049/api/Articles/public/79831ff7-0057-40da-71f4-08defa411e92
 
 **Response Status:** 200
 
@@ -685,9 +691,9 @@ Run at: 2026-08-12 18:52:43
 {
     "success":  true,
     "data":  {
-                 "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                 "title":  "Updated Article 819149806",
-                 "content":  "Updated Article Content...",
+                 "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                 "title":  "Test Article 648577975",
+                 "content":  "Test Article Content long...",
                  "tags":  "Law,Test",
                  "featuredImageUrl":  null,
                  "viewCount":  1,
@@ -695,18 +701,48 @@ Run at: 2026-08-12 18:52:43
                  "commentsCount":  1,
                  "isLikedByCurrentUser":  true,
                  "status":  2,
-                 "categoryId":  "e698bf27-35f4-4f0a-307b-08def889c03b",
+                 "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
                  "category":  {
-                                  "id":  "e698bf27-35f4-4f0a-307b-08def889c03b",
-                                  "code":  "ARTCAT_819149806",
-                                  "nameAr":  "Updated Category 819149806",
+                                  "id":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                                  "code":  "ARTCAT_648577975",
+                                  "nameAr":  "Updated Category 648577975",
                                   "description":  "Updated Description"
                               },
                  "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
                  "authorName":  "Test Lawyer",
-                 "createdAt":  "2026-08-12T15:52:45.6540335",
-                 "updatedAt":  "2026-08-12T15:52:46.4567827"
+                 "createdAt":  "2026-08-14T20:17:52.6487838",
+                 "updatedAt":  "2026-08-14T20:17:53.6369332"
              },
+    "message":  null,
+    "errors":  null,
+    "statusCode":  200
+}
+``n---
+
+
+### 4j. View Article Likers (Client Token)
+
+**Request:** GET http://localhost:5049/api/Articles/79831ff7-0057-40da-71f4-08defa411e92/likers?pageNumber=1&pageSize=10
+
+**Response Status:** 200
+
+**Response Body:**
+`json
+{
+    "pageNumber":  1,
+    "pageSize":  10,
+    "totalPages":  1,
+    "totalRecords":  1,
+    "hasNextPage":  false,
+    "hasPreviousPage":  false,
+    "success":  true,
+    "data":  [
+                 {
+                     "id":  "641367f9-48f3-4eaa-8152-08dee91d7c8f",
+                     "fullName":  "Test Client",
+                     "profilePictureUrl":  null
+                 }
+             ],
     "message":  null,
     "errors":  null,
     "statusCode":  200
@@ -732,13 +768,13 @@ Run at: 2026-08-12 18:52:43
     "success":  true,
     "data":  [
                  {
-                     "id":  "19138d2f-fbcf-4fa8-831a-55f173260ba4",
-                     "articleId":  "f57c4b21-791e-4005-b59c-08def889c06e",
-                     "articleTitle":  "Updated Article 819149806",
+                     "id":  "134d01ed-5ab6-4607-b08f-579f18dde3a6",
+                     "articleId":  "79831ff7-0057-40da-71f4-08defa411e92",
+                     "articleTitle":  "Test Article 648577975",
                      "reporterId":  "641367f9-48f3-4eaa-8152-08dee91d7c8f",
                      "reporterName":  "Test Client",
                      "reason":  "Inappropriate content",
-                     "createdAt":  "2026-08-12T15:52:46.7403342",
+                     "createdAt":  "2026-08-14T20:17:53.8896963",
                      "isResolved":  false
                  }
              ],
@@ -751,7 +787,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 5b. Resolve Report (Admin)
 
-**Request:** PUT http://localhost:5049/api/Articles/admin/reports/19138d2f-fbcf-4fa8-831a-55f173260ba4/resolve
+**Request:** PUT http://localhost:5049/api/Articles/admin/reports/134d01ed-5ab6-4607-b08f-579f18dde3a6/resolve
 
 **Response Status:** 200
 
@@ -769,7 +805,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 5c. Admin Delete Article
 
-**Request:** DELETE http://localhost:5049/api/Articles/admin/f57c4b21-791e-4005-b59c-08def889c06e
+**Request:** DELETE http://localhost:5049/api/Articles/admin/79831ff7-0057-40da-71f4-08defa411e92
 
 **Response Status:** 200
 
@@ -797,11 +833,25 @@ Run at: 2026-08-12 18:52:43
     "pageNumber":  1,
     "pageSize":  10,
     "totalPages":  1,
-    "totalRecords":  4,
+    "totalRecords":  5,
     "hasNextPage":  false,
     "hasPreviousPage":  false,
     "success":  true,
     "data":  [
+                 {
+                     "id":  "79831ff7-0057-40da-71f4-08defa411e92",
+                     "title":  "Test Article 648577975",
+                     "featuredImageUrl":  null,
+                     "viewCount":  1,
+                     "likesCount":  1,
+                     "commentsCount":  1,
+                     "status":  2,
+                     "categoryId":  "d7afc08d-63fe-4acd-f1f9-08defa40c741",
+                     "categoryNameAr":  "Updated Category 648577975",
+                     "authorId":  "cdea4991-9733-4400-8151-08dee91d7c8f",
+                     "authorName":  "Test Lawyer",
+                     "createdAt":  "2026-08-14T20:17:52.6487838"
+                 },
                  {
                      "id":  "f57c4b21-791e-4005-b59c-08def889c06e",
                      "title":  "Updated Article 819149806",
@@ -868,7 +918,7 @@ Run at: 2026-08-12 18:52:43
 
 ### 6a. Delete Category (Admin)
 
-**Request:** DELETE http://localhost:5049/api/ArticleCategories/admin/e698bf27-35f4-4f0a-307b-08def889c03b
+**Request:** DELETE http://localhost:5049/api/ArticleCategories/admin/d7afc08d-63fe-4acd-f1f9-08defa40c741
 
 **Response Status:** 200
 
