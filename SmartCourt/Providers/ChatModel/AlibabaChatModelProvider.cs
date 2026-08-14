@@ -64,7 +64,8 @@ public class AlibabaChatModelProvider : IChatModelProvider
                 new { role = "user", content = userPrompt }
             },
             stream = false,
-            max_tokens = _options.MaxTokens > 0 ? _options.MaxTokens : 2000
+            max_tokens = _options.MaxTokens > 0 ? _options.MaxTokens : 2000,
+            enable_thinking = false
         };
 
         HttpResponseMessage? response = null;
