@@ -24,8 +24,8 @@ public class ChatAgentService(
     IVectorStoreProvider vectorStoreProvider,
     IFileStorageService fileStorageService,
     IDocumentParsingProvider documentParsingProvider,
-    IRerankerProvider rerankerProvider,
-    IOptions<RagOptions> ragOptions,
+    IRerankerProvider? rerankerProvider = null,
+    IOptions<RagOptions>? ragOptions = null,
     IHttpContextAccessor? httpContextAccessor = null,
     TimeProvider? timeProvider = null,
     ILogger<ChatAgentService>? logger = null,
@@ -38,8 +38,8 @@ public class ChatAgentService(
     private readonly IVectorStoreProvider _vectorStoreProvider = vectorStoreProvider;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
-    private readonly IRerankerProvider _rerankerProvider = rerankerProvider;
-    private readonly RagOptions _ragOptions = ragOptions.Value;
+    private readonly IRerankerProvider? _rerankerProvider = rerankerProvider;
+    private readonly RagOptions _ragOptions = ragOptions?.Value ?? new RagOptions();
     private readonly IHttpContextAccessor? _httpContextAccessor = httpContextAccessor;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
     private readonly ILogger<ChatAgentService>? _logger = logger;
@@ -269,7 +269,7 @@ public class ChatAgentService(
                     .ToList();
 
                 // Rerank to keep only the most relevant chunks
-                if (retrievedLawArticles.Count > 0)
+                if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
                 {
                     try
                     {
@@ -374,11 +374,15 @@ public class ChatAgentService(
 
         userPromptBuilder.AppendLine($"المستخدم: {request.Content}");
 
+        var systemPromptText = systemPromptBuilder.ToString();
+
         phaseStopwatch.Restart();
         var aiResponseText = await _chatModelProvider.GenerateAsync(
             systemPromptText,
             userPromptBuilder.ToString(),
             cancellationToken);
+        phaseStopwatch.Stop();
+        var llmGenerationMs = phaseStopwatch.ElapsedMilliseconds;
 
         if (string.IsNullOrWhiteSpace(aiResponseText))
         {
@@ -391,6 +395,7 @@ public class ChatAgentService(
 
         phaseStopwatch.Restart();
         var responseTime = _timeProvider.GetUtcNow().UtcDateTime;
+
         var assistantMessage = AgentMessage.CreateAssistantMessage(
             Guid.NewGuid(),
             conversation.Id,

@@ -781,7 +781,7 @@ public sealed class ChatAgentServiceTests
         var currentUserService = new TestCurrentUserService { UserId = userId };
         var chatModelProvider = new TestChatModelProvider
         {
-            DefaultResponse = "##الاستشارة القانونية<br>هذا نص الاستشارة الإجرائية مع <b>وسم غامق</b>."
+            OutputToReturn = "##الاستشارة القانونية<br>هذا نص الاستشارة الإجرائية مع <b>وسم غامق</b>."
         };
 
         var service = new ChatAgentService(
