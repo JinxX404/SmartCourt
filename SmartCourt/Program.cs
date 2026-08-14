@@ -62,6 +62,7 @@ namespace SmartCourt
                     .RequireAuthorization();
 
 
+
                 // 4. Auto-Migrate Database on Startup
                 app.UseAutoMigration();
 

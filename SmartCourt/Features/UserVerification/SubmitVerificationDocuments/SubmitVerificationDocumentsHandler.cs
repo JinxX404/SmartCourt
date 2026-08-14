@@ -1,5 +1,5 @@
 using SmartCourt.Common.Models;
-﻿using FluentValidation;
+using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;

@@ -1,6 +1,7 @@
 using SmartCourt.Common.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
+using SmartCourt.Common.Enums;
 using SmartCourt.Features.Auth.Enums;
 
 namespace SmartCourt.Persistence;
@@ -178,6 +179,93 @@ public static class DatabaseSeeder
             clientUser.Address = "456 Client Ave";
             
             await userManager.UpdateAsync(clientUser);
+        }
+        await SeedMarketplaceLawyersAsync(userManager);
+    }
+
+    private static async Task SeedMarketplaceLawyersAsync(UserManager<ApplicationUser> userManager)
+    {
+        var lawyersToSeed = new List<(string Email, string Name, string Bio, LawyerLevel Level, Specialization Specialization)>
+        {
+            ("ahmed.mansour@smartcourt.com", "أحمد منصور", "محامي نقض خبير في القضايا الجنائية والتجارية بخبرة تتجاوز 20 عاماً.", LawyerLevel.CassationCourt, Specialization.CriminalLaw),
+            ("sara.ali@smartcourt.com", "سارة علي", "محامية استئناف متخصصة في قضايا الأسرة والأحوال الشخصية.", LawyerLevel.AppealCourt, Specialization.FamilyLaw),
+            ("mohamed.hassan@smartcourt.com", "محمد حسن", "محامي ابتدائي مهتم بقضايا الشركات وصياغة العقود التجارية.", LawyerLevel.PrimaryCourt, Specialization.CorporateLaw),
+            ("fatma.kamal@smartcourt.com", "فاطمة كمال", "مستشارة قانونية ذات خبرة واسعة في الملكية الفكرية وتسجيل العلامات التجارية.", LawyerLevel.CassationCourt, Specialization.IntellectualProperty),
+            ("mahmoud.tarek@smartcourt.com", "محمود طارق", "محامي جدول عام طموح يعمل في القضايا المدنية والمنازعات الإيجارية.", LawyerLevel.GeneralRegistration, Specialization.CivilLaw),
+            ("youssef.ibrahim@smartcourt.com", "يوسف إبراهيم", "خبير في قضايا الجرائم الإلكترونية والابتزاز المالي.", LawyerLevel.CassationCourt, Specialization.Cybercrimes),
+            ("nada.salem@smartcourt.com", "ندى سالم", "محامية متخصصة في قضايا العمل والعمال وصياغة لوائح الشركات.", LawyerLevel.AppealCourt, Specialization.LaborLaw),
+            ("omar.farouk@smartcourt.com", "عمر فاروق", "محامي متخصص في القضايا العقارية وتسجيل الأراضي والعقارات.", LawyerLevel.PrimaryCourt, Specialization.RealEstateAndPropertyRegistration),
+            ("laila.mostafa@smartcourt.com", "ليلى مصطفى", "محامية متمرسة في القضايا الإدارية ومجلس الدولة.", LawyerLevel.CassationCourt, Specialization.AdministrativeAndStateCouncilLaw),
+            ("khaled.yassin@smartcourt.com", "خالد ياسين", "محامي متخصص في قضايا الضرائب والمنازعات المالية.", LawyerLevel.CassationCourt, Specialization.TaxLaw),
+            ("mona.samir@smartcourt.com", "منى سمير", "محامية متخصصة في قضايا التعويضات وحوادث الطرق.", LawyerLevel.AppealCourt, Specialization.CivilLaw),
+            ("hany.ramzy@smartcourt.com", "هاني رمزي", "محامي شركات وتأسيس منشآت أعمال دولية ومحلية.", LawyerLevel.CassationCourt, Specialization.CorporateLaw),
+            ("dina.magdy@smartcourt.com", "دينا مجدي", "باحثة قانونية ومحامية تحت التمرين في القضايا المدنية.", LawyerLevel.GeneralRegistration, Specialization.CivilLaw),
+            ("tarek.adel@smartcourt.com", "طارق عادل", "محامي نقض خبير في المنازعات الجمركية وقضايا التهرب.", LawyerLevel.CassationCourt, Specialization.CustomsLaw),
+            ("samir.said@smartcourt.com", "سمير سعيد", "مستشار قانوني لعدد من البنوك وشركات التمويل.", LawyerLevel.CassationCourt, Specialization.BankingAndFinance),
+            ("wael.zaky@smartcourt.com", "وائل زكي", "محامي استئناف خبير في قضايا التحكيم التجاري والدولي.", LawyerLevel.AppealCourt, Specialization.CorporateLaw),
+            ("reem.hassan@smartcourt.com", "ريم حسن", "محامية متخصصة في تأسيس الشركات الأجنبية وصياغة عقود الفرنشايز.", LawyerLevel.AppealCourt, Specialization.CorporateLaw),
+            ("amr.diab@smartcourt.com", "عمرو دياب", "خبير في قضايا الملكية الفكرية وبراءات الاختراع.", LawyerLevel.CassationCourt, Specialization.IntellectualProperty),
+            ("shaimaa.ali@smartcourt.com", "شيماء علي", "محامية متخصصة في المنازعات العمالية والتأمينات الاجتماعية.", LawyerLevel.AppealCourt, Specialization.LaborLaw),
+            ("hassan.kamal@smartcourt.com", "حسن كمال", "مستشار قانوني خبير في صياغة العقود العقارية والمقاولات.", LawyerLevel.CassationCourt, Specialization.RealEstateAndPropertyRegistration)
+        };
+
+        for (int i = 1; i <= 30; i++)
+        {
+            var level = (LawyerLevel)((i % 4) + 1);
+            var spec = (Specialization)(i % 21);
+            lawyersToSeed.Add(($"lawyer{i}@smartcourt.com", $"المحامي {i}", $"نبذة عن المحامي {i} وهو متخصص ويمتلك خبرة واسعة في قضايا متعددة.", level, spec));
+        }
+
+        int counter = 100;
+        foreach (var l in lawyersToSeed)
+        {
+            var isMale = counter % 2 == 0;
+            var pictureUrl = isMale 
+                ? $"https://randomuser.me/api/portraits/men/{counter % 100}.jpg" 
+                : $"https://randomuser.me/api/portraits/women/{counter % 100}.jpg";
+
+            var existingUser = await userManager.FindByEmailAsync(l.Email);
+            if (existingUser == null)
+            {
+                var user = new ApplicationUser
+                {
+                    UserName = l.Email,
+                    Email = l.Email,
+                    FullName = l.Name,
+                    PhoneNumber = $"01000000{counter}",
+                    NationalNumber = $"29001011234{counter}",
+                    Gender = isMale ? Gender.Male : Gender.Female,
+                    DateOfBirth = new DateOnly(1980 + (counter % 10), 1, 1),
+                    Address = "القاهرة، مصر",
+                    Status = UserStatus.Active,
+                    EmailConfirmed = true,
+                    ProfilePictureUrl = pictureUrl,
+                    LawyerProfile = new LawyerProfile
+                    {
+                        Bio = l.Bio,
+                        Level = l.Level,
+                        Specializations = new List<LawyerSpecialization>
+                        {
+                            new LawyerSpecialization { Specialization = l.Specialization, YearsOfExperience = 5, CasesHandled = 10 }
+                        },
+                        AverageRating = 4.0m + (decimal)(counter % 10) / 10m,
+                        IsAvailable = true
+                    }
+                };
+
+                var res = await userManager.CreateAsync(user, "Lawyer@123");
+                if (res.Succeeded)
+                {
+                    await userManager.AddToRoleAsync(user, "Lawyer");
+                }
+            }
+            else
+            {
+                // Update existing users with profile pictures so we don't have to wipe the DB
+                existingUser.ProfilePictureUrl = pictureUrl;
+                await userManager.UpdateAsync(existingUser);
+            }
+            counter++;
         }
     }
 }

@@ -28,6 +28,11 @@ public sealed class ApproveUserAccountHandler(
             throw new NotFoundException("المستخدم غير موجود");
         }
 
+        if (!user.PhoneNumberConfirmed)
+        {
+            throw new BusinessException("لا يمكن اعتماد الحساب حتى يقوم المستخدم بتوثيق رقم هاتفه.");
+        }
+
         var wasActive = user.Status == UserStatus.Active;
 
         var hasPendingDocs = await context.UserVerificationDocuments
