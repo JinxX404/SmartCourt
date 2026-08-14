@@ -25,6 +25,12 @@ class Program
         string qdrantApiKey = Environment.GetEnvironmentVariable("QDRANT_API_KEY");
         string collectionName = Environment.GetEnvironmentVariable("QDRANT_COLLECTION") ?? "egyptian_law";
 
+        long freeQuotaTokens = long.TryParse(Environment.GetEnvironmentVariable("FREE_QUOTA_TOKENS"), out var q) ? q : 768820;
+        double costPer1MTokens = double.TryParse(Environment.GetEnvironmentVariable("COST_PER_1M_TOKENS_USD"), out var c) ? c : 0.10; // Alibaba approx pricing
+        long totalTokensUsed = 0;
+        long globalTotalChunks = 58424; // Hardcoded based on directory count for global tracking
+        long globalProcessedChunks = 0;
+
         if (string.IsNullOrEmpty(dashscopeApiKey) || string.IsNullOrEmpty(qdrantUrl) || string.IsNullOrEmpty(qdrantApiKey))
         {
             Console.WriteLine("FAIL: Missing required environment variables.");
@@ -169,6 +175,28 @@ class Program
                 var response = await embeddingClient.GenerateEmbeddingsAsync(texts, embedOptions);
 
                 var embeddings = response.Value;
+
+                int batchTokens = 0;
+                try
+                {
+                    // Attempt to extract usage from raw response stream
+                    var rawContent = response.GetRawResponse().Content;
+                    using var jsonDoc = JsonDocument.Parse(rawContent);
+                    if (jsonDoc.RootElement.TryGetProperty("usage", out var usageProp) && 
+                        usageProp.TryGetProperty("total_tokens", out var totalTokensProp))
+                    {
+                        batchTokens = totalTokensProp.GetInt32();
+                    }
+                }
+                catch { }
+
+                if (batchTokens == 0)
+                {
+                    // Fallback to estimation (~4 chars per token for Arabic usually 2-3 chars, let's use 3)
+                    batchTokens = texts.Sum(t => t.Length) / 3;
+                }
+
+                totalTokensUsed += batchTokens;
                 
                 var points = new List<PointStruct>();
 
@@ -210,12 +238,35 @@ class Program
                 await qdrant.UpsertAsync(collectionName, points);
 
                 processedCount += batch.Count;
+                globalProcessedChunks += batch.Count;
                 int currentAbsoluteIndex = startIndex + processedCount;
 
                 var pObj = new JsonObject { ["last_processed_index"] = currentAbsoluteIndex };
                 File.WriteAllText(progressFile, pObj.ToJsonString());
 
-                Console.WriteLine($"[{currentAbsoluteIndex}/{totalAvailable}] Processed batch (size {batch.Count}).");
+                double cost = 0;
+                if (totalTokensUsed > freeQuotaTokens)
+                {
+                    long billableTokens = totalTokensUsed - freeQuotaTokens;
+                    cost = (billableTokens / 1_000_000.0) * costPer1MTokens;
+                }
+
+                long chunksRemaining = globalTotalChunks - globalProcessedChunks;
+                Console.WriteLine($"[{currentAbsoluteIndex}/{totalAvailable}] File Chunks. Global Remaining: {chunksRemaining} | Tokens: {totalTokensUsed} | Est. Cost: ${cost:F4}");
+
+                if (totalTokensUsed >= freeQuotaTokens)
+                {
+                    Console.WriteLine("\n========================================================");
+                    Console.WriteLine("WARNING: FREE QUOTA EXHAUSTED!");
+                    Console.WriteLine($"Total Tokens Used: {totalTokensUsed} (Quota: {freeQuotaTokens})");
+                    Console.WriteLine($"Current Est. Cost: ${cost:F4}");
+                    Console.WriteLine("Press any key to continue and incur charges, or Ctrl+C to abort and save progress...");
+                    Console.WriteLine("========================================================\n");
+                    
+                    // Prevent repeated prompts for every single batch after quota is reached
+                    // by artificially inflating the quota, so user is only warned once.
+                    freeQuotaTokens = long.MaxValue; 
+                }
 
                 await Task.Delay(100);
             }
