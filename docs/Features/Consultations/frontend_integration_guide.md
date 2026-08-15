@@ -34,6 +34,7 @@ The client pays the displayed gross price. SmartCourt keeps 5%; the lawyer recei
 - Use each booking's `permittedActions` array to show buttons. Do not recreate the state machine in React.
 - Do not send price, fee, lawyer ID, duration, mode, location, or inclusions when booking. The backend snapshots them from the selected offering.
 - The exact office address and video meeting URL are private. They are `null` until payment succeeds and are returned only to the booking participants or administrators.
+- For active paid phone consultations, `clientPhoneNumber` is returned only to the assigned lawyer or an administrator, and only when the client's account phone is confirmed. It remains `null` for the client, public responses, unpaid bookings, non-phone modes, and closed/disputed bookings.
 - A consultation setting, offering, and slot must all be active/bookable before discovery and booking succeed.
 - Default page size is 5; maximum page size is 50.
 - Query-array filters may be repeated, for example `?modes=1&modes=3&specializations=4&specializations=7`.
@@ -303,6 +304,7 @@ After successful funding:
   "lawyerName": "Mona Adel",
   "clientId": "CLIENT_GUID",
   "clientName": "Omar Hassan",
+  "clientPhoneNumber": null,
   "mode": "InOffice",
   "specialization": "RealEstateAndPropertyRegistration",
   "offeringTitle": "Property contract review",
@@ -330,6 +332,18 @@ After successful funding:
 ```
 
 Before payment, `officeLocation` and `meetingUrl` are `null` even if the offering contains them.
+
+For a paid `Phone` booking, the assigned lawyer receives the client's confirmed number:
+
+```json
+{
+  "mode": "Phone",
+  "status": "Confirmed",
+  "clientPhoneNumber": "+201001234567"
+}
+```
+
+The client receives `clientPhoneNumber: null` for the same booking. The lawyer can receive it only while status is `Confirmed` or `AwaitingClientConfirmation`; it disappears after completion, cancellation, expiry, refund, or dispute. The frontend must show the number only in the lawyer's active phone-appointment view and must not copy it into notifications, analytics, logs, URLs, or shared browser storage. When it is `null` on an active phone booking, tell the lawyer that the client's confirmed contact number is unavailable and route the issue to support; do not fall back to a public profile endpoint.
 
 ## 9. Completion, Cancellation, and Disputes
 

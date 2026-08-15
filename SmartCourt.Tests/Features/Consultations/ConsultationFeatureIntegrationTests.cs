@@ -33,6 +33,7 @@ public sealed class ConsultationFeatureIntegrationTests
         await _factory.SeedUserAsync(lawyerId, $"lawyer-{lawyerId:N}@test.local", "Lawyer", "Mona Adel");
         await _factory.SeedUserAsync(clientId, $"client-{clientId:N}@test.local", "Client", "Omar Hassan");
         await SeedLawyerProfileAsync(lawyerId);
+        await SetConfirmedPhoneAsync(clientId, "+201009876543");
 
         using var lawyerClient = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
         using var client = _factory.CreateAuthenticatedClient(clientId, "Client");
@@ -109,6 +110,10 @@ public sealed class ConsultationFeatureIntegrationTests
         var paidBooking = (await paidBookingResponse.Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
         Assert.Equal(ConsultationBookingStatus.Confirmed, paidBooking.Status);
         Assert.Equal("Nasr City office, Cairo", paidBooking.OfficeLocation);
+        var paidLawyerView = (await (await lawyerClient.GetAsync(
+                $"/api/consultations/bookings/{booking.Id}"))
+            .Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
+        Assert.Null(paidLawyerView.ClientPhoneNumber);
 
         var cancellation = await client.PostAsJsonAsync(
             $"/api/consultations/bookings/{booking.Id}/cancel",
@@ -146,6 +151,7 @@ public sealed class ConsultationFeatureIntegrationTests
         await _factory.SeedUserAsync(lawyerId, $"release-lawyer-{lawyerId:N}@test.local", "Lawyer", "Karim Fathy");
         await _factory.SeedUserAsync(clientId, $"release-client-{clientId:N}@test.local", "Client", "Salma Nabil");
         await SeedLawyerProfileAsync(lawyerId);
+        await SetConfirmedPhoneAsync(clientId, "+201001234567");
         using var lawyer = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
         using var client = _factory.CreateAuthenticatedClient(clientId, "Client");
 
@@ -169,6 +175,11 @@ public sealed class ConsultationFeatureIntegrationTests
             new CreateConsultationSlotsRequest([new(start)]));
         var slot = (await slotsHttp.Content.ReadFromJsonAsync<ApiResponse<IReadOnlyList<ConsultationSlotDto>>>())!.Data!.Single();
         var booking = await CreateBookingAsync(client, offering.Id, slot.Id);
+        Assert.Null(booking.ClientPhoneNumber);
+
+        var unpaidLawyerView = (await (await lawyer.GetAsync($"/api/consultations/bookings/{booking.Id}"))
+            .Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
+        Assert.Null(unpaidLawyerView.ClientPhoneNumber);
 
         using (var paymentRequest = new HttpRequestMessage(
             HttpMethod.Post, $"/api/consultations/bookings/{booking.Id}/payment-session")
@@ -179,6 +190,13 @@ public sealed class ConsultationFeatureIntegrationTests
             paymentRequest.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
             Assert.Equal(HttpStatusCode.OK, (await client.SendAsync(paymentRequest)).StatusCode);
         }
+
+        var paidClientView = (await (await client.GetAsync($"/api/consultations/bookings/{booking.Id}"))
+            .Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
+        Assert.Null(paidClientView.ClientPhoneNumber);
+        var paidLawyerView = (await (await lawyer.GetAsync($"/api/consultations/bookings/{booking.Id}"))
+            .Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
+        Assert.Equal("+201001234567", paidLawyerView.ClientPhoneNumber);
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -194,6 +212,10 @@ public sealed class ConsultationFeatureIntegrationTests
             new MarkConsultationPerformedRequest())).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(
             $"/api/consultations/bookings/{booking.Id}/confirm-completion", null)).StatusCode);
+        var completedLawyerView = (await (await lawyer.GetAsync(
+                $"/api/consultations/bookings/{booking.Id}"))
+            .Content.ReadFromJsonAsync<ApiResponse<ConsultationBookingDto>>())!.Data!;
+        Assert.Null(completedLawyerView.ClientPhoneNumber);
 
         using (var scope = _factory.Services.CreateScope())
         {
@@ -236,6 +258,16 @@ public sealed class ConsultationFeatureIntegrationTests
             YearsOfExperience = 8,
             CasesHandled = 120
         });
+        await db.SaveChangesAsync();
+    }
+
+    private async Task SetConfirmedPhoneAsync(Guid userId, string phoneNumber)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var user = await db.Users.SingleAsync(item => item.Id == userId);
+        user.PhoneNumber = phoneNumber;
+        user.PhoneNumberConfirmed = true;
         await db.SaveChangesAsync();
     }
 

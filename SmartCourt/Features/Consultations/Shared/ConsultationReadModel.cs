@@ -50,8 +50,14 @@ internal static class ConsultationReadModel
     {
         var names = await dbContext.Users.AsNoTracking()
             .Where(user => user.Id == booking.ClientId || user.Id == booking.LawyerId)
-            .Select(user => new { user.Id, user.FullName })
-            .ToDictionaryAsync(item => item.Id, item => item.FullName, cancellationToken);
+            .Select(user => new
+            {
+                user.Id,
+                user.FullName,
+                user.PhoneNumber,
+                user.PhoneNumberConfirmed
+            })
+            .ToDictionaryAsync(item => item.Id, cancellationToken);
         var payment = await dbContext.ConsultationPaymentTransactions.AsNoTracking()
             .Where(item => item.BookingId == booking.Id)
             .OrderByDescending(item => item.CreatedAt)
@@ -59,11 +65,21 @@ internal static class ConsultationReadModel
         var paid = await dbContext.ConsultationEscrowHolds.AsNoTracking()
             .AnyAsync(item => item.BookingId == booking.Id, cancellationToken);
         var exposeDelivery = paid && (actorId == booking.ClientId || actorId == booking.LawyerId || isAdministrator);
+        var exposeClientPhone = paid
+            && booking.Mode == ConsultationMode.Phone
+            && booking.Status is (ConsultationBookingStatus.Confirmed
+                or ConsultationBookingStatus.AwaitingClientConfirmation)
+            && (actorId == booking.LawyerId || isAdministrator);
+        var client = names.GetValueOrDefault(booking.ClientId);
+        var lawyer = names.GetValueOrDefault(booking.LawyerId);
 
         return new ConsultationBookingDto(
             booking.Id, booking.OfferingId, booking.SlotId, booking.LawyerId,
-            names.GetValueOrDefault(booking.LawyerId, "Lawyer"),
-            booking.ClientId, names.GetValueOrDefault(booking.ClientId, "Client"),
+            lawyer?.FullName ?? "Lawyer",
+            booking.ClientId, client?.FullName ?? "Client",
+            exposeClientPhone && client?.PhoneNumberConfirmed == true
+                ? client.PhoneNumber
+                : null,
             booking.Mode, booking.Specialization, booking.OfferingTitle,
             JsonSerializer.Deserialize<List<string>>(booking.InclusionsJson, SerializerOptions) ?? [],
             booking.DurationMinutes, booking.GrossAmount, booking.PlatformFeeAmount,
