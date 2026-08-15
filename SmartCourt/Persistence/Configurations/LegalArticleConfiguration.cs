@@ -16,7 +16,8 @@ public class LegalArticleConfiguration : IEntityTypeConfiguration<LegalArticle>
             .HasMaxLength(255);
 
         builder.Property(a => a.Content)
-            .IsRequired();
+            .IsRequired()
+            .HasMaxLength(5000);
 
         builder.Property(a => a.Tags)
             .HasMaxLength(500);

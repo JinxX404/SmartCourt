@@ -18,6 +18,7 @@ public class UpdateArticleRequestValidator : AbstractValidator<UpdateArticleRequ
         // Content is required only if not draft
         RuleFor(x => x.Content)
             .NotEmpty().WithMessage("محتوى المقال مطلوب عند النشر.")
+            .MaximumLength(5000).WithMessage("يجب ألا يتجاوز محتوى المقال 5000 حرف.")
             .When(x => !x.IsDraft);
 
         RuleFor(x => x.Tags)
