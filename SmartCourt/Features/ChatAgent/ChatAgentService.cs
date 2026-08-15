@@ -1,12 +1,7 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SmartCourt.Common.Configuration;
 using SmartCourt.Common.Exceptions;
-using SmartCourt.Entities;
 using SmartCourt.Features.ChatAgent.DTOs;
 using SmartCourt.Features.ChatAgent.Entities;
 using SmartCourt.Interfaces;
@@ -189,8 +184,6 @@ public class ChatAgentService(
         SendAgentMessageRequest request,
         CancellationToken cancellationToken = default)
     {
-        var totalStopwatch = Stopwatch.StartNew();
-        var phaseStopwatch = new Stopwatch();
         if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
         {
             throw new AuthenticationException("المستخدم غير مسجل الدخول.");
@@ -219,7 +212,6 @@ public class ChatAgentService(
             request.Content,
             utcNow);
 
-        phaseStopwatch.Restart();
         _dbContext.AgentMessages.Add(userMessage);
         conversation.MarkMessageAdded(utcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -235,155 +227,25 @@ public class ChatAgentService(
             .Take(20)
             .OrderBy(m => m.CreatedAt)
             .ToListAsync(cancellationToken);
-        phaseStopwatch.Stop();
-        var dbOpsMs = phaseStopwatch.ElapsedMilliseconds;
 
-        phaseStopwatch.Restart();
         // Fetch or get cached case context
         var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
-        phaseStopwatch.Stop();
-        var caseContextMs = phaseStopwatch.ElapsedMilliseconds;
 
-        phaseStopwatch.Restart();
-        List<string> retrievedLawArticles = [];
-        long rerankMs = 0;
-        try
-        {
-            var queryEmbeddings = await embeddingTask;
-            if (queryEmbeddings.Count > 0)
-            {
-                var searchResults = await _vectorStoreProvider.SearchAsync(
-                    _ragOptions.LegalCollectionName,
-                    queryEmbeddings[0],
-                    topK: _ragOptions.CandidateCount,
-                    filters: null,
-                    cancellationToken: cancellationToken);
-
-                // Extract chunks above minimum similarity
-                retrievedLawArticles = searchResults
-                    .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
-                    .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
-                               : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-                    .Select(t => t!)
-                    .ToList();
-
-                // Rerank to keep only the most relevant chunks
-                if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
-                {
-                    try
-                    {
-                        var rerankStopwatch = Stopwatch.StartNew();
-                        var topN = Math.Min(_ragOptions.RerankedCount, retrievedLawArticles.Count);
-                        var reranked = await _rerankerProvider.RerankAsync(
-                            normalizedQuery, retrievedLawArticles, topN, cancellationToken);
-                            
-                        retrievedLawArticles = reranked
-                            .Where(r => r.Index >= 0 && r.Index < retrievedLawArticles.Count)
-                            .OrderByDescending(r => r.RelevanceScore)
-                            .Select(r => retrievedLawArticles[r.Index])
-                            .ToList();
-                        
-                        rerankStopwatch.Stop();
-                        rerankMs = rerankStopwatch.ElapsedMilliseconds;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, "Reranker failed for conversation {ConversationId}; using unranked results", conversationId);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogWarning(ex, "Failed to perform RAG vector search for conversation {ConversationId}", conversationId);
-        }
-        phaseStopwatch.Stop();
-        var ragRetrievalMs = phaseStopwatch.ElapsedMilliseconds;
+        List<string> retrievedLawArticles = await RetrieveRelevantLawArticlesAsync(embeddingTask, normalizedQuery, conversationId, cancellationToken);
 
         // Determine role-based prompt guidelines
-        bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
-        if (!isLawyer && _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") != true)
-        {
-            isLawyer = await _dbContext.UserRoles
-                .AnyAsync(ur => ur.UserId == currentUserId &&
-                    _dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Lawyer"),
-                    cancellationToken);
-        }
+        bool isLawyer = await IsUserLawyerAsync(currentUserId, cancellationToken);
 
-        // Build System Prompt based on User Role
-        var systemPromptBuilder = new System.Text.StringBuilder();
-        if (isLawyer)
-        {
-            systemPromptBuilder.AppendLine(@"أنت مساعد ومناظر قانوني ذكي متخصص في القانون المصري لمنصة SmartCourt، وتعمل كمساعد مباشر للمحامي (Pair Lawyer).
-طبيعة دورك وهويتك:
-1. تصرف كزميل محامي خبير ومحترف، وتحدث بتفصيل تحليلي وعميق حول كل استفسار يقدمه المحامي (act as a pair lawyer and talk in details about each inquiry).
-2. قدم تحليلاً قانونياً شاملاً يشمل التكييف القانوني للوقائع، الدفوع الموضوعية والإجرائية، الاختصاص القضائي، والثغرات القانونية المحتملة.
-3. استخدم المصطلحات والأساليب القانونية الفنية الدقيقة والمتبعة بين القضاة والمحامين.
-4. استند إلى نصوص المواد والقوانين المصرية والمبادئ القضائية المتاحة في السياق بأسلوب تفصيلي يخدم صياغة المذكرات وبناء الاستراتيجية القضائية.
-5. اربط تحليلك بتفاصيل ومستندات القضية المرفقة بأسلوب عميق ودقيق.");
-        }
-        else
-        {
-            systemPromptBuilder.AppendLine(@"أنت مستشار ومساعد قانوني ذكي موجه للموكل (العميل) عبر منصة SmartCourt.
-طبيعة دورك وهويتك:
-1. قدم نصائح وإرشادات قانونية موجهة ومبسطة في صورة خطوات إجرائية عمليّة ومحددة يمكن للموكل اتخاذها (Procedural, actionable steps).
-2. تجنب التعقيد المصطلحي المفرط أو التفاصيل الأكاديمية الجافة، واستخدم أسلوباً واضحاً ومبسطاً وتوعوياً بصفتك مستشاراً قانونياً (Act as a legal advisor, don't be super technical).
-3. التزم بالأمانة والنزاهة المطلقة: يمنع منعاً باتاً دعم أو مساندة أي استفسارات أو طلبات مشبوهة، خبيثة، أو غير مشروعة (Don't support malicious inquiries).
-4. وضح للموكل دائماً بأسلوب مهني أن هذه الإرشادات لبناء الوعي وتحديد الخطوات العملية، ومتابعة الدعوى رسمياً يتم عبر محاميه المختص.
-5. اربط إجابتك ببيانات ومستندات القضية المرفقة بأسلوب إجرائي مبسط وعملي.");
-        }
-
-        systemPromptBuilder.AppendLine(@"
-[تعليمات تنسيق الإخراج - Markdown]:
-You MUST format your response using Markdown. Use ** for bold text. You MUST use line breaks \n and bullet points - for lists. DO NOT use inline numbering like (1) or (a) in a single paragraph.
-1. صِغ إجابتك بالكامل بتنسيق ماركداون قياسي (Standard GitHub Flavored Markdown) متوافق تماماً مع مكتبة react-markdown في الواجهة الأمامية.
-2. استخدم العناوين الرئيسية والفرعية بأسلوب واضح (مثل: ## و ###) مع ترك مسافة بعد الهاش (مثال: ## العنوان).
-3. عند الاقتباس من مواد وقوانين، استخدم مربع الاقتباس الماركداون بأسلوب ( > **مادة (رقم):** نص المادة...).
-4. استخدم القوائم المنقطة (- بند) أو الرقمية (1. بند) مع ترك أسطر فارغة قبل القوائم وبعدها.
-5. يمنع منعاً باتاً استخدام وسوم HTML مثل (<br>, <div>, <b>, <span>) ويجب الاستعاضة عنها بالتنسيق القياسي للماركداون.
-6. اترك أسطراً فارغة بين الأقسام الرئيسية لضمان الوضوح والرؤية البصرية بأسلوب منظم وسلس.");
-
-        if (retrievedLawArticles.Count > 0)
-        {
-            systemPromptBuilder.AppendLine("\n[مواد ونصوص القانون المصري ذات الصلة]:");
-            for (int i = 0; i < retrievedLawArticles.Count; i++)
-            {
-                systemPromptBuilder.AppendLine($"--- النص {i + 1} ---");
-                systemPromptBuilder.AppendLine(retrievedLawArticles[i]);
-            }
-        }
-
-        if (!string.IsNullOrWhiteSpace(caseContextText))
-        {
-            systemPromptBuilder.AppendLine("\n[بيانات ومستندات القضية المرتبطة بالمحادثة]:");
-            systemPromptBuilder.AppendLine(caseContextText);
-        }
+        // Build System Prompt based on User Role using Prompts class
+        var systemPromptText = ChatAgentPrompts.BuildSystemPrompt(isLawyer, retrievedLawArticles, caseContextText);
 
         // Build User Prompt with History
-        var userPromptBuilder = new System.Text.StringBuilder();
-        if (historyMessages.Count > 0)
-        {
-            userPromptBuilder.AppendLine("[تاريخ المحادثة السابقة]:");
-            foreach (var msg in historyMessages)
-            {
-                var roleName = msg.Role == SmartCourt.Features.ChatAgent.Enums.AgentMessageRole.User ? "المستخدم" : "المساعد القانوني";
-                userPromptBuilder.AppendLine($"{roleName}: {msg.Content}");
-            }
-            userPromptBuilder.AppendLine();
-        }
+        var userPromptText = BuildUserPrompt(historyMessages, request.Content);
 
-        userPromptBuilder.AppendLine($"المستخدم: {request.Content}");
-
-        var systemPromptText = systemPromptBuilder.ToString();
-
-        phaseStopwatch.Restart();
         var aiResponseText = await _chatModelProvider.GenerateAsync(
-            systemPromptBuilder.ToString(),
-            userPromptBuilder.ToString(),
+            systemPromptText,
+            userPromptText,
             cancellationToken);
-        phaseStopwatch.Stop();
-        var llmGenerationMs = phaseStopwatch.ElapsedMilliseconds;
 
         if (string.IsNullOrWhiteSpace(aiResponseText))
         {
@@ -394,7 +256,6 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
             aiResponseText = SanitizeMarkdown(aiResponseText);
         }
 
-        phaseStopwatch.Restart();
         var responseTime = _timeProvider.GetUtcNow();
 
         var assistantMessage = AgentMessage.CreateAssistantMessage(
@@ -415,17 +276,6 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
         {
             await TryGenerateTitleAsync(conversation.Id, request.Content, cancellationToken);
         }
-        phaseStopwatch.Stop();
-        var postProcessMs = phaseStopwatch.ElapsedMilliseconds;
-
-        totalStopwatch.Stop();
-
-        _logger?.LogInformation(
-            "[ChatAgent Perf] ConversationId={ConversationId} " +
-            "Total={TotalMs}ms | DB={DbMs}ms | CaseCtx={CaseCtxMs}ms | " +
-            "RAG={RagMs}ms | Rerank={RerankMs}ms | LLM={LlmMs}ms | PostProcess={PostMs}ms",
-            conversationId, totalStopwatch.ElapsedMilliseconds,
-            dbOpsMs, caseContextMs, ragRetrievalMs, rerankMs, llmGenerationMs, postProcessMs);
 
         return new AgentMessageDto(
             assistantMessage.Id,
@@ -629,56 +479,8 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
         if (caseEntity.Documents.Count > 0)
         {
             sb.AppendLine("\n[مستندات القضية]");
-            foreach (var doc in caseEntity.Documents)
-            {
-                var storedFile = doc.StoredFile;
-                var name = storedFile?.OriginalFileName ?? "Document";
-                var path = !string.IsNullOrWhiteSpace(storedFile?.FileUrl)
-                    ? storedFile.FileUrl
-                    : storedFile?.StoredFileName;
-
-                sb.AppendLine($"--- مستند: {name} ---");
-
-                if (!string.IsNullOrWhiteSpace(path))
-                {
-                    try
-                    {
-                        var fileBytes = await _fileStorageService.DownloadAsync(path, cancellationToken);
-                        if (fileBytes.Length > 0)
-                        {
-                            using var stream = new MemoryStream(fileBytes);
-                            var extractedText = await _documentParsingProvider.ExtractTextAsync(stream, name, cancellationToken);
-
-                            if (!string.IsNullOrWhiteSpace(extractedText))
-                            {
-                                const int maxDocChars = 4000;
-                                var textToAppend = extractedText.Length > maxDocChars
-                                    ? string.Concat(extractedText.AsSpan(0, maxDocChars), "\n[... تم اقتطاع جزء من المحتوى لكبر الحجم ...]")
-                                    : extractedText;
-
-                                sb.AppendLine(textToAppend);
-                            }
-                            else
-                            {
-                                sb.AppendLine("[لم يتم استخراج أي نص من هذا المستند]");
-                            }
-                        }
-                        else
-                        {
-                            sb.AppendLine("[ملف المستند فارغ]");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, "Failed to download or parse document {FileName} for CaseId {CaseId}", name, conversation.CaseId);
-                        sb.AppendLine("[تعذر استخراج محتوى هذا المستند]");
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("[لا يوجد مسار تخزين للمستند]");
-                }
-            }
+            var docsText = await ExtractCaseDocumentsTextAsync(caseEntity.Documents, conversation.CaseId.Value, cancellationToken);
+            sb.Append(docsText);
         }
 
         var contextText = sb.ToString().Trim();
@@ -687,6 +489,150 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return contextText;
+    }
+
+    private async Task<List<string>> RetrieveRelevantLawArticlesAsync(
+        Task<IReadOnlyList<float[]>> embeddingTask,
+        string normalizedQuery,
+        Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        List<string> retrievedLawArticles = [];
+        try
+        {
+            var queryEmbeddings = await embeddingTask;
+            if (queryEmbeddings.Count > 0)
+            {
+                var searchResults = await _vectorStoreProvider.SearchAsync(
+                    _ragOptions.LegalCollectionName,
+                    queryEmbeddings[0],
+                    topK: _ragOptions.CandidateCount,
+                    filters: null,
+                    cancellationToken: cancellationToken);
+
+                // Extract chunks above minimum similarity
+                retrievedLawArticles = searchResults
+                    .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
+                    .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
+                               : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t!)
+                    .ToList();
+
+                // Rerank to keep only the most relevant chunks
+                if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
+                {
+                    try
+                    {
+                        var topN = Math.Min(_ragOptions.RerankedCount, retrievedLawArticles.Count);
+                        var reranked = await _rerankerProvider.RerankAsync(
+                            normalizedQuery, retrievedLawArticles, topN, cancellationToken);
+
+                        retrievedLawArticles = reranked
+                            .Where(r => r.Index >= 0 && r.Index < retrievedLawArticles.Count)
+                            .OrderByDescending(r => r.RelevanceScore)
+                            .Select(r => retrievedLawArticles[r.Index])
+                            .ToList();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogWarning(ex, "Reranker failed for conversation {ConversationId}; using unranked results", conversationId);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to perform RAG vector search for conversation {ConversationId}", conversationId);
+        }
+        return retrievedLawArticles;
+    }
+
+    private async Task<bool> IsUserLawyerAsync(Guid currentUserId, CancellationToken cancellationToken)
+    {
+        bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
+        if (!isLawyer && _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") != true)
+        {
+            isLawyer = await _dbContext.UserRoles
+                .AnyAsync(ur => ur.UserId == currentUserId &&
+                    _dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Lawyer"),
+                    cancellationToken);
+        }
+        return isLawyer;
+    }
+
+    private static string BuildUserPrompt(List<AgentMessage> historyMessages, string userContent)
+    {
+        var userPromptBuilder = new System.Text.StringBuilder();
+        if (historyMessages.Count > 0)
+        {
+            userPromptBuilder.AppendLine("[تاريخ المحادثة السابقة]:");
+            foreach (var msg in historyMessages)
+            {
+                var roleName = msg.Role == SmartCourt.Features.ChatAgent.Enums.AgentMessageRole.User ? "المستخدم" : "المساعد القانوني";
+                userPromptBuilder.AppendLine($"{roleName}: {msg.Content}");
+            }
+            userPromptBuilder.AppendLine();
+        }
+
+        userPromptBuilder.AppendLine($"المستخدم: {userContent}");
+        return userPromptBuilder.ToString();
+    }
+
+    private async Task<string> ExtractCaseDocumentsTextAsync(ICollection<SmartCourt.Entities.CaseDocument> documents, Guid caseId, CancellationToken cancellationToken)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var doc in documents)
+        {
+            var storedFile = doc.StoredFile;
+            var name = storedFile?.OriginalFileName ?? "Document";
+            var path = !string.IsNullOrWhiteSpace(storedFile?.FileUrl)
+                ? storedFile.FileUrl
+                : storedFile?.StoredFileName;
+
+            sb.AppendLine($"--- مستند: {name} ---");
+
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                try
+                {
+                    var fileBytes = await _fileStorageService.DownloadAsync(path, cancellationToken);
+                    if (fileBytes.Length > 0)
+                    {
+                        using var stream = new System.IO.MemoryStream(fileBytes);
+                        var extractedText = await _documentParsingProvider.ExtractTextAsync(stream, name, cancellationToken);
+
+                        if (!string.IsNullOrWhiteSpace(extractedText))
+                        {
+                            const int maxDocChars = 4000;
+                            var textToAppend = extractedText.Length > maxDocChars
+                                ? string.Concat(extractedText.AsSpan(0, maxDocChars), "\n[... تم اقتطاع جزء من المحتوى لكبر الحجم ...]")
+                                : extractedText;
+
+                            sb.AppendLine(textToAppend);
+                        }
+                        else
+                        {
+                            sb.AppendLine("[لم يتم استخراج أي نص من هذا المستند]");
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine("[ملف المستند فارغ]");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Failed to download or parse document {FileName} for CaseId {CaseId}", name, caseId);
+                    sb.AppendLine("[تعذر استخراج محتوى هذا المستند]");
+                }
+            }
+            else
+            {
+                sb.AppendLine("[لا يوجد مسار تخزين للمستند]");
+            }
+        }
+        return sb.ToString();
     }
 
     public static string SanitizeMarkdown(string input)
