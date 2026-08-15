@@ -175,7 +175,7 @@ public sealed class ContractTerminationSettlementService(
                 "تعذر رد تمويل المرحلة لأن أرصدة الضمان أو المحفظة غير متطابقة.");
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var requestHash = CreateRequestHash(hold);
         var settlement = await dbContext.IdempotencyRecords
             .SingleOrDefaultAsync(

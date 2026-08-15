@@ -912,8 +912,8 @@ public sealed class WalletService(
             : (long)allocated;
     }
 
-    private DateTime UtcNow =>
-        timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow =>
+        timeProvider.GetUtcNow();
 
     private sealed record WithdrawalFailureResponse(string Message);
 }

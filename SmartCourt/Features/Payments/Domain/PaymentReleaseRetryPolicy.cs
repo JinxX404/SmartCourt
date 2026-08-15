@@ -14,7 +14,7 @@ internal static class PaymentReleaseRetryPolicy
 
     internal static bool CanRetry(
         PaymentTransaction transaction,
-        DateTime now)
+        DateTimeOffset now)
     {
         return transaction.OperationType == PaymentOperationType.Release
             && transaction.Status == PaymentTransactionStatus.Failed
@@ -25,7 +25,7 @@ internal static class PaymentReleaseRetryPolicy
 
     internal static void StartProviderAttempt(
         PaymentTransaction transaction,
-        DateTime now)
+        DateTimeOffset now)
     {
         EnsureRelease(transaction);
         transaction.ProviderAttemptCount++;
@@ -41,7 +41,7 @@ internal static class PaymentReleaseRetryPolicy
     internal static bool RecordConfirmedFailure(
         PaymentTransaction transaction,
         string failureReason,
-        DateTime now)
+        DateTimeOffset now)
     {
         EnsureRelease(transaction);
         transaction.ProviderAttemptCount = Math.Max(
@@ -69,7 +69,7 @@ internal static class PaymentReleaseRetryPolicy
 
     internal static void RecordSuccess(
         PaymentTransaction transaction,
-        DateTime now)
+        DateTimeOffset now)
     {
         EnsureRelease(transaction);
         transaction.Status = PaymentTransactionStatus.Completed;

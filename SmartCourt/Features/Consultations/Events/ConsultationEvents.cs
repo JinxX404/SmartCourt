@@ -22,7 +22,7 @@ public sealed record ConsultationEventPayload(
     Guid LawyerUserId,
     Guid? ActorUserId,
     string OfferingTitle,
-    DateTime StartAtUtc);
+    DateTimeOffset StartAtUtc);
 
 internal static class ConsultationOutbox
 {

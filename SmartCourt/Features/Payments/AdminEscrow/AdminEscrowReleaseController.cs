@@ -36,6 +36,6 @@ public sealed class AdminEscrowReleaseController(
             new PaymentActionResultDto(
                 milestoneId,
                 "Released",
-                DateTime.UtcNow)));
+                DateTimeOffset.UtcNow)));
     }
 }

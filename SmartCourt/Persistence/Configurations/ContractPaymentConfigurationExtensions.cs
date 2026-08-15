@@ -21,16 +21,16 @@ internal static class ContractPaymentConfigurationExtensions
             .HasColumnType("decimal(18,2)");
     }
 
-    internal static PropertyBuilder<DateTime> Utc(
-        this PropertyBuilder<DateTime> property)
+    internal static PropertyBuilder<DateTimeOffset> Utc(
+        this PropertyBuilder<DateTimeOffset> property)
     {
-        return property.HasColumnType("datetime2");
+        return property.HasColumnType("datetimeoffset");
     }
 
-    internal static PropertyBuilder<DateTime?> NullableUtc(
-        this PropertyBuilder<DateTime?> property)
+    internal static PropertyBuilder<DateTimeOffset?> NullableUtc(
+        this PropertyBuilder<DateTimeOffset?> property)
     {
-        return property.HasColumnType("datetime2");
+        return property.HasColumnType("datetimeoffset");
     }
 
     internal static PropertyBuilder<string> Unicode(

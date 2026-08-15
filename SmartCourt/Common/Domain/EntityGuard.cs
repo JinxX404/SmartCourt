@@ -37,9 +37,9 @@ internal static class EntityGuard
         return value;
     }
 
-    public static DateTime Utc(DateTime value, string fieldName)
+    public static DateTimeOffset Utc(DateTimeOffset value, string fieldName)
     {
-        if (value.Kind != DateTimeKind.Utc)
+        if (value.Offset != TimeSpan.Zero)
         {
             throw new BusinessException(
                 $"يجب أن تكون قيمة الحقل {fieldName} بالتوقيت العالمي المنسق.");
@@ -48,7 +48,7 @@ internal static class EntityGuard
         return value;
     }
 
-    public static DateTime? OptionalUtc(DateTime? value, string fieldName)
+    public static DateTimeOffset? OptionalUtc(DateTimeOffset? value, string fieldName)
     {
         if (value.HasValue)
         {

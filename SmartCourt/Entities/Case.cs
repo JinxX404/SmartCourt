@@ -13,7 +13,7 @@ namespace SmartCourt.Entities
         public Guid ClientId { get; set; }
         public ClientProfile ClientProfile { get; set; } = null!;
         public CaseStatus Status { get; set; }
-        public DateTime? SubmittedAt { get; set; }
+        public DateTimeOffset? SubmittedAt { get; set; }
         public Guid? LawyerId { get; set; }
         public LawyerProfile? LawyerProfile { get; set; }
         public ICollection<CaseDocument> Documents { get; set; } = new List<CaseDocument>();

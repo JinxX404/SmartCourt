@@ -54,14 +54,14 @@ public sealed class CaseReviewRetrievalAndLoopTests
             Id = Guid.NewGuid(),
             CaseId = caseId,
             IsLatest = false,
-            CreatedAt = DateTime.UtcNow.AddHours(-3)
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-3)
         };
         var latestReport = new CaseReviewReport
         {
             Id = Guid.NewGuid(),
             CaseId = caseId,
             IsLatest = true,
-            CreatedAt = DateTime.UtcNow.AddHours(-1)
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1)
         };
 
         dbContext.CaseReviewReports.AddRange(oldReport, latestReport);
@@ -147,7 +147,7 @@ public sealed class CaseReviewRetrievalAndLoopTests
             Id = reportId,
             CaseId = caseId,
             IsLatest = true,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTimeOffset.UtcNow
         };
         dbContext.CaseReviewReports.Add(report);
         await dbContext.SaveChangesAsync();

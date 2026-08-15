@@ -109,7 +109,7 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                     Type = document.Type
                 };
 
-                if (document.ExpirationDate <= DateOnly.FromDateTime(DateTime.Today))
+                if (document.ExpirationDate <= DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date))
                 {
                     return new DocumentProcessingResult(Success: false, Error: new DocumentUploadErrorDto { FileName = document.File.FileName, Error = "This document is expired", Type = document.Type });
                 }

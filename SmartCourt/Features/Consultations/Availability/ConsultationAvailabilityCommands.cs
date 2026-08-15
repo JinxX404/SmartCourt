@@ -23,8 +23,8 @@ public sealed record CancelConsultationSlotCommand(Guid SlotId)
 
 public sealed record GetConsultationSlotsQuery(
     Guid OfferingId,
-    DateTime? FromUtc,
-    DateTime? ToUtc,
+    DateTimeOffset? FromUtc,
+    DateTimeOffset? ToUtc,
     bool Mine = false)
     : IRequest<ApiResponse<IReadOnlyList<ConsultationSlotDto>>>;
 
@@ -58,7 +58,7 @@ public sealed class ConsultationAvailabilityHandler(
             return ApiResponse<IReadOnlyList<ConsultationSlotDto>>.Fail(
                 "Configure consultation settings before adding availability.", 409);
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var earliest = now.AddHours(settings.MinimumBookingNoticeHours);
         var latest = now.AddDays(settings.MaximumAdvanceBookingDays);
         var candidates = command.Request.Slots
@@ -127,7 +127,7 @@ public sealed class ConsultationAvailabilityHandler(
 
         slot.Status = ConsultationSlotStatus.Cancelled;
         slot.ReservedUntilUtc = null;
-        slot.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        slot.UpdatedAt = timeProvider.GetUtcNow();
         await dbContext.SaveChangesAsync(cancellationToken);
         return ApiResponse<ConsultationSlotDto>.Ok(Map(slot));
     }
@@ -136,10 +136,10 @@ public sealed class ConsultationAvailabilityHandler(
         GetConsultationSlotsQuery query,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var from = query.FromUtc ?? now;
         var to = query.ToUtc ?? now.AddDays(30);
-        if (from.Kind != DateTimeKind.Utc || to.Kind != DateTimeKind.Utc || from > to || to > now.AddDays(366))
+        if (from.Offset != TimeSpan.Zero || to.Offset != TimeSpan.Zero || from > to || to > now.AddDays(366))
             return ApiResponse<IReadOnlyList<ConsultationSlotDto>>.Fail("A valid UTC availability range is required.");
 
         Guid? lawyerId = null;

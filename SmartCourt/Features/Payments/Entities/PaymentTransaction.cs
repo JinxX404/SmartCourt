@@ -18,7 +18,7 @@ public sealed class PaymentTransaction
         string providerName,
         string idempotencyKey,
         decimal amount,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ContractId = EntityGuard.NotEmpty(contractId, nameof(contractId));
@@ -60,11 +60,11 @@ public sealed class PaymentTransaction
     public PaymentTransactionStatus Status { get; internal set; }
     public string? FailureReason { get; internal set; }
     public int ProviderAttemptCount { get; internal set; }
-    public DateTime? NextRetryAt { get; internal set; }
+    public DateTimeOffset? NextRetryAt { get; internal set; }
     public bool RequiresManualAction { get; internal set; }
-    public DateTime? ManualActionRequiredAt { get; internal set; }
-    public DateTime? ProcessedAt { get; internal set; }
+    public DateTimeOffset? ManualActionRequiredAt { get; internal set; }
+    public DateTimeOffset? ProcessedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

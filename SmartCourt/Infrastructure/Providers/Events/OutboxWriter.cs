@@ -39,7 +39,7 @@ public sealed class OutboxWriter : IOutboxWriter
         }
 
         OutboxPayloadPolicy.Validate(payload);
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var message = new OutboxMessage(
             Guid.NewGuid(),
             @event.EventType,

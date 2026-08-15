@@ -53,4 +53,4 @@ public sealed record ProviderOnboardingLinkRequest(
 
 public sealed record ProviderOnboardingLinkResult(
     string Url,
-    DateTime ExpiresAt);
+    DateTimeOffset ExpiresAt);

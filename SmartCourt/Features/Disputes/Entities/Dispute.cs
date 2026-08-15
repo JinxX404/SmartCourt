@@ -18,7 +18,7 @@ public sealed class Dispute
         string title,
         string description,
         DisputeRequestedOutcome requestedOutcome,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ContractId = EntityGuard.NotEmpty(contractId, nameof(contractId));
@@ -49,9 +49,9 @@ public sealed class Dispute
     public decimal? ResolutionAmount { get; internal set; }
     public string? ResolutionSummary { get; internal set; }
     public Guid? ResolvedByUserId { get; internal set; }
-    public DateTime? ResolvedAt { get; internal set; }
-    public DateTime? ClosedAt { get; internal set; }
+    public DateTimeOffset? ResolvedAt { get; internal set; }
+    public DateTimeOffset? ClosedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

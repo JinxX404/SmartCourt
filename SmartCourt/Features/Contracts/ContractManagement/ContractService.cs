@@ -686,7 +686,7 @@ public sealed class ContractService
         Contract contract,
         Guid? actorUserId,
         Guid correlationId,
-        DateTime now,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         if (contract.Status != ContractStatus.Draft
@@ -716,7 +716,7 @@ public sealed class ContractService
                 contract.LegalCaseId,
                 contract.ClientUserId,
                 contract.LawyerUserId,
-                new DateTimeOffset(now)),
+                now),
             cancellationToken);
 
         ContractTransitionGuard.EnsureCanTransition(
@@ -1009,7 +1009,7 @@ public sealed class ContractService
         Guid? actorUserId,
         string reason,
         Guid correlationId,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         _dbContext.ContractStateHistories.Add(
             ContractStateHistoryFactory.Create(
@@ -1158,7 +1158,7 @@ public sealed class ContractService
 
     private static ContractActionResultDto ToActionResult(
         Contract contract,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return new ContractActionResultDto(
             contract.Id,
@@ -1166,6 +1166,6 @@ public sealed class ContractService
             occurredAt);
     }
 
-    private DateTime UtcNow =>
-        _timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow =>
+        _timeProvider.GetUtcNow();
 }

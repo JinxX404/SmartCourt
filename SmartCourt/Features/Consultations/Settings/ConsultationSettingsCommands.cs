@@ -63,7 +63,7 @@ public sealed class ConsultationSettingsHandler(
                 "Only an active, verified lawyer can configure consultations.", 403);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var settings = await dbContext.LawyerConsultationSettings
             .SingleOrDefaultAsync(item => item.LawyerId == lawyerId, cancellationToken);
         if (settings is null)

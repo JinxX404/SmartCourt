@@ -66,7 +66,7 @@ public sealed class IdempotencyService : IIdempotencyService
             }
         }
 
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var record = new IdempotencyRecord(
             Guid.NewGuid(),
             scope.UserId,
@@ -152,7 +152,7 @@ public sealed class IdempotencyService : IIdempotencyService
     public async Task<int> PurgeExpiredResponseBodiesAsync(
         CancellationToken cancellationToken)
     {
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var records = await _dbContext.IdempotencyRecords
             .Where(record =>
                 record.ResponseBody != null
@@ -214,7 +214,7 @@ public sealed class IdempotencyService : IIdempotencyService
             return;
         }
 
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         if (failed)
         {
             record.Fail(

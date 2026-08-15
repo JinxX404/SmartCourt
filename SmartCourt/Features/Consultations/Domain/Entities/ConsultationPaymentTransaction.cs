@@ -17,8 +17,8 @@ public sealed class ConsultationPaymentTransaction
     public string Currency { get; set; } = "EGP";
     public string? FailureReason { get; set; }
     public bool RequiresManualAction { get; set; }
-    public DateTime? ProcessedAtUtc { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset? ProcessedAtUtc { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = [];
 }

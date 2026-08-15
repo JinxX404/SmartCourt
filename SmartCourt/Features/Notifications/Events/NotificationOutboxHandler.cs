@@ -61,9 +61,7 @@ internal sealed class NotificationOutboxHandler : IOutboxEventHandler
 
         var notifications = new List<Notification>(drafts.Count);
         var newNotifications = new List<Notification>(drafts.Count);
-        var createdAtUtc = DateTime.SpecifyKind(
-            message.CreatedAt,
-            DateTimeKind.Utc);
+        var createdAtUtc = message.CreatedAt;
         foreach (var draft in drafts)
         {
             var notification = await _dbContext.Notifications

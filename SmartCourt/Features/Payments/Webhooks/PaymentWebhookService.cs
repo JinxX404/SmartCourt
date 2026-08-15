@@ -377,5 +377,5 @@ public sealed class PaymentWebhookService(
                 cancellationToken);
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

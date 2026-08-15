@@ -23,7 +23,7 @@ public sealed class ConsultationJobService(
             item => item.Id == bookingId, cancellationToken);
         if (booking is null || booking.Status != ConsultationBookingStatus.AwaitingPayment)
             return;
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (booking.PaymentExpiresAtUtc > now)
             return;
 
@@ -35,7 +35,7 @@ public sealed class ConsultationJobService(
         {
             await backgroundJobs.ScheduleAsync<IConsultationJobService>(
                 service => service.ExpireUnpaidBookingAsync(bookingId, CancellationToken.None),
-                new DateTimeOffset(now.AddMinutes(10), TimeSpan.Zero), cancellationToken);
+                now.AddMinutes(10), cancellationToken);
             return;
         }
 
@@ -63,7 +63,7 @@ public sealed class ConsultationJobService(
             || !booking.PerformedAtUtc.HasValue)
             return;
         var dueAt = booking.PerformedAtUtc.Value.AddHours(Shared.ConsultationPolicy.ClientReviewHours);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (dueAt > now)
             return;
         booking.Status = ConsultationBookingStatus.Completed;

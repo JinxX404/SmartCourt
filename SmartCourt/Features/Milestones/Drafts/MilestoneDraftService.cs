@@ -513,5 +513,5 @@ public sealed class MilestoneDraftService(
         }
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

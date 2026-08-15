@@ -31,7 +31,7 @@ public sealed class ChatConversationService(
         }
 
         var createdAt = proposal.RespondedAt
-            ?? timeProvider.GetUtcNow().UtcDateTime;
+            ?? timeProvider.GetUtcNow();
         var conversation = new ChatConversation(
             Guid.NewGuid(),
             proposal.Id,

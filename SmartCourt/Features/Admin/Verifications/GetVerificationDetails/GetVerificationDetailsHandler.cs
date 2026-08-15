@@ -31,7 +31,7 @@ public sealed class GetVerificationDetailsHandler(
             throw new NotFoundException("User was not found.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
         var documents = lawyer.VerificationDocuments
             .OrderBy(document => document.DocumentType)

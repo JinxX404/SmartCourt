@@ -89,7 +89,7 @@ public class GetCasesHandlerTests
                 ClientId = clientId,
                 LawyerId = lawyerId,
                 Status = CaseStatus.Draft,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             };
             db.Cases.Add(caseEntity);
             await db.SaveChangesAsync();
@@ -144,7 +144,7 @@ public class GetCasesHandlerTests
                 ClientId = clientId,
                 LawyerId = null,
                 Status = CaseStatus.Matched,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             };
             db.Cases.Add(caseEntity);
 
@@ -154,9 +154,9 @@ public class GetCasesHandlerTests
                 clientId,
                 lawyerId,
                 "Proposal Cover Letter",
-                DateTime.UtcNow
+                DateTimeOffset.UtcNow
             );
-            proposal.Accept(DateTime.UtcNow);
+            proposal.Accept(DateTimeOffset.UtcNow);
             db.Proposals.Add(proposal);
 
             await db.SaveChangesAsync();
@@ -203,7 +203,7 @@ public class GetCasesHandlerTests
                 ClientId = clientId,
                 LawyerId = lawyerId,
                 Status = CaseStatus.Draft,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             };
             db.Cases.Add(caseEntity);
             await db.SaveChangesAsync();
@@ -252,7 +252,7 @@ public class GetCasesHandlerTests
                 ClientId = clientId,
                 LawyerId = null,
                 Status = CaseStatus.Draft,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow
             };
             db.Cases.Add(caseEntity);
             await db.SaveChangesAsync();

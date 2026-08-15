@@ -14,7 +14,7 @@ namespace SmartCourt.Features.Case.GetCaseById.DTOs
         public string? Governorate { get; set; }
         public string? City { get; set; }
         public string Status { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTimeOffset CreatedAt { get; set; }
         public List<CaseDocumentDto> Documents { get; set; }
     }
 

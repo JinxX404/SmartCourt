@@ -183,8 +183,8 @@ public class SmartCourtWebApplicationFactory : WebApplicationFactory<Program>
             issuer: "SmartCourtAPI",
             audience: "SmartCourtClient",
             claims: claims,
-            notBefore: DateTime.UtcNow.AddMinutes(-5),
-            expires: DateTime.UtcNow.AddHours(2),
+            notBefore: DateTimeOffset.UtcNow.AddMinutes(-5).UtcDateTime,
+            expires: DateTimeOffset.UtcNow.AddHours(2).UtcDateTime,
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -289,18 +289,18 @@ public class TestRecurringBackgroundJobProvider : IRecurringBackgroundJobProvide
 
 public class TestContractJobScheduler : IContractJobScheduler
 {
-    public Task<string> ScheduleAutoAcceptAsync(Guid milestoneId, Guid escrowHoldId, int submissionVersion, DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleAutoAcceptAsync(Guid milestoneId, Guid escrowHoldId, int submissionVersion, DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> ScheduleReleaseExpiredHoldAsync(Guid escrowHoldId, DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleReleaseExpiredHoldAsync(Guid escrowHoldId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> ScheduleProviderReconciliationAsync(Guid paymentTransactionId, DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleProviderReconciliationAsync(Guid paymentTransactionId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> ScheduleProviderRetryAsync(Guid paymentTransactionId, DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleProviderRetryAsync(Guid paymentTransactionId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> ScheduleSchedulingReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleSchedulingReconciliationAsync(DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> SchedulePendingWalletProjectionReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> SchedulePendingWalletProjectionReconciliationAsync(DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
-    public Task<string> ScheduleOutboxDispatchAsync(int batchSize, DateTime runAtUtc, CancellationToken cancellationToken)
+    public Task<string> ScheduleOutboxDispatchAsync(int batchSize, DateTimeOffset RunAtUtc, CancellationToken cancellationToken)
         => Task.FromResult(Guid.NewGuid().ToString());
 }

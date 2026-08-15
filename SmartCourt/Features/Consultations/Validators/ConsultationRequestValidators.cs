@@ -88,7 +88,7 @@ public sealed class CreateConsultationSlotsRequestValidator
             .WithMessage("Create between one and 100 slots at a time.");
         RuleForEach(item => item.Slots).ChildRules(slot => slot
             .RuleFor(item => item.StartAtUtc)
-            .Must(value => value.Kind == DateTimeKind.Utc)
+            .Must(value => value.Offset == TimeSpan.Zero)
             .WithMessage("Slot start times must be UTC."));
         RuleFor(item => item.Slots).Must(items => items.Select(slot => slot.StartAtUtc).Distinct().Count() == items.Count)
             .WithMessage("Slot start times must be unique.");

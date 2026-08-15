@@ -16,9 +16,9 @@ public sealed class MilestoneChangeRequest
         Guid requestedByUserId,
         string? proposedDescription,
         int? proposedDurationDays,
-        DateTime? proposedDueDate,
+        DateTimeOffset? proposedDueDate,
         string reason,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         if (proposedDescription is null
             && proposedDurationDays is null
@@ -55,12 +55,12 @@ public sealed class MilestoneChangeRequest
     public Guid RequestedByUserId { get; internal set; }
     public string? ProposedDescription { get; internal set; }
     public int? ProposedDurationDays { get; internal set; }
-    public DateTime? ProposedDueDate { get; internal set; }
+    public DateTimeOffset? ProposedDueDate { get; internal set; }
     public string Reason { get; internal set; } = string.Empty;
     public ChangeRequestStatus Status { get; internal set; }
     public Guid? DecidedByUserId { get; internal set; }
-    public DateTime? DecidedAt { get; internal set; }
+    public DateTimeOffset? DecidedAt { get; internal set; }
     public string? DecisionReason { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
 }

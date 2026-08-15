@@ -18,7 +18,7 @@ public sealed class MilestoneStateHistory
         Guid? actorUserId,
         string? reason,
         Guid correlationId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         MilestoneId = EntityGuard.NotEmpty(milestoneId, nameof(milestoneId));
@@ -39,5 +39,5 @@ public sealed class MilestoneStateHistory
     public Guid? ActorUserId { get; private set; }
     public string? Reason { get; private set; }
     public Guid CorrelationId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

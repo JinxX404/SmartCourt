@@ -33,7 +33,7 @@ public sealed record UpdateConsultationOfferingRequest(
 
 public sealed record SetConsultationOfferingStatusRequest(bool IsActive);
 
-public sealed record CreateConsultationSlotItem(DateTime StartAtUtc);
+public sealed record CreateConsultationSlotItem(DateTimeOffset StartAtUtc);
 
 public sealed record CreateConsultationSlotsRequest(
     IReadOnlyList<CreateConsultationSlotItem> Slots);
@@ -65,8 +65,8 @@ public sealed class ConsultationLawyerFilter
     public Specialization[]? Specializations { get; init; }
     public decimal? MinimumPrice { get; init; }
     public decimal? MaximumPrice { get; init; }
-    public DateTime? AvailableFromUtc { get; init; }
-    public DateTime? AvailableToUtc { get; init; }
+    public DateTimeOffset? AvailableFromUtc { get; init; }
+    public DateTimeOffset? AvailableToUtc { get; init; }
     public string? Search { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 5;
@@ -75,8 +75,8 @@ public sealed class ConsultationLawyerFilter
 public sealed class ConsultationBookingFilter
 {
     public ConsultationBookingStatus[]? Statuses { get; init; }
-    public DateTime? FromUtc { get; init; }
-    public DateTime? ToUtc { get; init; }
+    public DateTimeOffset? FromUtc { get; init; }
+    public DateTimeOffset? ToUtc { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 5;
 }

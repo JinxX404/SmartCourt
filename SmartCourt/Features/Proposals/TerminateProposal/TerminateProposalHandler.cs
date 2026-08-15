@@ -63,7 +63,7 @@ public sealed class TerminateProposalHandler(
                 409);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         proposal.Terminate(request.Reason, actorUserId, now);
         await ProposalOutbox.EnqueueAsync(
             outboxWriter,

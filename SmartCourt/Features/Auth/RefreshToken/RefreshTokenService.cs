@@ -52,7 +52,7 @@ public class RefreshTokenService : IRefreshTokenService
             var activeTokens = user.RefreshTokens.Where(t => t.IsActive).ToList();
             foreach (var activeToken in activeTokens)
             {
-                activeToken.RevokedOn = DateTime.UtcNow;
+                activeToken.RevokedOn = DateTimeOffset.UtcNow;
             }
             var revokeResult = await _userManager.UpdateAsync(user);
             EnsureSucceeded(revokeResult);
@@ -64,12 +64,12 @@ public class RefreshTokenService : IRefreshTokenService
         var newRefreshToken = _authHelper.GenerateRefreshToken();
         var newHashedRefreshToken = _authHelper.HashRefreshToken(newRefreshToken);
         
-        userRefreshToken.RevokedOn = DateTime.UtcNow;
+        userRefreshToken.RevokedOn = DateTimeOffset.UtcNow;
         user.RefreshTokens.Add(new SmartCourt.Common.Entities.RefreshToken
         {
             HashedToken = newHashedRefreshToken,
-            ExpiresOn = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays),
-            CreatedOn = DateTime.UtcNow
+            ExpiresOn = DateTimeOffset.UtcNow.AddDays(_refreshTokenExpiryDays),
+            CreatedOn = DateTimeOffset.UtcNow
         });
 
         var updateResult = await _userManager.UpdateAsync(user);
@@ -79,7 +79,7 @@ public class RefreshTokenService : IRefreshTokenService
              newAccessToken.Token,
              newAccessToken.ExpiresInSeconds,
              newRefreshToken,
-             DateTime.UtcNow.AddDays(_refreshTokenExpiryDays));
+             DateTimeOffset.UtcNow.AddDays(_refreshTokenExpiryDays));
     }
 
     private static void EnsureSucceeded(IdentityResult result)

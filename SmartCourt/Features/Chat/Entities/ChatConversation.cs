@@ -16,7 +16,7 @@ public sealed class ChatConversation
         Guid legalCaseId,
         Guid clientUserId,
         Guid lawyerUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ProposalId = EntityGuard.NotEmpty(proposalId, nameof(proposalId));
@@ -32,9 +32,9 @@ public sealed class ChatConversation
     public Guid LegalCaseId { get; internal set; }
     public Guid ClientUserId { get; internal set; }
     public Guid LawyerUserId { get; internal set; }
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
-    public DateTime? LastMessageAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
+    public DateTimeOffset? LastMessageAt { get; internal set; }
     public bool IsClosed { get; internal set; }
     public Proposal Proposal { get; internal set; } = null!;
     public CaseEntity Case { get; internal set; } = null!;
@@ -46,13 +46,13 @@ public sealed class ChatConversation
             && (ClientUserId == userId || LawyerUserId == userId);
     }
 
-    internal void MarkMessageAdded(DateTime sentAt)
+    internal void MarkMessageAdded(DateTimeOffset sentAt)
     {
         LastMessageAt = EntityGuard.Utc(sentAt, nameof(sentAt));
         UpdatedAt = LastMessageAt.Value;
     }
 
-    internal void Close(DateTime closedAt)
+    internal void Close(DateTimeOffset closedAt)
     {
         IsClosed = true;
         UpdatedAt = EntityGuard.Utc(closedAt, nameof(closedAt));

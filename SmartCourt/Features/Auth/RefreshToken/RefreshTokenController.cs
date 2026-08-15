@@ -38,7 +38,7 @@ public class RefreshTokenController(IRefreshTokenService refreshTokenService) : 
         Response.Cookies.Append("accessToken", token, cookieOptions);
     }
 
-    private void SetRefreshTokenCookie(string token, DateTime expires)
+    private void SetRefreshTokenCookie(string token, DateTimeOffset expires)
     {
         var cookieOptions = new CookieOptions
         {

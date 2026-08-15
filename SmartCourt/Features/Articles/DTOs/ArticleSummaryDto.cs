@@ -18,5 +18,5 @@ public class ArticleSummaryDto
     public Guid AuthorId { get; set; }
     public string AuthorName { get; set; } = string.Empty;
     
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }

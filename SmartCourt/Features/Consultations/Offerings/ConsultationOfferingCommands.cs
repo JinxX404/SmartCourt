@@ -51,7 +51,7 @@ public sealed class ConsultationOfferingHandler(
         if (eligibilityError is not null)
             return ApiResponse<ConsultationOfferingDto>.Fail(eligibilityError, 409);
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var offering = new ConsultationOffering
         {
             Id = Guid.NewGuid(),
@@ -94,7 +94,7 @@ public sealed class ConsultationOfferingHandler(
 
         var hasFutureCommitment = await dbContext.ConsultationBookings.AnyAsync(
             item => item.OfferingId == offering.Id
-                && item.StartAtUtc > timeProvider.GetUtcNow().UtcDateTime
+                && item.StartAtUtc > timeProvider.GetUtcNow()
                 && (item.Status == ConsultationBookingStatus.Confirmed
                     || item.Status == ConsultationBookingStatus.AwaitingClientConfirmation),
             cancellationToken);
@@ -113,7 +113,7 @@ public sealed class ConsultationOfferingHandler(
         offering.DurationMinutes = command.Request.DurationMinutes;
         offering.Price = command.Request.Price;
         offering.OfficeLocation = NormalizeOffice(command.Request.Mode, command.Request.OfficeLocation);
-        offering.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        offering.UpdatedAt = timeProvider.GetUtcNow();
         dbContext.ConsultationOfferingInclusions.RemoveRange(offering.Inclusions);
         offering.Inclusions.Clear();
         ReplaceInclusions(offering, command.Request.Inclusions);
@@ -139,7 +139,7 @@ public sealed class ConsultationOfferingHandler(
         }
 
         offering.IsActive = command.IsActive;
-        offering.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        offering.UpdatedAt = timeProvider.GetUtcNow();
         await dbContext.SaveChangesAsync(cancellationToken);
         var next = await NextAvailableAsync(offering.Id, cancellationToken);
         return ApiResponse<ConsultationOfferingDto>.Ok(Map(offering, next, true));
@@ -150,7 +150,7 @@ public sealed class ConsultationOfferingHandler(
         CancellationToken cancellationToken)
     {
         var lawyerId = ConsultationAccess.RequireUserId(currentUserService);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var offerings = await dbContext.ConsultationOfferings.AsNoTracking()
             .Include(item => item.Inclusions)
             .Where(item => item.LawyerId == lawyerId)
@@ -162,7 +162,7 @@ public sealed class ConsultationOfferingHandler(
                     || slot.Status == ConsultationSlotStatus.Reserved && slot.ReservedUntilUtc <= now))
             .GroupBy(slot => slot.OfferingId)
             .Select(group => new { OfferingId = group.Key, Next = group.Min(item => item.StartAtUtc) })
-            .ToDictionaryAsync(item => item.OfferingId, item => (DateTime?)item.Next, cancellationToken);
+            .ToDictionaryAsync(item => item.OfferingId, item => (DateTimeOffset?)item.Next, cancellationToken);
         return ApiResponse<IReadOnlyList<ConsultationOfferingDto>>.Ok(
             offerings.Select(item => Map(item, nextSlots.GetValueOrDefault(item.Id), true)).ToList());
     }
@@ -192,18 +192,18 @@ public sealed class ConsultationOfferingHandler(
         return payoutReady ? null : "Complete and enable the payout account before activating consultations.";
     }
 
-    private async Task<DateTime?> NextAvailableAsync(Guid offeringId, CancellationToken cancellationToken)
+    private async Task<DateTimeOffset?> NextAvailableAsync(Guid offeringId, CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         return await dbContext.ConsultationAvailabilitySlots
             .Where(item => item.OfferingId == offeringId && item.StartAtUtc > now
                 && item.Status == ConsultationSlotStatus.Available)
-            .MinAsync(item => (DateTime?)item.StartAtUtc, cancellationToken);
+            .MinAsync(item => (DateTimeOffset?)item.StartAtUtc, cancellationToken);
     }
 
     internal static ConsultationOfferingDto Map(
         ConsultationOffering item,
-        DateTime? nextAvailable,
+        DateTimeOffset? nextAvailable,
         bool includePrivateLocation) => new(
             item.Id, item.LawyerId, item.Mode, item.Specialization, item.Title,
             item.Description, item.DurationMinutes, item.Price, item.Currency,

@@ -24,16 +24,16 @@ public sealed class ConsultationBooking
     public string MatterSummary { get; set; } = string.Empty;
     public string? OfficeLocation { get; set; }
     public string? MeetingUrl { get; set; }
-    public DateTime StartAtUtc { get; set; }
-    public DateTime EndAtUtc { get; set; }
+    public DateTimeOffset StartAtUtc { get; set; }
+    public DateTimeOffset EndAtUtc { get; set; }
     public ConsultationBookingStatus Status { get; set; }
-    public DateTime PaymentExpiresAtUtc { get; set; }
-    public DateTime? PerformedAtUtc { get; set; }
-    public DateTime? CompletedAtUtc { get; set; }
-    public DateTime? CancelledAtUtc { get; set; }
+    public DateTimeOffset PaymentExpiresAtUtc { get; set; }
+    public DateTimeOffset? PerformedAtUtc { get; set; }
+    public DateTimeOffset? CompletedAtUtc { get; set; }
+    public DateTimeOffset? CancelledAtUtc { get; set; }
     public string? CancellationReason { get; set; }
     public string? DisputeReason { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = [];
 }

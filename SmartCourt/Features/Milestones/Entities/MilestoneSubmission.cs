@@ -15,7 +15,7 @@ public sealed class MilestoneSubmission
         Guid submittedByUserId,
         int version,
         string notes,
-        DateTime submittedAt)
+        DateTimeOffset submittedAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         MilestoneId = EntityGuard.NotEmpty(milestoneId, nameof(milestoneId));
@@ -34,5 +34,5 @@ public sealed class MilestoneSubmission
     public Guid SubmittedByUserId { get; private set; }
     public int Version { get; private set; }
     public string Notes { get; private set; } = string.Empty;
-    public DateTime SubmittedAt { get; private set; }
+    public DateTimeOffset SubmittedAt { get; private set; }
 }

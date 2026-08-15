@@ -6,4 +6,4 @@ public record RefreshTokenResponse(
     string AccessToken,
     int AccessTokenExpiresInSeconds,
     string RefreshToken,
-    DateTime ExpiresAt);
+    DateTimeOffset ExpiresAt);

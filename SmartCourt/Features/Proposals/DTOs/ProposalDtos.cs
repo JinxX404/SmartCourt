@@ -18,10 +18,10 @@ public sealed record ProposalListItemDto(
     string? ConversationStatus,
     bool CanChat,
     IReadOnlyList<string> PermittedActions,
-    DateTime CreatedAt,
-    DateTime? RespondedAt,
-    DateTime? ExpiresAt = null,
-    DateTime? ClosedAt = null,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? RespondedAt,
+    DateTimeOffset? ExpiresAt = null,
+    DateTimeOffset? ClosedAt = null,
     Guid? ClosedByUserId = null);
 
 public sealed record ProposalDetailDto(
@@ -44,11 +44,11 @@ public sealed record ProposalDetailDto(
     string? ConversationStatus,
     bool CanChat,
     IReadOnlyList<string> PermittedActions,
-    DateTime CreatedAt,
-    DateTime? RespondedAt,
-    DateTime UpdatedAt,
-    DateTime? ExpiresAt = null,
-    DateTime? ClosedAt = null,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? RespondedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? ExpiresAt = null,
+    DateTimeOffset? ClosedAt = null,
     Guid? ClosedByUserId = null);
 
 public sealed record ProposalPageDto(

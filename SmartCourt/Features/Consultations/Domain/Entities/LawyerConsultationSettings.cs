@@ -8,7 +8,7 @@ public sealed class LawyerConsultationSettings
     public int MaximumAdvanceBookingDays { get; set; } = 60;
     public int BufferMinutes { get; set; } = 15;
     public string TimeZoneId { get; set; } = "Africa/Cairo";
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = [];
 }

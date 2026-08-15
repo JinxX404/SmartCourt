@@ -48,7 +48,7 @@ public class AuthHelperService : IAuthHelperService
         var activeTokens = applicationUser.RefreshTokens.Where(rt => rt.IsActive).ToList();
         foreach (var token in activeTokens)
         {
-            token.RevokedOn = DateTime.UtcNow;
+            token.RevokedOn = DateTimeOffset.UtcNow;
         }
 
     }
@@ -74,7 +74,7 @@ public class AuthHelperService : IAuthHelperService
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
         var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
                            .Replace("{{ConfirmationUrl}}", HtmlEncoder.Default.Encode(confirmationUrl))
-                           .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
+                           .Replace("{{Year}}", DateTimeOffset.UtcNow.Year.ToString());
 
         if (!await _emailProvider.SendEmailAsync(user.Email!, subject, body, true, cancellationToken))
         {

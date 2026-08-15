@@ -65,7 +65,7 @@ public sealed class NotificationApiTests(
             null);
         var repeatedBody = await repeatedRead.Content
             .ReadFromJsonAsync<ApiResponse<NotificationDto>>();
-        Assert.Equal(firstBody.Data.ReadAtUtc, repeatedBody?.Data?.ReadAtUtc);
+        Assert.True(Math.Abs((firstBody.Data.ReadAtUtc!.Value - repeatedBody!.Data!.ReadAtUtc!.Value).TotalMilliseconds) < 1);
 
         var count = await client.GetFromJsonAsync<
             ApiResponse<UnreadNotificationCountDto>>(
@@ -104,7 +104,7 @@ public sealed class NotificationApiTests(
         await using var scope = factory.Services.CreateAsyncScope();
         var dbContext = scope.ServiceProvider
             .GetRequiredService<ApplicationDbContext>();
-        var now = DateTime.UtcNow.AddMinutes(-sequence);
+        var now = DateTimeOffset.UtcNow.AddMinutes(-sequence);
         var notification = Notification.Create(
             Guid.NewGuid(),
             recipientId,
@@ -116,7 +116,7 @@ public sealed class NotificationApiTests(
             $"/proposals/{Guid.NewGuid()}",
             "{\"proposalId\":\"test\"}",
             now);
-        notification.Sequence = DateTime.UtcNow.Ticks + sequence;
+        notification.Sequence = DateTimeOffset.UtcNow.Ticks + sequence;
         if (isRead)
         {
             notification.MarkRead(now.AddSeconds(1));

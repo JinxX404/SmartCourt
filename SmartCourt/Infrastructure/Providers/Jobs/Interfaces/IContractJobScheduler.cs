@@ -6,34 +6,34 @@ public interface IContractJobScheduler
         Guid milestoneId,
         Guid escrowHoldId,
         int submissionVersion,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> ScheduleReleaseExpiredHoldAsync(
         Guid escrowHoldId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> ScheduleProviderReconciliationAsync(
         Guid paymentTransactionId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> ScheduleProviderRetryAsync(
         Guid paymentTransactionId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> ScheduleSchedulingReconciliationAsync(
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> SchedulePendingWalletProjectionReconciliationAsync(
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 
     Task<string> ScheduleOutboxDispatchAsync(
         int batchSize,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken);
 }

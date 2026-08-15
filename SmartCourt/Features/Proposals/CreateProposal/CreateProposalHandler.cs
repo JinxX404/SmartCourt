@@ -116,7 +116,7 @@ public sealed class CreateProposalHandler(
                 409);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var proposal = new Proposal(
             Guid.NewGuid(),
             legalCase.Id,

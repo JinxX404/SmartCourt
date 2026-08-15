@@ -49,7 +49,7 @@ public sealed class ContractConversationIntegrationOutboxHandler(
                 context.ProposalId,
                 MapType(message.EventType),
                 context.RelatedEntityId,
-                new DateTimeOffset(message.CreatedAt, TimeSpan.Zero)),
+                message.CreatedAt),
             cancellationToken);
     }
 

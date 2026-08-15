@@ -12,7 +12,7 @@ public sealed class ClientPaymentCustomer
         string providerCode,
         string providerCustomerId,
         bool isLive,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ClientUserId = EntityGuard.NotEmpty(clientUserId, nameof(clientUserId));
@@ -30,7 +30,7 @@ public sealed class ClientPaymentCustomer
     public string ProviderCode { get; internal set; } = string.Empty;
     public string ProviderCustomerId { get; internal set; } = string.Empty;
     public bool IsLive { get; internal set; }
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
 }

@@ -31,7 +31,7 @@ public class ConfirmPhoneVerificationHandler(
             .SingleAsync(u => u.Id == currentUserService.UserId, cancellationToken);
 
         var isLawyer = await userManager.IsInRoleAsync(user, "Lawyer");
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
 
         user.Status = SmartCourt.Features.Admin.Verifications.Shared.VerificationStatusEvaluator.ResolveAccountStatus(
             user.VerificationDocuments,

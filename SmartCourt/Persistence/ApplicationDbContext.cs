@@ -86,6 +86,19 @@ public class ApplicationDbContext
         base.OnModelCreating(builder);
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                var properties = entityType.GetProperties().Where(p => p.ClrType == typeof(DateTimeOffset)
+                                                                    || p.ClrType == typeof(DateTimeOffset?));
+                foreach (var property in properties)
+                {
+                    property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.DateTimeOffsetToBinaryConverter());
+                }
+            }
+        }
     }
 
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
@@ -226,7 +239,7 @@ public class ApplicationDbContext
 
     private void ApplyLegacyAuditMetadata()
     {
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         var actor = _currentUserService?.UserId?.ToString() ?? "System";
 
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
@@ -258,16 +271,16 @@ public class ApplicationDbContext
             foreach (var property in entry.Properties)
             {
                 var propertyType = property.Metadata.ClrType;
-                var isTimestamp = propertyType == typeof(DateTime)
-                    || propertyType == typeof(DateTime?);
+                var isTimestamp = propertyType == typeof(DateTimeOffset)
+                    || propertyType == typeof(DateTimeOffset?);
                 if (!isTimestamp
                     || entry.State == EntityState.Modified && !property.IsModified
-                    || property.CurrentValue is not DateTime value)
+                    || property.CurrentValue is not DateTimeOffset value)
                 {
                     continue;
                 }
 
-                if (value.Kind != DateTimeKind.Utc)
+                if (value.Offset != TimeSpan.Zero)
                 {
                     throw new BusinessException(
                         $"يجب أن تكون قيمة {entry.Metadata.ClrType.Name}.{property.Metadata.Name} بالتوقيت العالمي المنسق.");

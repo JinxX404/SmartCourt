@@ -46,7 +46,7 @@ public class RevokeRefreshTokenService : IRevokeRefreshTokenService
             return false;
         }
 
-        userRefreshToken.RevokedOn = DateTime.UtcNow;
+        userRefreshToken.RevokedOn = DateTimeOffset.UtcNow;
         await _userManager.UpdateAsync(user);
 
         return true;

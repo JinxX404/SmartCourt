@@ -29,13 +29,13 @@ public sealed class JwtProviderTests
         var provider = CreateProvider();
         var user = CreateUser();
 
-        var beforeGeneration = DateTime.UtcNow;
+        var beforeGeneration = DateTimeOffset.UtcNow;
         var result = provider.GenerateToken(user, ["Client"]);
 
         Assert.InRange(
             result.ExpiresAt,
             beforeGeneration.AddMinutes(15),
-            DateTime.UtcNow.AddMinutes(15));
+            DateTimeOffset.UtcNow.AddMinutes(15));
     }
 
     private static JwtProvider CreateProvider()

@@ -59,7 +59,7 @@ public sealed class ContractConversationOutboxHandler(
                 related.ProposalId,
                 conversationMessageType,
                 related.RelatedEntityId,
-                new DateTimeOffset(message.CreatedAt, TimeSpan.Zero)),
+                message.CreatedAt),
             cancellationToken);
     }
 

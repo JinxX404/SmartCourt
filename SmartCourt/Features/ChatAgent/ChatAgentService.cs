@@ -73,7 +73,7 @@ public class ChatAgentService(
             }
         }
 
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         var conversation = AgentConversation.Create(
             Guid.NewGuid(),
             currentUserId,
@@ -179,7 +179,7 @@ public class ChatAgentService(
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
 
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         conversation.SoftDelete(utcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
@@ -212,7 +212,7 @@ public class ChatAgentService(
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
 
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         var userMessage = AgentMessage.CreateUserMessage(
             Guid.NewGuid(),
             conversation.Id,
@@ -395,7 +395,7 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
         }
 
         phaseStopwatch.Restart();
-        var responseTime = _timeProvider.GetUtcNow().UtcDateTime;
+        var responseTime = _timeProvider.GetUtcNow();
 
         var assistantMessage = AgentMessage.CreateAssistantMessage(
             Guid.NewGuid(),
@@ -485,7 +485,7 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
 
                     if (!string.IsNullOrWhiteSpace(cleanTitle))
                     {
-                        var utcNow = timeProvider.GetUtcNow().UtcDateTime;
+                        var utcNow = timeProvider.GetUtcNow();
                         conversation.UpdateTitle(cleanTitle, utcNow);
                         await dbContext.SaveChangesAsync(cancellationToken);
                     }
@@ -682,7 +682,7 @@ You MUST format your response using Markdown. Use ** for bold text. You MUST use
         }
 
         var contextText = sb.ToString().Trim();
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         conversation.CacheCaseContext(contextText, utcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
 

@@ -35,8 +35,8 @@ public class ArticleNotificationEventMapperTests
             "LegalArticle",
             aggregateId,
             Guid.NewGuid(),
-            DateTime.UtcNow,
-            DateTime.UtcNow);
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow);
     }
 
     [Fact]

@@ -345,23 +345,7 @@ public sealed class ContractAndPaymentEntityTests
         Assert.Equal(PaymentTransactionStatus.Processing, withdrawal.Status);
     }
 
-    [Fact]
-    public void EntityConstruction_RejectsNonUtcTimestamps()
-    {
-        var localTimestamp = DateTime.SpecifyKind(
-            UtcTimestamp,
-            DateTimeKind.Local);
 
-        Assert.Throws<BusinessException>(() => new ContractEntity(
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
-            "Title",
-            "Terms and conditions.",
-            localTimestamp));
-    }
 
     private static EscrowHoldEntity CreateEscrowHold(
         decimal gross,

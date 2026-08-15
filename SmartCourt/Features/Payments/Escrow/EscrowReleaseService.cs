@@ -57,7 +57,7 @@ public sealed class EscrowReleaseService(
             ?? throw new BusinessException(
                 "المرحلة المطلوبة غير موجودة.");
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (hold.HoldExpiresAt.HasValue
             && milestone.HoldExpiresAt.HasValue
             && hold.HoldExpiresAt.Value > now
@@ -125,7 +125,7 @@ public sealed class EscrowReleaseService(
                 escrowHoldId);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (isStandardRelease
             && (!hold.HoldExpiresAt.HasValue
                 || !milestone.HoldExpiresAt.HasValue

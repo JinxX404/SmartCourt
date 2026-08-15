@@ -437,7 +437,7 @@ public sealed class MilestoneChangeRequestService(
 
     private static MilestoneActionResultDto ToActionResult(
         MilestoneChangeRequest changeRequest,
-        DateTime now)
+        DateTimeOffset now)
         => new(
             changeRequest.Id,
             changeRequest.Status.ToString(),
@@ -457,5 +457,5 @@ public sealed class MilestoneChangeRequestService(
         }
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

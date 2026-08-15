@@ -83,14 +83,14 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "نزاع تجاري وعقاري", Description = "مطالبة بتنفيذ بند شرط جزائي وتصفية حسابات شركة عقارية", City = "الجيزة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
+            var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "نزاع تجاري وعقاري", Description = "مطالبة بتنفيذ بند شرط جزائي وتصفية حسابات شركة عقارية", City = "الجيزة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
 
             var proposal = new Proposal(
                 proposalId,
                 legalCaseId,
                 clientId,
                 lawyerId,
-                DateTime.UtcNow)
+                DateTimeOffset.UtcNow)
             {
                 Status = ProposalStatus.Accepted
             };
@@ -155,12 +155,12 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
         // PHASE 2: MILESTONES LIFECYCLE (Add Milestones, Approve, Accept)
         // =============================================================
         // Step 3: Lawyer adds 2 Milestones
-        var m1Req = new AddMilestoneRequest("المرحلة 1: إعداد صحيفة الدعوى", "دراسة المستندات وإيداع الصحيفة بالمحكمة", 1, 5000m, 10, DateTime.UtcNow.AddDays(10));
+        var m1Req = new AddMilestoneRequest("المرحلة 1: إعداد صحيفة الدعوى", "دراسة المستندات وإيداع الصحيفة بالمحكمة", 1, 5000m, 10, DateTimeOffset.UtcNow.AddDays(10));
         var addM1Resp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", m1Req);
         Assert.Equal(HttpStatusCode.Created, addM1Resp.StatusCode);
         var m1Dto = (await addM1Resp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;
 
-        var m2Req = new AddMilestoneRequest("المرحلة 2: المرافعة وتقديم المذكرات", "حضور الجلسات وتلخيص الدفوع القانونية", 2, 10000m, 30, DateTime.UtcNow.AddDays(40));
+        var m2Req = new AddMilestoneRequest("المرحلة 2: المرافعة وتقديم المذكرات", "حضور الجلسات وتلخيص الدفوع القانونية", 2, 10000m, 30, DateTimeOffset.UtcNow.AddDays(40));
         var addM2Resp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", m2Req);
         Assert.Equal(HttpStatusCode.Created, addM2Resp.StatusCode);
         var m2Dto = (await addM2Resp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;

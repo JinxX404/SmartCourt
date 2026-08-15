@@ -42,7 +42,7 @@ public sealed class PaymentWebhookRequestValidator
             .WithMessage("عملة الدفع يجب أن تكون الجنيه المصري EGP.");
         RuleFor(request => request.ProcessedAt)
             .Must(value => !value.HasValue
-                || value.Value.Kind == DateTimeKind.Utc)
+                || value.Value.Offset == TimeSpan.Zero)
             .WithMessage(
                 "تاريخ معالجة الدفع يجب أن يكون بالتوقيت العالمي.");
         RuleFor(request => request.FailureReason)

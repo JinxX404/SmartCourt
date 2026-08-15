@@ -15,10 +15,10 @@ public sealed class LawyerPenalty
         Guid disputeId,
         PenaltyType penaltyType,
         string reason,
-        DateTime startsAt,
-        DateTime? endsAt,
+        DateTimeOffset startsAt,
+        DateTimeOffset? endsAt,
         Guid createdByUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         LawyerUserId = EntityGuard.NotEmpty(
@@ -40,8 +40,8 @@ public sealed class LawyerPenalty
     public Guid DisputeId { get; private set; }
     public PenaltyType PenaltyType { get; private set; }
     public string Reason { get; private set; } = string.Empty;
-    public DateTime StartsAt { get; private set; }
-    public DateTime? EndsAt { get; private set; }
+    public DateTimeOffset StartsAt { get; private set; }
+    public DateTimeOffset? EndsAt { get; private set; }
     public Guid CreatedByUserId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }
