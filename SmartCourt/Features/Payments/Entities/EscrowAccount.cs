@@ -12,7 +12,7 @@ public sealed class EscrowAccount
     internal EscrowAccount(
         Guid id,
         Guid contractId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ContractId = EntityGuard.NotEmpty(contractId, nameof(contractId));
@@ -31,6 +31,6 @@ public sealed class EscrowAccount
     public decimal TotalFees { get; internal set; }
     public EscrowAccountStatus Status { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

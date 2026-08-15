@@ -27,8 +27,8 @@ public sealed class Notification
         string body,
         string? actionUrl,
         string? dataJson,
-        DateTime createdAtUtc,
-        DateTime? expiresAtUtc)
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset? expiresAtUtc)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         RecipientUserId = EntityGuard.NotEmpty(
@@ -64,9 +64,9 @@ public sealed class Notification
     public string Body { get; internal set; } = string.Empty;
     public string? ActionUrl { get; internal set; }
     public string? DataJson { get; internal set; }
-    public DateTime CreatedAtUtc { get; internal set; }
-    public DateTime? ReadAtUtc { get; internal set; }
-    public DateTime? ExpiresAtUtc { get; internal set; }
+    public DateTimeOffset CreatedAtUtc { get; internal set; }
+    public DateTimeOffset? ReadAtUtc { get; internal set; }
+    public DateTimeOffset? ExpiresAtUtc { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public bool IsRead => ReadAtUtc.HasValue;
 
@@ -80,8 +80,8 @@ public sealed class Notification
         string body,
         string? actionUrl,
         string? dataJson,
-        DateTime createdAtUtc,
-        DateTime? expiresAtUtc = null)
+        DateTimeOffset createdAtUtc,
+        DateTimeOffset? expiresAtUtc = null)
     {
         return new Notification(
             id,
@@ -97,7 +97,7 @@ public sealed class Notification
             expiresAtUtc);
     }
 
-    public bool MarkRead(DateTime readAtUtc)
+    public bool MarkRead(DateTimeOffset readAtUtc)
     {
         if (ReadAtUtc.HasValue)
         {

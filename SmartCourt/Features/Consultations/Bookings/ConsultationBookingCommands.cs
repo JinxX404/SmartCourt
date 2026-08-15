@@ -77,7 +77,7 @@ public sealed class ConsultationBookingHandler(
         if (!await ConsultationAccess.HasRoleAsync(dbContext, clientId, "Client", cancellationToken))
             return ApiResponse<ConsultationBookingDto>.Fail("Only clients can book consultations.", 403);
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         await using var transaction = dbContext.Database.IsRelational()
             ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
             : null;
@@ -136,7 +136,7 @@ public sealed class ConsultationBookingHandler(
 
         await backgroundJobs.ScheduleAsync<IConsultationJobService>(
             service => service.ExpireUnpaidBookingAsync(booking.Id, CancellationToken.None),
-            new DateTimeOffset(paymentExpires, TimeSpan.Zero), cancellationToken);
+            paymentExpires, cancellationToken);
         return ApiResponse<ConsultationBookingDto>.Created(
             (await ConsultationReadModel.FindBookingAsync(
                 dbContext, booking.Id, clientId, false, cancellationToken))!);
@@ -178,7 +178,7 @@ public sealed class ConsultationBookingHandler(
         if (booking.Status is not (ConsultationBookingStatus.AwaitingPayment or ConsultationBookingStatus.Confirmed))
             return ApiResponse<ConsultationBookingDto>.Fail("This booking can no longer be cancelled.", 409);
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var clientLateCancellation = actorId == booking.ClientId
             && booking.Status == ConsultationBookingStatus.Confirmed
             && booking.StartAtUtc < now.AddHours(24);
@@ -233,7 +233,7 @@ public sealed class ConsultationBookingHandler(
             || uri.Scheme != Uri.UriSchemeHttps)
             return ApiResponse<ConsultationBookingDto>.Fail("A valid HTTPS meeting URL is required.");
         booking.MeetingUrl = command.MeetingUrl.Trim();
-        booking.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        booking.UpdatedAt = timeProvider.GetUtcNow();
         await dbContext.SaveChangesAsync(cancellationToken);
         return ApiResponse<ConsultationBookingDto>.Ok((await ConsultationReadModel.FindBookingAsync(
             dbContext, booking.Id, lawyerId, false, cancellationToken))!);
@@ -246,7 +246,7 @@ public sealed class ConsultationBookingHandler(
         var lawyerId = ConsultationAccess.RequireUserId(currentUserService);
         var booking = await dbContext.ConsultationBookings.SingleOrDefaultAsync(
             item => item.Id == command.BookingId && item.LawyerId == lawyerId, cancellationToken);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (booking is null)
             return ApiResponse<ConsultationBookingDto>.Fail("Consultation booking was not found.", 404);
         if (booking.Status != ConsultationBookingStatus.Confirmed || now < booking.EndAtUtc)
@@ -262,7 +262,7 @@ public sealed class ConsultationBookingHandler(
         await dbContext.SaveChangesAsync(cancellationToken);
         await backgroundJobs.ScheduleAsync<IConsultationJobService>(
             service => service.AutoCompleteAsync(booking.Id, CancellationToken.None),
-            new DateTimeOffset(now.AddHours(ConsultationPolicy.ClientReviewHours), TimeSpan.Zero), cancellationToken);
+            now.AddHours(ConsultationPolicy.ClientReviewHours), cancellationToken);
         return ApiResponse<ConsultationBookingDto>.Ok((await ConsultationReadModel.FindBookingAsync(
             dbContext, booking.Id, lawyerId, false, cancellationToken))!);
     }
@@ -279,7 +279,7 @@ public sealed class ConsultationBookingHandler(
         if (booking.Status != ConsultationBookingStatus.AwaitingClientConfirmation)
             return ApiResponse<ConsultationBookingDto>.Fail("The consultation is not awaiting confirmation.", 409);
         booking.Status = ConsultationBookingStatus.Completed;
-        booking.CompletedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        booking.CompletedAtUtc = timeProvider.GetUtcNow();
         booking.UpdatedAt = booking.CompletedAtUtc.Value;
         await ConsultationOutbox.EnqueueAsync(
             outboxWriter, ConsultationEventTypes.ConsultationCompleted,
@@ -304,7 +304,7 @@ public sealed class ConsultationBookingHandler(
         var hold = await dbContext.ConsultationEscrowHolds.SingleAsync(item => item.BookingId == booking.Id, cancellationToken);
         if (hold.Status != Features.Payments.Enums.EscrowHoldStatus.Funded)
             return ApiResponse<ConsultationBookingDto>.Fail("The consultation payment is no longer disputable.", 409);
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         booking.Status = ConsultationBookingStatus.Disputed;
         booking.DisputeReason = command.Reason.Trim();
         booking.UpdatedAt = now;
@@ -337,8 +337,8 @@ public sealed class ConsultationBookingHandler(
             booking.Id, command.ClientRefundAmount, command.Reason, cancellationToken);
         booking.Status = command.ClientRefundAmount == booking.GrossAmount
             ? ConsultationBookingStatus.Refunded : ConsultationBookingStatus.Completed;
-        booking.CompletedAtUtc ??= timeProvider.GetUtcNow().UtcDateTime;
-        booking.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        booking.CompletedAtUtc ??= timeProvider.GetUtcNow();
+        booking.UpdatedAt = timeProvider.GetUtcNow();
         await ConsultationOutbox.EnqueueAsync(
             outboxWriter, ConsultationEventTypes.DisputeSettled,
             booking, adminId, cancellationToken);

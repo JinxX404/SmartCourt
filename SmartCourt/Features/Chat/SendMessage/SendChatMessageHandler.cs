@@ -62,7 +62,7 @@ public sealed class SendChatMessageHandler(
                 409);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var message = ChatMessage.CreateUserMessage(
             Guid.NewGuid(),
             conversation.Id,

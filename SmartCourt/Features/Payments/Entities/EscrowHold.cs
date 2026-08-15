@@ -19,8 +19,8 @@ public sealed class EscrowHold
         decimal platformFeeAmount,
         decimal netAmount,
         Guid providerDepositTransactionId,
-        DateTime fundedAt,
-        DateTime createdAt)
+        DateTimeOffset fundedAt,
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         EscrowAccountId = EntityGuard.NotEmpty(
@@ -56,16 +56,16 @@ public sealed class EscrowHold
     public decimal PlatformFeeAmount { get; internal set; }
     public decimal NetAmount { get; internal set; }
     public EscrowHoldStatus Status { get; internal set; }
-    public DateTime FundedAt { get; internal set; }
-    public DateTime? HoldStartsAt { get; internal set; }
-    public DateTime? HoldExpiresAt { get; internal set; }
-    public DateTime? FrozenAt { get; internal set; }
-    public DateTime? SettledAt { get; internal set; }
+    public DateTimeOffset FundedAt { get; internal set; }
+    public DateTimeOffset? HoldStartsAt { get; internal set; }
+    public DateTimeOffset? HoldExpiresAt { get; internal set; }
+    public DateTimeOffset? FrozenAt { get; internal set; }
+    public DateTimeOffset? SettledAt { get; internal set; }
     public SettlementType? SettlementType { get; internal set; }
     public Guid ProviderDepositTransactionId { get; internal set; }
     public Guid? ProviderReleaseTransactionId { get; internal set; }
     public Guid? ProviderRefundTransactionId { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

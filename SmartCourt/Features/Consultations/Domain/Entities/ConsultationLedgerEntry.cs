@@ -13,5 +13,5 @@ public sealed class ConsultationLedgerEntry
     public string Currency { get; set; } = "EGP";
     public string Description { get; set; } = string.Empty;
     public Guid CorrelationId { get; set; }
-    public DateTime CreatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
 }

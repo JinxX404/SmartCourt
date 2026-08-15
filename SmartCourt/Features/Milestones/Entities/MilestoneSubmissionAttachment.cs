@@ -12,7 +12,7 @@ public sealed class MilestoneSubmissionAttachment
         Guid id,
         Guid milestoneSubmissionId,
         Guid storedFileId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         MilestoneSubmissionId = EntityGuard.NotEmpty(
@@ -25,5 +25,5 @@ public sealed class MilestoneSubmissionAttachment
     public Guid Id { get; private set; }
     public Guid MilestoneSubmissionId { get; private set; }
     public Guid StoredFileId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

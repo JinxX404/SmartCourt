@@ -14,7 +14,7 @@ public sealed class AgentMessage
         Guid conversationId,
         AgentMessageRole role,
         string content,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ConversationId = EntityGuard.NotEmpty(conversationId, nameof(conversationId));
@@ -27,7 +27,7 @@ public sealed class AgentMessage
     public Guid ConversationId { get; internal set; }
     public AgentMessageRole Role { get; internal set; }
     public string Content { get; internal set; } = string.Empty;
-    public DateTime CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
 
     public AgentConversation Conversation { get; internal set; } = null!;
 
@@ -35,7 +35,7 @@ public sealed class AgentMessage
         Guid id,
         Guid conversationId,
         string content,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return new AgentMessage(
             id,
@@ -49,7 +49,7 @@ public sealed class AgentMessage
         Guid id,
         Guid conversationId,
         string content,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return new AgentMessage(
             id,

@@ -4,4 +4,4 @@ public sealed record AgentMessageDto(
     Guid Id,
     string Role,
     string Content,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);

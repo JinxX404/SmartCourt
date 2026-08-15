@@ -25,7 +25,7 @@ public sealed record ConsultationOfferingDto(
     string? OfficeLocation,
     bool IsActive,
     IReadOnlyList<string> Inclusions,
-    DateTime? NextAvailableAtUtc);
+    DateTimeOffset? NextAvailableAtUtc);
 
 public sealed record ConsultationLawyerDto(
     Guid LawyerId,
@@ -39,7 +39,7 @@ public sealed record ConsultationLawyerDto(
     string? UnavailableReason,
     decimal StartingPrice,
     string Currency,
-    DateTime? NextAvailableAtUtc,
+    DateTimeOffset? NextAvailableAtUtc,
     IReadOnlyList<ConsultationOfferingDto> Offerings);
 
 public sealed record ConsultationPageDto<T>(
@@ -52,10 +52,10 @@ public sealed record ConsultationPageDto<T>(
 public sealed record ConsultationSlotDto(
     Guid Id,
     Guid OfferingId,
-    DateTime StartAtUtc,
-    DateTime EndAtUtc,
+    DateTimeOffset StartAtUtc,
+    DateTimeOffset EndAtUtc,
     ConsultationSlotStatus Status,
-    DateTime? ReservedUntilUtc);
+    DateTimeOffset? ReservedUntilUtc);
 
 public sealed record ConsultationBookingDto(
     Guid Id,
@@ -77,14 +77,14 @@ public sealed record ConsultationBookingDto(
     string Currency,
     string Subject,
     string MatterSummary,
-    DateTime StartAtUtc,
-    DateTime EndAtUtc,
+    DateTimeOffset StartAtUtc,
+    DateTimeOffset EndAtUtc,
     ConsultationBookingStatus Status,
-    DateTime PaymentExpiresAtUtc,
+    DateTimeOffset PaymentExpiresAtUtc,
     string? OfficeLocation,
     string? MeetingUrl,
-    DateTime? PerformedAtUtc,
-    DateTime? CompletedAtUtc,
+    DateTimeOffset? PerformedAtUtc,
+    DateTimeOffset? CompletedAtUtc,
     string? CancellationReason,
     string? DisputeReason,
     ConsultationPaymentDto? Payment,
@@ -101,7 +101,7 @@ public sealed record ConsultationPaymentDto(
     string? ClientSecret,
     string? RedirectUrl,
     string? FailureReason,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);
 
 public sealed record ConsultationEscrowDto(
     Guid BookingId,
@@ -110,7 +110,7 @@ public sealed record ConsultationEscrowDto(
     decimal NetAmount,
     string Currency,
     EscrowHoldStatus Status,
-    DateTime FundedAtUtc,
-    DateTime? HoldStartsAtUtc,
-    DateTime? HoldExpiresAtUtc,
-    DateTime? SettledAtUtc);
+    DateTimeOffset FundedAtUtc,
+    DateTimeOffset? HoldStartsAtUtc,
+    DateTimeOffset? HoldExpiresAtUtc,
+    DateTimeOffset? SettledAtUtc);

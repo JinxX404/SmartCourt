@@ -142,7 +142,7 @@ public sealed class ClientPaymentMethodService(
             ProviderCode,
             providerCustomer.ProviderCustomerId,
             providerCustomer.IsLive,
-            timeProvider.GetUtcNow().UtcDateTime);
+            timeProvider.GetUtcNow());
         dbContext.ClientPaymentCustomers.Add(created);
         try
         {

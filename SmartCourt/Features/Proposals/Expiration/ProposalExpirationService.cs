@@ -36,7 +36,7 @@ public sealed class ProposalExpirationService(
         int batchSize,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var query = context.Proposals
             .Where(proposal =>
                 proposal.Status == ProposalStatus.Pending

@@ -18,8 +18,8 @@ public sealed class OutboxMessage
         string aggregateType,
         Guid aggregateId,
         Guid correlationId,
-        DateTime availableAt,
-        DateTime createdAt)
+        DateTimeOffset availableAt,
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         EventType = EntityGuard.Required(eventType, nameof(eventType));
@@ -43,16 +43,16 @@ public sealed class OutboxMessage
     public OutboxStatus Status { get; internal set; }
     public int Attempts { get; internal set; }
     public string? LastError { get; internal set; }
-    public DateTime AvailableAt { get; internal set; }
+    public DateTimeOffset AvailableAt { get; internal set; }
     public Guid? LeaseId { get; internal set; }
-    public DateTime? LeaseExpiresAt { get; internal set; }
-    public DateTime? ProcessedAt { get; internal set; }
+    public DateTimeOffset? LeaseExpiresAt { get; internal set; }
+    public DateTimeOffset? ProcessedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
 
     internal void Claim(
         Guid leaseId,
-        DateTime nowUtc,
+        DateTimeOffset nowUtc,
         TimeSpan leaseDuration)
     {
         Id = EntityGuard.NotEmpty(Id, nameof(Id));
@@ -72,7 +72,7 @@ public sealed class OutboxMessage
 
     internal void MarkProcessed(
         Guid leaseId,
-        DateTime processedAtUtc)
+        DateTimeOffset processedAtUtc)
     {
         EnsureLease(leaseId);
         Status = OutboxStatus.Processed;
@@ -86,7 +86,7 @@ public sealed class OutboxMessage
     internal void MarkFailed(
         Guid leaseId,
         string error,
-        DateTime availableAtUtc)
+        DateTimeOffset availableAtUtc)
     {
         EnsureLease(leaseId);
         Status = OutboxStatus.Failed;

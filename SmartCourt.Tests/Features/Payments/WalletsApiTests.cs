@@ -122,7 +122,7 @@ public sealed class WalletsApiTests
         public PaymentActionResultDto ActionResult { get; } = new(
             Guid.NewGuid(),
             "Completed",
-            DateTime.UtcNow);
+            DateTimeOffset.UtcNow);
 
         public IReadOnlyList<WithdrawalDto> Withdrawals { get; } =
         [
@@ -134,8 +134,8 @@ public sealed class WalletsApiTests
                 "paid",
                 null,
                 false,
-                DateTime.UtcNow,
-                DateTime.UtcNow)
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow)
         ];
 
         public CreateWithdrawalRequest? Request { get; private set; }

@@ -145,7 +145,7 @@ public sealed class AccountDeletionServiceTests
             user.RefreshTokens.Add(new RefreshToken
             {
                 HashedToken = Guid.NewGuid().ToString("N"),
-                ExpiresOn = DateTime.UtcNow.AddDays(1)
+                ExpiresOn = DateTimeOffset.UtcNow.AddDays(1)
             });
 
             var result = await UserManager.CreateAsync(user, CurrentPassword);
@@ -207,7 +207,7 @@ public sealed class AccountDeletionServiceTests
         {
             foreach (var token in applicationUser.RefreshTokens.Where(token => token.IsActive))
             {
-                token.RevokedOn = DateTime.UtcNow;
+                token.RevokedOn = DateTimeOffset.UtcNow;
             }
         }
     }

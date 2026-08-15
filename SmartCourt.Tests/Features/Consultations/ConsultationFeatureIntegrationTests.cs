@@ -59,7 +59,7 @@ public sealed class ConsultationFeatureIntegrationTests
         var offering = (await offeringResponse.Content.ReadFromJsonAsync<ApiResponse<ConsultationOfferingDto>>())!.Data!;
         Assert.Equal(12.50m, decimal.Round(offering.Price * 0.05m, 2));
 
-        var startAt = DateTime.UtcNow.AddHours(30);
+        var startAt = DateTimeOffset.UtcNow.AddHours(30);
         startAt = new DateTime(startAt.Year, startAt.Month, startAt.Day, startAt.Hour, 0, 0, DateTimeKind.Utc);
         var slotsResponse = await lawyerClient.PostAsJsonAsync(
             $"/api/consultations/lawyer/offerings/{offering.Id}/slots",
@@ -168,7 +168,7 @@ public sealed class ConsultationFeatureIntegrationTests
                 45, 1_000m, null,
                 ["45-minute call", "Contract risk explanation"], true));
         var offering = (await offeringHttp.Content.ReadFromJsonAsync<ApiResponse<ConsultationOfferingDto>>())!.Data!;
-        var start = DateTime.UtcNow.AddDays(2);
+        var start = DateTimeOffset.UtcNow.AddDays(2);
         start = new DateTime(start.Year, start.Month, start.Day, start.Hour, 0, 0, DateTimeKind.Utc);
         var slotsHttp = await lawyer.PostAsJsonAsync(
             $"/api/consultations/lawyer/offerings/{offering.Id}/slots",
@@ -202,8 +202,8 @@ public sealed class ConsultationFeatureIntegrationTests
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             var stored = await db.ConsultationBookings.SingleAsync(item => item.Id == booking.Id);
-            stored.StartAtUtc = DateTime.UtcNow.AddHours(-1);
-            stored.EndAtUtc = DateTime.UtcNow.AddMinutes(-10);
+            stored.StartAtUtc = DateTimeOffset.UtcNow.AddHours(-1);
+            stored.EndAtUtc = DateTimeOffset.UtcNow.AddMinutes(-10);
             await db.SaveChangesAsync();
         }
 
@@ -223,7 +223,7 @@ public sealed class ConsultationFeatureIntegrationTests
             var hold = await db.ConsultationEscrowHolds.SingleAsync(item => item.BookingId == booking.Id);
             Assert.Equal(EscrowHoldStatus.Funded, hold.Status);
             Assert.NotNull(hold.HoldExpiresAtUtc);
-            hold.HoldExpiresAtUtc = DateTime.UtcNow.AddMinutes(-1);
+            hold.HoldExpiresAtUtc = DateTimeOffset.UtcNow.AddMinutes(-1);
             await db.SaveChangesAsync();
             var jobs = scope.ServiceProvider.GetRequiredService<IConsultationJobService>();
             await jobs.ReleaseAsync(booking.Id, CancellationToken.None);

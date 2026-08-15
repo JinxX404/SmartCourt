@@ -320,7 +320,7 @@ public sealed class PaymentsControllerTests
                 null,
                 null,
                 Payment,
-                DateTime.UtcNow);
+                DateTimeOffset.UtcNow);
         }
 
         public PaymentDto Payment { get; } = new(

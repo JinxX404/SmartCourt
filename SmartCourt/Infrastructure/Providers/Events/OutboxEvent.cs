@@ -7,4 +7,4 @@ public sealed record OutboxEvent(
     string AggregateType,
     Guid AggregateId,
     Guid CorrelationId,
-    DateTime? AvailableAtUtc = null);
+    DateTimeOffset? AvailableAtUtc = null);

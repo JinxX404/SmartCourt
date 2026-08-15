@@ -147,7 +147,7 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
         var refreshToken = new RefreshToken
         {
             HashedToken = Guid.NewGuid().ToString("N"),
-            ExpiresOn = DateTime.UtcNow.AddDays(1)
+            ExpiresOn = DateTimeOffset.UtcNow.AddDays(1)
         };
         user.RefreshTokens.Add(refreshToken);
         DbContext.Entry(refreshToken).Property<int>("Id").CurrentValue = 1;
@@ -249,7 +249,7 @@ internal sealed class PasswordServiceTestContext : IAsyncDisposable
         {
             foreach (var token in applicationUser.RefreshTokens.Where(token => token.IsActive))
             {
-                token.RevokedOn = DateTime.UtcNow;
+                token.RevokedOn = DateTimeOffset.UtcNow;
             }
         }
     }

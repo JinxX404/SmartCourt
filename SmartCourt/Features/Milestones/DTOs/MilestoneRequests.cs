@@ -11,7 +11,7 @@ public sealed record AddMilestoneRequest(
     int OrderNumber,
     decimal Amount,
     int? DurationDays,
-    DateTime? DueDate,
+    DateTimeOffset? DueDate,
     MilestoneType Type = MilestoneType.Standard)
 {
     public AddMilestoneRequest(
@@ -20,7 +20,7 @@ public sealed record AddMilestoneRequest(
         int orderNumber,
         decimal amount,
         int? durationDays,
-        DateTime? dueDate)
+        DateTimeOffset? dueDate)
         : this(
             title,
             description,
@@ -39,14 +39,14 @@ public sealed record UpdateMilestoneRequest(
     string? Description,
     IReadOnlyList<string>? Deliverables,
     int? DurationDays,
-    DateTime? DueDate,
+    DateTimeOffset? DueDate,
     MilestoneType? Type = null)
 {
     public UpdateMilestoneRequest(
         string title,
         string? description,
         int? durationDays,
-        DateTime? dueDate)
+        DateTimeOffset? dueDate)
         : this(
             title,
             description,
@@ -68,7 +68,7 @@ public sealed record ExpenseMilestoneDecisionRequest(string Reason);
 public sealed record CreateMilestoneChangeRequest(
     string? ProposedDescription,
     int? ProposedDurationDays,
-    DateTime? ProposedDueDate,
+    DateTimeOffset? ProposedDueDate,
     string Reason);
 
 public sealed record RejectChangeRequest(string Reason);

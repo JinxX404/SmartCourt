@@ -25,7 +25,7 @@ public sealed class ConsultationDiscoveryController(IMediator mediator) : Contro
 
     [HttpGet("offerings/{offeringId:guid}/slots")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<ConsultationSlotDto>>>> GetSlots(
-        Guid offeringId, [FromQuery] DateTime? fromUtc, [FromQuery] DateTime? toUtc, CancellationToken token)
+        Guid offeringId, [FromQuery] DateTimeOffset? fromUtc, [FromQuery] DateTimeOffset? toUtc, CancellationToken token)
         => Respond(await mediator.Send(new GetConsultationSlotsQuery(offeringId, fromUtc, toUtc), token));
 
     private ActionResult<ApiResponse<T>> Respond<T>(ApiResponse<T> response)

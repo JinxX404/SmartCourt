@@ -17,7 +17,7 @@ public sealed class Proposal
         Guid legalCaseId,
         Guid clientUserId,
         Guid lawyerUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
         : this(id, legalCaseId, clientUserId, lawyerUserId, string.Empty, createdAt, true)
     {
     }
@@ -28,7 +28,7 @@ public sealed class Proposal
         Guid clientUserId,
         Guid lawyerUserId,
         string message,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
         : this(id, legalCaseId, clientUserId, lawyerUserId, message, createdAt, false)
     {
     }
@@ -39,7 +39,7 @@ public sealed class Proposal
         Guid clientUserId,
         Guid lawyerUserId,
         string message,
-        DateTime createdAt,
+        DateTimeOffset createdAt,
         bool allowLegacyEmptyMessage)
     {
         if (id == Guid.Empty || legalCaseId == Guid.Empty
@@ -48,7 +48,7 @@ public sealed class Proposal
             throw new BusinessException("Proposal identifiers are required.");
         }
 
-        if (createdAt.Kind != DateTimeKind.Utc)
+        if (createdAt.Offset != TimeSpan.Zero)
         {
             throw new BusinessException("Proposal creation time must be UTC.");
         }
@@ -82,14 +82,14 @@ public sealed class Proposal
     public string Message { get; internal set; } = string.Empty;
     public ProposalStatus Status { get; internal set; }
     public string? DecisionReason { get; internal set; }
-    public DateTime? RespondedAt { get; internal set; }
-    public DateTime ExpiresAt { get; internal set; }
-    public DateTime? ClosedAt { get; internal set; }
+    public DateTimeOffset? RespondedAt { get; internal set; }
+    public DateTimeOffset ExpiresAt { get; internal set; }
+    public DateTimeOffset? ClosedAt { get; internal set; }
     public Guid? ClosedByUserId { get; internal set; }
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 
-    internal void Accept(DateTime respondedAt)
+    internal void Accept(DateTimeOffset respondedAt)
     {
         EnsurePending();
         EnsureUtc(respondedAt);
@@ -104,7 +104,7 @@ public sealed class Proposal
         UpdatedAt = respondedAt;
     }
 
-    internal void Reject(string? reason, DateTime respondedAt)
+    internal void Reject(string? reason, DateTimeOffset respondedAt)
     {
         EnsurePending();
         EnsureUtc(respondedAt);
@@ -120,7 +120,7 @@ public sealed class Proposal
         UpdatedAt = respondedAt;
     }
 
-    internal void Cancel(string reason, Guid clientUserId, DateTime cancelledAt)
+    internal void Cancel(string reason, Guid clientUserId, DateTimeOffset cancelledAt)
     {
         EnsurePending();
         EnsureClosure(reason, clientUserId, cancelledAt);
@@ -132,7 +132,7 @@ public sealed class Proposal
         UpdatedAt = cancelledAt;
     }
 
-    internal void Expire(DateTime expiredAt)
+    internal void Expire(DateTimeOffset expiredAt)
     {
         EnsurePending();
         EnsureUtc(expiredAt);
@@ -146,7 +146,7 @@ public sealed class Proposal
         UpdatedAt = expiredAt;
     }
 
-    internal void Terminate(string reason, Guid actorUserId, DateTime terminatedAt)
+    internal void Terminate(string reason, Guid actorUserId, DateTimeOffset terminatedAt)
     {
         if (Status != ProposalStatus.Accepted)
         {
@@ -161,7 +161,7 @@ public sealed class Proposal
         UpdatedAt = terminatedAt;
     }
 
-    internal void Supersede(DateTime supersededAt)
+    internal void Supersede(DateTimeOffset supersededAt)
     {
         if (Status is not (ProposalStatus.Pending or ProposalStatus.Accepted))
         {
@@ -183,9 +183,9 @@ public sealed class Proposal
         }
     }
 
-    private static void EnsureUtc(DateTime value)
+    private static void EnsureUtc(DateTimeOffset value)
     {
-        if (value.Kind != DateTimeKind.Utc)
+        if (value.Offset != TimeSpan.Zero)
         {
             throw new BusinessException("Proposal timestamps must be UTC.");
         }
@@ -194,7 +194,7 @@ public sealed class Proposal
     private static void EnsureClosure(
         string reason,
         Guid actorUserId,
-        DateTime closedAt)
+        DateTimeOffset closedAt)
     {
         if (actorUserId == Guid.Empty)
         {

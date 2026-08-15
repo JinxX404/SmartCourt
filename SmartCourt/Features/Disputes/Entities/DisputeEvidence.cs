@@ -15,7 +15,7 @@ public sealed class DisputeEvidence
         Guid uploadedByUserId,
         Guid? storedFileId,
         string? content,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         if (!storedFileId.HasValue && string.IsNullOrWhiteSpace(content))
         {
@@ -40,5 +40,5 @@ public sealed class DisputeEvidence
     public Guid UploadedByUserId { get; private set; }
     public Guid? StoredFileId { get; private set; }
     public string? Content { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

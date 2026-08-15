@@ -8,4 +8,4 @@ public sealed record VerifiedMilestoneFunding(
     Guid DepositTransactionId,
     decimal GrossAmount,
     string Currency,
-    DateTime FundedAt);
+    DateTimeOffset FundedAt);

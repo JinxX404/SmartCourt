@@ -27,7 +27,7 @@ public class JwtProvider : IJwtProvider
             throw new InvalidOperationException("JWT secret is not configured.");
         }
 
-        var expiresAt = DateTime.UtcNow.AddMinutes(_options.ExpiresInMinutes);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_options.ExpiresInMinutes);
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.Secret));
         var claims = new List<Claim>
         {
@@ -45,12 +45,12 @@ public class JwtProvider : IJwtProvider
             issuer: _options.Issuer,
             audience: _options.Audience,
             claims: claims,
-            notBefore: DateTime.UtcNow,
-            expires: expiresAt,
+            notBefore: DateTimeOffset.UtcNow.UtcDateTime,
+            expires: expiresAt.UtcDateTime,
             signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256));
 
         var token = new JwtSecurityTokenHandler().WriteToken(jwt);
-        var expiresInSeconds = (int)Math.Round((expiresAt - DateTime.UtcNow).TotalSeconds);
+        var expiresInSeconds = (int)Math.Round((expiresAt - DateTimeOffset.UtcNow).TotalSeconds);
 
         return new TokenResult(token, expiresAt, expiresInSeconds);
     }
@@ -84,5 +84,5 @@ public class JwtProvider : IJwtProvider
     }
 }
 
-public record TokenResult(string Token, DateTime ExpiresAt, int ExpiresInSeconds);
+public record TokenResult(string Token, DateTimeOffset ExpiresAt, int ExpiresInSeconds);
 

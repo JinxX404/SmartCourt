@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 
 namespace SmartCourt.Common.Entities;
 
@@ -6,9 +6,9 @@ namespace SmartCourt.Common.Entities;
 public class RefreshToken
 {
     public string HashedToken { get; set; } = string.Empty;
-    public DateTime ExpiresOn { get; set; }
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
-    public DateTime? RevokedOn { get; set; }
-    public bool IsExpired => DateTime.UtcNow >= ExpiresOn;
+    public DateTimeOffset ExpiresOn { get; set; }
+    public DateTimeOffset CreatedOn { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? RevokedOn { get; set; }
+    public bool IsExpired => DateTimeOffset.UtcNow >= ExpiresOn;
     public bool IsActive => RevokedOn is null && !IsExpired;
 }

@@ -21,7 +21,7 @@ public sealed class ChatMessage
         string content,
         string? systemCode,
         Guid? relatedEntityId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ConversationId = EntityGuard.NotEmpty(
@@ -54,7 +54,7 @@ public sealed class ChatMessage
     public string Content { get; internal set; } = string.Empty;
     public string? SystemCode { get; internal set; }
     public Guid? RelatedEntityId { get; internal set; }
-    public DateTime CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
     public ChatConversation Conversation { get; internal set; } = null!;
     public ICollection<ChatMessageAttachment> Attachments { get; internal set; } = [];
 
@@ -63,7 +63,7 @@ public sealed class ChatMessage
         Guid conversationId,
         Guid senderUserId,
         string content,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return new ChatMessage(
             id,
@@ -82,7 +82,7 @@ public sealed class ChatMessage
         Guid senderUserId,
         string? caption,
         int attachmentCount,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         if (attachmentCount <= 0)
         {
@@ -109,7 +109,7 @@ public sealed class ChatMessage
         Guid conversationId,
         ContractConversationMessageType messageType,
         Guid relatedEntityId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return CreateSystemMessage(
             id,
@@ -126,7 +126,7 @@ public sealed class ChatMessage
         string systemCode,
         string content,
         Guid relatedEntityId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         return new ChatMessage(
             id,

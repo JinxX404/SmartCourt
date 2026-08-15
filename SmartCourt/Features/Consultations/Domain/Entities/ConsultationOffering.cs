@@ -16,8 +16,8 @@ public sealed class ConsultationOffering
     public string Currency { get; set; } = "EGP";
     public string? OfficeLocation { get; set; }
     public bool IsActive { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = [];
     public ICollection<ConsultationOfferingInclusion> Inclusions { get; set; } = [];
 }

@@ -40,7 +40,7 @@ public sealed class ContractCaseLifecycleOutboxHandler
                 message.EventType == ContractPaymentEventTypes.ContractCompleted
                     ? ContractCaseLifecycleTransition.ContractCompleted
                     : ContractCaseLifecycleTransition.ContractTerminated,
-                new DateTimeOffset(message.CreatedAt, TimeSpan.Zero)),
+                message.CreatedAt),
             cancellationToken);
     }
 

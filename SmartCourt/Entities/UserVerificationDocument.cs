@@ -21,7 +21,7 @@ namespace SmartCourt.Entities
         public VerificationDocumentType DocumentType { get; set; }
         public VerificationDocumentStatus Status { get; set; }
         public DateOnly ExpirationDate { get; set; }
-        public DateTime? VerifiedAt { get; set; }
+        public DateTimeOffset? VerifiedAt { get; set; }
         public string? VerifiedByAdminId { get; set; }
         public string? RejectionReason { get; set; }
         public bool IsCurrent { get; set; }

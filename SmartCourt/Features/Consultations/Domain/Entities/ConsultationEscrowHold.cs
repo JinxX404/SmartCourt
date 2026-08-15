@@ -12,12 +12,12 @@ public sealed class ConsultationEscrowHold
     public decimal NetAmount { get; set; }
     public string Currency { get; set; } = "EGP";
     public EscrowHoldStatus Status { get; set; }
-    public DateTime FundedAtUtc { get; set; }
-    public DateTime? HoldStartsAtUtc { get; set; }
-    public DateTime? HoldExpiresAtUtc { get; set; }
-    public DateTime? FrozenAtUtc { get; set; }
-    public DateTime? SettledAtUtc { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset FundedAtUtc { get; set; }
+    public DateTimeOffset? HoldStartsAtUtc { get; set; }
+    public DateTimeOffset? HoldExpiresAtUtc { get; set; }
+    public DateTimeOffset? FrozenAtUtc { get; set; }
+    public DateTimeOffset? SettledAtUtc { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
     public byte[] RowVersion { get; set; } = [];
 }

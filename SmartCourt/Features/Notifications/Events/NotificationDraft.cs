@@ -10,4 +10,4 @@ internal sealed record NotificationDraft(
     string Body,
     string? ActionUrl,
     IReadOnlyDictionary<string, string>? Data,
-    DateTime? ExpiresAtUtc = null);
+    DateTimeOffset? ExpiresAtUtc = null);

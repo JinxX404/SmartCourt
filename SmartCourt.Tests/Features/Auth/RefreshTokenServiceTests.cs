@@ -48,7 +48,7 @@ public sealed class RefreshTokenServiceTests
         public TokenResult GenerateToken(ApplicationUser user, IEnumerable<string> roles)
         {
             GenerateTokenCalls++;
-            return new TokenResult("access-token", DateTime.UtcNow.AddMinutes(15), 900);
+            return new TokenResult("access-token", DateTimeOffset.UtcNow.AddMinutes(15), 900);
         }
 
         public string? ValidateToken(string token, bool validateLifetime = true)

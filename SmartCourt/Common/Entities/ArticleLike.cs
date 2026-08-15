@@ -10,5 +10,5 @@ public class ArticleLike
     public Guid UserId { get; set; }
     public ApplicationUser User { get; set; } = null!;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

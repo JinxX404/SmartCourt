@@ -36,7 +36,7 @@ public sealed class NotificationService(
         }
 
         var userId = RequireUserId();
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var query = dbContext.Notifications
             .AsNoTracking()
             .Where(notification =>
@@ -83,7 +83,7 @@ public sealed class NotificationService(
         CancellationToken cancellationToken)
     {
         var userId = RequireUserId();
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         return new UnreadNotificationCountDto(
             await ActiveUnreadQuery(userId, now).CountAsync(cancellationToken));
     }
@@ -106,13 +106,13 @@ public sealed class NotificationService(
             ?? throw new NotFoundException("Notification", notificationId);
 
         var changed = notification.MarkRead(
-            timeProvider.GetUtcNow().UtcDateTime);
+            timeProvider.GetUtcNow());
         if (changed)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var unreadCount = await ActiveUnreadQuery(userId, now)
             .CountAsync(cancellationToken);
         var dto = NotificationMapper.ToDto(notification);
@@ -134,7 +134,7 @@ public sealed class NotificationService(
         CancellationToken cancellationToken)
     {
         var userId = RequireUserId();
-        var readAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        var readAtUtc = timeProvider.GetUtcNow();
         await dbContext.Notifications
             .Where(notification =>
                 notification.RecipientUserId == userId
@@ -166,7 +166,7 @@ public sealed class NotificationService(
 
     private IQueryable<Entities.Notification> ActiveUnreadQuery(
         Guid userId,
-        DateTime nowUtc)
+        DateTimeOffset nowUtc)
     {
         return dbContext.Notifications
             .AsNoTracking()

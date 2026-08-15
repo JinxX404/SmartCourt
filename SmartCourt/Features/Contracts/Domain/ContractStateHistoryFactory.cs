@@ -15,7 +15,7 @@ internal static class ContractStateHistoryFactory
         Guid? actorUserId,
         string reason,
         Guid correlationId,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         ContractTransitionGuard.EnsureCanTransition(
             previousStatus,

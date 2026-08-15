@@ -22,7 +22,7 @@ public sealed class EscrowLedgerEntry
         string description,
         Guid? createdByUserId,
         Guid correlationId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         EscrowAccountId = EntityGuard.NotEmpty(
@@ -63,5 +63,5 @@ public sealed class EscrowLedgerEntry
     public string Description { get; private set; } = string.Empty;
     public Guid? CreatedByUserId { get; private set; }
     public Guid CorrelationId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

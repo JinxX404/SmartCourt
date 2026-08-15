@@ -152,7 +152,7 @@ public class LawIngestionService : ILawIngestionService
         try
         {
             doc.Status = IngestionStatus.Processing;
-            doc.ProcessingStartedAt = DateTime.UtcNow;
+            doc.ProcessingStartedAt = DateTimeOffset.UtcNow;
             await _dbContext.SaveChangesAsync();
 
             // 1. Ensure Qdrant Collection exists
@@ -216,7 +216,7 @@ public class LawIngestionService : ILawIngestionService
             // 7. Complete
             doc.ChunkCount = points.Count;
             doc.Status = IngestionStatus.Completed;
-            doc.CompletedAt = DateTime.UtcNow;
+            doc.CompletedAt = DateTimeOffset.UtcNow;
             await _dbContext.SaveChangesAsync();
 
             _logger.LogInformation("Successfully ingested document {DocumentId}. Generated {ChunkCount} chunks.", doc.Id, doc.ChunkCount);

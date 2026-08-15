@@ -544,13 +544,13 @@ public sealed class DisputeServiceTests
 
     private sealed class UnusedScheduler : IContractJobScheduler
     {
-        public Task<string> ScheduleAutoAcceptAsync(Guid milestoneId, Guid escrowHoldId, int submissionVersion, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> ScheduleReleaseExpiredHoldAsync(Guid escrowHoldId, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> ScheduleProviderReconciliationAsync(Guid paymentTransactionId, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> ScheduleProviderRetryAsync(Guid paymentTransactionId, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> ScheduleSchedulingReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> SchedulePendingWalletProjectionReconciliationAsync(DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
-        public Task<string> ScheduleOutboxDispatchAsync(int batchSize, DateTime runAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleAutoAcceptAsync(Guid milestoneId, Guid escrowHoldId, int submissionVersion, DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleReleaseExpiredHoldAsync(Guid escrowHoldId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleProviderReconciliationAsync(Guid paymentTransactionId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleProviderRetryAsync(Guid paymentTransactionId, DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleSchedulingReconciliationAsync(DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> SchedulePendingWalletProjectionReconciliationAsync(DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
+        public Task<string> ScheduleOutboxDispatchAsync(int batchSize, DateTimeOffset RunAtUtc, CancellationToken cancellationToken) => Task.FromResult("job");
     }
 
     private sealed class RecordingCompletionEvaluator

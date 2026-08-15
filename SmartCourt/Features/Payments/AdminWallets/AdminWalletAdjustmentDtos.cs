@@ -16,4 +16,4 @@ public sealed record AdminWalletAdjustmentDto(
     decimal PendingBalance,
     decimal AvailableBalance,
     Guid CreatedByUserId,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);

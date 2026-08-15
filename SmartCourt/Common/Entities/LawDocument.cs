@@ -16,8 +16,8 @@ public class LawDocument : AuditableEntity
     public int ChunkCount { get; set; }
     public string? FileStoragePath { get; set; } // Path on local or cloud
 
-    public DateTime? ProcessingStartedAt { get; set; }
-    public DateTime? CompletedAt { get; set; }
+    public DateTimeOffset? ProcessingStartedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 
     /// <summary>Incremented on re-ingestion to version the vectors.</summary>
     public int Version { get; set; } = 1;

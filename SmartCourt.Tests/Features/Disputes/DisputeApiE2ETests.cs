@@ -73,8 +73,8 @@ public class DisputeApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         {
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-            var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية نزاع", Description = "نزاع تنفيذ", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
-            var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTime.UtcNow) { Status = ProposalStatus.Accepted };
+            var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية نزاع", Description = "نزاع تنفيذ", City = "القاهرة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
+            var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTimeOffset.UtcNow) { Status = ProposalStatus.Accepted };
 
             var storedFile = new StoredFile
             {
@@ -108,7 +108,7 @@ public class DisputeApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<ContractDetailDto>>(JsonOptions);
         var contractId = created!.Data!.Id;
 
-        var mReq = new AddMilestoneRequest("المرحلة المتنازع عليها", "تفاصيل العمل", 1, 3000m, 10, DateTime.UtcNow.AddDays(10));
+        var mReq = new AddMilestoneRequest("المرحلة المتنازع عليها", "تفاصيل العمل", 1, 3000m, 10, DateTimeOffset.UtcNow.AddDays(10));
         var mAddResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", mReq);
         Assert.Equal(HttpStatusCode.Created, mAddResp.StatusCode);
         var m1Dto = (await mAddResp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;

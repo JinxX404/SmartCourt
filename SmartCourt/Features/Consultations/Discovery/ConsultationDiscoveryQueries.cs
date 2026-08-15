@@ -38,7 +38,7 @@ public sealed class ConsultationDiscoveryHandler(
             return ApiResponse<ConsultationPageDto<ConsultationLawyerDto>>.Fail(
                 validation.Errors.Select(item => item.ErrorMessage).ToList());
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var offerings = EligibleOfferings(now);
         if (query.Filter.Modes is { Length: > 0 })
             offerings = offerings.Where(item => query.Filter.Modes.Contains(item.Mode));
@@ -85,13 +85,13 @@ public sealed class ConsultationDiscoveryHandler(
         CancellationToken cancellationToken)
     {
         var items = await LoadLawyersAsync(
-            [query.LawyerId], timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
+            [query.LawyerId], timeProvider.GetUtcNow(), cancellationToken);
         return items.Count == 0
             ? ApiResponse<ConsultationLawyerDto>.Fail("Consultation lawyer was not found.", 404)
             : ApiResponse<ConsultationLawyerDto>.Ok(items[0]);
     }
 
-    private IQueryable<Domain.Entities.ConsultationOffering> EligibleOfferings(DateTime now)
+    private IQueryable<Domain.Entities.ConsultationOffering> EligibleOfferings(DateTimeOffset now)
     {
         var query = dbContext.ConsultationOfferings.AsNoTracking()
             .Where(item => item.IsActive
@@ -119,7 +119,7 @@ public sealed class ConsultationDiscoveryHandler(
 
     private async Task<IReadOnlyList<ConsultationLawyerDto>> LoadLawyersAsync(
         IReadOnlyCollection<Guid> lawyerIds,
-        DateTime now,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         if (lawyerIds.Count == 0)
@@ -140,7 +140,7 @@ public sealed class ConsultationDiscoveryHandler(
                     || slot.Status == ConsultationSlotStatus.Reserved && slot.ReservedUntilUtc <= now))
             .GroupBy(slot => slot.OfferingId)
             .Select(group => new { OfferingId = group.Key, Next = group.Min(item => item.StartAtUtc) })
-            .ToDictionaryAsync(item => item.OfferingId, item => (DateTime?)item.Next, cancellationToken);
+            .ToDictionaryAsync(item => item.OfferingId, item => (DateTimeOffset?)item.Next, cancellationToken);
 
         return users.Select(user =>
         {

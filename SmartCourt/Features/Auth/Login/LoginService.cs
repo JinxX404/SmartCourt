@@ -65,7 +65,7 @@ public class LoginService : ILoginService
 
         var refreshToken = _authHelper.GenerateRefreshToken();
         var hashedRefreshToken = _authHelper.HashRefreshToken(refreshToken);
-        var refreshTokenExpiration = DateTime.UtcNow.AddDays(_refreshTokenExpiryDays);
+        var refreshTokenExpiration = DateTimeOffset.UtcNow.AddDays(_refreshTokenExpiryDays);
 
         user.RefreshTokens.Add(new SmartCourt.Common.Entities.RefreshToken
         {
@@ -73,7 +73,7 @@ public class LoginService : ILoginService
             ExpiresOn = refreshTokenExpiration
         });
 
-        user.LastLoginAt = DateTime.UtcNow;
+        user.LastLoginAt = DateTimeOffset.UtcNow;
 
         await _userManager.UpdateAsync(user);
 

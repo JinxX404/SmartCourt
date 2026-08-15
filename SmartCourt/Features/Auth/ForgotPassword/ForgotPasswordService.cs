@@ -42,7 +42,7 @@ public class ForgotPasswordService(
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
         var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
                            .Replace("{{ResetUrl}}", HtmlEncoder.Default.Encode(resetUrl))
-                           .Replace("{{Year}}", DateTime.UtcNow.Year.ToString());
+                           .Replace("{{Year}}", DateTimeOffset.UtcNow.Year.ToString());
 
         if (!await emailProvider.SendEmailAsync(user.Email!, subject, body, true, cancellationToken))
         {

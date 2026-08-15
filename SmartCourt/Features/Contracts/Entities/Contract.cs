@@ -17,7 +17,7 @@ public sealed class Contract
         Guid lawyerUserId,
         string title,
         string termsAndConditions,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ProposalId = EntityGuard.NotEmpty(proposalId, nameof(proposalId));
@@ -30,7 +30,7 @@ public sealed class Contract
             nameof(termsAndConditions));
         Currency = EntityGuard.CurrencyEgp;
         Status = ContractStatus.Draft;
-        CreatedAt = EntityGuard.Utc(createdAt, nameof(createdAt));
+        CreatedAt = createdAt;
         UpdatedAt = CreatedAt;
     }
 
@@ -43,14 +43,14 @@ public sealed class Contract
     public string TermsAndConditions { get; internal set; } = string.Empty;
     public string Currency { get; internal set; } = EntityGuard.CurrencyEgp;
     public ContractStatus Status { get; internal set; }
-    public DateTime? AcceptedByClientAt { get; internal set; }
-    public DateTime? AcceptedByLawyerAt { get; internal set; }
-    public DateTime? ActivatedAt { get; internal set; }
-    public DateTime? CompletedAt { get; internal set; }
-    public DateTime? TerminatedAt { get; internal set; }
+    public DateTimeOffset? AcceptedByClientAt { get; internal set; }
+    public DateTimeOffset? AcceptedByLawyerAt { get; internal set; }
+    public DateTimeOffset? ActivatedAt { get; internal set; }
+    public DateTimeOffset? CompletedAt { get; internal set; }
+    public DateTimeOffset? TerminatedAt { get; internal set; }
     public string? TerminationReason { get; internal set; }
     public Guid? TerminatedByUserId { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

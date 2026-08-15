@@ -26,7 +26,7 @@ public sealed record PaymentWebhookRequest(
     PaymentTransactionStatus Status,
     decimal Amount,
     string Currency,
-    DateTime? ProcessedAt,
+    DateTimeOffset? ProcessedAt,
     string? FailureReason);
 
 public sealed record CreateWithdrawalRequest(

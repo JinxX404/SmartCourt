@@ -869,7 +869,7 @@ public sealed class DisputeService(
         EscrowHold hold,
         PaymentOperationType operationType,
         decimal amount,
-        DateTime now,
+        DateTimeOffset now,
         ICollection<Guid> pendingTransactionIds,
         SerializableOperationTransaction transaction,
         CancellationToken cancellationToken)
@@ -947,7 +947,7 @@ public sealed class DisputeService(
         PaymentTransaction? releaseTransaction,
         Guid actorUserId,
         Guid correlationId,
-        DateTime now,
+        DateTimeOffset now,
         CancellationToken cancellationToken)
     {
         var runningBalance = CurrentBalance(account);
@@ -1397,7 +1397,7 @@ public sealed class DisputeService(
         PaymentOperationType operationType,
         decimal amount,
         string providerIdempotencyKey,
-        DateTime now)
+        DateTimeOffset now)
         => new(
             Guid.NewGuid(),
             dispute.ContractId,
@@ -1543,7 +1543,7 @@ public sealed class DisputeService(
     private static void ApplyProviderResult(
         PaymentTransaction transaction,
         ProviderResult result,
-        DateTime now)
+        DateTimeOffset now)
     {
         if (result.Amount != transaction.Amount
             || !string.Equals(result.Currency, transaction.Currency, StringComparison.Ordinal)
@@ -1608,13 +1608,13 @@ public sealed class DisputeService(
         PenaltyType penaltyType,
         string reason,
         Guid actorUserId,
-        DateTime now)
+        DateTimeOffset now)
     {
         var endsAt = penaltyType switch
         {
             PenaltyType.Suspension12Months => now.AddMonths(12),
             PenaltyType.Suspension24Months => now.AddMonths(24),
-            _ => (DateTime?)null
+            _ => (DateTimeOffset?)null
         };
         return new LawyerPenalty(
             Guid.NewGuid(),
@@ -1696,7 +1696,7 @@ public sealed class DisputeService(
         return currentUserService.UserId.Value;
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 
     private static decimal CurrentBalance(EscrowAccount account)
         => account.TotalDeposited

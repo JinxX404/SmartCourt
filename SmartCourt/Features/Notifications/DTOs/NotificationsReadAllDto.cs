@@ -1,5 +1,5 @@
 namespace SmartCourt.Features.Notifications.DTOs;
 
 public sealed record NotificationsReadAllDto(
-    DateTime ReadAtUtc,
+    DateTimeOffset ReadAtUtc,
     int UnreadCount);

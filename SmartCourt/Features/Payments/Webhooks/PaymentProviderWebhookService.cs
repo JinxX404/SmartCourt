@@ -150,5 +150,5 @@ public sealed class PaymentProviderWebhookService(
         }
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

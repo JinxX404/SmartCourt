@@ -248,5 +248,5 @@ public sealed class LawyerPayoutAccountService(
             account.MaskedDestination,
             account.LastSynchronizedAt);
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

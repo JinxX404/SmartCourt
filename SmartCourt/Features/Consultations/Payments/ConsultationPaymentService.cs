@@ -147,7 +147,7 @@ public sealed class ConsultationPaymentService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await backgroundJobs.ScheduleAsync<IConsultationJobService>(
             service => service.ReleaseAsync(bookingId, CancellationToken.None),
-            new DateTimeOffset(hold.HoldExpiresAtUtc.Value, TimeSpan.Zero), cancellationToken);
+            hold.HoldExpiresAtUtc.Value, cancellationToken);
     }
 
     public async Task ReleaseAsync(Guid bookingId, CancellationToken cancellationToken)
@@ -461,5 +461,5 @@ public sealed class ConsultationPaymentService(
             action?.ClientSecret, action?.RedirectUrl, item.FailureReason, item.CreatedAt);
 
     private string ProviderCode => paymentOptions.Value.ProviderCode;
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

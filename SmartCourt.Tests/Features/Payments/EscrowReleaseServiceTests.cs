@@ -486,7 +486,7 @@ public sealed class EscrowReleaseServiceTests
             return Task.FromResult(new ContractActionResultDto(
                 contractId,
                 ContractStatus.Completed.ToString(),
-                DateTime.UtcNow));
+                DateTimeOffset.UtcNow));
         }
     }
 

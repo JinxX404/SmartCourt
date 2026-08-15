@@ -6,5 +6,5 @@ public sealed record AgentConversationDetailDto(
     Guid? CaseId,
     string? CaseTitle,
     string? CaseDescription,
-    DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);

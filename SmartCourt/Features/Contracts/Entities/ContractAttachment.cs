@@ -13,7 +13,7 @@ public sealed class ContractAttachment
         Guid contractId,
         Guid storedFileId,
         Guid uploadedByUserId,
-        DateTime createdAt)
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ContractId = EntityGuard.NotEmpty(contractId, nameof(contractId));
@@ -21,12 +21,12 @@ public sealed class ContractAttachment
         UploadedByUserId = EntityGuard.NotEmpty(
             uploadedByUserId,
             nameof(uploadedByUserId));
-        CreatedAt = EntityGuard.Utc(createdAt, nameof(createdAt));
+        CreatedAt = createdAt;
     }
 
     public Guid Id { get; private set; }
     public Guid ContractId { get; private set; }
     public Guid StoredFileId { get; private set; }
     public Guid UploadedByUserId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

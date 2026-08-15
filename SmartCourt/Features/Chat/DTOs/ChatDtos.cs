@@ -21,7 +21,7 @@ public sealed record ChatMessageDto(
     string Content,
     string? SystemCode,
     Guid? RelatedEntityId,
-    DateTime CreatedAt,
+    DateTimeOffset CreatedAt,
     bool IsMine,
     IReadOnlyList<ChatAttachmentDto> Attachments);
 
@@ -33,9 +33,9 @@ public sealed record ChatConversationListItemDto(
     ChatParticipantDto Client,
     ChatParticipantDto Lawyer,
     string Status,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
-    DateTime? LastMessageAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? LastMessageAt,
     ChatMessageDto? LastMessage);
 
 public sealed record ChatConversationDetailDto(
@@ -46,9 +46,9 @@ public sealed record ChatConversationDetailDto(
     ChatParticipantDto Client,
     ChatParticipantDto Lawyer,
     string Status,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
-    DateTime? LastMessageAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    DateTimeOffset? LastMessageAt);
 
 public sealed record ChatConversationPageDto(
     IReadOnlyList<ChatConversationListItemDto> Items,

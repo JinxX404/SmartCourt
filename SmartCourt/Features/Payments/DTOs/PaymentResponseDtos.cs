@@ -10,8 +10,8 @@ public sealed record PaymentDto(
     decimal NetAmount,
     string Currency,
     EscrowHoldStatus Status,
-    DateTime? HoldExpiresAt,
-    DateTime? SettledAt);
+    DateTimeOffset? HoldExpiresAt,
+    DateTimeOffset? SettledAt);
 
 public sealed record PaymentAttemptDto(
     Guid Id,
@@ -22,11 +22,11 @@ public sealed record PaymentAttemptDto(
     string Currency,
     string ProviderName,
     int ProviderAttemptCount,
-    DateTime? NextRetryAt,
+    DateTimeOffset? NextRetryAt,
     bool RequiresManualAction,
-    DateTime? ManualActionRequiredAt,
-    DateTime CreatedAt,
-    DateTime? ProcessedAt);
+    DateTimeOffset? ManualActionRequiredAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ProcessedAt);
 
 public sealed record EscrowLedgerEntryDto(
     Guid Id,
@@ -36,7 +36,7 @@ public sealed record EscrowLedgerEntryDto(
     decimal RunningBalance,
     string Currency,
     string Description,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);
 
 public sealed record PaymentHistoryDto(
     IReadOnlyList<PaymentDto> Payments,
@@ -58,13 +58,13 @@ public sealed record WithdrawalDto(
     string? ProviderStatus,
     string? FailureReason,
     bool RequiresManualAction,
-    DateTime RequestedAt,
-    DateTime? ProcessedAt);
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? ProcessedAt);
 
 public sealed record PaymentActionResultDto(
     Guid EntityId,
     string Status,
-    DateTime OccurredAt);
+    DateTimeOffset OccurredAt);
 
 public sealed record FundingOperationDto(
     Guid PaymentTransactionId,
@@ -74,7 +74,7 @@ public sealed record FundingOperationDto(
     string? ClientSecret,
     string? RedirectUrl,
     PaymentDto? Payment,
-    DateTime OccurredAt);
+    DateTimeOffset OccurredAt);
 
 public sealed record LawyerPayoutAccountDto(
     Guid Id,
@@ -86,11 +86,11 @@ public sealed record LawyerPayoutAccountDto(
     string Country,
     string DefaultCurrency,
     string? MaskedDestination,
-    DateTime? LastSynchronizedAt);
+    DateTimeOffset? LastSynchronizedAt);
 
 public sealed record PayoutAccountLinkDto(
     string Url,
-    DateTime? ExpiresAt);
+    DateTimeOffset? ExpiresAt);
 
 public sealed record PaymentProviderConfigDto(
     string ProviderCode,
