@@ -65,6 +65,7 @@ public sealed record ConsultationBookingDto(
     string LawyerName,
     Guid ClientId,
     string ClientName,
+    string? ClientPhoneNumber,
     ConsultationMode Mode,
     Specialization Specialization,
     string OfferingTitle,
