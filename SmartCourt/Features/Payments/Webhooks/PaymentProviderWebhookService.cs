@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Features.Payments.DTOs;
 using SmartCourt.Features.Payments.Entities;
+using SmartCourt.Features.Consultations.Payments;
 using SmartCourt.Infrastructure.Providers.Payments;
 using SmartCourt.Persistence;
 
@@ -12,6 +13,7 @@ public sealed class PaymentProviderWebhookService(
     IPaymentReconciliationService paymentReconciliationService,
     IWalletService walletService,
     ILawyerPayoutAccountService payoutAccountService,
+    IConsultationPaymentService consultationPaymentService,
     Microsoft.Extensions.Options.IOptions<SmartCourt.Providers.Payments.PaymentProviderOptions> options,
     TimeProvider timeProvider,
     ILogger<PaymentProviderWebhookService> logger)
@@ -109,7 +111,13 @@ public sealed class PaymentProviderWebhookService(
                 await paymentReconciliationService
                     .ReconcileProviderTransactionAsync(
                         paymentTransactionId.Value,
-                        cancellationToken);
+                    cancellationToken);
+            }
+            else if (!string.IsNullOrWhiteSpace(providerEvent.ProviderObjectId))
+            {
+                await consultationPaymentService.ReconcileProviderObjectAsync(
+                    providerEvent.ProviderObjectId,
+                    cancellationToken);
             }
 
             storedEvent = await dbContext.PaymentWebhookEvents.SingleAsync(
