@@ -6,6 +6,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.ChatAgent.Entities;
+using SmartCourt.Features.Consultations.Domain.Entities;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Milestones.Entities;
@@ -35,7 +36,8 @@ public class ApplicationDbContext
         typeof(LawyerPenalty),
         typeof(WalletAdjustment),
         typeof(ContractStateHistory),
-        typeof(MilestoneStateHistory)
+        typeof(MilestoneStateHistory),
+        typeof(ConsultationLedgerEntry)
     ];
 
     private static readonly HashSet<Type> ContractPaymentTypes =
@@ -151,6 +153,14 @@ public class ApplicationDbContext
         Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<LawyerConsultationSettings> LawyerConsultationSettings => Set<LawyerConsultationSettings>();
+    public DbSet<ConsultationOffering> ConsultationOfferings => Set<ConsultationOffering>();
+    public DbSet<ConsultationOfferingInclusion> ConsultationOfferingInclusions => Set<ConsultationOfferingInclusion>();
+    public DbSet<ConsultationAvailabilitySlot> ConsultationAvailabilitySlots => Set<ConsultationAvailabilitySlot>();
+    public DbSet<ConsultationBooking> ConsultationBookings => Set<ConsultationBooking>();
+    public DbSet<ConsultationPaymentTransaction> ConsultationPaymentTransactions => Set<ConsultationPaymentTransaction>();
+    public DbSet<ConsultationEscrowHold> ConsultationEscrowHolds => Set<ConsultationEscrowHold>();
+    public DbSet<ConsultationLedgerEntry> ConsultationLedgerEntries => Set<ConsultationLedgerEntry>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

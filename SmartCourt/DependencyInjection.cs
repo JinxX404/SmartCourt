@@ -33,6 +33,8 @@ using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.Events;
 using SmartCourt.Features.Contracts.Files;
 using SmartCourt.Features.Contracts.Integration;
+using SmartCourt.Features.Consultations.Bookings;
+using SmartCourt.Features.Consultations.Payments;
 using SmartCourt.Features.Disputes;
 using SmartCourt.Features.Files.Integration;
 using SmartCourt.Features.LawIngestion;
@@ -233,6 +235,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationEventMapper, VerificationNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, AuthNotificationEventMapper>();
         services.AddScoped<INotificationEventMapper, ArticleNotificationEventMapper>();
+        services.AddScoped<INotificationEventMapper, ConsultationNotificationEventMapper>();
         
         services.AddScoped<IArticleNotificationContextReader, ArticleNotificationContextReader>();
         services.AddScoped<IOutboxEventHandler, NotificationOutboxHandler>();
@@ -306,6 +309,8 @@ public static class DependencyInjection
             IMilestoneAutoAcceptanceService,
             MilestoneAutoAcceptanceService>();
         services.AddScoped<IPaymentEscrowService, PaymentEscrowService>();
+        services.AddScoped<IConsultationPaymentService, ConsultationPaymentService>();
+        services.AddScoped<IConsultationJobService, ConsultationJobService>();
         services.AddScoped<IPaymentQueryService, PaymentQueryService>();
         services.AddScoped<IPaymentWebhookService, PaymentWebhookService>();
         services.AddScoped<IPaymentReconciliationService, PaymentReconciliationService>();
