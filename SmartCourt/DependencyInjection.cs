@@ -286,6 +286,7 @@ public static class DependencyInjection
         services.AddScoped<
             IContractFileAccessService,
             ContractScopedFileAccessService>();
+        services.AddScoped<IContractFileService, ContractFileService>();
         services.AddScoped<IContractService, ContractService>();
         services.AddScoped<IContractActivationEvaluator, ContractService>();
         services.AddScoped<IContractCompletionEvaluator, ContractService>();

@@ -27,21 +27,22 @@ public sealed class ContractScopedFileAccessService(
             storedFileIds,
             purpose,
             relatedEntityId);
-        await EnsureWriteAccessAsync(
+        var access = await EnsureWriteAccessAsync(
             actorUserId,
             purpose,
             relatedEntityId,
             cancellationToken);
 
         var requestedIds = storedFileIds.Distinct().ToArray();
-        var ownedIds = await dbContext.UserVerificationDocuments
-            .AsNoTracking()
-            .Where(document =>
-                document.UserId == actorUserId
-                && !document.IsDeleted
-                && requestedIds.Contains(document.StoredFileId)
-                && !document.StoredFile.IsDeleted)
-            .Select(document => document.StoredFileId)
+        var ownedIds = await (
+            from attachment in dbContext.ContractAttachments.AsNoTracking()
+            join file in dbContext.StoredFiles.AsNoTracking()
+                on attachment.StoredFileId equals file.Id
+            where attachment.ContractId == access.ContractId
+                && attachment.UploadedByUserId == actorUserId
+                && requestedIds.Contains(attachment.StoredFileId)
+                && !file.IsDeleted
+            select attachment.StoredFileId)
             .Distinct()
             .ToListAsync(cancellationToken);
         if (ownedIds.Count != requestedIds.Length)
@@ -125,7 +126,7 @@ public sealed class ContractScopedFileAccessService(
             now.AddMinutes(5));
     }
 
-    private async Task EnsureWriteAccessAsync(
+    private async Task<WriteAccessFacts> EnsureWriteAccessAsync(
         Guid actorUserId,
         ContractFilePurpose purpose,
         Guid relatedEntityId,
@@ -138,6 +139,7 @@ public sealed class ContractScopedFileAccessService(
                     .AsNoTracking()
                     .Where(contract => contract.Id == relatedEntityId)
                     .Select(contract => new WriteAccessFacts(
+                        contract.Id,
                         contract.ClientUserId,
                         contract.LawyerUserId,
                         false))
@@ -149,6 +151,7 @@ public sealed class ContractScopedFileAccessService(
                         on milestone.ContractId equals contract.Id
                     where milestone.Id == relatedEntityId
                     select new WriteAccessFacts(
+                        contract.Id,
                         contract.ClientUserId,
                         contract.LawyerUserId,
                         true))
@@ -174,6 +177,8 @@ public sealed class ContractScopedFileAccessService(
             throw new ForbiddenAccessException(
                 "لا يملك المستخدم الحالي صلاحية إرفاق ملفات بهذا السجل.");
         }
+
+        return access;
     }
 
     private async Task<WriteAccessFacts?> FindDisputeWriteAccessAsync(
@@ -188,6 +193,7 @@ public sealed class ContractScopedFileAccessService(
                 .AsNoTracking()
                 .Where(contract => contract.Id == trackedDispute.ContractId)
                 .Select(contract => new WriteAccessFacts(
+                    contract.Id,
                     contract.ClientUserId,
                     contract.LawyerUserId,
                     false))
@@ -200,6 +206,7 @@ public sealed class ContractScopedFileAccessService(
                 on dispute.ContractId equals contract.Id
             where dispute.Id == disputeId
             select new WriteAccessFacts(
+                contract.Id,
                 contract.ClientUserId,
                 contract.LawyerUserId,
                 false))
@@ -306,6 +313,7 @@ public sealed class ContractScopedFileAccessService(
     }
 
     private sealed record WriteAccessFacts(
+        Guid ContractId,
         Guid ClientUserId,
         Guid LawyerUserId,
         bool LawyerOnly);

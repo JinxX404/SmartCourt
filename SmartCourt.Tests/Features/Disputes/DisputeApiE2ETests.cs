@@ -7,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
-using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Disputes.DTOs;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.DTOs;
@@ -86,19 +86,9 @@ public class DisputeApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
                 Extension = ".pdf",
                 SizeInBytes = 1024
             };
-            var verDoc = new UserVerificationDocument
-            {
-                Id = Guid.NewGuid(),
-                UserId = lawyerId,
-                StoredFileId = fileId,
-                DocumentType = VerificationDocumentType.NationalIdFront,
-                Status = VerificationDocumentStatus.Verified
-            };
-
             db.Cases.Add(caseEntity);
             db.Proposals.Add(proposal);
             db.StoredFiles.Add(storedFile);
-            db.UserVerificationDocuments.Add(verDoc);
             await db.SaveChangesAsync();
         }
 
@@ -107,6 +97,20 @@ public class DisputeApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         Assert.Equal(HttpStatusCode.Created, createResp.StatusCode);
         var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<ContractDetailDto>>(JsonOptions);
         var contractId = created!.Data!.Id;
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider
+                .GetRequiredService<ApplicationDbContext>();
+            db.ContractAttachments.Add(
+                new ContractAttachment(
+                    Guid.NewGuid(),
+                    contractId,
+                    fileId,
+                    lawyerId,
+                    DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
 
         var mReq = new AddMilestoneRequest("المرحلة المتنازع عليها", "تفاصيل العمل", 1, 3000m, 10, DateTimeOffset.UtcNow.AddDays(10));
         var mAddResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", mReq);

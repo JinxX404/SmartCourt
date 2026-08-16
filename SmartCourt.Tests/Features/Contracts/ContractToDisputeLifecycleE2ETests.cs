@@ -7,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
-using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
+using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Disputes.DTOs;
 using SmartCourt.Features.Disputes.Enums;
@@ -105,19 +105,9 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
                 Extension = ".pdf",
                 SizeInBytes = 2048
             };
-            var verDoc = new UserVerificationDocument
-            {
-                Id = Guid.NewGuid(),
-                UserId = lawyerId,
-                StoredFileId = fileId,
-                DocumentType = VerificationDocumentType.NationalIdFront,
-                Status = VerificationDocumentStatus.Verified
-            };
-
             db.Cases.Add(caseEntity);
             db.Proposals.Add(proposal);
             db.StoredFiles.Add(storedFile);
-            db.UserVerificationDocuments.Add(verDoc);
             await db.SaveChangesAsync();
         }
 
@@ -135,6 +125,20 @@ public class ContractToDisputeLifecycleE2ETests : IClassFixture<SmartCourtWebApp
         var contractData = (await createContractResp.Content.ReadFromJsonAsync<ApiResponse<ContractDetailDto>>(JsonOptions))!.Data!;
         var contractId = contractData.Id;
         Assert.Equal(ContractStatus.Draft, contractData.Status);
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider
+                .GetRequiredService<ApplicationDbContext>();
+            db.ContractAttachments.Add(
+                new ContractAttachment(
+                    Guid.NewGuid(),
+                    contractId,
+                    fileId,
+                    lawyerId,
+                    DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
 
         // Step 2: Lawyer updates draft contract terms with If-Match ETag
         var updateContractReq = new UpdateContractRequest(

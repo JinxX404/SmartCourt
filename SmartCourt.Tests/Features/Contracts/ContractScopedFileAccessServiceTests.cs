@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Common.Models;
 using SmartCourt.Entities;
@@ -26,8 +25,14 @@ public sealed class ContractScopedFileAccessServiceTests
     {
         await using var context = CreateContext();
         var state = AddContractAndMilestone(context);
-        var lawyerFile = AddOwnedFile(context, state.Contract.LawyerUserId);
-        var clientFile = AddOwnedFile(context, state.Contract.ClientUserId);
+        var lawyerFile = AddOwnedFile(
+            context,
+            state.Contract.Id,
+            state.Contract.LawyerUserId);
+        var clientFile = AddOwnedFile(
+            context,
+            state.Contract.Id,
+            state.Contract.ClientUserId);
         await context.SaveChangesAsync();
         var service = CreateService(context, new StubEligibilityService());
 
@@ -53,8 +58,13 @@ public sealed class ContractScopedFileAccessServiceTests
     {
         await using var context = CreateContext();
         var first = AddContractAndMilestone(context);
-        var second = AddContractAndMilestone(context);
-        var file = AddOwnedFile(context, first.Contract.LawyerUserId);
+        var second = AddContractAndMilestone(
+            context,
+            lawyerUserId: first.Contract.LawyerUserId);
+        var file = AddOwnedFile(
+            context,
+            first.Contract.Id,
+            first.Contract.LawyerUserId);
         await context.SaveChangesAsync();
         var service = CreateService(context, new StubEligibilityService());
 
@@ -72,7 +82,10 @@ public sealed class ContractScopedFileAccessServiceTests
     {
         await using var context = CreateContext();
         var state = AddContractAndMilestone(context);
-        var file = AddOwnedFile(context, state.Contract.LawyerUserId);
+        var file = AddOwnedFile(
+            context,
+            state.Contract.Id,
+            state.Contract.LawyerUserId);
         var submission = new MilestoneSubmission(
             Guid.NewGuid(),
             state.Milestone.Id,
@@ -119,6 +132,7 @@ public sealed class ContractScopedFileAccessServiceTests
 
         var unrelatedFile = AddOwnedFile(
             context,
+            state.Contract.Id,
             state.Contract.LawyerUserId);
         await context.SaveChangesAsync();
         var missing = await service.GetAuthorizedReadAccessAsync(
@@ -135,7 +149,10 @@ public sealed class ContractScopedFileAccessServiceTests
     {
         await using var context = CreateContext();
         var state = AddContractAndMilestone(context);
-        var file = AddOwnedFile(context, state.Contract.ClientUserId);
+        var file = AddOwnedFile(
+            context,
+            state.Contract.Id,
+            state.Contract.ClientUserId);
         await context.SaveChangesAsync();
         var dispute = new Dispute(
             Guid.NewGuid(),
@@ -172,14 +189,16 @@ public sealed class ContractScopedFileAccessServiceTests
     }
 
     private static TestState AddContractAndMilestone(
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        Guid? clientUserId = null,
+        Guid? lawyerUserId = null)
     {
         var contract = new Contract(
             Guid.NewGuid(),
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            clientUserId ?? Guid.NewGuid(),
+            lawyerUserId ?? Guid.NewGuid(),
             "عقد اختبار الملفات",
             "شروط صالحة لاختبار صلاحيات الملفات.",
             Now.UtcDateTime);
@@ -199,6 +218,7 @@ public sealed class ContractScopedFileAccessServiceTests
 
     private static StoredFile AddOwnedFile(
         ApplicationDbContext context,
+        Guid contractId,
         Guid ownerUserId)
     {
         var file = new StoredFile
@@ -212,18 +232,13 @@ public sealed class ContractScopedFileAccessServiceTests
             SizeInBytes = 100
         };
         context.StoredFiles.Add(file);
-        context.UserVerificationDocuments.Add(
-            new UserVerificationDocument
-            {
-                Id = Guid.NewGuid(),
-                UserId = ownerUserId,
-                StoredFileId = file.Id,
-                StoredFile = file,
-                DocumentType = VerificationDocumentType.NationalIdFront,
-                Status = VerificationDocumentStatus.Verified,
-                ExpirationDate = new DateOnly(2030, 1, 1),
-                IsCurrent = true
-            });
+        context.ContractAttachments.Add(
+            new ContractAttachment(
+                Guid.NewGuid(),
+                contractId,
+                file.Id,
+                ownerUserId,
+                Now));
         return file;
     }
 
