@@ -58,6 +58,27 @@ internal static class EntityGuard
         return value;
     }
 
+    public static DateTime Utc(DateTime value, string fieldName)
+    {
+        if (value.Kind != DateTimeKind.Utc)
+        {
+            throw new BusinessException(
+                $"يجب أن تكون قيمة الحقل {fieldName} بالتوقيت العالمي المنسق.");
+        }
+
+        return value;
+    }
+
+    public static DateTime? OptionalUtc(DateTime? value, string fieldName)
+    {
+        if (value.HasValue)
+        {
+            Utc(value.Value, fieldName);
+        }
+
+        return value;
+    }
+
     public static decimal PositiveMoney(decimal value, string fieldName)
     {
         if (value <= 0)

@@ -101,6 +101,73 @@ public class RatingApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         return (lawyerId, clientId, contractId);
     }
 
+    private async Task<(Guid LawyerId, Guid ClientId, Guid ContractId)> SeedTerminatedContractAsync()
+    {
+        var lawyerId = Guid.NewGuid();
+        var clientId = Guid.NewGuid();
+        var proposalId = Guid.NewGuid();
+        var legalCaseId = Guid.NewGuid();
+        var contractId = Guid.NewGuid();
+
+        await _factory.SeedUserAsync(lawyerId, $"lawyer_{lawyerId:N}@test.com", "Lawyer", "Test Lawyer Term");
+        await _factory.SeedUserAsync(clientId, $"client_{clientId:N}@test.com", "Client", "Test Client Term");
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var lawyerProfile = new LawyerProfile
+        {
+            UserId = lawyerId,
+            AverageRating = 0m,
+            TotalRatingSum = 0,
+            TotalRatingCount = 0
+        };
+        db.LawyerProfiles.Add(lawyerProfile);
+
+        var caseEntity = new SmartCourt.Entities.Case
+        {
+            Id = legalCaseId,
+            ClientId = clientId,
+            Title = "قضية عمالية",
+            Description = "نزاع عمالي",
+            City = "الإسكندرية",
+            SubmittedAt = DateTime.UtcNow,
+            Status = CaseStatus.Matched
+        };
+
+        var proposal = new Proposal(
+            proposalId,
+            legalCaseId,
+            clientId,
+            lawyerId,
+            DateTime.UtcNow)
+        {
+            Status = ProposalStatus.Accepted
+        };
+
+        var contract = new Contract(
+            contractId,
+            proposalId,
+            legalCaseId,
+            clientId,
+            lawyerId,
+            "عقد استشارة عمالية",
+            "شروط وأحكام العقد كافية للاختبار والتحقق.",
+            DateTime.UtcNow.AddDays(-6))
+        {
+            Status = ContractStatus.Terminated,
+            TerminatedAt = DateTime.UtcNow.AddDays(-2),
+            TerminationReason = "تم تسوية النزاع بالتراضي"
+        };
+
+        db.Cases.Add(caseEntity);
+        db.Proposals.Add(proposal);
+        db.Contracts.Add(contract);
+        await db.SaveChangesAsync();
+
+        return (lawyerId, clientId, contractId);
+    }
+
     [Fact]
     public async Task FullRatingLifecycle_E2E_Success()
     {
@@ -207,5 +274,68 @@ public class RatingApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
             JsonOptions);
 
         Assert.Equal(HttpStatusCode.BadRequest, invalidResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task TerminatedContract_CanBeRated_E2E()
+    {
+        var (lawyerId, clientId, contractId) = await SeedTerminatedContractAsync();
+
+        var clientHttp = _factory.CreateAuthenticatedClient(clientId, "Client");
+        var lawyerHttp = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
+
+        var clientRequest = new SubmitRatingRequest(3, "تم إنهاء العقد بالاتفاق");
+        var clientResponse = await clientHttp.PostAsJsonAsync(
+            $"/api/contracts/{contractId}/ratings",
+            clientRequest,
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
+
+        var lawyerRequest = new SubmitRatingRequest(3, "تم تسوية العقد");
+        var lawyerResponse = await lawyerHttp.PostAsJsonAsync(
+            $"/api/contracts/{contractId}/ratings",
+            lawyerRequest,
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.Created, lawyerResponse.StatusCode);
+
+        var clientViewResponse = await clientHttp.GetAsync($"/api/contracts/{contractId}/ratings");
+        var clientView = (await clientViewResponse.Content.ReadFromJsonAsync<ApiResponse<ContractRatingSummaryDto>>(JsonOptions))?.Data;
+        Assert.NotNull(clientView);
+        Assert.True(clientView.AreRevealed);
+        Assert.NotNull(clientView.ClientRating);
+        Assert.NotNull(clientView.LawyerRating);
+        Assert.Equal(3, clientView.ClientRating.Stars);
+        Assert.Equal(3, clientView.LawyerRating.Stars);
+    }
+
+    [Fact]
+    public async Task Moderator_BypassesSealedEnvelope_E2E()
+    {
+        var (lawyerId, clientId, contractId) = await SeedCompletedContractAsync();
+
+        var moderatorId = Guid.NewGuid();
+        await _factory.SeedUserAsync(moderatorId, $"mod_{moderatorId:N}@test.com", "Moderator", "Test Moderator");
+
+        var clientHttp = _factory.CreateAuthenticatedClient(clientId, "Client");
+        var modHttp = _factory.CreateAuthenticatedClient(moderatorId, "Moderator");
+
+        // Client rates lawyer
+        await clientHttp.PostAsJsonAsync(
+            $"/api/contracts/{contractId}/ratings",
+            new SubmitRatingRequest(5, "سرّي"),
+            JsonOptions);
+
+        // Moderator views contract ratings -> sees the client's rating even though lawyer hasn't submitted
+        var modResponse = await modHttp.GetAsync($"/api/contracts/{contractId}/ratings");
+        Assert.Equal(HttpStatusCode.OK, modResponse.StatusCode);
+
+        var summary = (await modResponse.Content.ReadFromJsonAsync<ApiResponse<ContractRatingSummaryDto>>(JsonOptions))?.Data;
+        Assert.NotNull(summary);
+        Assert.False(summary.AreRevealed);
+        Assert.NotNull(summary.ClientRating);
+        Assert.Equal(5, summary.ClientRating.Stars);
+        Assert.Null(summary.LawyerRating);
     }
 }

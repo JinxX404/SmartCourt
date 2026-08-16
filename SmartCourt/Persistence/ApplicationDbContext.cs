@@ -38,8 +38,7 @@ public class ApplicationDbContext
         typeof(WalletAdjustment),
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory),
-        typeof(ContractRating)
-        typeof(MilestoneStateHistory),
+        typeof(ContractRating),
         typeof(ConsultationLedgerEntry)
     ];
 
