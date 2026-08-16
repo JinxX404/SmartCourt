@@ -590,6 +590,15 @@ No active Milestone endpoint reads `Idempotency-Key`. State transitions make man
 
 `MilestoneAcceptanceSource` exists on the entity: `0 = Manual`, `1 = Automatic`. Accept sets Manual; the background auto-accept path sets Automatic. The response DTO does not expose this field.
 
+### 3.14 Submission history and attachment access
+
+After a Standard milestone is submitted, authorized Contract participants, Moderators, and Super Administrators can read immutable versions newest-first:
+
+- `GET /api/milestones/{milestoneId}/submissions`
+- `GET /api/milestones/{milestoneId}/submissions/{submissionId}/files/{storedFileId}`
+
+The list response contains the submission ID, milestone/escrow identifiers, submitter, version, notes, submission time, `isCurrent`, and safe attachment metadata. The attachment route first verifies the exact milestone/submission/file relationship, then returns a short-lived audited URL and expiry. Physical storage paths are never returned.
+
 ## 4. Validation Rules Summary
 
 ### 4.1 Form constraints to mirror
@@ -629,7 +638,7 @@ No active Milestone endpoint reads `Idempotency-Key`. State transitions make man
 | Standard readiness requires Active Contract and earliest nonterminal Standard milestone. | Do not expose readiness for later milestones. |
 | Readiness also blocks if another Standard has FundingProcessing or a Funded/Frozen hold. | Poll and settle prior funding before advancing. |
 | Submit/accept/request-changes verify Contract ID, gross amount, currency `EGP`, escrow hold, and current submission version. | Treat funding-chain `400` as a refresh/support condition; do not fabricate client values. |
-| Submission files must all be owned by the current Lawyer through non-deleted verification-document records. | Validate upload/source workflow before enabling Submit. |
+| Submission files must be uploaded by the current Lawyer through `POST /api/contracts/{contractId}/files` and belong to that exact Contract. | Upload first, then submit only the returned `storedFileId` values. |
 | Accept/request-changes operate only on Standard Submitted milestones in an Active Contract. | Expense never renders these actions. |
 | Reject/cancel operate only on Draft Expense in Draft/Active Contract. | Hide after approval/funding. |
 
@@ -639,7 +648,7 @@ No active Milestone endpoint reads `Idempotency-Key`. State transitions make man
 |---|---|
 | No single-milestone GET | Refresh the entire Contract milestone list. |
 | No delete/reorder endpoint | UI cannot remove/reorder; cancel only exists for pending Expense. |
-| No submission-read DTO/endpoint | Notes and attachments cannot be reviewed from this slice. |
+| Submission reasons are immutable but milestone DTO stays compact | Load `/api/milestones/{id}/submissions` when displaying review/history details. |
 | No rejection reason in response | Client-requested-change and Expense-decision reason cannot be redisplayed from `MilestoneDto`. |
 | No submission version in response | Frontend cannot show version number although backend stores it. |
 | No acceptance source in response | UI cannot distinguish manual from automatic acceptance. |
@@ -718,7 +727,10 @@ sequenceDiagram
     C->>B: GET milestones until FundedInProgress
     L->>B: POST /api/milestones/{id}/submit (notes, storedFileIds)
     B-->>L: 200 status Submitted, autoAcceptEligibleAt
-    C->>B: GET milestones
+    C->>B: GET /api/milestones/{id}/submissions
+    B-->>C: Immutable versions + safe attachment metadata
+    C->>B: GET submission attachment access
+    B-->>C: Short-lived audited URL
     alt Client accepts
         C->>B: POST /api/milestones/{id}/accept
         B-->>C: 200 status AcceptedHold, holdExpiresAt

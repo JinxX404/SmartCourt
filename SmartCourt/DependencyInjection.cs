@@ -301,6 +301,9 @@ public static class DependencyInjection
             IMilestoneFundingVerifier,
             MilestoneFundingVerifier>();
         services.AddScoped<IMilestoneService, MilestoneService>();
+        services.AddScoped<
+            IMilestoneSubmissionQueryService,
+            MilestoneSubmissionQueryService>();
         services.AddScoped<IMilestoneDraftService, MilestoneDraftService>();
         services.AddScoped<IMilestoneChangeRequestService, MilestoneChangeRequestService>();
         services.AddScoped<
