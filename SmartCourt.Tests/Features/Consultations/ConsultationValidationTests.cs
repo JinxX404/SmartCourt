@@ -8,10 +8,10 @@ namespace SmartCourt.Tests.Features.Consultations;
 public sealed class ConsultationValidationTests
 {
     [Theory]
-    [InlineData(250, 12.5, 237.5)]
-    [InlineData(999, 49.95, 949.05)]
-    [InlineData(1999, 99.95, 1899.05)]
-    public void SettlementUsesCurrentFivePercentPlatformFee(
+    [InlineData(250, 37.5, 212.5)]
+    [InlineData(999, 149.85, 849.15)]
+    [InlineData(1999, 299.85, 1699.15)]
+    public void SettlementUsesCurrentFifteenPercentPlatformFee(
         decimal gross,
         decimal expectedFee,
         decimal expectedNet)

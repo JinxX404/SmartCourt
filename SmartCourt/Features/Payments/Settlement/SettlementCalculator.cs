@@ -1,12 +1,11 @@
 using SmartCourt.Common.Domain;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Common.Payments;
 
 namespace SmartCourt.Features.Payments.Settlement;
 
 internal static class SettlementCalculator
 {
-    private const decimal PlatformFeeRate = 0.05m;
-
     internal static SettlementBreakdown Calculate(
         decimal grossAmount,
         decimal clientRefundAmount)
@@ -25,8 +24,39 @@ internal static class SettlementCalculator
         }
 
         var lawyerGrossAllocation = gross - refund;
+        var platformFee = PlatformFeePolicy.Calculate(lawyerGrossAllocation);
+        var lawyerNet = lawyerGrossAllocation - platformFee;
+
+        return new SettlementBreakdown(
+            gross,
+            refund,
+            lawyerGrossAllocation,
+            platformFee,
+            lawyerNet);
+    }
+
+    internal static SettlementBreakdown CalculateFromFundedHold(
+        decimal grossAmount,
+        decimal snapshottedPlatformFeeAmount,
+        decimal clientRefundAmount)
+    {
+        var gross = EntityGuard.PositiveMoney(grossAmount, nameof(grossAmount));
+        var snapshottedFee = EntityGuard.NonNegativeMoney(
+            snapshottedPlatformFeeAmount,
+            nameof(snapshottedPlatformFeeAmount));
+        var refund = EntityGuard.NonNegativeMoney(
+            clientRefundAmount,
+            nameof(clientRefundAmount));
+
+        if (refund > gross || snapshottedFee > gross)
+        {
+            throw new BusinessException(
+                "بيانات حجز الضمان المحفوظة غير صالحة للتسوية.");
+        }
+
+        var lawyerGrossAllocation = gross - refund;
         var platformFee = decimal.Round(
-            lawyerGrossAllocation * PlatformFeeRate,
+            snapshottedFee * lawyerGrossAllocation / gross,
             2,
             MidpointRounding.AwayFromZero);
         var lawyerNet = lawyerGrossAllocation - platformFee;

@@ -112,7 +112,7 @@ These IDs are useful for Swagger, PowerShell, or backend integration tests. A br
 5. **Collect the Client deposit.** Mount deferred Payment Element, create a ConfirmationToken, generate one UUID idempotency key, then call `POST /api/milestones/{milestoneId}/payment-session`.
 6. **Resolve the provider outcome.** A synchronous success creates the escrow hold and immediately adds the Lawyer net amount to `wallet.pendingBalance`. For `RequiresCustomerAction`, call `stripe.handleNextAction`; for `Processing`, show pending. In both cases, query Smart Court until its webhook/reconciliation path finalizes the local result.
 7. **Continue by milestone type.** A `Standard` milestone follows Lawyer submit -> Client/automatic accept -> 14-day hold -> scheduled release. An `Expense` milestone becomes `ReleasePending` after funding and schedules release at its funding time, with no work submission, acceptance, or 14-day wait.
-8. **Release and transfer.** The backend creates a separate Stripe Transfer to the connected account, records the 5% platform fee, moves Lawyer net from pending to available, and marks the hold/milestone `Released`. The browser never calls Stripe's Transfer API.
+8. **Release and transfer.** The backend creates a separate Stripe Transfer to the connected account, records the 15% platform fee, moves Lawyer net from pending to available, and marks the hold/milestone `Released`. The browser never calls Stripe's Transfer API.
 9. **Withdraw.** Refetch `GET /api/wallet`, submit `POST /api/wallet/withdrawals` with a fresh idempotency key and an amount no greater than `availableBalance`, then show `GET /api/wallet/withdrawals` until `Completed` or `Failed`.
 10. **Handle refunds through their owning slice.** Contract termination and dispute decisions invoke payment settlement internally. There is no standalone frontend Payments refund endpoint.
 
@@ -169,7 +169,7 @@ Official implementation references: [Confirmation Tokens](https://docs.stripe.co
 1. Successful funding creates a `Funded` escrow hold and immediately credits `netAmount` to `pendingBalance` for both milestone types.
 2. **Standard:** Lawyer calls `POST /api/milestones/{id}/submit`; Client later calls `POST /api/milestones/{id}/accept`, or auto-accept runs. Acceptance sets matching milestone/hold `holdExpiresAt = acceptedAt + 14 days`. The scheduled release runs only after that timestamp and only if no active dispute blocks it.
 3. **Expense:** successful funding changes the milestone to `ReleasePending`; an outbox handler schedules release at `fundedAt`. There is no submit, acceptance, dispute hold, or 14-day timer in this path.
-4. Release creates a Stripe Transfer to the enabled connected account, records the 5% platform fee, moves `netAmount` from `pendingBalance` to `availableBalance`, and marks both hold and milestone `Released`.
+4. Release creates a Stripe Transfer to the enabled connected account, records the 15% platform fee, moves `netAmount` from `pendingBalance` to `availableBalance`, and marks both hold and milestone `Released`.
 5. `POST /api/admin/milestones/{milestoneId}/release` is a Super Administrator operational/demo path. It can accelerate a valid future Standard hold or recover an eligible Expense release, but it still runs all integrity, payout-account, and provider checks.
 6. Lawyer calls `GET /api/wallet` and reads `availableBalance`.
 7. Lawyer generates a fresh idempotency UUID and calls `POST /api/wallet/withdrawals` with the desired amount. `destinationReference` should be omitted or sent as `""`; Stripe uses the connected account's configured external bank account.
@@ -760,7 +760,7 @@ The tables use JSON/wire notation because this is a frontend contract. CLR mappi
 | `id` | UUID | Local `EscrowHold.Id`, not the PaymentTransaction or Stripe ID. |
 | `milestoneId` | UUID | Associated milestone. |
 | `grossAmount` | `number` | Original funded EGP amount. |
-| `platformFee` | `number` | Platform fee. Current calculator uses 5% of the Lawyer's gross allocation, rounded to two decimals away from zero. |
+| `platformFee` | `number` | Platform fee. Current calculator uses 15% of the Lawyer's gross allocation, rounded to two decimals away from zero. |
 | `netAmount` | `number` | Amount allocated to the Lawyer after platform fee. |
 | `currency` | `string` | Always `EGP` in the current domain. |
 | `status` | `number` | Numeric `EscrowHoldStatus`. |
