@@ -69,7 +69,7 @@ public class AuthHelperService : IAuthHelperService
                 ["token"] = encodedToken
             });
 
-        var subject = "تأكيد البريد الإلكتروني - المحكمة الذكية";
+        var subject = "تأكيد البريد الإلكتروني - مستشار";
         var templatePath = Path.Combine(_env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ConfirmationEmail.html");
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
         var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
