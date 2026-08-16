@@ -17,8 +17,8 @@ public sealed class IdempotencyRecord
         string resourceType,
         Guid resourceId,
         string requestHash,
-        DateTime expiresAt,
-        DateTime createdAt)
+        DateTimeOffset expiresAt,
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         UserId = EntityGuard.NotEmpty(userId, nameof(userId));
@@ -43,16 +43,16 @@ public sealed class IdempotencyRecord
     public int? ResponseStatusCode { get; internal set; }
     public string? ResponseBody { get; internal set; }
     public Guid? ResultReferenceId { get; internal set; }
-    public DateTime ExpiresAt { get; internal set; }
-    public DateTime? CompletedAt { get; internal set; }
+    public DateTimeOffset ExpiresAt { get; internal set; }
+    public DateTimeOffset? CompletedAt { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
 
     internal void Complete(
         int responseStatusCode,
         string responseBody,
         Guid? resultReferenceId,
-        DateTime completedAt)
+        DateTimeOffset completedAt)
     {
         ResponseStatusCode = responseStatusCode;
         ResponseBody = EntityGuard.Required(
@@ -69,7 +69,7 @@ public sealed class IdempotencyRecord
         int responseStatusCode,
         string responseBody,
         Guid? resultReferenceId,
-        DateTime completedAt)
+        DateTimeOffset completedAt)
     {
         ResponseStatusCode = responseStatusCode;
         ResponseBody = EntityGuard.Required(

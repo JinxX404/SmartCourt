@@ -18,7 +18,7 @@ public class UpdateLawyerProfileRequestValidator : AbstractValidator<UpdateLawye
          When(x => x.DateOfBirth.HasValue, () =>
          {
              RuleFor(x => x.DateOfBirth!.Value)
-                 .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+                 .LessThanOrEqualTo(DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date).AddYears(-21))
                  .WithMessage("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
          });
 

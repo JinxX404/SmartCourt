@@ -238,16 +238,16 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
     private sealed class RecordingScheduler : IContractJobScheduler
     {
         public bool FailScheduling { get; init; }
-        public (Guid MilestoneId, Guid HoldId, int Version, DateTime RunAt)?
+        public (Guid MilestoneId, Guid HoldId, int Version, DateTimeOffset RunAt)?
             AutoAcceptCall { get; private set; }
-        public (Guid HoldId, DateTime RunAt)?
+        public (Guid HoldId, DateTimeOffset RunAt)?
             ReleaseCall { get; private set; }
 
         public Task<string> ScheduleAutoAcceptAsync(
             Guid milestoneId,
             Guid escrowHoldId,
             int submissionVersion,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -266,7 +266,7 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
 
         public Task<string> ScheduleReleaseExpiredHoldAsync(
             Guid escrowHoldId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             ReleaseCall = (escrowHoldId, runAtUtc);
@@ -275,7 +275,7 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
 
         public Task<string> ScheduleProviderReconciliationAsync(
             Guid paymentTransactionId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("job-3");
@@ -283,21 +283,21 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
 
         public Task<string> ScheduleProviderRetryAsync(
             Guid paymentTransactionId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("job-4");
         }
 
         public Task<string> ScheduleSchedulingReconciliationAsync(
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("job-5");
         }
 
         public Task<string> SchedulePendingWalletProjectionReconciliationAsync(
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("job-6");
@@ -305,7 +305,7 @@ public sealed class MilestoneSchedulingOutboxHandlerTests
 
         public Task<string> ScheduleOutboxDispatchAsync(
             int batchSize,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("job-7");

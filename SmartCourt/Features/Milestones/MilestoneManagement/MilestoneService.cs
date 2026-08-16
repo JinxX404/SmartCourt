@@ -1214,7 +1214,7 @@ public sealed class MilestoneService(
 
     private static MilestoneActionResultDto ToActionResult(
         Milestone milestone,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return new MilestoneActionResultDto(
             milestone.Id,
@@ -1224,7 +1224,7 @@ public sealed class MilestoneService(
 
     private static MilestoneActionResultDto ToActionResult(
         MilestoneChangeRequest changeRequest,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         return new MilestoneActionResultDto(
             changeRequest.Id,
@@ -1232,6 +1232,6 @@ public sealed class MilestoneService(
             occurredAt);
     }
 
-    private DateTime UtcNow =>
-        timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow =>
+        timeProvider.GetUtcNow();
 }

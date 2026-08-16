@@ -8,6 +8,8 @@ using SmartCourt.Interfaces;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using Microsoft.AspNetCore.Http;
+using SmartCourt.Infrastructure.Providers.Events;
+using SmartCourt.Features.Articles.Events;
 
 namespace SmartCourt.Features.Articles;
 
@@ -17,17 +19,20 @@ public class ArticleService : IArticleService
     private readonly ICurrentUserService _currentUserService;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IOutboxWriter _outboxWriter;
 
     public ArticleService(
         ApplicationDbContext context, 
         ICurrentUserService currentUserService, 
         IHttpContextAccessor httpContextAccessor,
-        IFileStorageService fileStorageService)
+        IFileStorageService fileStorageService,
+        IOutboxWriter outboxWriter)
     {
         _context = context;
         _currentUserService = currentUserService;
         _httpContextAccessor = httpContextAccessor;
         _fileStorageService = fileStorageService;
+        _outboxWriter = outboxWriter;
     }
 
     private bool IsAdmin() => _httpContextAccessor.HttpContext?.User.IsInRole("Admin") == true;
@@ -181,7 +186,14 @@ public class ArticleService : IArticleService
         {
             // Anonymous view increment
             article.ViewCount++;
-            await _context.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                // Ignore concurrency exception for anonymous views
+            }
         }
 
         return ApiResponse<ArticleDto>.Ok(await MapToArticleDtoAsync(article, isLikedByCurrentUser, cancellationToken));
@@ -232,12 +244,27 @@ public class ArticleService : IArticleService
         if (existingLike != null)
         {
             _context.ArticleLikes.Remove(existingLike);
-            article.LikesCount--;
+            if (article.LikesCount > 0)
+                article.LikesCount--;
         }
         else
         {
             _context.ArticleLikes.Add(new ArticleLike { ArticleId = id, UserId = userId });
             article.LikesCount++;
+
+            // Batch/threshold likes notifications
+            if (article.LikesCount % 5 == 0)
+            {
+                await _outboxWriter.EnqueueAsync(
+                    new OutboxEvent(
+                        EventType: ArticleEventTypes.ArticleLikeThresholdReached,
+                        EventVersion: 1,
+                        Payload: new ArticleLikeThresholdReachedV1(article.Id, article.AuthorId, article.LikesCount),
+                        AggregateType: nameof(LegalArticle),
+                        AggregateId: article.Id,
+                        CorrelationId: Guid.NewGuid()),
+                    cancellationToken);
+            }
         }
         
         await _context.SaveChangesAsync(cancellationToken);
@@ -262,6 +289,17 @@ public class ArticleService : IArticleService
 
         _context.ArticleComments.Add(comment);
         article.CommentsCount++;
+
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleCommentAdded,
+                EventVersion: 1,
+                Payload: new ArticleCommentAddedV1(article.Id, comment.Id, article.AuthorId, userId),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         var createdComment = await _context.ArticleComments
@@ -338,6 +376,15 @@ public class ArticleService : IArticleService
             .FirstOrDefaultAsync(a => a.Id == id && a.Status == ArticleStatus.Published && !a.IsDeleted, cancellationToken)
             ?? throw new NotFoundException("المقال غير موجود.");
 
+        if (article.AuthorId == userId)
+            throw new BusinessException("لا يمكنك الإبلاغ عن مقالك الخاص.");
+
+        var existingReport = await _context.ArticleReports
+            .AnyAsync(r => r.ArticleId == id && r.ReporterId == userId && !r.IsResolved, cancellationToken);
+        
+        if (existingReport)
+            throw new BusinessException("لقد قمت بالإبلاغ عن هذا المقال مسبقاً.");
+
         var report = new ArticleReport
         {
             ArticleId = id,
@@ -346,9 +393,49 @@ public class ArticleService : IArticleService
         };
 
         _context.ArticleReports.Add(report);
+
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleReported,
+                EventVersion: 1,
+                Payload: new ArticleReportedV1(article.Id, report.Id),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
     }
+
+    public async Task<PagedResponse<List<ArticleLikerDto>>> GetArticleLikersAsync(Guid articleId, int pageNumber, int pageSize, CancellationToken cancellationToken)
+    {
+        if (!await _context.LegalArticles.AnyAsync(a => a.Id == articleId && a.Status == ArticleStatus.Published && !a.IsDeleted, cancellationToken))
+            throw new NotFoundException("المقال غير موجود.");
+
+        var query = _context.ArticleLikes
+            .AsNoTracking()
+            .Include(l => l.User)
+            .Where(l => l.ArticleId == articleId)
+            .OrderByDescending(l => l.CreatedAt);
+
+        var total = await query.CountAsync(cancellationToken);
+        var likersList = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var likers = new List<ArticleLikerDto>();
+        foreach (var l in likersList)
+        {
+            var profilePic = await GetImageUrlSafeAsync(l.User.ProfilePictureUrl, cancellationToken);
+            likers.Add(new ArticleLikerDto(l.User.Id, l.User.FullName, profilePic));
+        }
+
+        var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+        return PagedResponse<List<ArticleLikerDto>>.OkPaged(likers, pageNumber, pageSize, total, totalPages);
+    }
+
 
     // Lawyer Methods
     public async Task<ApiResponse<ArticleDto>> CreateArticleAsync(CreateArticleRequest request, CancellationToken cancellationToken)
@@ -405,7 +492,7 @@ public class ArticleService : IArticleService
         var article = await _context.LegalArticles
             .Include(a => a.Category)
             .Include(a => a.Author)
-            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted, cancellationToken)
+            .FirstOrDefaultAsync(a => a.Id == id && !a.IsDeleted && !a.IsDeletedByAdmin, cancellationToken)
             ?? throw new NotFoundException("المقال غير موجود.");
 
         if (article.AuthorId != userId)
@@ -452,18 +539,23 @@ public class ArticleService : IArticleService
         article.IsDeleted = true;
         article.IsDeletedByAdmin = false;
 
+        await _context.SaveChangesAsync(cancellationToken);
+
         if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
         {
             try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
         }
         
-        await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
     }
 
     public async Task<ApiResponse<ArticleDto>> ChangeArticleStatusAsync(Guid id, CancellationToken cancellationToken)
     {
         var userId = _currentUserService.UserId ?? throw new ForbiddenAccessException("مطلوب تسجيل الدخول.");
+
+        var user = await _context.Users.FindAsync(new object[] { userId }, cancellationToken);
+        if (user == null || user.Status != SmartCourt.Features.Auth.Enums.UserStatus.Active)
+            throw new ForbiddenAccessException("فقط المحامون الموثقون يمكنهم تغيير حالة المقالات.");
 
         var article = await _context.LegalArticles
             .Include(a => a.Category)
@@ -596,12 +688,23 @@ public class ArticleService : IArticleService
         article.IsDeleted = true;
         article.IsDeletedByAdmin = true;
 
+        await _outboxWriter.EnqueueAsync(
+            new OutboxEvent(
+                EventType: ArticleEventTypes.ArticleDeletedByAdmin,
+                EventVersion: 1,
+                Payload: new ArticleDeletedByAdminV1(article.Id, article.AuthorId, article.Title),
+                AggregateType: nameof(LegalArticle),
+                AggregateId: article.Id,
+                CorrelationId: Guid.NewGuid()),
+            cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
         if (!string.IsNullOrEmpty(article.FeaturedImageUrl))
         {
             try { await _fileStorageService.DeleteAsync(article.FeaturedImageUrl, cancellationToken); } catch { /* Ignore */ }
         }
         
-        await _context.SaveChangesAsync(cancellationToken);
         return ApiResponse<bool>.Ok(true);
     }
 
@@ -637,13 +740,28 @@ public class ArticleService : IArticleService
         return PagedResponse<List<ArticleSummaryDto>>.OkPaged(articles, pageNumber, pageSize, total, totalPages);
     }
 
+    private async Task<string?> GetImageUrlSafeAsync(string? storagePath, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(storagePath))
+            return null;
+
+        try
+        {
+            return await _fileStorageService.GetDownloadUrlAsync(storagePath, cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task<ArticleDto> MapToArticleDtoAsync(LegalArticle a, bool isLikedByCurrentUser, CancellationToken cancellationToken) => new()
     {
         Id = a.Id,
         Title = a.Title,
         Content = a.Content,
         Tags = a.Tags,
-        FeaturedImageUrl = string.IsNullOrEmpty(a.FeaturedImageUrl) ? null : await _fileStorageService.GetDownloadUrlAsync(a.FeaturedImageUrl, cancellationToken),
+        FeaturedImageUrl = await GetImageUrlSafeAsync(a.FeaturedImageUrl, cancellationToken),
         ViewCount = a.ViewCount,
         LikesCount = a.LikesCount,
         CommentsCount = a.CommentsCount,
@@ -667,7 +785,7 @@ public class ArticleService : IArticleService
     {
         Id = a.Id,
         Title = a.Title,
-        FeaturedImageUrl = string.IsNullOrEmpty(a.FeaturedImageUrl) ? null : await _fileStorageService.GetDownloadUrlAsync(a.FeaturedImageUrl, cancellationToken),
+        FeaturedImageUrl = await GetImageUrlSafeAsync(a.FeaturedImageUrl, cancellationToken),
         ViewCount = a.ViewCount,
         LikesCount = a.LikesCount,
         CommentsCount = a.CommentsCount,

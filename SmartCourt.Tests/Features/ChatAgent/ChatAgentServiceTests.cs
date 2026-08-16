@@ -8,6 +8,7 @@ using SmartCourt.Features.ChatAgent.DTOs;
 using SmartCourt.Features.ChatAgent.Entities;
 using SmartCourt.Features.ChatAgent.Enums;
 using SmartCourt.Persistence;
+using SmartCourt.Tests.Mocks.Providers;
 using SmartCourt.Tests.TestDoubles;
 using Xunit;
 using CaseEntity = SmartCourt.Entities.Case;
@@ -45,7 +46,9 @@ public sealed class ChatAgentServiceTests
             embeddingProvider,
             vectorStoreProvider,
             fileStorageService,
-            documentParsingProvider);
+            documentParsingProvider,
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: null);
 
@@ -92,7 +95,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
 
@@ -134,7 +139,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
 
@@ -162,7 +169,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: null);
 
@@ -186,7 +195,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: Guid.NewGuid());
 
@@ -223,7 +234,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
 
@@ -248,7 +261,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
 
@@ -321,7 +336,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             fileStorage,
-            parsingProvider);
+            parsingProvider,
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversationDto = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: caseId));
 
@@ -358,8 +375,8 @@ public sealed class ChatAgentServiceTests
         };
         dbContext.Cases.Add(caseEntity);
 
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId, DateTime.UtcNow);
-        conversation.CacheCaseContext("محتوى مخزن مسبقاً من الجلسة السابقة", DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId, DateTimeOffset.UtcNow);
+        conversation.CacheCaseContext("محتوى مخزن مسبقاً من الجلسة السابقة", DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -372,7 +389,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             fileStorage,
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         var context = await service.GetOrFetchCaseContextAsync(conversation.Id);
@@ -409,7 +428,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             vectorStoreProvider,
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
 
@@ -449,7 +470,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act & Assert
         await Assert.ThrowsAsync<NotFoundException>(() => service.SendMessageAsync(Guid.NewGuid(), new SendAgentMessageRequest("مرحباً")));
@@ -465,7 +488,7 @@ public sealed class ChatAgentServiceTests
         var ownerId = Guid.NewGuid();
         var foreignUserId = Guid.NewGuid();
 
-        var conversation = AgentConversation.Create(Guid.NewGuid(), ownerId, caseId: null, DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), ownerId, caseId: null, DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -477,7 +500,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act & Assert
         await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.SendMessageAsync(conversation.Id, new SendAgentMessageRequest("مرحباً")));
@@ -501,7 +526,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
         Assert.Null(conversation.Title);
@@ -523,8 +550,8 @@ public sealed class ChatAgentServiceTests
         await using var dbContext = new ApplicationDbContext(dbOptions);
 
         var userId = Guid.NewGuid();
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
-        conversation.UpdateTitle("استفسارات قانون العمل", DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        conversation.UpdateTitle("استفسارات قانون العمل", DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -538,7 +565,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         await service.SendMessageAsync(conversation.Id, new SendAgentMessageRequest("سؤال إضافي حول ساعات العمل"));
@@ -558,7 +587,7 @@ public sealed class ChatAgentServiceTests
 
         var userId = Guid.NewGuid();
         var foreignUserId = Guid.NewGuid();
-        var now = DateTime.UtcNow;
+        var now = DateTimeOffset.UtcNow;
 
         var conv1 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, now.AddMinutes(-10));
         var conv2 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, now);
@@ -577,7 +606,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         var result = await service.ListConversationsAsync(page: 1, pageSize: 10);
@@ -609,8 +640,8 @@ public sealed class ChatAgentServiceTests
         };
         dbContext.Cases.Add(caseEntity);
 
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId, DateTime.UtcNow);
-        conversation.UpdateTitle("استفسار عن عقد المقاولة", DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId, DateTimeOffset.UtcNow);
+        conversation.UpdateTitle("استفسار عن عقد المقاولة", DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -622,7 +653,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         var result = await service.GetConversationAsync(conversation.Id);
@@ -644,7 +677,7 @@ public sealed class ChatAgentServiceTests
         await using var dbContext = new ApplicationDbContext(dbOptions);
 
         var userId = Guid.NewGuid();
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -656,7 +689,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         await service.DeleteConversationAsync(conversation.Id);
@@ -677,10 +712,10 @@ public sealed class ChatAgentServiceTests
         await using var dbContext = new ApplicationDbContext(dbOptions);
 
         var userId = Guid.NewGuid();
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
 
-        var baseTime = DateTime.UtcNow.AddHours(-1);
+        var baseTime = DateTimeOffset.UtcNow.AddHours(-1);
         for (int i = 1; i <= 5; i++)
         {
             var msg = AgentMessage.CreateUserMessage(Guid.NewGuid(), conversation.Id, $"رسالة {i}", baseTime.AddMinutes(i));
@@ -696,7 +731,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         var result = await service.GetMessagesAsync(conversation.Id, beforeMessageId: null, limit: 3);
@@ -718,10 +755,10 @@ public sealed class ChatAgentServiceTests
         await using var dbContext = new ApplicationDbContext(dbOptions);
 
         var userId = Guid.NewGuid();
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
 
-        var baseTime = DateTime.UtcNow.AddHours(-1);
+        var baseTime = DateTimeOffset.UtcNow.AddHours(-1);
         var msg1 = AgentMessage.CreateUserMessage(Guid.NewGuid(), conversation.Id, "رسالة 1", baseTime.AddMinutes(1));
         var msg2 = AgentMessage.CreateUserMessage(Guid.NewGuid(), conversation.Id, "رسالة 2", baseTime.AddMinutes(2));
         var msg3 = AgentMessage.CreateUserMessage(Guid.NewGuid(), conversation.Id, "رسالة 3", baseTime.AddMinutes(3));
@@ -736,7 +773,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
         var result = await service.GetMessagesAsync(conversation.Id, beforeMessageId: msg3.Id, limit: 10);
@@ -774,7 +813,7 @@ public sealed class ChatAgentServiceTests
         await using var dbContext = new ApplicationDbContext(dbOptions);
 
         var userId = Guid.NewGuid();
-        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTime.UtcNow);
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
         dbContext.AgentConversations.Add(conversation);
         await dbContext.SaveChangesAsync();
 
@@ -791,7 +830,9 @@ public sealed class ChatAgentServiceTests
             new TestEmbeddingProvider(),
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
-            new TestDocumentParsingProvider());
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new SendAgentMessageRequest("ما هي إجراءات رفع دعوى صحة ونفاذ؟");
 

@@ -55,7 +55,7 @@ public sealed class AcceptProposalHandler(
                 404);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (proposal.Status == ProposalStatus.Pending
             && proposal.ExpiresAt <= now)
         {

@@ -8,7 +8,7 @@ public sealed class VerificationDocumentDetailsDto
     public string FileName { get; init; } = string.Empty;
     public string ContentType { get; init; } = string.Empty;
     public DateOnly ExpirationDate { get; init; }
-    public DateTime? ReviewedAt { get; init; }
+    public DateTimeOffset? ReviewedAt { get; init; }
     public string? RejectionReason { get; init; }
     public string ContentUrl { get; init; } = string.Empty;
 }

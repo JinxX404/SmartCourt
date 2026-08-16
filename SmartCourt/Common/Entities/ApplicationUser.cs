@@ -13,7 +13,7 @@ public class ApplicationUser : IdentityUser<Guid>
     public string? Address { get; set; }
     public string? Governorate { get; set; }
     public string? City { get; set; }
-    public DateTime? LastLoginAt { get; set; }
+    public DateTimeOffset? LastLoginAt { get; set; }
     public UserStatus Status { get; set; } = UserStatus.Unverified;
     public LawyerProfile? LawyerProfile { get; set; }
     public ClientProfile? ClientProfile { get; set; }

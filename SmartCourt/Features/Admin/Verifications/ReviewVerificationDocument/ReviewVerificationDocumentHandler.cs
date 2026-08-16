@@ -63,7 +63,7 @@ public sealed class ReviewVerificationDocumentHandler(
 
         // Admin can review current documents (Pending or previously Verified/Rejected)
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.UtcDateTime);
         if (document.ExpirationDate <= today)
         {
             document.Status = VerificationDocumentStatus.Expired;
@@ -96,7 +96,7 @@ public sealed class ReviewVerificationDocumentHandler(
         if (request.Decision == VerificationReviewDecision.Approve)
         {
             document.Status = VerificationDocumentStatus.Verified;
-            document.VerifiedAt = DateTime.UtcNow;
+            document.VerifiedAt = DateTimeOffset.UtcNow;
             document.VerifiedByAdminId = adminId;
             document.RejectionReason = null;
 

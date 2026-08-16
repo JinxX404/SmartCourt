@@ -1394,7 +1394,7 @@ public sealed class PaymentEscrowService(
         Guid? actorUserId,
         string reason,
         Guid correlationId,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         MilestoneTransitionGuard.EnsureCanTransition(
             previousStatus,
@@ -1616,8 +1616,8 @@ public sealed class PaymentEscrowService(
         }
     }
 
-    private DateTime UtcNow =>
-        timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow =>
+        timeProvider.GetUtcNow();
 
     private sealed record PaymentFailureResponse(string Message);
 }

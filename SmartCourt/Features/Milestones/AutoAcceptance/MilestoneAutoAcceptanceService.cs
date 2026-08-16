@@ -62,7 +62,7 @@ public sealed class MilestoneAutoAcceptanceService(
                 submissionVersion);
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (!milestone.FundedAt.HasValue)
         {
             return NoOp(

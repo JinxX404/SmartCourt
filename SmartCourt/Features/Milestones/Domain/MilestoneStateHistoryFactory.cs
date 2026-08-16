@@ -15,7 +15,7 @@ internal static class MilestoneStateHistoryFactory
         Guid? actorUserId,
         string reason,
         Guid correlationId,
-        DateTime occurredAt)
+        DateTimeOffset occurredAt)
     {
         MilestoneTransitionGuard.EnsureCanTransition(
             previousStatus,

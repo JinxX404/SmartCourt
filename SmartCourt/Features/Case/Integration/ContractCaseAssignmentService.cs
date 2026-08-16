@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Enums;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Chat.Entities;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
@@ -12,6 +14,7 @@ namespace SmartCourt.Features.Case.Integration;
 
 public sealed class ContractCaseAssignmentService(
     ApplicationDbContext context,
+    IChatConversationService chatConversationService,
     IOutboxWriter outboxWriter) : IContractCaseAssignmentService
 {
     public async Task AssignAsync(
@@ -47,8 +50,13 @@ public sealed class ContractCaseAssignmentService(
             ?? throw new BusinessException(
                 "The active contract must belong to an accepted proposal.");
 
+        var winningConversationId = await ResolveWinningConversationIdAsync(
+            selectedProposal,
+            assignment,
+            cancellationToken);
         var occurredAt = assignment.OccurredAt.UtcDateTime;
         legalCase.LawyerId = assignment.LawyerUserId;
+        legalCase.ChatId = winningConversationId;
         legalCase.Status = CaseStatus.Assigned;
         legalCase.UpdatedAt = occurredAt;
 
@@ -69,6 +77,46 @@ public sealed class ContractCaseAssignmentService(
                 assignment.ClientUserId,
                 proposal.DecisionReason,
                 cancellationToken);
+        }
+    }
+
+    private async Task<Guid> ResolveWinningConversationIdAsync(
+        Proposal selectedProposal,
+        ContractCaseAssignment assignment,
+        CancellationToken cancellationToken)
+    {
+        var conversation = await context.ChatConversations
+            .SingleOrDefaultAsync(
+                item => item.ProposalId == selectedProposal.Id,
+                cancellationToken);
+        if (conversation is null)
+        {
+            return await chatConversationService
+                .EnsureForAcceptedProposalAsync(
+                    selectedProposal,
+                    cancellationToken);
+        }
+
+        ValidateWinningConversation(conversation, assignment);
+        return conversation.Id;
+    }
+
+    private static void ValidateWinningConversation(
+        ChatConversation conversation,
+        ContractCaseAssignment assignment)
+    {
+        if (conversation.IsClosed)
+        {
+            throw new BusinessException(
+                "The winning proposal conversation is closed.");
+        }
+
+        if (conversation.LegalCaseId != assignment.LegalCaseId
+            || conversation.ClientUserId != assignment.ClientUserId
+            || conversation.LawyerUserId != assignment.LawyerUserId)
+        {
+            throw new BusinessException(
+                "The winning proposal conversation does not match the contract assignment.");
         }
     }
 

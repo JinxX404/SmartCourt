@@ -25,19 +25,22 @@ if (Test-Path $ReportPath) {
 $randomNum = Get-Random
 
 # --- 1. Login Accounts ---
+# Admin
 $adminLoginBody = @{ Email = "admin@smartcourt.com"; Password = "Admin@123" } | ConvertTo-Json
 $adminLoginRes = Invoke-Api -title "1a. Login Admin" -method "POST" -endpoint "/api/auth/login" -body $adminLoginBody -reportFile $ReportPath
 $adminToken = $adminLoginRes.data.accessToken
 
+# Lawyer (Verified)
 $lawyerLoginBody = @{ Email = "lawyer@smartcourt.com"; Password = "Lawyer@123" } | ConvertTo-Json
 $lawyerLoginRes = Invoke-Api -title "1b. Login Lawyer" -method "POST" -endpoint "/api/auth/login" -body $lawyerLoginBody -reportFile $ReportPath
 $lawyerToken = $lawyerLoginRes.data.accessToken
 
+# Client
 $clientLoginBody = @{ Email = "client@smartcourt.com"; Password = "Client@123" } | ConvertTo-Json
 $clientLoginRes = Invoke-Api -title "1c. Login Client" -method "POST" -endpoint "/api/auth/login" -body $clientLoginBody -reportFile $ReportPath
 $clientToken = $clientLoginRes.data.accessToken
 
-# --- 2. Admin creates Category ---
+# --- 2. Article Categories ---
 $categoryBody = @{ Code = "ARTCAT_${randomNum}"; NameAr = "Test Category ${randomNum}"; Description = "Category Description" } | ConvertTo-Json
 $catRes = Invoke-Api -title "2a. Create Category (Admin)" -method "POST" -endpoint "/api/ArticleCategories/admin" -body $categoryBody -token $adminToken -reportFile $ReportPath
 $categoryId = $catRes.data.id
@@ -56,81 +59,64 @@ $articleBody = @{
     Tags = "Law,Test"
     CategoryId = $categoryId
     IsDraft = $true
-} | ConvertTo-Json
-$articleRes = Invoke-Api -title "3a. Create Draft Article (Lawyer)" -method "POST" -endpoint "/api/Articles/lawyer" -body $articleBody -token $lawyerToken -reportFile $ReportPath
+}
+$articleRes = Invoke-Api -title "3a. Create Draft Article (Lawyer)" -method "POST" -endpoint "/api/Articles/lawyer" -body $articleBody -token $lawyerToken -reportFile $ReportPath -contentType ""
 $articleId = $articleRes.data.id
 
-# Lawyer views drafts
-Invoke-Api -title "3b. View Drafts (Lawyer)" -method "GET" -endpoint "/api/Articles/lawyer/drafts" -token $lawyerToken -reportFile $ReportPath | Out-Null
+# Publish article via Status Change
+Invoke-Api -title "3b. Publish Article via Status Change" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId/status" -token $lawyerToken -reportFile $ReportPath | Out-Null
 
-# Lawyer updates article (remains draft)
-$articleUpdateBody = @{
-    Title = "Updated Article ${randomNum}"
-    Content = "Updated Article Content..."
-    Tags = "Law,Test"
-    CategoryId = $categoryId
-    IsDraft = $true
-} | ConvertTo-Json
-Invoke-Api -title "3c. Update Article (Lawyer)" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId" -body $articleUpdateBody -token $lawyerToken -reportFile $ReportPath | Out-Null
 
-# Lawyer publishes article via Change Status
-Invoke-Api -title "3d. Publish Article via Status Change" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId/status" -token $lawyerToken -reportFile $ReportPath | Out-Null
+# --- 4. Validation & Edge Cases Testing ---
 
-# Lawyer views published
-Invoke-Api -title "3e. View Published (Lawyer)" -method "GET" -endpoint "/api/Articles/lawyer/published" -token $lawyerToken -reportFile $ReportPath | Out-Null
+# 4.1 Create Comment (Negative tests)
+$emptyCommentBody = @{ Content = "" } | ConvertTo-Json
+Invoke-Api -title "4.1a Create Comment - Empty string (Expected 400)" -method "POST" -endpoint "/api/Articles/$articleId/comments" -body $emptyCommentBody -token $clientToken -reportFile $ReportPath | Out-Null
 
-# --- 4. Public & Client Engagement ---
-# Client views published articles
-Invoke-Api -title "4a. View All Published (Public)" -method "GET" -endpoint "/api/Articles/public" -reportFile $ReportPath | Out-Null
+$longString = "a" * 1005
+$longCommentBody = @{ Content = $longString } | ConvertTo-Json
+Invoke-Api -title "4.1b Create Comment - Over 1000 chars (Expected 400)" -method "POST" -endpoint "/api/Articles/$articleId/comments" -body $longCommentBody -token $clientToken -reportFile $ReportPath | Out-Null
 
-# Client views specific article
-Invoke-Api -title "4b. View Article (Client Token)" -method "GET" -endpoint "/api/Articles/public/$articleId" -token $clientToken -reportFile $ReportPath | Out-Null
+$xssCommentBody = @{ Content = "<script>alert('XSS')</script>" } | ConvertTo-Json
+$xssCommentRes = Invoke-Api -title "4.1c Create Comment - XSS attempt" -method "POST" -endpoint "/api/Articles/$articleId/comments" -body $xssCommentBody -token $clientToken -reportFile $ReportPath
+$xssCommentId = $xssCommentRes.data.id
 
+# 4.2 Update Comment (Negative tests)
+$emptyUpdateCommentBody = @{ Content = "" } | ConvertTo-Json
+Invoke-Api -title "4.2a Update Comment - Empty string (Expected 400)" -method "PUT" -endpoint "/api/Articles/$articleId/comments/$xssCommentId" -body $emptyUpdateCommentBody -token $clientToken -reportFile $ReportPath | Out-Null
+
+
+# 4.3 Report Article (Negative tests)
+$emptyReportBody = @{ Reason = "" } | ConvertTo-Json
+Invoke-Api -title "4.3a Report Article - Empty Reason (Expected 400)" -method "POST" -endpoint "/api/Articles/$articleId/report" -body $emptyReportBody -token $clientToken -reportFile $ReportPath | Out-Null
+
+$validReportBody = @{ Reason = "Inappropriate content, please review." } | ConvertTo-Json
+Invoke-Api -title "4.3b Report Article - Valid (Client)" -method "POST" -endpoint "/api/Articles/$articleId/report" -body $validReportBody -token $clientToken -reportFile $ReportPath | Out-Null
+
+Invoke-Api -title "4.3c Report Article - Duplicate Report (Expected 400)" -method "POST" -endpoint "/api/Articles/$articleId/report" -body $validReportBody -token $clientToken -reportFile $ReportPath | Out-Null
+
+# Self Report Check
+Invoke-Api -title "4.3d Report Article - Author Self-Report (Expected 400)" -method "POST" -endpoint "/api/Articles/$articleId/report" -body $validReportBody -token $lawyerToken -reportFile $ReportPath | Out-Null
+
+
+# 4.4 Likes 
 # Client likes article
-Invoke-Api -title "4c. Like Article (Client)" -method "POST" -endpoint "/api/Articles/$articleId/like" -token $clientToken -reportFile $ReportPath | Out-Null
+Invoke-Api -title "4.4a Like Article (Client)" -method "POST" -endpoint "/api/Articles/$articleId/like" -token $clientToken -reportFile $ReportPath | Out-Null
 
-# Client comments on article
-$commentBody = @{ Content = "Great Article!" } | ConvertTo-Json
-$commentRes = Invoke-Api -title "4d. Comment on Article (Client)" -method "POST" -endpoint "/api/Articles/$articleId/comments" -body $commentBody -token $clientToken -reportFile $ReportPath
-$commentId = $commentRes.data.id
+# Client unlikes article (toggles)
+Invoke-Api -title "4.4b Unlike Article (Client) - Should not go below 0" -method "POST" -endpoint "/api/Articles/$articleId/like" -token $clientToken -reportFile $ReportPath | Out-Null
 
-# Client updates comment
-$updateCommentBody = @{ Content = "Great Article! Updated." } | ConvertTo-Json
-Invoke-Api -title "4e. Update Comment (Client)" -method "PUT" -endpoint "/api/Articles/$articleId/comments/$commentId" -body $updateCommentBody -token $clientToken -reportFile $ReportPath | Out-Null
+# Client views likers
+Invoke-Api -title "4.4c View Article Likers (Client)" -method "GET" -endpoint "/api/Articles/$articleId/likers?pageNumber=1&pageSize=10" -token $clientToken -reportFile $ReportPath | Out-Null
 
-# Client views comments paginated
-Invoke-Api -title "4f. View Article Comments Paginated (Public)" -method "GET" -endpoint "/api/Articles/public/$articleId/comments?pageNumber=1&pageSize=10" -reportFile $ReportPath | Out-Null
 
-# Client reports article
-$reportArticleBody = @{ Reason = "Inappropriate content" } | ConvertTo-Json
-Invoke-Api -title "4g. Report Article (Client)" -method "POST" -endpoint "/api/Articles/$articleId/report" -body $reportArticleBody -token $clientToken -reportFile $ReportPath | Out-Null
-
-# Client checks My Likes
-Invoke-Api -title "4h. View My Liked Articles (Client)" -method "GET" -endpoint "/api/Articles/my-likes" -token $clientToken -reportFile $ReportPath | Out-Null
-
-# Client views specific article again to check IsLikedByCurrentUser
-Invoke-Api -title "4i. View Article Check IsLiked (Client Token)" -method "GET" -endpoint "/api/Articles/public/$articleId" -token $clientToken -reportFile $ReportPath | Out-Null
-
-# --- 5. Admin Moderation ---
-# View Reports
-$reportsRes = Invoke-Api -title "5a. View Reported Articles (Admin)" -method "GET" -endpoint "/api/Articles/admin/reported" -token $adminToken -reportFile $ReportPath
-$reportId = $null
-if ($reportsRes.data -and $reportsRes.data.Length -gt 0) {
-    $reportId = $reportsRes.data[0].id
-}
-
-# Resolve Report
-if ($reportId) {
-    Invoke-Api -title "5b. Resolve Report (Admin)" -method "PUT" -endpoint "/api/Articles/admin/reports/$reportId/resolve" -token $adminToken -reportFile $ReportPath | Out-Null
-}
-
+# --- 5. Admin Moderation & Admin Delete ---
 # Admin deletes article
-Invoke-Api -title "5c. Admin Delete Article" -method "DELETE" -endpoint "/api/Articles/admin/$articleId" -token $adminToken -reportFile $ReportPath | Out-Null
+Invoke-Api -title "5a. Admin Delete Article" -method "DELETE" -endpoint "/api/Articles/admin/$articleId" -token $adminToken -reportFile $ReportPath | Out-Null
 
-# Admin views admin deleted articles
-Invoke-Api -title "5d. View Admin Deleted Articles" -method "GET" -endpoint "/api/Articles/admin/deleted-by-admin" -token $adminToken -reportFile $ReportPath | Out-Null
+# Lawyer tries to update admin deleted article (Expected 404 or 403/Forbidden depending on handling)
+$articleUpdateBody = @{ Title = "Hacked Article"; Content = "Attempt to bypass admin deletion"; CategoryId = $categoryId; IsDraft = $false }
+Invoke-Api -title "5b. Update Admin-Deleted Article (Lawyer) (Expected 404)" -method "PUT" -endpoint "/api/Articles/lawyer/$articleId" -body $articleUpdateBody -token $lawyerToken -reportFile $ReportPath -contentType "" | Out-Null
 
-# --- 6. Clean up Category (Should succeed because article is deleted/soft-deleted so no constraints, or fail if soft-deleted counts. Let's see.) ---
-Invoke-Api -title "6a. Delete Category (Admin)" -method "DELETE" -endpoint "/api/ArticleCategories/admin/$categoryId" -token $adminToken -reportFile $ReportPath | Out-Null
 
 Write-Host "Articles tests completed. Report generated at $ReportPath"

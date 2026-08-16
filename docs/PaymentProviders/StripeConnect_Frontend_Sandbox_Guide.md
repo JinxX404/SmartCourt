@@ -5,6 +5,7 @@
 > **Scope:** every route currently declared by a controller in `SmartCourt/Features/Payments`, including user, administrator, legacy-webhook, and Stripe-webhook routes.
 > **Implementation status:** this guide describes the implemented Stripe **test-sandbox** browser contract. The backend supplies publishable configuration, ConfirmationToken checkout, saved-card management, self-service Client retry, Connect onboarding, webhooks, and withdrawal history. Existing registration, email confirmation, account verification, and authorization remain unchanged.
 > **Audit coverage:** 23 controller routes, all 22 Payments request/response records, all 12 Payments/provider lifecycle enums, global success/error serialization, validators, idempotency, and internal concurrency behavior.
+> **Cross-slice activation update (2026-08-16):** no Payments route, DTO, Stripe call, or payment state changed. The prerequisite flow now atomically links the winning proposal conversation to `Case.ChatId` when the contract becomes active. A missing conversation is created automatically; a closed or ownership-mismatched conversation rejects and rolls back activation, so payment UI must continue to require a freshly loaded `ContractStatus.Active` before funding.
 
 ## 1. Stripe-Specific Setup & Sandbox Test Data
 
@@ -102,6 +103,9 @@ These IDs are useful for Swagger, PowerShell, or backend integration tests. A br
 2. **Bootstrap Stripe.** Call `GET /api/payments/config`, validate the test-only flags, and initialize Stripe.js with the returned publishable key.
 3. **Onboard the Lawyer before funds need release.** Call `GET /api/wallet/payout-account`. If `data` is null or incomplete, call `POST /api/wallet/payout-account/onboarding-link`, redirect to `data.url`, implement the configured return/refresh pages, and refetch until `status == "Enabled"` and all three readiness flags are true. Release cannot complete without an enabled payout account.
 4. **Prepare the milestone through the Milestones slice.** These are cross-slice prerequisites, not additional Payments-controller routes:
+   - First confirm the latest contract response has `status == "Active"`. Final contract acceptance now assigns the Lawyer and winning proposal conversation to the Case in the same transaction that activates the contract and supersedes competing proposals.
+   - After either party accepts the contract, invalidate/refetch both the contract query and the related Case query (`["case", legalCaseId]`). This makes the newly assigned `Case.chatId` available immediately and prevents payment controls from using stale pre-activation state.
+   - A missing winning conversation is self-healed during activation. A conversation with no messages is valid. If the existing winning conversation is closed or belongs to different Case/Client/Lawyer identifiers, activation returns an error and rolls back; keep funding controls disabled and show the activation error instead of calling a payment endpoint.
    - Both parties call `POST /api/milestones/{milestoneId}/approve` with the latest `If-Match` value from `MilestoneDto.version`; refetch between mutations.
    - For a `Standard` milestone, after contract activation the Lawyer calls `POST /api/milestones/{milestoneId}/ready-for-funding`, again with the latest `If-Match` value.
    - For an `Expense` milestone, both-party approval automatically sets `readyForFundingAt`; the separate ready-for-funding call is not used.
@@ -115,6 +119,8 @@ These IDs are useful for Swagger, PowerShell, or backend integration tests. A br
 For `Standard` milestones, all earlier `Standard` milestones must be settled/cancelled and no other active or unsettled `Standard` milestone/hold may exist in the contract. `Expense` milestones bypass that sequential gate, but still require an active contract, both approvals, readiness, and no pre-existing hold for the same milestone.
 
 ### 2.3 One-time Client payment flow (recommended)
+
+Before mounting the payment form, refetch the contract and require `status == "Active"`; do not infer activation only from both acceptance timestamps. If activation was rejected by the Case/chat invariant, the contract remains `Draft`, no competing proposal is superseded, and no payment session should be created. The funding service independently enforces the same contract-status gate and rejects non-active contracts.
 
 1. **Read configuration.** Call `GET /api/payments/config`. Require `providerCode == "StripeConnect"`, `sandboxOnly == true`, and a `pk_test_...` `publishableKey`.
 2. **Initialize Stripe Elements.** Use `loadStripe(publishableKey)` and create deferred Elements with `{ mode: "payment", amount: Math.round(milestoneAmount * 100), currency: "egp" }`. Mount `<PaymentElement/>`. The amount displayed by the browser is advisory; the backend always loads the milestone amount from its database.

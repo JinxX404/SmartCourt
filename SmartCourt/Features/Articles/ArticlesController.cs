@@ -94,6 +94,19 @@ public class ArticlesController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{id}/likers")]
+    [Authorize]
+    public async Task<ActionResult<PagedResponse<List<ArticleLikerDto>>>> GetArticleLikers(
+        Guid id,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await _articleService.GetArticleLikersAsync(id, pageNumber, pageSize, cancellationToken);
+        return Ok(response);
+    }
+
+
     // --- Lawyer Endpoints ---
 
     [HttpPost("lawyer")]

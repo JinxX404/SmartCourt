@@ -13,8 +13,8 @@ public sealed record ContractSummaryDto(
     string Title,
     string Currency,
     ContractStatus Status,
-    DateTime? ActivatedAt,
-    DateTime? CompletedAt);
+    DateTimeOffset? ActivatedAt,
+    DateTimeOffset? CompletedAt);
 
 public sealed record ContractMilestoneDto(
     Guid Id,
@@ -24,14 +24,14 @@ public sealed record ContractMilestoneDto(
     decimal Amount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? DurationDays,
-    DateTime? DueDate,
+    DateTimeOffset? DueDate,
     MilestoneStatus Status,
     MilestoneFundingStatus FundingStatus,
     Guid? EscrowHoldId,
-    DateTime? FundedAt,
-    DateTime? SubmittedAt,
-    DateTime? AutoAcceptEligibleAt,
-    DateTime? HoldExpiresAt,
+    DateTimeOffset? FundedAt,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? AutoAcceptEligibleAt,
+    DateTimeOffset? HoldExpiresAt,
     decimal? NetLawyerAmount,
     string Version,
     MilestoneType Type = MilestoneType.Standard,
@@ -46,8 +46,8 @@ public sealed record ContractPaymentDto(
     decimal NetAmount,
     string Currency,
     EscrowHoldStatus Status,
-    DateTime? HoldExpiresAt,
-    DateTime? SettledAt);
+    DateTimeOffset? HoldExpiresAt,
+    DateTimeOffset? SettledAt);
 
 public sealed record ContractDetailDto(
     Guid Id,
@@ -59,11 +59,11 @@ public sealed record ContractDetailDto(
     string TermsAndConditions,
     string Currency,
     ContractStatus Status,
-    DateTime? AcceptedByClientAt,
-    DateTime? AcceptedByLawyerAt,
-    DateTime? ActivatedAt,
-    DateTime? CompletedAt,
-    DateTime? TerminatedAt,
+    DateTimeOffset? AcceptedByClientAt,
+    DateTimeOffset? AcceptedByLawyerAt,
+    DateTimeOffset? ActivatedAt,
+    DateTimeOffset? CompletedAt,
+    DateTimeOffset? TerminatedAt,
     decimal CurrentMilestoneTotal,
     string Version,
     IReadOnlyList<ContractMilestoneDto> Milestones,
@@ -77,12 +77,12 @@ public sealed record ContractStateHistoryDto(
     string Trigger,
     Guid? ActorUserId,
     string? Reason,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);
 
 public sealed record ContractActionResultDto(
     Guid EntityId,
     string Status,
-    DateTime OccurredAt);
+    DateTimeOffset OccurredAt);
 
 public sealed record ContractSettlementSummaryDto(
     Guid ContractId,

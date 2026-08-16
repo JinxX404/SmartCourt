@@ -5,6 +5,6 @@ public record LoginResponse(
     string AccessToken,
     int ExpiresIn,
     string RefreshToken,
-    DateTime RefreshTokenExpiration
+    DateTimeOffset RefreshTokenExpiration
 );
 

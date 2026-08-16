@@ -64,8 +64,8 @@ namespace SmartCourt.Migrations
                     b.Property<string>("Governorate")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("LastLoginAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -290,8 +290,8 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -316,8 +316,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("ArticleId", "UserId");
 
@@ -335,8 +335,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ArticleId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsResolved")
                         .HasColumnType("bit");
@@ -367,8 +367,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ArticleId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -401,11 +401,11 @@ namespace SmartCourt.Migrations
                     b.Property<int>("ChunkCount")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -440,8 +440,8 @@ namespace SmartCourt.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ProcessingStartedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProcessingStartedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -449,8 +449,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("TotalPages")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Version")
                         .HasColumnType("int");
@@ -556,10 +556,11 @@ namespace SmartCourt.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
+                        .HasMaxLength(5000)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -592,8 +593,8 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("ViewCount")
                         .HasColumnType("int");
@@ -618,8 +619,8 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -639,8 +640,8 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -654,37 +655,37 @@ namespace SmartCourt.Migrations
                         {
                             Id = new Guid("d3b711e7-f1e1-450a-9d9f-3d12c5b96901"),
                             Code = "commercial",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             IsDeleted = false,
                             NameAr = "القانون التجاري",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
                         {
                             Id = new Guid("c2b711e7-f1e1-450a-9d9f-3d12c5b96902"),
                             Code = "civil",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             IsDeleted = false,
                             NameAr = "القانون المدني",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
                         {
                             Id = new Guid("b1b711e7-f1e1-450a-9d9f-3d12c5b96903"),
                             Code = "labor",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             IsDeleted = false,
                             NameAr = "نظام العمل",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         },
                         new
                         {
                             Id = new Guid("a0b711e7-f1e1-450a-9d9f-3d12c5b96904"),
                             Code = "criminal",
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
                             IsDeleted = false,
                             NameAr = "القانون الجنائي",
-                            UpdatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                            UpdatedAt = new DateTimeOffset(new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0))
                         });
                 });
 
@@ -748,8 +749,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -777,15 +778,15 @@ namespace SmartCourt.Migrations
                     b.Property<byte>("Status")
                         .HasColumnType("tinyint");
 
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -809,8 +810,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -824,8 +825,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("StoredFileId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -849,8 +850,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Complexity")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -867,8 +868,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Specialization")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -887,8 +888,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -924,8 +925,8 @@ namespace SmartCourt.Migrations
                     b.Property<decimal>("TotalScore")
                         .HasColumnType("decimal(5,4)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -946,8 +947,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
@@ -961,8 +962,8 @@ namespace SmartCourt.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1067,8 +1068,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("VerifiedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("VerifiedByAdminId")
                         .HasColumnType("nvarchar(max)");
@@ -1092,16 +1093,16 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ClientUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsClosed")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
-                    b.Property<DateTime?>("LastMessageAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("LastMessageAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1112,8 +1113,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ProposalId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1147,8 +1148,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("RelatedEntityId")
                         .HasColumnType("uniqueidentifier");
@@ -1185,8 +1186,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("MessageId")
                         .HasColumnType("uniqueidentifier");
@@ -1218,8 +1219,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid?>("CaseId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsDeleted")
                         .ValueGeneratedOnAdd()
@@ -1230,8 +1231,8 @@ namespace SmartCourt.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -1258,8 +1259,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ConversationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Role")
                         .HasColumnType("int");
@@ -1271,29 +1272,594 @@ namespace SmartCourt.Migrations
                     b.ToTable("AgentMessages", (string)null);
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationAvailabilitySlot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("EndAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("ReservedUntilUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset>("StartAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferingId", "StartAtUtc")
+                        .IsUnique()
+                        .HasFilter("[Status] <> 4");
+
+                    b.HasIndex("LawyerId", "StartAtUtc", "EndAtUtc");
+
+                    b.ToTable("ConsultationAvailabilitySlots", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationSlots_TimeRange", "[EndAtUtc] > [StartAtUtc]");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationBooking", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTimeOffset?>("CancelledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("DisputeReason")
+                        .HasMaxLength(2000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("EndAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("InclusionsJson")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("LawyerNetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("MatterSummary")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<string>("MeetingUrl")
+                        .HasMaxLength(1000)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("OfferingDescription")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("OfferingTitle")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("OfficeLocation")
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTimeOffset>("PaymentExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("PerformedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<Guid>("SlotId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Specialization")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTimeOffset>("StartAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferingId");
+
+                    b.HasIndex("SlotId")
+                        .IsUnique()
+                        .HasFilter("[Status] IN (0,1,2,3,6)");
+
+                    b.HasIndex("ClientId", "Status", "StartAtUtc");
+
+                    b.HasIndex("LawyerId", "Status", "StartAtUtc");
+
+                    b.ToTable("ConsultationBookings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationBookings_Amounts", "[GrossAmount] > 0 AND [GrossAmount] = [PlatformFeeAmount] + [LawyerNetAmount]");
+
+                            t.HasCheckConstraint("CK_ConsultationBookings_Currency", "[Currency] = 'EGP'");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationEscrowHold", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<Guid>("DepositTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset?>("FrozenAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("FundedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTimeOffset?>("HoldExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("HoldStartsAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal>("NetAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PlatformFeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTimeOffset?>("SettledAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookingId")
+                        .IsUnique();
+
+                    b.HasIndex("DepositTransactionId");
+
+                    b.ToTable("ConsultationEscrowHolds", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationEscrowHolds_Amounts", "[GrossAmount] > 0 AND [GrossAmount] = [PlatformFeeAmount] + [NetAmount]");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationLedgerEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid?>("PaymentTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("RunningBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TransactionType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.HasIndex("BookingId", "CreatedAt");
+
+                    b.ToTable("ConsultationLedgerEntries", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationLedgerEntries_Amount", "[Amount] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("DurationMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte>("Mode")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("OfficeLocation")
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Price")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<byte>("Specialization")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerId", "IsActive");
+
+                    b.HasIndex("Mode", "Specialization", "IsActive");
+
+                    b.ToTable("ConsultationOfferings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationOfferings_Currency", "[Currency] = 'EGP'");
+
+                            t.HasCheckConstraint("CK_ConsultationOfferings_Duration", "[DurationMinutes] BETWEEN 15 AND 240");
+
+                            t.HasCheckConstraint("CK_ConsultationOfferings_Price", "[Price] > 0 AND [Price] <= 100000");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOfferingInclusion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("OfferingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OfferingId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("ConsultationOfferingInclusions", (string)null);
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationPaymentTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BookingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(3)");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(1000)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("OperationType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("ProcessedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ProviderStatus")
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("ProviderTransactionId")
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("RelatedProviderTransactionId")
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<bool>("RequiresManualAction")
+                        .HasColumnType("bit");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderTransactionId");
+
+                    b.HasIndex("ProviderName", "IdempotencyKey")
+                        .IsUnique();
+
+                    b.HasIndex("BookingId", "OperationType", "Status");
+
+                    b.ToTable("ConsultationPaymentTransactions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ConsultationPaymentTransactions_Amount", "[Amount] > 0");
+
+                            t.HasCheckConstraint("CK_ConsultationPaymentTransactions_Currency", "[Currency] = 'EGP'");
+                        });
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.LawyerConsultationSettings", b =>
+                {
+                    b.Property<Guid>("LawyerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BufferMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MaximumAdvanceBookingDays")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MinimumBookingNoticeHours")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("LawyerId");
+
+                    b.ToTable("LawyerConsultationSettings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LawyerConsultationSettings_Advance", "[MaximumAdvanceBookingDays] BETWEEN 1 AND 365");
+
+                            t.HasCheckConstraint("CK_LawyerConsultationSettings_Buffer", "[BufferMinutes] BETWEEN 0 AND 120");
+
+                            t.HasCheckConstraint("CK_LawyerConsultationSettings_Notice", "[MinimumBookingNoticeHours] BETWEEN 0 AND 168");
+                        });
+                });
+
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.Contract", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("AcceptedByClientAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AcceptedByClientAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("AcceptedByLawyerAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AcceptedByLawyerAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("ActivatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("ClientUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -1321,8 +1887,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("TerminatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("TerminatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("TerminatedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1344,8 +1910,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1384,8 +1950,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("StoredFileId")
                         .HasColumnType("uniqueidentifier");
@@ -1410,8 +1976,12 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("AccessedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<string>("AccessReason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("AccessedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("ActorUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1456,8 +2026,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("NewStatus")
                         .HasColumnType("int");
@@ -1503,14 +2073,14 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Category")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1539,8 +2109,8 @@ namespace SmartCourt.Migrations
                     b.Property<int?>("ResolutionType")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ResolvedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("ResolvedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1560,8 +2130,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1604,8 +2174,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("DisputeId")
                         .HasColumnType("uniqueidentifier");
@@ -1640,8 +2210,8 @@ namespace SmartCourt.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("DisputeId")
                         .HasColumnType("uniqueidentifier");
@@ -1661,8 +2231,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("ResolutionType")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("ResolvedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("ResolvedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("ResolvedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1697,8 +2267,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1706,8 +2276,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("DisputeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("EndsAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("EndsAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1721,8 +2291,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime>("StartsAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1750,21 +2320,21 @@ namespace SmartCourt.Migrations
                     b.Property<int?>("AcceptanceSource")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("AcceptedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AcceptedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("AcceptedByClientAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AcceptedByClientAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("AcceptedByLawyerAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AcceptedByLawyerAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("Amount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("AutoAcceptEligibleAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("AutoAcceptEligibleAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("AutoAcceptJobId")
                         .HasMaxLength(100)
@@ -1774,8 +2344,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Deliverables")
                         .HasColumnType("nvarchar(max)")
@@ -1786,37 +2356,37 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("DueDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("DurationDays")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("FundedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("FundedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("HoldExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("HoldExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("HoldStartsAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("HoldStartsAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("OrderNumber")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ReadyForFundingAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ReadyForFundingAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("RefundedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(2000)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime?>("ReleasedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ReleasedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -1830,8 +2400,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("SubmissionVersion")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("SubmittedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -1844,8 +2414,8 @@ namespace SmartCourt.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -1886,11 +2456,11 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("DecidedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("DecidedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("DecidedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -1908,8 +2478,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ProposedDueDate")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProposedDueDate")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("ProposedDurationDays")
                         .HasColumnType("int");
@@ -1963,8 +2533,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("MilestoneId")
                         .HasColumnType("uniqueidentifier");
@@ -2019,8 +2589,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("SubmittedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("SubmittedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("SubmittedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2050,8 +2620,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("MilestoneSubmissionId")
                         .HasColumnType("uniqueidentifier");
@@ -2085,19 +2655,19 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("DataJson")
                         .HasMaxLength(4000)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(4000)");
 
-                    b.Property<DateTime?>("ExpiresAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ExpiresAtUtc")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("ReadAtUtc")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ReadAtUtc")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("RecipientUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2166,8 +2736,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ClientUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("IsLive")
                         .HasColumnType("bit");
@@ -2190,8 +2760,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2215,8 +2785,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -2251,8 +2821,8 @@ namespace SmartCourt.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2279,27 +2849,27 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("EscrowAccountId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("FrozenAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("FrozenAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime>("FundedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("FundedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<decimal>("GrossAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime?>("HoldExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("HoldExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("HoldStartsAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("HoldStartsAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("MilestoneId")
                         .HasColumnType("uniqueidentifier");
@@ -2327,8 +2897,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<DateTime?>("SettledAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("SettlementType")
                         .HasColumnType("int");
@@ -2336,8 +2906,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2379,8 +2949,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2464,8 +3034,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(2)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("DefaultCurrency")
                         .IsRequired()
@@ -2489,8 +3059,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(100)");
 
-                    b.Property<DateTime?>("LastSynchronizedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("LastSynchronizedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2527,8 +3097,8 @@ namespace SmartCourt.Migrations
                     b.Property<bool>("TransfersEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2558,8 +3128,8 @@ namespace SmartCourt.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -2582,8 +3152,8 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2612,8 +3182,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ContractId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Currency")
                         .IsRequired()
@@ -2637,20 +3207,20 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime?>("ManualActionRequiredAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ManualActionRequiredAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("MilestoneId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("NextRetryAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("NextRetryAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("OperationType")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<long?>("ProviderAmountMinor")
                         .HasColumnType("bigint");
@@ -2705,8 +3275,8 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2779,8 +3349,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid?>("PaymentTransactionId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("ProcessingError")
                         .HasMaxLength(1000)
@@ -2797,8 +3367,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime>("ReceivedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -2835,8 +3405,8 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("CreatedByUserId")
                         .HasColumnType("uniqueidentifier");
@@ -2925,11 +3495,11 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ManualActionRequiredAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ManualActionRequiredAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("ProviderAccountId")
                         .HasMaxLength(200)
@@ -2954,8 +3524,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(200)");
 
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<bool>("RequiresManualAction")
                         .ValueGeneratedOnAdd()
@@ -3006,22 +3576,22 @@ namespace SmartCourt.Migrations
                     b.Property<Guid>("ClientUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("ClosedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("ClosedByUserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("DecisionReason")
                         .HasMaxLength(1000)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("LawyerUserId")
                         .HasColumnType("uniqueidentifier");
@@ -3035,15 +3605,15 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime?>("RespondedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("RespondedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTimeOffset>("UpdatedAt")
                         .IsConcurrencyToken()
-                        .HasColumnType("datetime2");
+                        .HasColumnType("datetimeoffset");
 
                     b.HasKey("Id");
 
@@ -3123,14 +3693,14 @@ namespace SmartCourt.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("CompletedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("Key")
                         .IsRequired()
@@ -3220,14 +3790,14 @@ namespace SmartCourt.Migrations
                     b.Property<int>("Attempts")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("AvailableAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("AvailableAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid>("CorrelationId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<string>("EventType")
                         .IsRequired()
@@ -3243,8 +3813,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<DateTime?>("LeaseExpiresAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<Guid?>("LeaseId")
                         .HasColumnType("uniqueidentifier");
@@ -3255,8 +3825,8 @@ namespace SmartCourt.Migrations
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime?>("ProcessedAt")
-                        .HasColumnType("datetime2");
+                    b.Property<DateTimeOffset?>("ProcessedAt")
+                        .HasColumnType("datetimeoffset");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -3298,18 +3868,18 @@ namespace SmartCourt.Migrations
 
                             SqlServerPropertyBuilderExtensions.UseIdentityColumn(b1.Property<int>("Id"));
 
-                            b1.Property<DateTime>("CreatedOn")
-                                .HasColumnType("datetime2");
+                            b1.Property<DateTimeOffset>("CreatedOn")
+                                .HasColumnType("datetimeoffset");
 
-                            b1.Property<DateTime>("ExpiresOn")
-                                .HasColumnType("datetime2");
+                            b1.Property<DateTimeOffset>("ExpiresOn")
+                                .HasColumnType("datetimeoffset");
 
                             b1.Property<string>("HashedToken")
                                 .IsRequired()
                                 .HasColumnType("nvarchar(max)");
 
-                            b1.Property<DateTime?>("RevokedOn")
-                                .HasColumnType("datetime2");
+                            b1.Property<DateTimeOffset?>("RevokedOn")
+                                .HasColumnType("datetimeoffset");
 
                             b1.HasKey("UserId", "Id");
 
@@ -3718,6 +4288,117 @@ namespace SmartCourt.Migrations
                         .IsRequired();
 
                     b.Navigation("Conversation");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationAvailabilitySlot", b =>
+                {
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", "Offering")
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Offering");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationBooking", b =>
+                {
+                    b.HasOne("ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", null)
+                        .WithMany()
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationAvailabilitySlot", null)
+                        .WithMany()
+                        .HasForeignKey("SlotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationEscrowHold", b =>
+                {
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationPaymentTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("DepositTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationLedgerEntry", b =>
+                {
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationPaymentTransaction", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", b =>
+                {
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOfferingInclusion", b =>
+                {
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", "Offering")
+                        .WithMany("Inclusions")
+                        .HasForeignKey("OfferingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Offering");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationPaymentTransaction", b =>
+                {
+                    b.HasOne("SmartCourt.Features.Consultations.Domain.Entities.ConsultationBooking", null)
+                        .WithMany()
+                        .HasForeignKey("BookingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.LawyerConsultationSettings", b =>
+                {
+                    b.HasOne("SmartCourt.Common.Entities.LawyerProfile", null)
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SmartCourt.Features.Contracts.Entities.Contract", b =>
@@ -4242,6 +4923,11 @@ namespace SmartCourt.Migrations
             modelBuilder.Entity("SmartCourt.Features.ChatAgent.Entities.AgentConversation", b =>
                 {
                     b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Consultations.Domain.Entities.ConsultationOffering", b =>
+                {
+                    b.Navigation("Inclusions");
                 });
 #pragma warning restore 612, 618
         }

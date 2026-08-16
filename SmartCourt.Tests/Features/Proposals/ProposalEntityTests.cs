@@ -61,6 +61,29 @@ public sealed class ProposalEntityTests
     }
 
     [Fact]
+    public void UpdateMessage_ChangesPendingProposalMessageAndTimestamp()
+    {
+        var proposal = CreateProposal();
+        var updatedAt = proposal.CreatedAt.AddMinutes(15);
+
+        proposal.UpdateMessage("  Updated proposal message.  ", updatedAt);
+
+        Assert.Equal("Updated proposal message.", proposal.Message);
+        Assert.Equal(updatedAt, proposal.UpdatedAt);
+    }
+
+    [Fact]
+    public void UpdateMessage_FailsWhenProposalIsNoLongerPending()
+    {
+        var proposal = CreateProposal();
+        proposal.Accept(proposal.CreatedAt.AddMinutes(10));
+
+        Assert.Throws<BusinessException>(() => proposal.UpdateMessage(
+            "This update is too late.",
+            proposal.CreatedAt.AddMinutes(20)));
+    }
+
+    [Fact]
     public void Cancel_ReleasesPendingProposalWithAuditDetails()
     {
         var proposal = CreateProposal();

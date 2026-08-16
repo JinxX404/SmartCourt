@@ -185,7 +185,7 @@ public sealed class CaseReviewServiceTests
             Id = Guid.NewGuid(),
             CaseId = caseId,
             IsLatest = true,
-            CreatedAt = DateTime.UtcNow.AddHours(-1)
+            CreatedAt = DateTimeOffset.UtcNow.AddHours(-1)
         };
         dbContext.CaseReviewReports.Add(oldReport);
 

@@ -78,7 +78,7 @@ public sealed class SendChatAttachmentsHandler(
             inspectedFiles.Add((file, inspection));
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var message = ChatMessage.CreateUserAttachmentMessage(
             Guid.NewGuid(),
             conversation.Id,

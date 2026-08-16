@@ -165,7 +165,7 @@ public sealed class AdminWalletAdjustmentService(
                 "رصيد حساب الضمان المرتبط بالعقد غير متطابق ولا يسمح بإجراء تصحيح إداري.");
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var correlationId = Guid.NewGuid();
         var adjustmentId = Guid.NewGuid();
         var ledgerEntryId = Guid.NewGuid();

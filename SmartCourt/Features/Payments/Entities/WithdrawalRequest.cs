@@ -14,7 +14,7 @@ public sealed class WithdrawalRequest
         Guid lawyerUserId,
         decimal amount,
         string idempotencyKey,
-        DateTime requestedAt)
+        DateTimeOffset requestedAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         LawyerUserId = EntityGuard.NotEmpty(
@@ -42,9 +42,9 @@ public sealed class WithdrawalRequest
     public string? ProviderCurrency { get; internal set; }
     public string? FailureReason { get; internal set; }
     public bool RequiresManualAction { get; internal set; }
-    public DateTime? ManualActionRequiredAt { get; internal set; }
-    public DateTime RequestedAt { get; internal set; }
-    public DateTime? ProcessedAt { get; internal set; }
+    public DateTimeOffset? ManualActionRequiredAt { get; internal set; }
+    public DateTimeOffset RequestedAt { get; internal set; }
+    public DateTimeOffset? ProcessedAt { get; internal set; }
     public string IdempotencyKey { get; internal set; } = string.Empty;
     public byte[] RowVersion { get; internal set; } = [];
 }

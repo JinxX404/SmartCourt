@@ -54,14 +54,14 @@ public class ContractApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية عقارية", Description = "نزاع ملكية عقارية", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية عقارية", Description = "نزاع ملكية عقارية", City = "القاهرة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
 
         var proposal = new Proposal(
             proposalId,
             legalCaseId,
             clientId,
             lawyerId,
-            DateTime.UtcNow)
+            DateTimeOffset.UtcNow)
         {
             Status = ProposalStatus.Accepted
         };
@@ -251,7 +251,7 @@ public class ContractApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory
         var contractId = created!.Data!.Id;
 
         // 2. Add 1 milestone & approve by both so contract can activate upon signature
-        var mReq = new AddMilestoneRequest("المرحلة 1", "وصف المرحلة", 1, 1000m, 5, DateTime.UtcNow.AddDays(5));
+        var mReq = new AddMilestoneRequest("المرحلة 1", "وصف المرحلة", 1, 1000m, 5, DateTimeOffset.UtcNow.AddDays(5));
         var addMResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", mReq);
         Assert.Equal(HttpStatusCode.Created, addMResp.StatusCode);
         var mDto = (await addMResp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;

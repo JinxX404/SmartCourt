@@ -8,6 +8,6 @@ public sealed record NotificationDto(
     string Body,
     string? ActionUrl,
     IReadOnlyDictionary<string, string>? Data,
-    DateTime CreatedAtUtc,
-    DateTime? ReadAtUtc,
-    DateTime? ExpiresAtUtc);
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset? ReadAtUtc,
+    DateTimeOffset? ExpiresAtUtc);

@@ -44,7 +44,7 @@ public sealed class PaymentReconciliationService(
             return JobExecutionResult.NoOp("PaymentTransactionNotFound");
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (paymentTransaction.Status == PaymentTransactionStatus.Failed
             && paymentTransaction.OperationType
                 == PaymentOperationType.Release
@@ -135,7 +135,7 @@ public sealed class PaymentReconciliationService(
         ReconcilePendingProviderTransactionsAsync(
             CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         var transactionIds = await dbContext.PaymentTransactions
             .AsNoTracking()
             .Where(item =>
@@ -316,7 +316,7 @@ public sealed class PaymentReconciliationService(
             return JobExecutionResult.NoOp("ProviderOutcomeStillProcessing");
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         if (result.Outcome == ProviderOperationOutcome.Failed)
         {
             bool? releaseRetryScheduled = null;
@@ -421,7 +421,7 @@ public sealed class PaymentReconciliationService(
         Exception? exception,
         CancellationToken cancellationToken)
     {
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow();
         paymentTransaction.RequiresManualAction = true;
         paymentTransaction.ManualActionRequiredAt = now;
         paymentTransaction.NextRetryAt = null;
@@ -442,7 +442,7 @@ public sealed class PaymentReconciliationService(
     private bool HasExceededProcessingSla(
         PaymentTransaction paymentTransaction)
     {
-        var cutoff = timeProvider.GetUtcNow().UtcDateTime.AddMinutes(
+        var cutoff = timeProvider.GetUtcNow().AddMinutes(
             -paymentProviderOptions.Value.ProcessingSlaMinutes);
         return paymentTransaction.CreatedAt <= cutoff;
     }
@@ -484,6 +484,6 @@ public sealed class PaymentReconciliationService(
         transaction.ProviderObjectType = result.ProviderObjectType;
         transaction.ProviderAmountMinor = result.ProviderMoney?.AmountMinor;
         transaction.ProviderCurrency = result.ProviderMoney?.Currency;
-        transaction.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+        transaction.UpdatedAt = timeProvider.GetUtcNow();
     }
 }

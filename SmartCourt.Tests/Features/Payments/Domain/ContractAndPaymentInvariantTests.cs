@@ -169,7 +169,7 @@ public sealed class ContractAndPaymentInvariantTests
         Assert.Equal("BothPartiesAccepted", history.Trigger);
         Assert.NotEqual(Guid.Empty, history.ActorUserId);
         Assert.Equal("Current terms accepted.", history.Reason);
-        Assert.Equal(DateTimeKind.Utc, history.CreatedAt.Kind);
+        Assert.Equal(TimeSpan.Zero, history.CreatedAt.Offset);
 
         Assert.Throws<BusinessException>(() =>
             ContractStateHistoryFactory.Create(
@@ -200,7 +200,7 @@ public sealed class ContractAndPaymentInvariantTests
 
         Assert.Equal(MilestoneStatus.Draft, history.PreviousStatus);
         Assert.Equal(MilestoneStatus.AwaitingFunding, history.NewStatus);
-        Assert.Equal(DateTimeKind.Utc, history.CreatedAt.Kind);
+        Assert.Equal(TimeSpan.Zero, history.CreatedAt.Offset);
 
         Assert.Throws<BusinessException>(() =>
             MilestoneStateHistoryFactory.Create(

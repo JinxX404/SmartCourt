@@ -6,6 +6,7 @@ using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.ChatAgent.Entities;
+using SmartCourt.Features.Consultations.Domain.Entities;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Milestones.Entities;
@@ -38,6 +39,8 @@ public class ApplicationDbContext
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory),
         typeof(ContractRating)
+        typeof(MilestoneStateHistory),
+        typeof(ConsultationLedgerEntry)
     ];
 
     private static readonly HashSet<Type> ContractPaymentTypes =
@@ -87,6 +90,19 @@ public class ApplicationDbContext
         base.OnModelCreating(builder);
 
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
+        {
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                var properties = entityType.GetProperties().Where(p => p.ClrType == typeof(DateTimeOffset)
+                                                                    || p.ClrType == typeof(DateTimeOffset?));
+                foreach (var property in properties)
+                {
+                    property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.DateTimeOffsetToBinaryConverter());
+                }
+            }
+        }
     }
 
     public DbSet<StoredFile> StoredFiles => Set<StoredFile>();
@@ -155,6 +171,14 @@ public class ApplicationDbContext
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<ContractRating> ContractRatings => Set<ContractRating>();
+    public DbSet<LawyerConsultationSettings> LawyerConsultationSettings => Set<LawyerConsultationSettings>();
+    public DbSet<ConsultationOffering> ConsultationOfferings => Set<ConsultationOffering>();
+    public DbSet<ConsultationOfferingInclusion> ConsultationOfferingInclusions => Set<ConsultationOfferingInclusion>();
+    public DbSet<ConsultationAvailabilitySlot> ConsultationAvailabilitySlots => Set<ConsultationAvailabilitySlot>();
+    public DbSet<ConsultationBooking> ConsultationBookings => Set<ConsultationBooking>();
+    public DbSet<ConsultationPaymentTransaction> ConsultationPaymentTransactions => Set<ConsultationPaymentTransaction>();
+    public DbSet<ConsultationEscrowHold> ConsultationEscrowHolds => Set<ConsultationEscrowHold>();
+    public DbSet<ConsultationLedgerEntry> ConsultationLedgerEntries => Set<ConsultationLedgerEntry>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
@@ -220,7 +244,7 @@ public class ApplicationDbContext
 
     private void ApplyLegacyAuditMetadata()
     {
-        var utcNow = _timeProvider.GetUtcNow().UtcDateTime;
+        var utcNow = _timeProvider.GetUtcNow();
         var actor = _currentUserService?.UserId?.ToString() ?? "System";
 
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
@@ -252,16 +276,16 @@ public class ApplicationDbContext
             foreach (var property in entry.Properties)
             {
                 var propertyType = property.Metadata.ClrType;
-                var isTimestamp = propertyType == typeof(DateTime)
-                    || propertyType == typeof(DateTime?);
+                var isTimestamp = propertyType == typeof(DateTimeOffset)
+                    || propertyType == typeof(DateTimeOffset?);
                 if (!isTimestamp
                     || entry.State == EntityState.Modified && !property.IsModified
-                    || property.CurrentValue is not DateTime value)
+                    || property.CurrentValue is not DateTimeOffset value)
                 {
                     continue;
                 }
 
-                if (value.Kind != DateTimeKind.Utc)
+                if (value.Offset != TimeSpan.Zero)
                 {
                     throw new BusinessException(
                         $"يجب أن تكون قيمة {entry.Metadata.ClrType.Name}.{property.Metadata.Name} بالتوقيت العالمي المنسق.");

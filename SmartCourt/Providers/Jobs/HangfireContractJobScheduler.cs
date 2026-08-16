@@ -19,7 +19,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         Guid milestoneId,
         Guid escrowHoldId,
         int submissionVersion,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         EnsureId(milestoneId, nameof(milestoneId));
@@ -27,7 +27,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (submissionVersion <= 0)
         {
             throw new BusinessException(
-                "يجب أن يكون إصدار تسليم المرحلة أكبر من صفر.");
+                "??? ?? ???? ????? ????? ??????? ???? ?? ???.");
         }
 
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -42,7 +42,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
 
     public async Task<string> ScheduleReleaseExpiredHoldAsync(
         Guid escrowHoldId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         EnsureId(escrowHoldId, nameof(escrowHoldId));
@@ -56,7 +56,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
 
     public async Task<string> ScheduleProviderReconciliationAsync(
         Guid paymentTransactionId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         EnsureId(paymentTransactionId, nameof(paymentTransactionId));
@@ -70,7 +70,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
 
     public async Task<string> ScheduleProviderRetryAsync(
         Guid paymentTransactionId,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         EnsureId(paymentTransactionId, nameof(paymentTransactionId));
@@ -83,7 +83,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
     }
 
     public async Task<string> ScheduleSchedulingReconciliationAsync(
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -94,7 +94,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
     }
 
     public async Task<string> SchedulePendingWalletProjectionReconciliationAsync(
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -106,13 +106,13 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
 
     public async Task<string> ScheduleOutboxDispatchAsync(
         int batchSize,
-        DateTime runAtUtc,
+        DateTimeOffset runAtUtc,
         CancellationToken cancellationToken)
     {
         if (batchSize <= 0)
         {
             throw new BusinessException(
-                "يجب أن يكون حجم دفعة إرسال أحداث صندوق الصادر أكبر من صفر.");
+                "??? ?? ???? ??? ???? ????? ????? ????? ?????? ???? ?? ???.");
         }
 
         return await _backgroundJobs.ScheduleAsync<IContractJobService>(
@@ -123,19 +123,14 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
             cancellationToken);
     }
 
-    private static DateTimeOffset EnsureUtc(DateTime runAtUtc)
+    private static DateTimeOffset EnsureUtc(DateTimeOffset runAtUtc)
     {
-        var utcDate = runAtUtc.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(runAtUtc, DateTimeKind.Utc)
-            : runAtUtc;
-
-        if (utcDate.Kind != DateTimeKind.Utc)
+        if (runAtUtc.Offset != TimeSpan.Zero)
         {
             throw new BusinessException(
-                "يجب جدولة مهام العقود باستخدام توقيت عالمي منسق.");
+                "??? ????? ???? ?????? ???????? ????? ????? ????.");
         }
-
-        return new DateTimeOffset(utcDate);
+        return runAtUtc;
     }
 
     private static void EnsureId(Guid id, string parameterName)
@@ -143,7 +138,7 @@ public sealed class HangfireContractJobScheduler : IContractJobScheduler
         if (id == Guid.Empty)
         {
             throw new BusinessException(
-                $"يجب ألا يكون المعرّف {parameterName} فارغًا.");
+                $"??? ??? ???? ??????? {parameterName} ??????.");
         }
     }
 }

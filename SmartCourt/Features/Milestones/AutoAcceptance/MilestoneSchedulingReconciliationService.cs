@@ -85,7 +85,7 @@ public sealed class MilestoneSchedulingReconciliationService
     private async Task<int> ReconcileExpiredHoldsAsync(
         CancellationToken cancellationToken)
     {
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var milestones = await _dbContext.Milestones
             .AsNoTracking()
             .Where(milestone =>
@@ -124,7 +124,7 @@ public sealed class MilestoneSchedulingReconciliationService
     private async Task<int> ReconcileExpenseReleasesAsync(
         CancellationToken cancellationToken)
     {
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var milestones = await _dbContext.Milestones
             .AsNoTracking()
             .Where(milestone =>

@@ -5,6 +5,8 @@ public sealed record CreateProposalRequest(
     Guid LawyerUserId,
     string Message);
 
+public sealed record UpdateProposalRequest(string Message);
+
 public sealed record RejectProposalRequest(string Reason);
 
 public sealed record CancelProposalRequest(string Reason);

@@ -10,7 +10,7 @@ public sealed record DisputeEvidenceDto(
     Guid UploadedByUserId,
     Guid? StoredFileId,
     string? Content,
-    DateTime CreatedAt);
+    DateTimeOffset CreatedAt);
 
 public sealed record DisputePermittedActionsDto(
     bool CanAddEvidence,
@@ -39,10 +39,10 @@ public sealed record DisputeDto(
     DisputeRequestedOutcome RequestedOutcome,
     DisputeResolutionType? ResolutionType,
     string? ResolutionSummary,
-    DateTime? ResolvedAt,
-    DateTime? ClosedAt,
-    DateTime CreatedAt,
-    DateTime UpdatedAt,
+    DateTimeOffset? ResolvedAt,
+    DateTimeOffset? ClosedAt,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
     IReadOnlyList<DisputeEvidenceDto> Evidence,
     DisputeSettlementDto? Settlement,
     DisputePermittedActionsDto PermittedActions);
@@ -50,6 +50,6 @@ public sealed record DisputeDto(
 public sealed record DisputeActionResultDto(
     Guid DisputeId,
     string Status,
-    DateTime OccurredAt);
+    DateTimeOffset OccurredAt);
 
 public sealed record DisputeListResult(PagedResult<DisputeDto> Page);

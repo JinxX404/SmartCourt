@@ -51,6 +51,14 @@ public sealed class WalletService(
                 account => (decimal?)account.TotalReleased,
                 cancellationToken)
             ?? 0m;
+        totalReleased += await dbContext.ConsultationPaymentTransactions
+            .Where(transaction => transaction.OperationType == PaymentOperationType.Release
+                && transaction.Status == PaymentTransactionStatus.Completed
+                && dbContext.ConsultationBookings.Any(booking =>
+                    booking.Id == transaction.BookingId
+                    && booking.LawyerId == lawyerUserId))
+            .SumAsync(transaction => (decimal?)transaction.Amount, cancellationToken)
+            ?? 0m;
 
         return new WalletDto(
             lawyerUserId,
@@ -904,8 +912,8 @@ public sealed class WalletService(
             : (long)allocated;
     }
 
-    private DateTime UtcNow =>
-        timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow =>
+        timeProvider.GetUtcNow();
 
     private sealed record WithdrawalFailureResponse(string Message);
 }

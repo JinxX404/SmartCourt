@@ -49,14 +49,14 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية مالية", Description = "مطالبة مستحقات مالية", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية مالية", Description = "مطالبة مستحقات مالية", City = "القاهرة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
 
         var proposal = new Proposal(
             proposalId,
             legalCaseId,
             clientId,
             lawyerId,
-            DateTime.UtcNow)
+            DateTimeOffset.UtcNow)
         {
             Status = ProposalStatus.Accepted
         };
@@ -73,7 +73,7 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         var contractId = created!.Data!.Id;
 
         // 2. Add 1 milestone in draft
-        var m1Req = new AddMilestoneRequest("المرحلة الأولى: دراسة القضية", "تحليل المذكرات", 1, 1000m, 7, DateTime.UtcNow.AddDays(7));
+        var m1Req = new AddMilestoneRequest("المرحلة الأولى: دراسة القضية", "تحليل المذكرات", 1, 1000m, 7, DateTimeOffset.UtcNow.AddDays(7));
         var addMResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", m1Req);
         Assert.Equal(HttpStatusCode.Created, addMResp.StatusCode);
         var m1Dto = (await addMResp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;
@@ -132,8 +132,8 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية مسودة", Description = "وصف القضية", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
-        var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTime.UtcNow) { Status = ProposalStatus.Accepted };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية مسودة", Description = "وصف القضية", City = "القاهرة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
+        var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTimeOffset.UtcNow) { Status = ProposalStatus.Accepted };
         db.Cases.Add(caseEntity);
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
@@ -144,7 +144,7 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<ContractDetailDto>>(JsonOptions);
         var contractId = created!.Data!.Id;
 
-        var addMilestoneReq = new AddMilestoneRequest("المرحلة 1", "إعداد الصحيفة", 1, 5000m, 10, DateTime.UtcNow.AddDays(10));
+        var addMilestoneReq = new AddMilestoneRequest("المرحلة 1", "إعداد الصحيفة", 1, 5000m, 10, DateTimeOffset.UtcNow.AddDays(10));
         var addResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", addMilestoneReq);
 
         Assert.Equal(HttpStatusCode.Created, addResp.StatusCode);
@@ -161,7 +161,7 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         await _factory.SeedUserAsync(lawyerId, $"lawyer_{lawyerId:N}@test.com", "Lawyer");
         var lawyerClient = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
 
-        var invalidReq = new AddMilestoneRequest("", "وصف", 1, -500m, -1, DateTime.UtcNow.AddDays(-5));
+        var invalidReq = new AddMilestoneRequest("", "وصف", 1, -500m, -1, DateTimeOffset.UtcNow.AddDays(-5));
         var response = await lawyerClient.PostAsJsonAsync($"/api/contracts/{Guid.NewGuid()}/milestones", invalidReq);
 
         Assert.True(response.StatusCode == HttpStatusCode.BadRequest || response.StatusCode == HttpStatusCode.UnprocessableEntity);
@@ -313,7 +313,7 @@ public class MilestoneApiE2ETests : IClassFixture<SmartCourtWebApplicationFactor
         var crReq = new CreateMilestoneChangeRequest(
             ProposedDescription: "وصف مرحلة ممتدة",
             ProposedDurationDays: 14,
-            ProposedDueDate: DateTime.UtcNow.AddDays(14),
+            ProposedDueDate: DateTimeOffset.UtcNow.AddDays(14),
             Reason: "طلب تمديد الوقت لظروف إضافية.");
 
         var crMsg = new HttpRequestMessage(HttpMethod.Post, $"/api/milestones/{m1.Id}/change-requests")

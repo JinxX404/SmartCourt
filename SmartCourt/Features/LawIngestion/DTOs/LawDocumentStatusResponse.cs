@@ -13,5 +13,5 @@ public class LawDocumentStatusResponse
     public int TotalPages { get; set; }
     public int ChunkCount { get; set; }
     public int Version { get; set; }
-    public DateTime? CompletedAt { get; set; }
+    public DateTimeOffset? CompletedAt { get; set; }
 }

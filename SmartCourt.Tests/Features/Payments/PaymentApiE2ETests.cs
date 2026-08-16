@@ -66,8 +66,8 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية دفع", Description = "نزاع مالي", City = "القاهرة", SubmittedAt = DateTime.UtcNow, Status = CaseStatus.Matched };
-        var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTime.UtcNow) { Status = ProposalStatus.Accepted };
+        var caseEntity = new SmartCourt.Entities.Case { Id = legalCaseId, ClientId = clientId, Title = "قضية دفع", Description = "نزاع مالي", City = "القاهرة", SubmittedAt = DateTimeOffset.UtcNow, Status = CaseStatus.Matched };
+        var proposal = new Proposal(proposalId, legalCaseId, clientId, lawyerId, DateTimeOffset.UtcNow) { Status = ProposalStatus.Accepted };
         db.Cases.Add(caseEntity);
         db.Proposals.Add(proposal);
         await db.SaveChangesAsync();
@@ -78,7 +78,7 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         var created = await createResp.Content.ReadFromJsonAsync<ApiResponse<ContractDetailDto>>(JsonOptions);
         var contractId = created!.Data!.Id;
 
-        var mReq = new AddMilestoneRequest("المرحلة التمهيدية", "تفاصيل المرحلة", 1, 2000m, 14, DateTime.UtcNow.AddDays(14));
+        var mReq = new AddMilestoneRequest("المرحلة التمهيدية", "تفاصيل المرحلة", 1, 2000m, 14, DateTimeOffset.UtcNow.AddDays(14));
         var mAddResp = await lawyerClient.PostAsJsonAsync($"/api/contracts/{contractId}/milestones", mReq);
         Assert.Equal(HttpStatusCode.Created, mAddResp.StatusCode);
         var m1Dto = (await mAddResp.Content.ReadFromJsonAsync<ApiResponse<MilestoneDto>>(JsonOptions))!.Data!;
@@ -266,7 +266,7 @@ public class PaymentApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
             Status: PaymentTransactionStatus.Completed,
             Amount: 2000m,
             Currency: "EGP",
-            ProcessedAt: DateTime.UtcNow,
+            ProcessedAt: DateTimeOffset.UtcNow,
             FailureReason: null);
 
         var msg = new HttpRequestMessage(HttpMethod.Post, "/api/payments/webhook")

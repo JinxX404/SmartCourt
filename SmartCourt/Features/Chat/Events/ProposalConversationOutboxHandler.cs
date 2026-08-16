@@ -49,9 +49,7 @@ public sealed class ProposalConversationOutboxHandler(
             return;
         }
 
-        var occurredAt = DateTime.SpecifyKind(
-            message.CreatedAt,
-            DateTimeKind.Utc);
+        var occurredAt = message.CreatedAt;
         var content = message.EventType == ContractPaymentEventTypes.ProposalSuperseded
             ? "This negotiation was closed because another contract was activated for the case."
             : string.IsNullOrWhiteSpace(payload.Reason)

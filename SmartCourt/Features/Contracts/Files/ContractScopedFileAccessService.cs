@@ -115,8 +115,9 @@ public sealed class ContractScopedFileAccessService(
                 storedFileId,
                 purpose,
                 relatedEntityId,
+                "قراءة الملف",
                 moderatorAccess,
-                now.UtcDateTime));
+                now));
         await dbContext.SaveChangesAsync(cancellationToken);
         return new ContractFileReadAccess(
             storedFileId,

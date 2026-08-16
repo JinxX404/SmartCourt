@@ -20,8 +20,8 @@ public sealed class DisputeResolution
         decimal platformFeeAmount,
         string summary,
         Guid resolvedByUserId,
-        DateTime resolvedAt,
-        DateTime createdAt)
+        DateTimeOffset resolvedAt,
+        DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         DisputeId = EntityGuard.NotEmpty(disputeId, nameof(disputeId));
@@ -62,6 +62,6 @@ public sealed class DisputeResolution
     public decimal PlatformFeeAmount { get; private set; }
     public string Summary { get; private set; } = string.Empty;
     public Guid ResolvedByUserId { get; private set; }
-    public DateTime ResolvedAt { get; private set; }
-    public DateTime CreatedAt { get; private set; }
+    public DateTimeOffset ResolvedAt { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 }

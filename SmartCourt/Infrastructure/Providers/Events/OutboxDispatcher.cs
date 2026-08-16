@@ -98,7 +98,7 @@ public sealed class OutboxDispatcher : IOutboxDispatcher
                 {
                     lease.Message.MarkProcessed(
                         lease.LeaseId,
-                        _timeProvider.GetUtcNow().UtcDateTime);
+                        _timeProvider.GetUtcNow());
                     await _dbContext.SaveChangesAsync(cancellationToken);
                     return true;
                 });
@@ -113,7 +113,7 @@ public sealed class OutboxDispatcher : IOutboxDispatcher
                 error = error[..MaximumErrorLength];
             }
 
-            var now = _timeProvider.GetUtcNow().UtcDateTime;
+            var now = _timeProvider.GetUtcNow();
             var delaySeconds = Math.Min(
                 3_600,
                 Math.Pow(2, Math.Min(lease.Message.Attempts - 1, 10)));
@@ -134,7 +134,7 @@ public sealed class OutboxDispatcher : IOutboxDispatcher
             await _dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable,
                 cancellationToken);
-        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        var now = _timeProvider.GetUtcNow();
         var query = _dbContext.OutboxMessages
             .Where(message =>
                 (message.Status == OutboxStatus.Pending

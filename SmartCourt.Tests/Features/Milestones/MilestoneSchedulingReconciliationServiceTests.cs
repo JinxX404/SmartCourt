@@ -150,15 +150,15 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
     private sealed class RecordingScheduler : IContractJobScheduler
     {
-        public List<(Guid MilestoneId, Guid HoldId, int Version, DateTime RunAt)>
+        public List<(Guid MilestoneId, Guid HoldId, int Version, DateTimeOffset RunAt)>
             AutoAcceptCalls { get; } = [];
-        public List<(Guid HoldId, DateTime RunAt)> ReleaseCalls { get; } = [];
+        public List<(Guid HoldId, DateTimeOffset RunAt)> ReleaseCalls { get; } = [];
 
         public Task<string> ScheduleAutoAcceptAsync(
             Guid milestoneId,
             Guid escrowHoldId,
             int submissionVersion,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             AutoAcceptCalls.Add((
@@ -171,7 +171,7 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
         public Task<string> ScheduleReleaseExpiredHoldAsync(
             Guid escrowHoldId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             ReleaseCalls.Add((escrowHoldId, runAtUtc));
@@ -180,7 +180,7 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
         public Task<string> ScheduleProviderReconciliationAsync(
             Guid paymentTransactionId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("provider-reconcile");
@@ -188,21 +188,21 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
         public Task<string> ScheduleProviderRetryAsync(
             Guid paymentTransactionId,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("provider-retry");
         }
 
         public Task<string> ScheduleSchedulingReconciliationAsync(
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("schedule-reconcile");
         }
 
         public Task<string> SchedulePendingWalletProjectionReconciliationAsync(
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("wallet-reconcile");
@@ -210,7 +210,7 @@ public sealed class MilestoneSchedulingReconciliationServiceTests
 
         public Task<string> ScheduleOutboxDispatchAsync(
             int batchSize,
-            DateTime runAtUtc,
+            DateTimeOffset runAtUtc,
             CancellationToken cancellationToken)
         {
             return Task.FromResult("outbox");

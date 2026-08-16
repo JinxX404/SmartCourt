@@ -15,8 +15,9 @@ public sealed class ContractFileAccessAudit
         Guid storedFileId,
         ContractFilePurpose purpose,
         Guid relatedEntityId,
+        string accessReason,
         bool moderatorAccess,
-        DateTime accessedAt)
+        DateTimeOffset accessedAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ActorUserId = EntityGuard.NotEmpty(
@@ -29,8 +30,9 @@ public sealed class ContractFileAccessAudit
         RelatedEntityId = EntityGuard.NotEmpty(
             relatedEntityId,
             nameof(relatedEntityId));
+        AccessReason = accessReason;
         ModeratorAccess = moderatorAccess;
-        AccessedAt = EntityGuard.Utc(accessedAt, nameof(accessedAt));
+        AccessedAt = accessedAt;
     }
 
     public Guid Id { get; private set; }
@@ -38,6 +40,7 @@ public sealed class ContractFileAccessAudit
     public Guid StoredFileId { get; private set; }
     public ContractFilePurpose Purpose { get; private set; }
     public Guid RelatedEntityId { get; private set; }
+    public string AccessReason { get; private set; }
     public bool ModeratorAccess { get; private set; }
-    public DateTime AccessedAt { get; private set; }
+    public DateTimeOffset AccessedAt { get; private set; }
 }

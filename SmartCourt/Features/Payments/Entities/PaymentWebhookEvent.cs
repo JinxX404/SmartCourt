@@ -12,7 +12,7 @@ public sealed class PaymentWebhookEvent
         Guid id,
         string eventId,
         Guid paymentTransactionId,
-        DateTime receivedAt)
+        DateTimeOffset receivedAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         EventId = EntityGuard.Required(eventId, nameof(eventId));
@@ -30,7 +30,7 @@ public sealed class PaymentWebhookEvent
         string? providerObjectId,
         string? connectedAccountId,
         Guid? paymentTransactionId,
-        DateTime receivedAt)
+        DateTimeOffset receivedAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
         ProviderCode = EntityGuard.Required(providerCode, nameof(providerCode));
@@ -49,7 +49,7 @@ public sealed class PaymentWebhookEvent
     public string? ProviderObjectId { get; private set; }
     public string? ConnectedAccountId { get; private set; }
     public Guid? PaymentTransactionId { get; private set; }
-    public DateTime ReceivedAt { get; private set; }
-    public DateTime? ProcessedAt { get; internal set; }
+    public DateTimeOffset ReceivedAt { get; private set; }
+    public DateTimeOffset? ProcessedAt { get; internal set; }
     public string? ProcessingError { get; internal set; }
 }

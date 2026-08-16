@@ -18,8 +18,8 @@ public sealed class Milestone
         int orderNumber,
         decimal amount,
         int? durationDays,
-        DateTime? dueDate,
-        DateTime createdAt)
+        DateTimeOffset? dueDate,
+        DateTimeOffset createdAt)
         : this(
             id,
             contractId,
@@ -42,9 +42,9 @@ public sealed class Milestone
         int orderNumber,
         decimal amount,
         int? durationDays,
-        DateTime? dueDate,
+        DateTimeOffset? dueDate,
         IReadOnlyList<string>? deliverables,
-        DateTime createdAt,
+        DateTimeOffset createdAt,
         MilestoneType type = MilestoneType.Standard)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
@@ -89,24 +89,24 @@ public sealed class Milestone
     public int OrderNumber { get; internal set; }
     public decimal Amount { get; internal set; }
     public int? DurationDays { get; internal set; }
-    public DateTime? DueDate { get; internal set; }
+    public DateTimeOffset? DueDate { get; internal set; }
     public MilestoneStatus Status { get; internal set; }
-    public DateTime? AcceptedByClientAt { get; internal set; }
-    public DateTime? AcceptedByLawyerAt { get; internal set; }
-    public DateTime? ReadyForFundingAt { get; internal set; }
-    public DateTime? FundedAt { get; internal set; }
-    public DateTime? SubmittedAt { get; internal set; }
-    public DateTime? AutoAcceptEligibleAt { get; internal set; }
+    public DateTimeOffset? AcceptedByClientAt { get; internal set; }
+    public DateTimeOffset? AcceptedByLawyerAt { get; internal set; }
+    public DateTimeOffset? ReadyForFundingAt { get; internal set; }
+    public DateTimeOffset? FundedAt { get; internal set; }
+    public DateTimeOffset? SubmittedAt { get; internal set; }
+    public DateTimeOffset? AutoAcceptEligibleAt { get; internal set; }
     public string? AutoAcceptJobId { get; internal set; }
-    public DateTime? AcceptedAt { get; internal set; }
+    public DateTimeOffset? AcceptedAt { get; internal set; }
     public MilestoneAcceptanceSource? AcceptanceSource { get; internal set; }
-    public DateTime? HoldStartsAt { get; internal set; }
-    public DateTime? HoldExpiresAt { get; internal set; }
-    public DateTime? ReleasedAt { get; internal set; }
-    public DateTime? RefundedAt { get; internal set; }
+    public DateTimeOffset? HoldStartsAt { get; internal set; }
+    public DateTimeOffset? HoldExpiresAt { get; internal set; }
+    public DateTimeOffset? ReleasedAt { get; internal set; }
+    public DateTimeOffset? RefundedAt { get; internal set; }
     public string? RejectionReason { get; internal set; }
     public int SubmissionVersion { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
-    public DateTime CreatedAt { get; internal set; }
-    public DateTime UpdatedAt { get; internal set; }
+    public DateTimeOffset CreatedAt { get; internal set; }
+    public DateTimeOffset UpdatedAt { get; internal set; }
 }

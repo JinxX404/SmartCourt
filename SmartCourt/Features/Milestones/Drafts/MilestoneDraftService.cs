@@ -168,6 +168,10 @@ public sealed class MilestoneDraftService(
         milestone.Description = request.Description;
         milestone.Deliverables = request.Deliverables?.ToList();
         milestone.Type = updatedType;
+        if (request.Amount.HasValue)
+        {
+            milestone.Amount = EntityGuard.PositiveMoney(request.Amount.Value, nameof(request.Amount));
+        }
         milestone.DurationDays = request.DurationDays;
         milestone.DueDate = request.DueDate;
         milestone.AcceptedByClientAt = null;
@@ -513,5 +517,5 @@ public sealed class MilestoneDraftService(
         }
     }
 
-    private DateTime UtcNow => timeProvider.GetUtcNow().UtcDateTime;
+    private DateTimeOffset UtcNow => timeProvider.GetUtcNow();
 }

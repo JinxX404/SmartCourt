@@ -12,6 +12,6 @@ public class ArticleReport
     public ApplicationUser Reporter { get; set; } = null!;
 
     public string Reason { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public bool IsResolved { get; set; }
 }

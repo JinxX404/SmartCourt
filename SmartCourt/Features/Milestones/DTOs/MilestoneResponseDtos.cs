@@ -14,14 +14,14 @@ public sealed record MilestoneDto(
     decimal Amount,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     int? DurationDays,
-    DateTime? DueDate,
+    DateTimeOffset? DueDate,
     MilestoneStatus Status,
     MilestoneFundingStatus FundingStatus,
     Guid? EscrowHoldId,
-    DateTime? FundedAt,
-    DateTime? SubmittedAt,
-    DateTime? AutoAcceptEligibleAt,
-    DateTime? HoldExpiresAt,
+    DateTimeOffset? FundedAt,
+    DateTimeOffset? SubmittedAt,
+    DateTimeOffset? AutoAcceptEligibleAt,
+    DateTimeOffset? HoldExpiresAt,
     decimal? NetLawyerAmount,
     string Version,
     MilestoneType Type = MilestoneType.Standard)
@@ -35,14 +35,14 @@ public sealed record MilestoneDto(
         string? description,
         decimal amount,
         int? durationDays,
-        DateTime? dueDate,
+        DateTimeOffset? dueDate,
         MilestoneStatus status,
         MilestoneFundingStatus fundingStatus,
         Guid? escrowHoldId,
-        DateTime? fundedAt,
-        DateTime? submittedAt,
-        DateTime? autoAcceptEligibleAt,
-        DateTime? holdExpiresAt,
+        DateTimeOffset? fundedAt,
+        DateTimeOffset? submittedAt,
+        DateTimeOffset? autoAcceptEligibleAt,
+        DateTimeOffset? holdExpiresAt,
         decimal? netLawyerAmount,
         string version)
         : this(
@@ -73,12 +73,12 @@ public sealed record MilestoneChangeRequestDto(
     Guid RequestedByUserId,
     string? ProposedDescription,
     int? ProposedDurationDays,
-    DateTime? ProposedDueDate,
+    DateTimeOffset? ProposedDueDate,
     string Reason,
     ChangeRequestStatus Status,
     Guid? DecidedByUserId,
-    DateTime? DecidedAt,
-    DateTime CreatedAt)
+    DateTimeOffset? DecidedAt,
+    DateTimeOffset CreatedAt)
 {
     public string? DecisionReason { get; init; }
 }
@@ -86,4 +86,4 @@ public sealed record MilestoneChangeRequestDto(
 public sealed record MilestoneActionResultDto(
     Guid EntityId,
     string Status,
-    DateTime OccurredAt);
+    DateTimeOffset OccurredAt);

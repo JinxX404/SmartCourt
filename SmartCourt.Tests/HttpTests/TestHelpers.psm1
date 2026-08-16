@@ -38,10 +38,11 @@ function Log-Test {
 }
 
 function Invoke-Api {
-    param([string]$title, [string]$method, [string]$endpoint, [string]$body = "", [string]$token = "", [string]$reportFile)
+    param([string]$title, [string]$method, [string]$endpoint, $body = "", [string]$token = "", [string]$reportFile, [string]$contentType = "application/json")
     
-    $headers = @{
-        "Content-Type" = "application/json"
+    $headers = @{}
+    if ($contentType) {
+        $headers["Content-Type"] = $contentType
     }
     if ($token) {
         $headers["Authorization"] = "Bearer $token"

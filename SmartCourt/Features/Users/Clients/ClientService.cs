@@ -69,7 +69,7 @@ public class ClientService(
             throw new BusinessException("تم استكمال الملف الشخصي مسبقاً.");
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
         if (request.DateOfBirth > today.AddYears(-21))
         {
             throw new BusinessException("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
@@ -124,7 +124,7 @@ public class ClientService(
         if (user == null)
             throw new NotFoundException("الموكل غير موجود");
 
-        if (request.DateOfBirth.HasValue && request.DateOfBirth.Value > DateOnly.FromDateTime(DateTime.Today).AddYears(-21))
+        if (request.DateOfBirth.HasValue && request.DateOfBirth.Value > DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date).AddYears(-21))
         {
             throw new BusinessException("يجب أن يكون عمر المستخدم 21 عاماً أو أكثر.");
         }
