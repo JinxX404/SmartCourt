@@ -26,6 +26,10 @@ public sealed class UpdateMilestoneRequestValidator
             .IsInEnum()
             .When(request => request.Type.HasValue)
             .WithMessage("نوع المرحلة غير صالح.");
+        RuleFor(request => request.Amount)
+            .GreaterThan(0)
+            .When(request => request.Amount.HasValue)
+            .WithMessage("مبلغ المرحلة يجب أن يكون أكبر من الصفر.");
         RuleFor(request => request.DurationDays)
             .InclusiveBetween(1, 365)
             .When(request => request.DurationDays.HasValue)

@@ -40,7 +40,8 @@ public sealed record UpdateMilestoneRequest(
     IReadOnlyList<string>? Deliverables,
     int? DurationDays,
     DateTimeOffset? DueDate,
-    MilestoneType? Type = null)
+    MilestoneType? Type = null,
+    decimal? Amount = null)
 {
     public UpdateMilestoneRequest(
         string title,
@@ -52,7 +53,9 @@ public sealed record UpdateMilestoneRequest(
             description,
             null,
             durationDays,
-            dueDate)
+            dueDate,
+            null,
+            null)
     {
     }
 }
