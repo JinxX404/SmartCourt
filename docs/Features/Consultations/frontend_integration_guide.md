@@ -20,11 +20,11 @@ Paid consultations are independent from cases, proposals, contracts, and a lawye
 9. The client confirms completion or opens a dispute. No client response for 24 hours completes it automatically.
 10. Undisputed earnings remain on hold for 14 days, then the lawyer's net amount becomes available in the existing wallet.
 
-The client pays the displayed gross price. SmartCourt keeps 5%; the lawyer receives 95%.
+The client pays the displayed gross price. Mostashar keeps 15%; the lawyer receives 85%.
 
 | Client price | Platform fee | Lawyer net |
 |---:|---:|---:|
-| 250 EGP | 12.50 EGP | 237.50 EGP |
+| 250 EGP | 37.50 EGP | 212.50 EGP |
 | 1,000 EGP | 50 EGP | 950 EGP |
 
 ## 2. Important Frontend Rules
@@ -291,7 +291,7 @@ After successful funding:
 - status becomes `Confirmed`;
 - the slot becomes `Booked`;
 - the participant can see the in-office address or meeting URL;
-- the lawyer's 95% net is tracked as pending, not withdrawable.
+- the lawyer's 85% net is tracked as pending, not withdrawable.
 
 ## 8. Booking Response
 
@@ -311,8 +311,8 @@ After successful funding:
   "inclusions": ["45-minute consultation", "Initial document review"],
   "durationMinutes": 45,
   "grossAmount": 250.00,
-  "platformFeeAmount": 12.50,
-  "lawyerNetAmount": 237.50,
+  "platformFeeAmount": 37.50,
+  "lawyerNetAmount": 212.50,
   "currency": "EGP",
   "subject": "Apartment purchase review",
   "matterSummary": "I need the ownership chain reviewed before paying the deposit.",
