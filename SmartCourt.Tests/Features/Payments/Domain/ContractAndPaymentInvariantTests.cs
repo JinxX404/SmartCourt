@@ -347,9 +347,9 @@ public sealed class ContractAndPaymentInvariantTests
 
     [Theory]
     [InlineData(100, 100, 0, 0, 0)]
-    [InlineData(100, 0, 100, 5, 95)]
-    [InlineData(100, 40, 60, 3, 57)]
-    [InlineData(10.10, 0, 10.10, 0.51, 9.59)]
+    [InlineData(100, 0, 100, 15, 85)]
+    [InlineData(100, 40, 60, 9, 51)]
+    [InlineData(10.10, 0, 10.10, 1.52, 8.58)]
     public void SettlementCalculator_ReconcilesEveryOutcome(
         double gross,
         double refund,
@@ -368,6 +368,32 @@ public sealed class ContractAndPaymentInvariantTests
         Assert.Equal((decimal)lawyerNet, result.LawyerNetAmount);
         Assert.Equal(
             result.GrossAmount,
+            result.ClientRefundAmount
+            + result.LawyerNetAmount
+            + result.PlatformFeeAmount);
+    }
+
+    [Theory]
+    [InlineData(1000, 50, 0, 50, 950)]
+    [InlineData(1000, 50, 400, 30, 570)]
+    [InlineData(1000, 150, 400, 90, 510)]
+    [InlineData(1000, 150, 1000, 0, 0)]
+    public void FundedHoldSettlement_PreservesSnapshottedFeeProportion(
+        decimal gross,
+        decimal snapshottedFee,
+        decimal refund,
+        decimal expectedFee,
+        decimal expectedLawyerNet)
+    {
+        var result = SettlementCalculator.CalculateFromFundedHold(
+            gross,
+            snapshottedFee,
+            refund);
+
+        Assert.Equal(expectedFee, result.PlatformFeeAmount);
+        Assert.Equal(expectedLawyerNet, result.LawyerNetAmount);
+        Assert.Equal(
+            gross,
             result.ClientRefundAmount
             + result.LawyerNetAmount
             + result.PlatformFeeAmount);

@@ -182,7 +182,7 @@ public sealed class StripePaymentProvider :
                     Currency = providerCurrency,
                     Destination = request.DestinationAccountId,
                     SourceTransaction = charge.Id,
-                    Description = "Smart Court lawyer milestone release",
+                    Description = "Mostashar lawyer milestone release",
                     Metadata = Metadata(
                         request.BusinessId,
                         request.CorrelationId,
@@ -275,7 +275,7 @@ public sealed class StripePaymentProvider :
                 {
                     Amount = request.PayoutMoney.AmountMinor,
                     Currency = request.PayoutMoney.Currency,
-                    Description = "Smart Court lawyer withdrawal",
+                    Description = "Mostashar lawyer withdrawal",
                     Metadata = Metadata(
                         request.BusinessId,
                         request.CorrelationId,
@@ -580,7 +580,7 @@ public sealed class StripePaymentProvider :
                     Confirm = true,
                     CaptureMethod = "automatic",
                     UseStripeSdk = true,
-                    Description = "Smart Court milestone funding",
+                    Description = "Mostashar milestone funding",
                     TransferGroup = $"milestone_{businessId:N}",
                     Metadata = Metadata(
                         businessId,
@@ -750,7 +750,7 @@ public sealed class StripePaymentProvider :
             {
                 Email = request.Email,
                 Name = request.Name,
-                Description = "Smart Court client payment profile",
+                Description = "Mostashar client payment profile",
                 Metadata = new Dictionary<string, string>
                 {
                     ["smart_court_client_user_id"] = request.ClientUserId.ToString("N")
@@ -869,7 +869,7 @@ public sealed class StripePaymentProvider :
                 StringComparison.Ordinal))
         {
             throw new global::Stripe.StripeException(
-                "The payment method does not belong to this Smart Court client.");
+                "The payment method does not belong to this Mostashar client.");
         }
     }
 
@@ -932,7 +932,7 @@ public sealed class StripePaymentProvider :
         if (!string.Equals(currency, "EGP", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                "Smart Court currently supports EGP business payments only.");
+                "Mostashar currently supports EGP business payments only.");
         }
 
         var minor = amount * 100m;
