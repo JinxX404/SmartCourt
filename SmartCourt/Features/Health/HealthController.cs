@@ -11,7 +11,7 @@ public class HealthController : ControllerBase
     {
         return Ok(new 
         { 
-            Message = "Pong! Smart Court API is fully operational.",
+            Message = "Pong! Mostashar API is fully operational.",
             ServerTimeUtc = DateTimeOffset.UtcNow,
             Version = "1.0.0"
         });

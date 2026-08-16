@@ -37,7 +37,7 @@ public class ForgotPasswordService(
                 ["token"] = encodedToken
             });
 
-        var subject = "إعادة تعيين كلمة المرور - المحكمة الذكية";
+        var subject = "إعادة تعيين كلمة المرور - مستشار";
         var templatePath = Path.Combine(env.ContentRootPath, "Features", "Auth", "Shared", "Templates", "ResetPasswordEmail.html");
         var template = await File.ReadAllTextAsync(templatePath, cancellationToken);
         var body = template.Replace("{{FullName}}", HtmlEncoder.Default.Encode(user.FullName))
