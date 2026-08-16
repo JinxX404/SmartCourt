@@ -136,16 +136,52 @@ public class CaseReviewService(
             Analyze the submitted legal case details and documents to provide structured, highly detailed, comprehensive improvement feedback for the client based strictly on Egyptian Law.
 
             Provide an in-depth analysis covering:
-            1. Strengths (نقاط القوة القانونية): Explain what makes the client's side in the legal case stronger than the other party's position under Egyptian Law (evidentiary superiority, contractual terms, written proof, statutory compliance).
-            2. Weaknesses (نقاط الضعف والمخاطر): Explain what gives the opposing party an advantage over the client in this dispute under Egyptian Law (gaps in formal notice via court bailiffs, unverified dates, lack of official receipts or registration, procedural defenses).
-            3. Missing Information (المعلومات والنقاط المفقودة): Identify missing essential factual details, exact dates, financial breakdown (principal, interest, damages), or timeline events required for Egyptian court filings.
-            4. Missing Documents (المستندات والوثائق المفقودة): Specify exact, non-generic document names required for this specific case domain under Egyptian Law (e.g., National ID copy, signed written contract, official bailiff notices/إنذارات رسمية على يد محضر, bank transfer receipts/إيصالات سداد, commercial registry, etc.).
-            5. Suggestions (مقترحات صياغة وهيكلة الدعوى): Practical, actionable steps to refine and restructure the case facts, timeline, and evidence to make the case file much more solid BEFORE passing it to the next stage.
+            - Strengths (نقاط القوة القانونية): Explain what makes the client's side in the legal case stronger than the other party's position under Egyptian Law (evidentiary superiority, contractual terms, written proof, statutory compliance).
+            - Weaknesses (نقاط الضعف والمخاطر): Explain what gives the opposing party an advantage over the client in this dispute under Egyptian Law (gaps in formal notice via court bailiffs, unverified dates, lack of official receipts or registration, procedural defenses).
+            - Missing Information (المعلومات والنقاط المفقودة): Identify missing essential factual details, exact dates, financial breakdown (principal, interest, damages), or timeline events required for Egyptian court filings.
+            - Missing Documents (المستندات والوثائق المفقودة): Specify exact, non-generic document names required for this specific case domain under Egyptian Law (e.g., National ID copy, signed written contract, official bailiff notices/إنذارات رسمية على يد محضر, bank transfer receipts/إيصالات سداد, commercial registry, etc.).
+            - Suggestions (مقترحات صياغة وهيكلة الدعوى): Practical, actionable steps to refine and restructure the case facts, timeline, and evidence to make the case file much more solid BEFORE passing it to the next stage.
 
             ABSOLUTE STRICT RULE FOR SUGGESTIONS:
             Do NOT ever suggest consulting, hiring, or taking guidance/advice from a lawyer. All suggestions must focus strictly on how the client can structure the case description, quantify claims, and gather required evidence directly.
 
-            You MUST format your response using Markdown. Use ** for bold text. You MUST use line breaks \n and bullet points - for lists. DO NOT use inline numbering like (1) or (a) in a single paragraph.
+            REACT-MARKDOWN COMPATIBILITY RULES FOR THE 'description' FIELD:
+            The 'description' text MUST be formatted to be fully compatible with the `react-markdown` library.
+            1. **Use standard Markdown only**
+               * Headings: `##`, `###` (Do not use `#`)
+               * Bold: `**text**`
+               * Italic: `*text*`
+               * Bullet lists: `- item` (DO NOT use numbered lists like 1. or Arabic ordinals)
+               * Code blocks: triple backticks with the language when appropriate
+               * Inline code: backticks
+               * Blockquotes: `>`
+            2. **Do not return HTML**
+               * Do not use `<p>`, `<br>`, `<div>`, `<span>`, `<table>`, or other HTML tags.
+            3. **Handle line breaks correctly inside JSON**
+               * Separate paragraphs with `\n\n`.
+               * Separate list items with `\n`.
+               * Do not use `<br>` for line breaks.
+            4. **Code formatting**
+               * Use fenced code blocks. Always specify the language when known.
+            5. **Lists**
+               * Use standard Markdown bullet syntax `- `.
+               * Keep list items properly separated (use `\n\n` before lists).
+               * Do not use custom symbols.
+            6. **Tables**
+               * When using tables, use standard GitHub-Flavored Markdown table syntax. Do not generate HTML tables.
+            7. **Special characters**
+               * Properly escape Markdown characters when they are intended as literal characters.
+            8. **Links**
+               * Use standard Markdown links: `[text](https://example.com)`. Do not output raw HTML links.
+            9. **Consistency**
+               * Every response should be valid Markdown. Avoid unusual Markdown extensions.
+            10. **Frontend rendering compatibility**
+               * Assume the frontend renders the response using `react-markdown`.
+               * Produce Markdown that can be passed directly to the component. Do not generate React components, JSX, or HTML.
+            11. **Content structure**
+               * Use headings to organize long answers. Use paragraphs for explanations. Use bullet lists for multiple points.
+            12. **Never add unnecessary formatting**
+               * Do not wrap the entire answer inside a code block. Do not add unnecessary `---` separators.
 
             You MUST output ONLY a valid JSON array of objects following this exact schema:
             [

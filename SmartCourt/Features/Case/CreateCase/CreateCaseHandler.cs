@@ -56,6 +56,14 @@ namespace SmartCourt.Features.Case.CreateCase
                 ? request.City
                 : clientUser?.City;
 
+            var clientProfileExists = await _context.Set<SmartCourt.Common.Entities.ClientProfile>()
+                .AnyAsync(cp => cp.UserId == clientId, cancellationToken);
+                
+            if (!clientProfileExists)
+            {
+                return ApiResponse<CreateCaseResponse>.Fail(["Only users registered as Clients can create cases."], 403);
+            }
+
             SmartCourt.Entities.Case legalCase = new()
             {
                 Id = Guid.NewGuid(),
