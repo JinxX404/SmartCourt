@@ -137,6 +137,29 @@ public sealed class MilestoneServiceTests
     }
 
     [Fact]
+    public async Task AddStandardAsync_ActiveContractCreatesDraftForBothApprovals()
+    {
+        await using var context = CreateContext();
+        var draftService = CreateDraftService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var milestone = await draftService.AddAsync(
+            _contractId,
+            ValidAddRequest(1),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneType.Standard, milestone.Type);
+        Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+        var entity = await context.Milestones.SingleAsync();
+        Assert.Null(entity.AcceptedByLawyerAt);
+        Assert.Null(entity.AcceptedByClientAt);
+        Assert.Contains("Approve", milestone.PermittedActions);
+        Assert.Contains("Update", milestone.PermittedActions);
+    }
+
+    [Fact]
     public async Task ApproveExpenseAsync_ClientApprovalMakesItImmediatelyFundable()
     {
         await using var context = CreateContext();
@@ -193,6 +216,35 @@ public sealed class MilestoneServiceTests
 
         Assert.Null(milestone.AcceptedByClientAt);
         Assert.Equal(_utcNow, milestone.AcceptedByLawyerAt);
+        Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+    }
+
+    [Fact]
+    public async Task UpdateStandardDraftAsync_AllowsActiveContract()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(MilestoneStatus.Draft, 1);
+        milestone.AcceptedByClientAt = _utcNow.AddMinutes(-1);
+        await AddMilestonesAsync(context, milestone);
+        var draftService = CreateDraftService(
+            context,
+            new MutableCurrentUser(_lawyerUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await draftService.UpdateDraftAsync(
+            _contractId,
+            milestone.Id,
+            new UpdateMilestoneRequest(
+                "Updated active work",
+                "Updated active-contract milestone.",
+                14,
+                _utcNow.AddDays(14)),
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal("Updated active work", result.Title);
+        Assert.Null(milestone.AcceptedByClientAt);
+        Assert.Null(milestone.AcceptedByLawyerAt);
         Assert.Equal(MilestoneStatus.Draft, milestone.Status);
     }
 
@@ -289,6 +341,28 @@ public sealed class MilestoneServiceTests
         Assert.NotNull(payload);
         Assert.Equal(_contractId, payload.ContractId);
         Assert.Equal(_lawyerUserId, payload.RequestedByUserId);
+    }
+
+    [Fact]
+    public async Task ApproveStandardAsync_ActiveContractTransitionsAfterBothApprovals()
+    {
+        await using var context = CreateContext();
+        var milestone = CreateMilestone(MilestoneStatus.Draft, 1);
+        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
+        await AddMilestonesAsync(context, milestone);
+        var service = CreateService(
+            context,
+            new MutableCurrentUser(_clientUserId),
+            CreateContractStub(ContractStatus.Active));
+
+        var result = await service.ApproveAsync(
+            milestone.Id,
+            ToETag(milestone.RowVersion),
+            CancellationToken.None);
+
+        Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+        Assert.Equal(_utcNow, milestone.AcceptedByClientAt);
+        Assert.Equal(MilestoneStatus.AwaitingFunding.ToString(), result.Status);
     }
 
     [Fact]
@@ -417,13 +491,15 @@ public sealed class MilestoneServiceTests
     {
         await using var context = CreateContext();
         var milestone = CreateMilestone(
-            MilestoneStatus.FundedInProgress,
+            MilestoneStatus.AwaitingFunding,
             1);
+        milestone.AcceptedByClientAt = _utcNow.AddMinutes(-2);
+        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
         await AddMilestonesAsync(context, milestone);
         var draftService = CreateDraftService(
             context,
             new MutableCurrentUser(_lawyerUserId),
-            CreateContractStub(ContractStatus.Draft));
+            CreateContractStub(ContractStatus.Active));
 
         await Assert.ThrowsAsync<BusinessException>(() =>
             draftService.UpdateDraftAsync(

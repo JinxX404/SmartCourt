@@ -733,7 +733,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task EvaluateCompletionAsync_IgnoresUnapprovedFutureMilestones()
+    public async Task EvaluateCompletionAsync_DoesNotCompleteWithUnapprovedFutureMilestone()
     {
         await using var context = CreateContext();
         var contract = CreateContract();
@@ -760,8 +760,14 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             contract.Id,
             CancellationToken.None);
 
-        Assert.Equal(ContractStatus.Completed.ToString(), result.Status);
-        Assert.NotNull(contract.CompletedAt);
+        Assert.Equal(ContractStatus.Active.ToString(), result.Status);
+        Assert.Null(contract.CompletedAt);
+        Assert.Empty(
+            await context.ContractStateHistories
+                .Where(item =>
+                    item.Trigger
+                    == ContractPaymentEventTypes.ContractCompleted)
+                .ToListAsync());
     }
 
     [Fact]

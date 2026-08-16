@@ -149,7 +149,7 @@ public sealed class MilestoneDraftService(
             cancellationToken);
         EnsureBelongsToContract(milestone, contractId);
         EnsureDraft(milestone);
-        EnsureDraftEditAllowed(contract, milestone);
+        EnsureDraftEditAllowed(contract);
         EnsureExpectedVersion(milestone, ifMatch);
 
         var updatedType = request.Type ?? milestone.Type;
@@ -157,13 +157,6 @@ public sealed class MilestoneDraftService(
             updatedType,
             request.Deliverables,
             request.DurationDays);
-        if (contract.Status == ContractStatus.Active
-            && updatedType != MilestoneType.Expense)
-        {
-            throw new BusinessException(
-                "لا يمكن تحويل مصروف مقترح أثناء العقد النشط إلى مرحلة عمل قياسية.");
-        }
-
         milestone.Title = request.Title;
         milestone.Description = request.Description;
         milestone.Deliverables = request.Deliverables?.ToList();
@@ -261,32 +254,20 @@ public sealed class MilestoneDraftService(
             throw new BusinessException("نوع المرحلة غير صالح.");
         }
 
-        if (contract.Status == ContractStatus.Draft)
-        {
-            return;
-        }
-
-        if (contract.Status == ContractStatus.Active
-            && type == MilestoneType.Expense)
+        if (contract.Status is ContractStatus.Draft
+            or ContractStatus.Active)
         {
             return;
         }
 
         throw new ConflictException(
-            "يمكن إضافة مراحل العمل القياسية أثناء مسودة العقد فقط، بينما يمكن اقتراح المصروفات أثناء المسودة أو العقد النشط.");
+            "يمكن إضافة المراحل أثناء مسودة العقد أو العقد النشط فقط.");
     }
 
-    private static void EnsureDraftEditAllowed(
-        ContractDetailDto contract,
-        Milestone milestone)
+    private static void EnsureDraftEditAllowed(ContractDetailDto contract)
     {
-        if (contract.Status == ContractStatus.Draft)
-        {
-            return;
-        }
-
-        if (contract.Status == ContractStatus.Active
-            && milestone.Type == MilestoneType.Expense)
+        if (contract.Status is ContractStatus.Draft
+            or ContractStatus.Active)
         {
             return;
         }

@@ -351,25 +351,8 @@ public sealed class ContractService
 
         var milestones = await _dbContext.Milestones
             .Where(milestone => milestone.ContractId == contract.Id)
-            .Select(
-                milestone => new
-                {
-                    milestone.Amount,
-                    milestone.AcceptedByClientAt,
-                    milestone.AcceptedByLawyerAt,
-                    milestone.Status,
-                    milestone.Type
-                })
+            .Select(milestone => milestone.Status)
             .ToListAsync(cancellationToken);
-        var approvedMilestones = milestones
-            .Where(milestone =>
-                milestone.Amount > 0m
-                && milestone.AcceptedByClientAt.HasValue
-                && milestone.AcceptedByLawyerAt.HasValue)
-            .ToArray();
-        var hasPendingExpenseProposal = milestones.Any(milestone =>
-            milestone.Type == MilestoneType.Expense
-            && milestone.Status == MilestoneStatus.Draft);
         var hasActiveDispute = await _dbContext.Disputes.AnyAsync(
             dispute =>
                 dispute.ContractId == contract.Id
@@ -388,14 +371,13 @@ public sealed class ContractService
                 && (hold.Status == EscrowHoldStatus.Funded
                     || hold.Status == EscrowHoldStatus.Frozen),
             cancellationToken);
-        var allApprovedMilestonesFinished =
-            approvedMilestones.Length > 0
-            && approvedMilestones.All(milestone =>
-                milestone.Status is MilestoneStatus.Released
+        var allMilestonesFinished =
+            milestones.Count > 0
+            && milestones.All(status =>
+                status is MilestoneStatus.Released
                     or MilestoneStatus.Refunded
                     or MilestoneStatus.Cancelled);
-        if (allApprovedMilestonesFinished
-            && !hasPendingExpenseProposal
+        if (allMilestonesFinished
             && !contract.TerminatedByUserId.HasValue
             && !hasActiveDispute
             && !hasPendingProviderAttempt

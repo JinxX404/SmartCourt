@@ -43,7 +43,6 @@ public sealed class MilestoneService(
         EnsureParticipant(contract, actorUserId);
         EnsureNegotiationAllowed(contract);
         EnsureDraft(milestone);
-        EnsureMilestoneApprovalAllowed(contract, milestone);
         EnsureExpectedVersion(milestone, ifMatch);
 
         var now = UtcNow;
@@ -920,18 +919,6 @@ public sealed class MilestoneService(
         {
             throw new BusinessException(
                 "لا يمكن التفاوض على مراحل عقد غير نشط أو غير موجود كمسودة.");
-        }
-    }
-
-    private static void EnsureMilestoneApprovalAllowed(
-        ContractDetailDto contract,
-        Milestone milestone)
-    {
-        if (contract.Status == ContractStatus.Active
-            && milestone.Type != MilestoneType.Expense)
-        {
-            throw new BusinessException(
-                "لا يمكن اعتماد مرحلة عمل قياسية جديدة بعد تنشيط العقد.");
         }
     }
 
