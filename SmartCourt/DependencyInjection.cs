@@ -820,6 +820,9 @@ public static class DependencyInjection
         services.AddScoped<ILawIngestionService, LawIngestionService>();
         services.AddScoped<LegalDocumentChunker>();
 
+        // --- Feature: Ratings ---
+        services.AddScoped<SmartCourt.Features.Ratings.IRatingService, SmartCourt.Features.Ratings.RatingService>();
+
         return services;
     }
 

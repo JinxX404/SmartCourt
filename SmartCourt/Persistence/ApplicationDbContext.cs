@@ -12,6 +12,7 @@ using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Notifications.Entities;
 using SmartCourt.Features.Payments.Entities;
 using SmartCourt.Features.Proposals.Entities;
+using SmartCourt.Features.Ratings.Entities;
 using SmartCourt.Infrastructure.Persistence.Entities;
 using SmartCourt.Interfaces;
 
@@ -35,12 +36,14 @@ public class ApplicationDbContext
         typeof(LawyerPenalty),
         typeof(WalletAdjustment),
         typeof(ContractStateHistory),
-        typeof(MilestoneStateHistory)
+        typeof(MilestoneStateHistory),
+        typeof(ContractRating)
     ];
 
     private static readonly HashSet<Type> ContractPaymentTypes =
     [
         typeof(Contract),
+        typeof(ContractRating),
         typeof(Milestone),
         typeof(MilestoneChangeRequest),
         typeof(MilestoneSubmission),
@@ -151,6 +154,7 @@ public class ApplicationDbContext
         Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<ContractRating> ContractRatings => Set<ContractRating>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
