@@ -17,6 +17,7 @@ using SmartCourt.Features.Proposals.GetProposalAvailability;
 using SmartCourt.Features.Proposals.GetProposals;
 using SmartCourt.Features.Proposals.RejectProposal;
 using SmartCourt.Features.Proposals.TerminateProposal;
+using SmartCourt.Features.Proposals.UpdateProposal;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Proposals;
@@ -68,6 +69,10 @@ public sealed class ProposalsControllerTests
             filter,
             CancellationToken.None);
         var getAction = await controller.GetAsync(proposalId, CancellationToken.None);
+        var updateAction = await controller.UpdateAsync(
+            proposalId,
+            new UpdateProposalRequest("Updated proposal message"),
+            CancellationToken.None);
         var acceptAction = await controller.AcceptAsync(proposalId, CancellationToken.None);
         var rejectAction = await controller.RejectAsync(
             proposalId,
@@ -85,6 +90,7 @@ public sealed class ProposalsControllerTests
         AssertWrappedOk(lawyerListAction, mediator.Page);
         AssertWrappedOk(caseListAction, mediator.Page);
         AssertWrappedOk(getAction, mediator.Detail);
+        AssertWrappedOk(updateAction, mediator.Detail);
         AssertWrappedOk(acceptAction, mediator.Detail);
         AssertWrappedOk(rejectAction, mediator.Detail);
         AssertWrappedOk(cancelAction, mediator.Detail);
@@ -99,6 +105,8 @@ public sealed class ProposalsControllerTests
         Assert.Equal(filter.Page, mediator.ListQueries[1].Page);
         Assert.Equal(filter.PageSize, mediator.ListQueries[1].PageSize);
         Assert.Equal(proposalId, mediator.GetQuery!.ProposalId);
+        Assert.Equal(proposalId, mediator.UpdateCommand!.ProposalId);
+        Assert.Equal("Updated proposal message", mediator.UpdateCommand.Message);
         Assert.Equal(proposalId, mediator.AcceptCommand!.ProposalId);
         Assert.Equal(proposalId, mediator.RejectCommand!.ProposalId);
         Assert.Equal("Not the right fit", mediator.RejectCommand!.Reason);
@@ -129,6 +137,11 @@ public sealed class ProposalsControllerTests
             typeof(HttpGetAttribute),
             "{proposalId:guid}",
             "Client,Lawyer");
+        AssertEndpoint(
+            nameof(ProposalsController.UpdateAsync),
+            typeof(HttpPutAttribute),
+            "{proposalId:guid}",
+            "Client");
         AssertEndpoint(
             nameof(ProposalsController.AcceptAsync),
             typeof(HttpPostAttribute),
@@ -204,6 +217,7 @@ public sealed class ProposalsControllerTests
         public CreateProposalCommand? CreateCommand { get; private set; }
         public List<GetProposalsQuery> ListQueries { get; } = [];
         public GetProposalQuery? GetQuery { get; private set; }
+        public UpdateProposalCommand? UpdateCommand { get; private set; }
         public AcceptProposalCommand? AcceptCommand { get; private set; }
         public RejectProposalCommand? RejectCommand { get; private set; }
         public CancelProposalCommand? CancelCommand { get; private set; }
@@ -230,6 +244,9 @@ public sealed class ProposalsControllerTests
                     return Task.FromResult((TResponse)(object)PageResponse);
                 case GetProposalQuery query:
                     GetQuery = query;
+                    return Task.FromResult((TResponse)(object)DetailResponse);
+                case UpdateProposalCommand command:
+                    UpdateCommand = command;
                     return Task.FromResult((TResponse)(object)DetailResponse);
                 case AcceptProposalCommand command:
                     AcceptCommand = command;

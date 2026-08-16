@@ -11,6 +11,7 @@ using SmartCourt.Features.Proposals.GetProposalAvailability;
 using SmartCourt.Features.Proposals.GetProposals;
 using SmartCourt.Features.Proposals.RejectProposal;
 using SmartCourt.Features.Proposals.TerminateProposal;
+using SmartCourt.Features.Proposals.UpdateProposal;
 
 namespace SmartCourt.Features.Proposals;
 
@@ -34,6 +35,23 @@ public sealed class ProposalsController(IMediator mediator) : ControllerBase
                 request.LegalCaseId,
                 request.LawyerUserId,
                 request.Message),
+            cancellationToken);
+
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPut("{proposalId:guid}")]
+    [Authorize(Roles = "Client")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ProposalDetailDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ProposalDetailDto>>> UpdateAsync(
+        Guid proposalId,
+        [FromBody] UpdateProposalRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(
+            new UpdateProposalCommand(proposalId, request.Message),
             cancellationToken);
 
         return StatusCode(result.StatusCode, result);

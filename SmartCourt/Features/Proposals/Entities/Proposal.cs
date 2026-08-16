@@ -89,6 +89,25 @@ public sealed class Proposal
     public DateTimeOffset CreatedAt { get; internal set; }
     public DateTimeOffset UpdatedAt { get; internal set; }
 
+    internal void UpdateMessage(string message, DateTimeOffset updatedAt)
+    {
+        EnsurePending();
+        EnsureUtc(updatedAt);
+
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            throw new BusinessException("Proposal message is required.");
+        }
+
+        if (message.Trim().Length > 2_000)
+        {
+            throw new BusinessException("Proposal message cannot exceed 2000 characters.");
+        }
+
+        Message = message.Trim();
+        UpdatedAt = updatedAt;
+    }
+
     internal void Accept(DateTimeOffset respondedAt)
     {
         EnsurePending();

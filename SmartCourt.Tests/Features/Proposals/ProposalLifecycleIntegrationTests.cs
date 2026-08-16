@@ -16,6 +16,7 @@ using SmartCourt.Features.Proposals.Entities;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Features.Proposals.Expiration;
 using SmartCourt.Features.Proposals.TerminateProposal;
+using SmartCourt.Features.Proposals.UpdateProposal;
 using SmartCourt.Infrastructure.Providers.Events;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -119,6 +120,68 @@ public sealed class ProposalLifecycleIntegrationTests
         Assert.Equal(ProposalStatus.Cancelled, proposal.Status);
         Assert.Null(result.Data!.ConversationId);
         Assert.Empty(context.ChatConversations);
+    }
+
+    [Fact]
+    public async Task UpdateProposal_OnlyUpdatesPendingProposalOwnedByClient()
+    {
+        await using var context = CreateContext();
+        var lawyerId = (await SeedUsersAndCaseAsync(context, 1)).Single();
+        var proposal = CreateProposal(lawyerId, _utcNow.AddHours(-1));
+        context.Proposals.Add(proposal);
+        await context.SaveChangesAsync();
+
+        var handler = new UpdateProposalHandler(
+            context,
+            new TestCurrentUserService(_clientUserId),
+            new FixedTimeProvider(_utcNow),
+            new UpdateProposalCommandValidator());
+        var result = await handler.Handle(
+            new UpdateProposalCommand(
+                proposal.Id,
+                "  Updated representation proposal.  "),
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.Equal("Updated representation proposal.", proposal.Message);
+        Assert.Equal(_utcNow, proposal.UpdatedAt);
+
+        proposal.Accept(_utcNow.AddMinutes(1));
+        await context.SaveChangesAsync();
+        var rejectedUpdate = await handler.Handle(
+            new UpdateProposalCommand(proposal.Id, "Another update"),
+            CancellationToken.None);
+
+        Assert.False(rejectedUpdate.Success);
+        Assert.Equal(409, rejectedUpdate.StatusCode);
+        Assert.Equal(
+            "لا يمكن تعديل العرض في حالته الحالية بعد الآن.",
+            rejectedUpdate.Message);
+    }
+
+    [Fact]
+    public async Task UpdateProposal_ReturnsNotFoundForAnotherClientsProposal()
+    {
+        await using var context = CreateContext();
+        var lawyerId = (await SeedUsersAndCaseAsync(context, 1)).Single();
+        var proposal = CreateProposal(lawyerId, _utcNow.AddHours(-1));
+        context.Proposals.Add(proposal);
+        await context.SaveChangesAsync();
+
+        var handler = new UpdateProposalHandler(
+            context,
+            new TestCurrentUserService(Guid.NewGuid()),
+            new FixedTimeProvider(_utcNow),
+            new UpdateProposalCommandValidator());
+        var result = await handler.Handle(
+            new UpdateProposalCommand(proposal.Id, "Unauthorized update"),
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.Equal(404, result.StatusCode);
+        Assert.Equal(
+            "Please consider representing me in this case.",
+            proposal.Message);
     }
 
     [Fact]
