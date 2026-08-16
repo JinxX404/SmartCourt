@@ -471,7 +471,7 @@ public sealed class DisputeService(
                 "محفظة المحامي المرتبطة بحجز الضمان غير موجودة.");
 
         EnsureSettlementState(dispute, milestone, contract, hold, account, wallet);
-        var breakdown = ValidateBreakdown(request, hold.GrossAmount);
+        var breakdown = ValidateBreakdown(request, hold);
         var now = UtcNow;
         var correlationId = Guid.NewGuid();
         var resolution = new DisputeResolution(
@@ -1365,20 +1365,21 @@ public sealed class DisputeService(
 
     private static SettlementBreakdown ValidateBreakdown(
         ResolveDisputeRequest request,
-        decimal grossHoldAmount)
+        EscrowHold hold)
     {
-        var breakdown = SettlementCalculator.Calculate(
-            grossHoldAmount,
+        var breakdown = SettlementCalculator.CalculateFromFundedHold(
+            hold.GrossAmount,
+            hold.PlatformFeeAmount,
             request.ClientRefundAmount);
         var validType = request.ResolutionType switch
         {
             DisputeResolutionType.FullRefund =>
-                breakdown.ClientRefundAmount == grossHoldAmount,
+                breakdown.ClientRefundAmount == hold.GrossAmount,
             DisputeResolutionType.FullRelease =>
                 breakdown.ClientRefundAmount == 0m,
             DisputeResolutionType.PartialSplit =>
                 breakdown.ClientRefundAmount > 0m
-                && breakdown.ClientRefundAmount < grossHoldAmount,
+                && breakdown.ClientRefundAmount < hold.GrossAmount,
             _ => false
         };
         if (!validType

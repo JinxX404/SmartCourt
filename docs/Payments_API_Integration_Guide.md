@@ -104,7 +104,7 @@ Official implementation references: [Confirmation Tokens](https://docs.stripe.co
 1. Client funds the milestone; Smart Court creates an escrow hold with status `Funded`.
 2. Lawyer submits the milestone through the Milestones slice.
 3. Client accepts it, or auto-accept runs after its separate review timer. Acceptance sets `holdExpiresAt = acceptance time + 14 days` and places the net lawyer amount in `pendingBalance`.
-4. The scheduled release job runs at `holdExpiresAt`. It creates a Stripe Transfer to the enabled connected account, moves `netAmount` from `pendingBalance` to `availableBalance`, records the 5% platform fee, and marks both hold and milestone `Released`.
+4. The scheduled release job runs at `holdExpiresAt`. It creates a Stripe Transfer to the enabled connected account, moves `netAmount` from `pendingBalance` to `availableBalance`, records the 15% platform fee, and marks both hold and milestone `Released`.
 5. The existing Super Administrator release route is the only manual way to accelerate the hold; otherwise wait for the scheduled 14-day release.
 6. Lawyer calls `GET /api/wallet` and reads `availableBalance`.
 7. Lawyer generates a fresh idempotency UUID and calls `POST /api/wallet/withdrawals` with the desired amount. `destinationReference` should be omitted or sent as `""`; Stripe uses the connected account's configured external bank account.
@@ -687,7 +687,7 @@ Framework authorization failures can be empty/non-wrapped `401` or `403`. The fr
 | `id` | UUID | Local `EscrowHold.Id`, not the PaymentTransaction or Stripe ID. |
 | `milestoneId` | UUID | Associated milestone. |
 | `grossAmount` | `number` | Original funded EGP amount. |
-| `platformFee` | `number` | Platform fee. Current calculator uses 5% of the Lawyer's gross allocation, rounded to two decimals away from zero. |
+| `platformFee` | `number` | Platform fee. Current calculator uses 15% of the Lawyer's gross allocation, rounded to two decimals away from zero. |
 | `netAmount` | `number` | Amount allocated to the Lawyer after platform fee. |
 | `currency` | `string` | Always `EGP` in the current domain. |
 | `status` | `number` | Numeric `EscrowHoldStatus`. |

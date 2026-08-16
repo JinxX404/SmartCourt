@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Extensions;
@@ -75,6 +76,7 @@ public class SmartCourtWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.ConfigureLogging(logging => logging.ClearProviders());
 
         builder.ConfigureAppConfiguration((context, config) =>
         {
