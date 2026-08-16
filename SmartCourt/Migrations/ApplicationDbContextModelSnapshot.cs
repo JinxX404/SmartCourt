@@ -493,6 +493,16 @@ namespace SmartCourt.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(1);
 
+                    b.Property<int>("TotalRatingCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TotalRatingSum")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.HasKey("UserId");
 
                     b.ToTable("LawyerProfile");
@@ -3628,6 +3638,55 @@ namespace SmartCourt.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SmartCourt.Features.Ratings.Entities.ContractRating", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("ContractId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RatedUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("RaterRole")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RaterUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Stars")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RatedUserId")
+                        .HasDatabaseName("IX_ContractRatings_RatedUser_ClientRatings")
+                        .HasFilter("[RaterRole] = 0");
+
+                    b.HasIndex("RaterUserId");
+
+                    b.HasIndex("ContractId", "RaterRole")
+                        .IsUnique()
+                        .HasDatabaseName("UX_ContractRatings_Contract_RaterRole");
+
+                    b.ToTable("ContractRatings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_ContractRatings_RaterRole_Range", "[RaterRole] IN (0, 1)");
+
+                            t.HasCheckConstraint("CK_ContractRatings_Stars_Range", "[Stars] BETWEEN 1 AND 5");
+                        });
+                });
+
             modelBuilder.Entity("SmartCourt.Infrastructure.Persistence.Entities.IdempotencyRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4774,6 +4833,27 @@ namespace SmartCourt.Migrations
                         .IsRequired();
 
                     b.Navigation("Case");
+                });
+
+            modelBuilder.Entity("SmartCourt.Features.Ratings.Entities.ContractRating", b =>
+                {
+                    b.HasOne("SmartCourt.Features.Contracts.Entities.Contract", null)
+                        .WithMany()
+                        .HasForeignKey("ContractId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RatedUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RaterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SmartCourt.Infrastructure.Persistence.Entities.IdempotencyRecord", b =>

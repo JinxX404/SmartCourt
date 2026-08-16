@@ -64,8 +64,8 @@ public sealed class PaymentEscrowServiceTests
         var payment = Assert.IsType<PaymentDto>(result.Payment);
         Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
         Assert.Equal(1_000m, payment.GrossAmount);
-        Assert.Equal(50m, payment.PlatformFee);
-        Assert.Equal(950m, payment.NetAmount);
+        Assert.Equal(150m, payment.PlatformFee);
+        Assert.Equal(850m, payment.NetAmount);
         Assert.Equal(1, provider.DepositCalls);
         Assert.Equal(MilestoneStatus.FundedInProgress, milestone.Status);
         Assert.NotNull(milestone.FundedAt);
@@ -83,7 +83,7 @@ public sealed class PaymentEscrowServiceTests
         Assert.Equal(hold.Id, transaction.EscrowHoldId);
         Assert.Equal(hold.Id, payment.Id);
         Assert.Equal(1_000m, account.TotalDeposited);
-        Assert.Equal(950m, wallet.PendingBalance);
+        Assert.Equal(850m, wallet.PendingBalance);
         Assert.Equal(1_000m, ledger.Amount);
         Assert.Equal(1_000m, ledger.RunningBalance);
         Assert.Equal(

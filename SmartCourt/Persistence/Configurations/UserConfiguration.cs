@@ -94,6 +94,12 @@ public class LawyerProfileConfiguration : IEntityTypeConfiguration<LawyerProfile
             .HasColumnType("decimal(3,2)")
             .HasDefaultValue(0m);
 
+        builder.Property(p => p.TotalRatingSum)
+            .HasDefaultValue(0);
+
+        builder.Property(p => p.TotalRatingCount)
+            .HasDefaultValue(0);
+
         builder.Property(p => p.AverageResponseTimeHours)
             .HasColumnType("decimal(10,2)")
             .HasDefaultValue(0m);

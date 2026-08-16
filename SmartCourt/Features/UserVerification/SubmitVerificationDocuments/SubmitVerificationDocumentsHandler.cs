@@ -226,7 +226,6 @@ namespace SmartCourt.Features.UserVerification.SubmitVerificationDocuments
                 {
                     await _fileStorageService.DeleteAsync(filePath, cancellationToken);
                 }
-
                 return ApiResponse<SubmitVerificationDocumentResponseDto>
                     .Fail(new List<string> { "An error occured while uploading your documents. Try again please.." });
             }

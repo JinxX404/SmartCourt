@@ -33,6 +33,18 @@ internal static class ContractPaymentConfigurationExtensions
         return property.HasColumnType("datetimeoffset");
     }
 
+    internal static PropertyBuilder<DateTime> Utc(
+        this PropertyBuilder<DateTime> property)
+    {
+        return property.HasColumnType("datetime2");
+    }
+
+    internal static PropertyBuilder<DateTime?> NullableUtc(
+        this PropertyBuilder<DateTime?> property)
+    {
+        return property.HasColumnType("datetime2");
+    }
+
     internal static PropertyBuilder<string> Unicode(
         this PropertyBuilder<string> property,
         int maxLength)

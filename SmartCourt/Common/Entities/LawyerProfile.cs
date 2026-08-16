@@ -12,6 +12,8 @@ public class LawyerProfile
     public string? Bio { get; set; }
     public bool IsAvailable { get; set; } = true;
     public decimal AverageRating { get; set; }
+    public int TotalRatingSum { get; set; }
+    public int TotalRatingCount { get; set; }
     public decimal AverageResponseTimeHours { get; set; }
 }
 

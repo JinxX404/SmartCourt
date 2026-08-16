@@ -57,7 +57,7 @@ public sealed class ConsultationFeatureIntegrationTests
                 true));
         Assert.Equal(HttpStatusCode.Created, offeringResponse.StatusCode);
         var offering = (await offeringResponse.Content.ReadFromJsonAsync<ApiResponse<ConsultationOfferingDto>>())!.Data!;
-        Assert.Equal(12.50m, decimal.Round(offering.Price * 0.05m, 2));
+        Assert.Equal(37.50m, decimal.Round(offering.Price * 0.15m, 2));
 
         var startAt = DateTimeOffset.UtcNow.AddHours(30);
         startAt = new DateTime(startAt.Year, startAt.Month, startAt.Day, startAt.Hour, 0, 0, DateTimeKind.Utc);
@@ -79,8 +79,8 @@ public sealed class ConsultationFeatureIntegrationTests
         Assert.Equal(ConsultationBookingStatus.AwaitingPayment, booking.Status);
         Assert.Null(booking.OfficeLocation);
         Assert.Equal(250m, booking.GrossAmount);
-        Assert.Equal(12.50m, booking.PlatformFeeAmount);
-        Assert.Equal(237.50m, booking.LawyerNetAmount);
+        Assert.Equal(37.50m, booking.PlatformFeeAmount);
+        Assert.Equal(212.50m, booking.LawyerNetAmount);
 
         var paymentKey = Guid.NewGuid().ToString();
         using var paymentRequest = new HttpRequestMessage(
@@ -236,7 +236,7 @@ public sealed class ConsultationFeatureIntegrationTests
             var wallet = await db.LawyerWallets.AsNoTracking().SingleAsync(item => item.LawyerUserId == lawyerId);
             Assert.Equal(EscrowHoldStatus.Released, hold.Status);
             Assert.Equal(0m, wallet.PendingBalance);
-            Assert.Equal(950m, wallet.AvailableBalance);
+            Assert.Equal(850m, wallet.AvailableBalance);
         }
     }
 

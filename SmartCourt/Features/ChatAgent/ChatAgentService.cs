@@ -44,12 +44,7 @@ public class ChatAgentService(
         CreateAgentConversationRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
         CaseEntity? caseEntity = null;
 
         if (request.CaseId.HasValue)
@@ -86,12 +81,7 @@ public class ChatAgentService(
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var actualPage = page <= 0 ? 1 : page;
         var actualPageSize = pageSize <= 0 ? 20 : (pageSize > 100 ? 100 : pageSize);
@@ -118,12 +108,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var conversation = await _dbContext.AgentConversations
             .AsNoTracking()
@@ -154,12 +139,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var conversation = await _dbContext.AgentConversations
             .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
@@ -184,12 +164,7 @@ public class ChatAgentService(
         SendAgentMessageRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var conversation = await _dbContext.AgentConversations
             .Include(c => c.Case)
@@ -358,12 +333,7 @@ public class ChatAgentService(
         int limit,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
-
-        var currentUserId = _currentUserService.UserId.Value;
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var conversation = await _dbContext.AgentConversations
             .AsNoTracking()
@@ -421,10 +391,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        if (!_currentUserService.IsAuthenticated || _currentUserService.UserId is null)
-        {
-            throw new AuthenticationException("المستخدم غير مسجل الدخول.");
-        }
+        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
 
         var conversation = await _dbContext.AgentConversations
             .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
@@ -434,7 +401,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != _currentUserService.UserId.Value)
+        if (conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }

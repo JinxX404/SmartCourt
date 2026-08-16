@@ -14,6 +14,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
 {
     private readonly IChatAgentService _chatAgentService = chatAgentService;
 
+    [AllowAnonymous]
     [HttpPost("conversations")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [ProducesResponseType(typeof(ApiResponse<AgentConversationDto>), StatusCodes.Status201Created)]
@@ -25,6 +26,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         return StatusCode(StatusCodes.Status201Created, ApiResponse<AgentConversationDto>.Created(result));
     }
 
+    [AllowAnonymous]
     [HttpPost("conversations/{id:guid}/messages")]
     [SecurityRateLimit(RateLimitPolicyNames.ChatAgentSend)]
     [ProducesResponseType(typeof(ApiResponse<AgentMessageDto>), StatusCodes.Status200OK)]
@@ -37,6 +39,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         return Ok(ApiResponse<AgentMessageDto>.Ok(result));
     }
 
+    [AllowAnonymous]
     [HttpGet("conversations")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [ProducesResponseType(typeof(ApiResponse<AgentConversationListDto>), StatusCodes.Status200OK)]
@@ -49,6 +52,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         return Ok(ApiResponse<AgentConversationListDto>.Ok(result));
     }
 
+    [AllowAnonymous]
     [HttpGet("conversations/{id:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [ProducesResponseType(typeof(ApiResponse<AgentConversationDetailDto>), StatusCodes.Status200OK)]
@@ -60,6 +64,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         return Ok(ApiResponse<AgentConversationDetailDto>.Ok(result));
     }
 
+    [AllowAnonymous]
     [HttpDelete("conversations/{id:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
@@ -71,6 +76,7 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         return Ok(ApiResponse.Ok("تم حذف المحادثة بنجاح."));
     }
 
+    [AllowAnonymous]
     [HttpGet("conversations/{id:guid}/messages")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [ProducesResponseType(typeof(ApiResponse<AgentMessageListDto>), StatusCodes.Status200OK)]
