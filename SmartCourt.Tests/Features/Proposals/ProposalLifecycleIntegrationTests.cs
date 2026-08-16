@@ -9,6 +9,7 @@ using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Events;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.SendMessage;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Proposals.CancelProposal;
 using SmartCourt.Features.Proposals.CreateProposal;
@@ -258,6 +259,13 @@ public sealed class ProposalLifecycleIntegrationTests
         var pendingCompetitor = CreateProposal(
             lawyerIds[2],
             _utcNow.AddHours(-1));
+        var selectedConversation = new ChatConversation(
+            Guid.NewGuid(),
+            selected.Id,
+            _caseId,
+            _clientUserId,
+            lawyerIds[0],
+            _utcNow.AddHours(-2));
         var competingConversation = new ChatConversation(
             Guid.NewGuid(),
             acceptedCompetitor.Id,
@@ -269,11 +277,15 @@ public sealed class ProposalLifecycleIntegrationTests
             selected,
             acceptedCompetitor,
             pendingCompetitor,
+            selectedConversation,
             competingConversation);
         await context.SaveChangesAsync();
 
         var service = new ContractCaseAssignmentService(
             context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
             CreateOutboxWriter(context));
         await service.AssignAsync(
             new ContractCaseAssignment(
@@ -289,6 +301,7 @@ public sealed class ProposalLifecycleIntegrationTests
         var legalCase = await context.Cases.SingleAsync();
         Assert.Equal(CaseStatus.Assigned, legalCase.Status);
         Assert.Equal(lawyerIds[0], legalCase.LawyerId);
+        Assert.Equal(selectedConversation.Id, legalCase.ChatId);
         Assert.Equal(ProposalStatus.Accepted, selected.Status);
         Assert.Equal(ProposalStatus.Superseded, acceptedCompetitor.Status);
         Assert.Equal(ProposalStatus.Superseded, pendingCompetitor.Status);
@@ -299,6 +312,125 @@ public sealed class ProposalLifecycleIntegrationTests
         await new ProposalConversationOutboxHandler(context, notifier)
             .HandleAsync(closeMessage, CancellationToken.None);
         Assert.True(competingConversation.IsClosed);
+    }
+
+    [Fact]
+    public async Task ContractAssignment_CreatesAndLinksMissingWinningConversation()
+    {
+        await using var context = CreateContext();
+        var lawyerIds = await SeedUsersAndCaseAsync(context, lawyerCount: 1);
+        var selected = CreateProposal(lawyerIds[0], _utcNow.AddHours(-3));
+        selected.Accept(_utcNow.AddHours(-2));
+        context.Proposals.Add(selected);
+        await context.SaveChangesAsync();
+
+        var service = new ContractCaseAssignmentService(
+            context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
+            CreateOutboxWriter(context));
+        await service.AssignAsync(
+            new ContractCaseAssignment(
+                Guid.NewGuid(),
+                selected.Id,
+                _caseId,
+                _clientUserId,
+                lawyerIds[0],
+                new DateTimeOffset(_utcNow)),
+            CancellationToken.None);
+        await context.SaveChangesAsync();
+
+        var legalCase = await context.Cases.SingleAsync();
+        var conversation = await context.ChatConversations.SingleAsync();
+        Assert.Equal(conversation.Id, legalCase.ChatId);
+        Assert.Equal(selected.Id, conversation.ProposalId);
+        Assert.Equal(_caseId, conversation.LegalCaseId);
+        Assert.Equal(_clientUserId, conversation.ClientUserId);
+        Assert.Equal(lawyerIds[0], conversation.LawyerUserId);
+    }
+
+    [Fact]
+    public async Task ContractAssignment_RejectsMismatchedWinningConversation()
+    {
+        await using var context = CreateContext();
+        var lawyerIds = await SeedUsersAndCaseAsync(context, lawyerCount: 2);
+        var selected = CreateProposal(lawyerIds[0], _utcNow.AddHours(-3));
+        selected.Accept(_utcNow.AddHours(-2));
+        var mismatchedConversation = new ChatConversation(
+            Guid.NewGuid(),
+            selected.Id,
+            _caseId,
+            _clientUserId,
+            lawyerIds[1],
+            _utcNow.AddHours(-2));
+        context.AddRange(selected, mismatchedConversation);
+        await context.SaveChangesAsync();
+
+        var service = new ContractCaseAssignmentService(
+            context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
+            CreateOutboxWriter(context));
+
+        await Assert.ThrowsAsync<SmartCourt.Common.Exceptions.BusinessException>(
+            () => service.AssignAsync(
+                new ContractCaseAssignment(
+                    Guid.NewGuid(),
+                    selected.Id,
+                    _caseId,
+                    _clientUserId,
+                    lawyerIds[0],
+                    new DateTimeOffset(_utcNow)),
+                CancellationToken.None));
+
+        var legalCase = await context.Cases.SingleAsync();
+        Assert.Equal(CaseStatus.Matched, legalCase.Status);
+        Assert.Null(legalCase.LawyerId);
+        Assert.Null(legalCase.ChatId);
+    }
+
+    [Fact]
+    public async Task ContractAssignment_RejectsClosedWinningConversation()
+    {
+        await using var context = CreateContext();
+        var lawyerIds = await SeedUsersAndCaseAsync(context, lawyerCount: 1);
+        var selected = CreateProposal(lawyerIds[0], _utcNow.AddHours(-3));
+        selected.Accept(_utcNow.AddHours(-2));
+        var closedConversation = new ChatConversation(
+            Guid.NewGuid(),
+            selected.Id,
+            _caseId,
+            _clientUserId,
+            lawyerIds[0],
+            _utcNow.AddHours(-2));
+        closedConversation.Close(_utcNow.AddHours(-1));
+        context.AddRange(selected, closedConversation);
+        await context.SaveChangesAsync();
+
+        var service = new ContractCaseAssignmentService(
+            context,
+            new ChatConversationService(
+                context,
+                new FixedTimeProvider(_utcNow)),
+            CreateOutboxWriter(context));
+
+        await Assert.ThrowsAsync<SmartCourt.Common.Exceptions.BusinessException>(
+            () => service.AssignAsync(
+                new ContractCaseAssignment(
+                    Guid.NewGuid(),
+                    selected.Id,
+                    _caseId,
+                    _clientUserId,
+                    lawyerIds[0],
+                    new DateTimeOffset(_utcNow)),
+                CancellationToken.None));
+
+        var legalCase = await context.Cases.SingleAsync();
+        Assert.Equal(CaseStatus.Matched, legalCase.Status);
+        Assert.Null(legalCase.LawyerId);
+        Assert.Null(legalCase.ChatId);
     }
 
     private CreateProposalHandler CreateHandler(ApplicationDbContext context)

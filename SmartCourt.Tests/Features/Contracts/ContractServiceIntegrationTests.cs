@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SmartCourt.Common.Exceptions;
 using SmartCourt.Entities;
 using SmartCourt.Common.Enums;
+using SmartCourt.Features.Case.Integration;
+using SmartCourt.Features.Chat.Entities;
+using SmartCourt.Features.Chat.Shared;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Contracts.Dependencies;
 using SmartCourt.Features.Contracts.DTOs;
@@ -291,6 +294,154 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
                     item.Trigger
                     == ContractPaymentEventTypes.ContractActivated)
                 .ToListAsync());
+    }
+
+    [Fact]
+    public async Task AcceptAsync_FinalAcceptanceAtomicallyLinksWinningChatAndAssignsCase()
+    {
+        await using var context = CreateContext();
+        var scenario = await AddActivationScenarioAsync(
+            context,
+            closeWinningConversation: false);
+        var currentUser = new MutableCurrentUserService(_lawyerUserId);
+        var service = CreateService(
+            context,
+            currentUser,
+            caseAssignmentService: CreateCaseAssignmentService(context));
+
+        var firstAcceptance = await service.AcceptAsync(
+            scenario.Contract.Id,
+            ToETag(scenario.Contract.RowVersion),
+            CancellationToken.None);
+        Assert.Equal(
+            ContractStatus.Draft.ToString(),
+            firstAcceptance.Status);
+
+        currentUser.UserId = _clientUserId;
+        var finalAcceptance = await service.AcceptAsync(
+            scenario.Contract.Id,
+            ToETag(scenario.Contract.RowVersion),
+            CancellationToken.None);
+        Assert.Equal(
+            ContractStatus.Active.ToString(),
+            finalAcceptance.Status);
+
+        await using var verificationContext = CreateContext();
+        var savedContract = await verificationContext.Contracts
+            .SingleAsync(item => item.Id == scenario.Contract.Id);
+        var savedCase = await verificationContext.Cases
+            .SingleAsync(item => item.Id == scenario.Contract.LegalCaseId);
+        Assert.Equal(ContractStatus.Active, savedContract.Status);
+        Assert.NotNull(savedContract.ActivatedAt);
+        Assert.Equal(CaseStatus.Assigned, savedCase.Status);
+        Assert.Equal(_lawyerUserId, savedCase.LawyerId);
+        Assert.Equal(scenario.WinningConversationId, savedCase.ChatId);
+
+        var proposals = await verificationContext.Proposals
+            .Where(item => item.LegalCaseId == scenario.Contract.LegalCaseId)
+            .ToDictionaryAsync(item => item.Id);
+        Assert.Equal(
+            ProposalStatus.Accepted,
+            proposals[scenario.SelectedProposalId].Status);
+        Assert.Equal(
+            ProposalStatus.Superseded,
+            proposals[scenario.AcceptedCompetitorId].Status);
+        Assert.Equal(
+            ProposalStatus.Superseded,
+            proposals[scenario.PendingCompetitorId].Status);
+
+        Assert.Single(
+            await verificationContext.ContractStateHistories
+                .Where(item =>
+                    item.ContractId == scenario.Contract.Id
+                    && item.Trigger
+                        == ContractPaymentEventTypes.ContractActivated)
+                .ToListAsync());
+        Assert.Equal(
+            2,
+            await verificationContext.OutboxMessages.CountAsync(item =>
+                item.EventType
+                    == ContractPaymentEventTypes.ContractAccepted));
+        Assert.Single(
+            await verificationContext.OutboxMessages
+                .Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractActivated)
+                .ToListAsync());
+        Assert.Equal(
+            2,
+            await verificationContext.OutboxMessages.CountAsync(item =>
+                item.EventType
+                    == ContractPaymentEventTypes.ProposalSuperseded));
+    }
+
+    [Fact]
+    public async Task AcceptAsync_ClosedWinningChatRollsBackFinalAcceptance()
+    {
+        await using var context = CreateContext();
+        var scenario = await AddActivationScenarioAsync(
+            context,
+            closeWinningConversation: true);
+        var currentUser = new MutableCurrentUserService(_lawyerUserId);
+        var service = CreateService(
+            context,
+            currentUser,
+            caseAssignmentService: CreateCaseAssignmentService(context));
+
+        await service.AcceptAsync(
+            scenario.Contract.Id,
+            ToETag(scenario.Contract.RowVersion),
+            CancellationToken.None);
+        currentUser.UserId = _clientUserId;
+
+        await Assert.ThrowsAsync<BusinessException>(() =>
+            service.AcceptAsync(
+                scenario.Contract.Id,
+                ToETag(scenario.Contract.RowVersion),
+                CancellationToken.None));
+
+        await using var verificationContext = CreateContext();
+        var savedContract = await verificationContext.Contracts
+            .SingleAsync(item => item.Id == scenario.Contract.Id);
+        var savedCase = await verificationContext.Cases
+            .SingleAsync(item => item.Id == scenario.Contract.LegalCaseId);
+        Assert.Equal(ContractStatus.Draft, savedContract.Status);
+        Assert.NotNull(savedContract.AcceptedByLawyerAt);
+        Assert.Null(savedContract.AcceptedByClientAt);
+        Assert.Null(savedContract.ActivatedAt);
+        Assert.Equal(CaseStatus.Matched, savedCase.Status);
+        Assert.Null(savedCase.LawyerId);
+        Assert.Null(savedCase.ChatId);
+        Assert.Empty(
+            await verificationContext.ContractStateHistories
+                .Where(item =>
+                    item.ContractId == scenario.Contract.Id
+                    && item.Trigger
+                        == ContractPaymentEventTypes.ContractActivated)
+                .ToListAsync());
+        Assert.Single(
+            await verificationContext.OutboxMessages
+                .Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractAccepted)
+                .ToListAsync());
+        Assert.Empty(
+            await verificationContext.OutboxMessages
+                .Where(item =>
+                    item.EventType
+                        == ContractPaymentEventTypes.ContractActivated
+                    || item.EventType
+                        == ContractPaymentEventTypes.ProposalSuperseded)
+                .ToListAsync());
+        Assert.All(
+            await verificationContext.Proposals
+                .Where(item =>
+                    item.Id == scenario.AcceptedCompetitorId
+                    || item.Id == scenario.PendingCompetitorId)
+                .ToListAsync(),
+            proposal => Assert.NotEqual(
+                ProposalStatus.Superseded,
+                proposal.Status));
     }
 
     [Fact]
@@ -858,7 +1009,8 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         IContractCreationDependencyGate? creationGate = null,
         IContractUserEligibilityService? eligibilityService = null,
         IEnumerable<IContractTerminationSettlementService>?
-            terminationSettlementServices = null)
+            terminationSettlementServices = null,
+        IContractCaseAssignmentService? caseAssignmentService = null)
     {
         var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibility = eligibilityService ?? new StubEligibilityService();
@@ -878,10 +1030,20 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             eligibility,
             queryService,
             new OutboxWriter(context, timeProvider),
-            new NoOpCaseAssignmentService(),
+            caseAssignmentService ?? new NoOpCaseAssignmentService(),
             terminationSettlementServices
                 ?? Array.Empty<IContractTerminationSettlementService>(),
             timeProvider);
+    }
+
+    private IContractCaseAssignmentService CreateCaseAssignmentService(
+        ApplicationDbContext context)
+    {
+        var timeProvider = new FixedTimeProvider(_utcNow);
+        return new ContractCaseAssignmentService(
+            context,
+            new ChatConversationService(context, timeProvider),
+            new OutboxWriter(context, timeProvider));
     }
 
     private ContractQueryService CreateQueryService(
@@ -925,6 +1087,83 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         };
         context.AddRange(caseEntity, proposal);
         await context.SaveChangesAsync();
+    }
+
+    private async Task<ActivationScenario> AddActivationScenarioAsync(
+        ApplicationDbContext context,
+        bool closeWinningConversation)
+    {
+        var contract = CreateContract();
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+
+        var acceptedCompetitorLawyerId = Guid.NewGuid();
+        var pendingCompetitorLawyerId = Guid.NewGuid();
+        context.Users.AddRange(
+            CreateUser(
+                acceptedCompetitorLawyerId,
+                "accepted-competitor-lawyer"),
+            CreateUser(
+                pendingCompetitorLawyerId,
+                "pending-competitor-lawyer"));
+        context.Set<SmartCourt.Common.Entities.LawyerProfile>().AddRange(
+            new SmartCourt.Common.Entities.LawyerProfile
+            {
+                UserId = acceptedCompetitorLawyerId
+            },
+            new SmartCourt.Common.Entities.LawyerProfile
+            {
+                UserId = pendingCompetitorLawyerId
+            });
+
+        var winningConversation = new ChatConversation(
+            Guid.NewGuid(),
+            contract.ProposalId,
+            contract.LegalCaseId,
+            _clientUserId,
+            _lawyerUserId,
+            _utcNow.AddHours(-1));
+        if (closeWinningConversation)
+        {
+            winningConversation.Close(_utcNow.AddMinutes(-45));
+        }
+
+        var acceptedCompetitor = new Proposal(
+            Guid.NewGuid(),
+            contract.LegalCaseId,
+            _clientUserId,
+            acceptedCompetitorLawyerId,
+            _utcNow.AddHours(-2));
+        acceptedCompetitor.Accept(_utcNow.AddHours(-1));
+        var pendingCompetitor = new Proposal(
+            Guid.NewGuid(),
+            contract.LegalCaseId,
+            _clientUserId,
+            pendingCompetitorLawyerId,
+            _utcNow.AddHours(-2));
+        var approvedMilestone = CreateMilestone(
+            contract.Id,
+            1,
+            1_250m);
+        approvedMilestone.AcceptedByClientAt = _utcNow.AddMinutes(-10);
+        approvedMilestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-5);
+
+        context.AddRange(
+            contract,
+            winningConversation,
+            acceptedCompetitor,
+            pendingCompetitor,
+            approvedMilestone);
+        await context.SaveChangesAsync();
+
+        return new ActivationScenario(
+            contract,
+            winningConversation.Id,
+            contract.ProposalId,
+            acceptedCompetitor.Id,
+            pendingCompetitor.Id);
     }
 
     private Milestone CreateMilestone(
@@ -1027,6 +1266,13 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             return Task.CompletedTask;
         }
     }
+
+    private sealed record ActivationScenario(
+        Contract Contract,
+        Guid WinningConversationId,
+        Guid SelectedProposalId,
+        Guid AcceptedCompetitorId,
+        Guid PendingCompetitorId);
 
     private sealed class SuccessfulRefundProvider : IPaymentProvider
     {
