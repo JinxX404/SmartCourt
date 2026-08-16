@@ -833,6 +833,9 @@ public static class DependencyInjection
         // --- Feature: Ratings ---
         services.AddScoped<SmartCourt.Features.Ratings.IRatingService, SmartCourt.Features.Ratings.RatingService>();
 
+        // --- Feature: Lawyer Dashboard ---
+        services.AddScoped<SmartCourt.Features.Users.Lawyers.Dashboard.ILawyerDashboardService, SmartCourt.Features.Users.Lawyers.Dashboard.LawyerDashboardService>();
+
         return services;
     }
 
