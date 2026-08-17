@@ -21,6 +21,8 @@ public sealed class StripePaymentProvider :
     private readonly global::Stripe.TransferService _transfers;
     private readonly global::Stripe.RefundService _refunds;
     private readonly global::Stripe.PayoutService _payouts;
+    private readonly global::Stripe.BalanceService _balances;
+    private readonly global::Stripe.BalanceTransactionService _balanceTransactions;
     private readonly global::Stripe.AccountService _accounts;
     private readonly global::Stripe.AccountLinkService _accountLinks;
     private readonly global::Stripe.AccountLoginLinkService _loginLinks;
@@ -42,6 +44,9 @@ public sealed class StripePaymentProvider :
         _transfers = new global::Stripe.TransferService(stripeClient);
         _refunds = new global::Stripe.RefundService(stripeClient);
         _payouts = new global::Stripe.PayoutService(stripeClient);
+        _balances = new global::Stripe.BalanceService(stripeClient);
+        _balanceTransactions =
+            new global::Stripe.BalanceTransactionService(stripeClient);
         _accounts = new global::Stripe.AccountService(stripeClient);
         _accountLinks = new global::Stripe.AccountLinkService(stripeClient);
         _loginLinks = new global::Stripe.AccountLoginLinkService(stripeClient);
@@ -263,7 +268,7 @@ public sealed class StripePaymentProvider :
         {
             return Failed(
                 request,
-                "A verified connected account and allocated provider balance are required.",
+                "يلزم وجود حساب سحب موثق ورصيد مخصص لدى مزود الدفع.",
                 "invalid_payout_account",
                 ObjectPayout);
         }
@@ -486,6 +491,77 @@ public sealed class StripePaymentProvider :
         return MapAccount(account);
     }
 
+    public async Task<ProviderPayoutBalanceResult> GetBalanceAsync(
+        string providerAccountId,
+        string currency,
+        long requiredAmountMinor,
+        CancellationToken cancellationToken)
+    {
+        var normalizedCurrency = currency.Trim().ToLowerInvariant();
+        var balance = await _balances.GetAsync(
+            new global::Stripe.RequestOptions
+            {
+                StripeAccount = providerAccountId
+            },
+            cancellationToken);
+        var available = balance.Available.SingleOrDefault(item =>
+            string.Equals(
+                item.Currency,
+                normalizedCurrency,
+                StringComparison.OrdinalIgnoreCase));
+        var pending = balance.Pending.SingleOrDefault(item =>
+            string.Equals(
+                item.Currency,
+                normalizedCurrency,
+                StringComparison.OrdinalIgnoreCase));
+        var availableAmount = available?.Amount ?? 0L;
+        var pendingAmount = pending?.Amount ?? 0L;
+        DateTimeOffset? expectedAvailableAt = null;
+        if (pendingAmount > 0 && availableAmount < requiredAmountMinor)
+        {
+            var transactions = await _balanceTransactions.ListAsync(
+                new global::Stripe.BalanceTransactionListOptions
+                {
+                    Currency = normalizedCurrency,
+                    Limit = 100
+                },
+                new global::Stripe.RequestOptions
+                {
+                    StripeAccount = providerAccountId
+                },
+                cancellationToken);
+            decimal accumulatedPending = 0m;
+            var shortfall = requiredAmountMinor - availableAmount;
+            foreach (var transaction in transactions.Data
+                         .Where(item =>
+                             string.Equals(
+                                 item.Status,
+                                 "pending",
+                                 StringComparison.OrdinalIgnoreCase)
+                             && item.Net > 0)
+                         .OrderBy(item => item.AvailableOn))
+            {
+                accumulatedPending += transaction.Net;
+                if (accumulatedPending < shortfall)
+                {
+                    continue;
+                }
+
+                expectedAvailableAt = new DateTimeOffset(
+                    DateTime.SpecifyKind(
+                        transaction.AvailableOn,
+                        DateTimeKind.Utc));
+                break;
+            }
+        }
+
+        return new ProviderPayoutBalanceResult(
+            normalizedCurrency,
+            availableAmount,
+            pendingAmount,
+            expectedAvailableAt);
+    }
+
     public async Task<ProviderOnboardingLinkResult> CreateOnboardingLinkAsync(
         ProviderOnboardingLinkRequest request,
         CancellationToken cancellationToken)
@@ -681,8 +757,7 @@ public sealed class StripePaymentProvider :
             outcome,
             payout.Id,
             outcome == ProviderOperationOutcome.Failed
-                ? payout.FailureMessage ?? payout.FailureCode
-                    ?? "Stripe payout failed."
+                ? PublicPayoutFailure(payout.FailureCode)
                 : null,
             payout.Status,
             ObjectPayout,
@@ -738,7 +813,7 @@ public sealed class StripePaymentProvider :
             request,
             "network_error",
             objectType,
-            "The Stripe operation result could not be confirmed.");
+            "تعذر التأكد من نتيجة العملية لدى مزود الدفع. يرجى المحاولة لاحقًا.");
     }
 
     public async Task<ProviderCustomerResult> CreateCustomerAsync(
@@ -973,9 +1048,28 @@ public sealed class StripePaymentProvider :
     }
 
     private static string SafeFailure(global::Stripe.StripeException exception)
-        => exception.StripeError?.Message is { Length: > 0 } message
-            ? message
-            : "Stripe could not complete the operation.";
+        => exception.StripeError?.Code switch
+        {
+            "balance_insufficient" or "insufficient_funds" =>
+                "الرصيد المتاح لدى مزود الدفع لا يكفي لتنفيذ العملية حاليًا.",
+            "card_declined" =>
+                "تم رفض البطاقة من جهة الإصدار. يرجى استخدام بطاقة أخرى.",
+            "currency_not_supported" =>
+                "عملة العملية غير مدعومة لدى مزود الدفع.",
+            _ => "تعذر على مزود الدفع إتمام العملية. يرجى المحاولة لاحقًا."
+        };
+
+    private static string PublicPayoutFailure(string? failureCode)
+        => failureCode switch
+        {
+            "insufficient_funds" =>
+                "الرصيد المتاح لدى مزود الدفع لا يكفي لتنفيذ السحب حاليًا.",
+            "account_closed" =>
+                "الحساب البنكي المرتبط مغلق. يرجى تحديث بيانات حساب السحب.",
+            "no_account" or "invalid_account_number" =>
+                "بيانات الحساب البنكي المرتبط غير صحيحة. يرجى تحديثها.",
+            _ => "تعذر على مزود الدفع إتمام السحب. يرجى مراجعة حساب السحب والمحاولة لاحقًا."
+        };
 
     private static ProviderResult Failed(
         IProviderOperationRequest request,

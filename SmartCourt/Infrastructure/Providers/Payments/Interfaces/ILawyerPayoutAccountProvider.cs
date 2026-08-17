@@ -12,6 +12,12 @@ public interface ILawyerPayoutAccountProvider
         string providerAccountId,
         CancellationToken cancellationToken);
 
+    Task<ProviderPayoutBalanceResult> GetBalanceAsync(
+        string providerAccountId,
+        string currency,
+        long requiredAmountMinor,
+        CancellationToken cancellationToken);
+
     Task<ProviderOnboardingLinkResult> CreateOnboardingLinkAsync(
         ProviderOnboardingLinkRequest request,
         CancellationToken cancellationToken);
@@ -44,6 +50,12 @@ public sealed record ProviderPayoutAccountResult(
     string Country,
     string DefaultCurrency,
     string? MaskedDestination);
+
+public sealed record ProviderPayoutBalanceResult(
+    string Currency,
+    long AvailableAmountMinor,
+    long PendingAmountMinor,
+    DateTimeOffset? ExpectedAvailableAt);
 
 public sealed record ProviderOnboardingLinkRequest(
     string ProviderAccountId,

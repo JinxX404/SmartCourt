@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
@@ -104,7 +105,9 @@ public sealed class WalletService(
             ?? throw new BusinessException(
                 "لا توجد محفظة مالية متاحة لهذا المحامي.");
         LawyerPayoutAccount? payoutAccount = null;
-        if (paymentProvider is ILawyerPayoutAccountProvider)
+        var payoutAccountProvider =
+            paymentProvider as ILawyerPayoutAccountProvider;
+        if (payoutAccountProvider is not null)
         {
             payoutAccount = await dbContext.LawyerPayoutAccounts
                 .AsNoTracking()
@@ -141,6 +144,30 @@ public sealed class WalletService(
             return await ReplayAsync(
                 reservation,
                 cancellationToken);
+        }
+
+        if (payoutAccountProvider is not null && payoutAccount is not null)
+        {
+            try
+            {
+                await EnsureProviderBalanceIsAvailableAsync(
+                    payoutAccountProvider,
+                    payoutAccount,
+                    wallet,
+                    request.Amount,
+                    cancellationToken);
+            }
+            catch (Exception exception)
+                when (exception is BusinessException or ConflictException)
+            {
+                await idempotencyService.FailAsync(
+                    reservation.RecordId,
+                    exception is ConflictException ? 409 : 502,
+                    new WithdrawalFailureResponse(exception.Message),
+                    null,
+                    cancellationToken);
+                throw;
+            }
         }
 
         var withdrawal = await ReserveBalanceAsync(
@@ -910,6 +937,73 @@ public sealed class WalletService(
             ? throw new BusinessException(
                 "تجاوز مبلغ السحب لدى مزود الدفع الحد العددي المسموح به.")
             : (long)allocated;
+    }
+
+    private async Task EnsureProviderBalanceIsAvailableAsync(
+        ILawyerPayoutAccountProvider payoutAccountProvider,
+        LawyerPayoutAccount payoutAccount,
+        LawyerWallet wallet,
+        decimal requestedAmount,
+        CancellationToken cancellationToken)
+    {
+        if (wallet.AvailableBalance < requestedAmount)
+        {
+            throw new ConflictException(
+                "الرصيد المتاح في المحفظة لا يكفي لتنفيذ طلب السحب.");
+        }
+
+        var requiredProviderAmount = AllocateProviderMinorAmount(
+            payoutAccount.AvailableProviderAmountMinor,
+            requestedAmount,
+            wallet.AvailableBalance);
+        if (requiredProviderAmount <= 0)
+        {
+            throw new ConflictException(
+                "لا يوجد رصيد متاح للسحب لدى مزود الدفع حاليًا.");
+        }
+
+        ProviderPayoutBalanceResult providerBalance;
+        try
+        {
+            providerBalance = await payoutAccountProvider.GetBalanceAsync(
+                payoutAccount.ProviderAccountId,
+                payoutAccount.DefaultCurrency,
+                requiredProviderAmount,
+                cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogWarning(
+                exception,
+                "Could not retrieve payout balance for account {ProviderAccountId}.",
+                payoutAccount.ProviderAccountId);
+            throw new BusinessException(
+                "تعذر التحقق من الرصيد المتاح لدى مزود الدفع. يرجى المحاولة لاحقًا.",
+                exception);
+        }
+
+        if (providerBalance.AvailableAmountMinor >= requiredProviderAmount)
+        {
+            return;
+        }
+
+        if (providerBalance.PendingAmountMinor > 0)
+        {
+            var availability = providerBalance.ExpectedAvailableAt.HasValue
+                ? $" الموعد المتوقع لإتاحته هو {providerBalance.ExpectedAvailableAt.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)}."
+                : " يرجى المحاولة لاحقًا.";
+            throw new ConflictException(
+                "الرصيد موجود لدى مزود الدفع لكنه ما زال معلّقًا وغير متاح للسحب حاليًا."
+                + availability);
+        }
+
+        throw new ConflictException(
+            "الرصيد المتاح لدى مزود الدفع لا يكفي لتنفيذ السحب حاليًا. يرجى المحاولة لاحقًا.");
     }
 
     private DateTimeOffset UtcNow =>
