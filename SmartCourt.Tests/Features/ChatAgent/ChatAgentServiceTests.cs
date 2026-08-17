@@ -155,7 +155,7 @@ public sealed class ChatAgentServiceTests
     }
 
     [Fact]
-    public async Task CreateConversation_UnauthenticatedUser_WithCase_ThrowsForbiddenAccessException()
+    public async Task CreateConversation_UnauthenticatedUser_ThrowsAuthenticationException()
     {
         // Arrange
         var dbOptions = CreateInMemoryOptions();
@@ -173,10 +173,10 @@ public sealed class ChatAgentServiceTests
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
-        var request = new CreateAgentConversationRequest(CaseId: Guid.NewGuid());
+        var request = new CreateAgentConversationRequest(CaseId: null);
 
         // Act & Assert
-        await Assert.ThrowsAsync<ForbiddenAccessException>(() => service.CreateConversationAsync(request));
+        await Assert.ThrowsAsync<AuthenticationException>(() => service.CreateConversationAsync(request));
     }
 
     [Fact]
