@@ -27,7 +27,7 @@ public class GetCaseByIdHandler : IRequestHandler<GetCaseByIdQuery, ApiResponse<
             return ApiResponse<CaseDto>.Fail(new List<string>{"Case not found"}, 404);
 
         var lawyerId = existing.LawyerId ?? await _context.Contracts
-            .Where(ct => ct.LegalCaseId == existing.Id && ct.Status == ContractStatus.Active)
+            .Where(ct => ct.LegalCaseId == existing.Id && (ct.Status == ContractStatus.Active || ct.Status == ContractStatus.CompletedOnHold || ct.Status == ContractStatus.Completed))
             .Select(ct => (Guid?)ct.LawyerUserId)
             .FirstOrDefaultAsync(cancellationToken);
 

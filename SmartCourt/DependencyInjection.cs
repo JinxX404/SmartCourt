@@ -279,6 +279,9 @@ public static class DependencyInjection
         services.AddScoped<
             IContractCaseAssignmentService,
             ContractCaseAssignmentService>();
+        services.AddScoped<
+            IContractCaseLifecycleService,
+            ContractCaseLifecycleService>();
         services.AddScoped<IProposalExpirationService, ProposalExpirationService>();
         services.AddScoped<
             IContractUserEligibilityService,

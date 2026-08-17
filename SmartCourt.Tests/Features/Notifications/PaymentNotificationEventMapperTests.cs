@@ -398,7 +398,11 @@ public sealed class PaymentNotificationEventMapperTests
         Assert.Equal(severity, draft.Severity.ToString());
         Assert.Equal(title, draft.Title);
         Assert.Equal(body, draft.Body);
-        Assert.Null(draft.ActionUrl);
+        Assert.Equal(
+            type.StartsWith("wallet.", StringComparison.Ordinal)
+                ? "/dashboard/wallet"
+                : $"/dashboard/contracts/{ContractId}?milestoneId={MilestoneId}",
+            draft.ActionUrl);
     }
 
     private static void AssertFundedVariant(NotificationDraft draft)
@@ -409,7 +413,9 @@ public sealed class PaymentNotificationEventMapperTests
         Assert.Equal("milestone.funded", draft.Type);
         Assert.Equal("Success", draft.Severity.ToString());
         Assert.Equal("تم تمويل المرحلة", draft.Title);
-        Assert.Null(draft.ActionUrl);
+        Assert.Equal(
+            $"/dashboard/contracts/{ContractId}?milestoneId={MilestoneId}",
+            draft.ActionUrl);
         AssertMilestoneData(draft.Data!);
     }
 

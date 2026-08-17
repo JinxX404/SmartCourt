@@ -570,6 +570,10 @@ public sealed class MilestoneService(
             await transaction.CommitAsync(cancellationToken);
         }
 
+        await contractService.EvaluateCompletionAsync(
+            contract.Id,
+            cancellationToken);
+
         return MapMilestone(
             milestone,
             hold,

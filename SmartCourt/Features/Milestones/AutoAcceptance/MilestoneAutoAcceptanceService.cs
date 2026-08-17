@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Milestones.Domain;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Enums;
@@ -13,6 +14,7 @@ namespace SmartCourt.Features.Milestones;
 public sealed class MilestoneAutoAcceptanceService(
     ApplicationDbContext dbContext,
     IMilestoneFundingVerifier fundingVerifier,
+    IContractService contractService,
     IOutboxWriter outboxWriter,
     TimeProvider timeProvider,
     ILogger<MilestoneAutoAcceptanceService> logger)
@@ -242,6 +244,10 @@ public sealed class MilestoneAutoAcceptanceService(
         {
             await transaction.CommitAsync(cancellationToken);
         }
+
+        await contractService.EvaluateCompletionAsync(
+            milestone.ContractId,
+            cancellationToken);
 
         logger.LogInformation(
             "Milestone auto-accept completed for milestone {MilestoneId}, hold {EscrowHoldId}, submission version {SubmissionVersion}.",

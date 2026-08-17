@@ -16,6 +16,7 @@ public static class ContractPaymentEventTypes
         "ContractActivationRequested";
     public const string ContractActivated = "ContractActivated";
     public const string ContractCompleted = "ContractCompleted";
+    public const string ContractCompletedOnHold = "ContractCompletedOnHold";
     public const string ContractTerminationRequested =
         "ContractTerminationRequested";
     public const string MilestoneCreated = "MilestoneCreated";

@@ -40,9 +40,12 @@ internal sealed class ConsultationNotificationEventMapper : INotificationEventMa
         var data = new Dictionary<string, string>
         {
             ["bookingId"] = payload.BookingId.ToString(),
+            ["clientUserId"] = payload.ClientUserId.ToString(),
+            ["lawyerUserId"] = payload.LawyerUserId.ToString(),
+            ["offeringTitle"] = payload.OfferingTitle,
             ["startAtUtc"] = payload.StartAtUtc.ToString("O")
         };
-        var url = $"/consultations/bookings/{payload.BookingId}";
+        var url = NotificationActionUrls.Consultation(payload.BookingId);
         var drafts = message.EventType switch
         {
             ConsultationEventTypes.BookingCreated => One(payload.LawyerUserId,

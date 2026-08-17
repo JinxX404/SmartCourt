@@ -25,6 +25,7 @@ internal sealed class ContractIntegrationEventResolver(
                 or ContractPaymentEventTypes.ContractAccepted
                 or ContractPaymentEventTypes.ContractActivated
                 or ContractPaymentEventTypes.ContractCompleted
+                or ContractPaymentEventTypes.ContractCompletedOnHold
                 or ContractPaymentEventTypes.ContractTerminated =>
                 await ResolveContractAsync(
                     message.AggregateId,

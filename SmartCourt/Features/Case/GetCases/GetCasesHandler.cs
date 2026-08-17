@@ -59,7 +59,7 @@ public class GetCasesHandler : IRequestHandler<GetCasesQuery, ApiResponse<List<C
             c.ChatId,
             DocumentCount = c.Documents.Count(),
             LawyerId = c.LawyerId ?? _context.Contracts
-                .Where(ct => ct.LegalCaseId == c.Id && ct.Status == ContractStatus.Active)
+                .Where(ct => ct.LegalCaseId == c.Id && (ct.Status == ContractStatus.Active || ct.Status == ContractStatus.CompletedOnHold || ct.Status == ContractStatus.Completed))
                 .Select(ct => (Guid?)ct.LawyerUserId)
                 .FirstOrDefault()
         }).ToListAsync(cancellationToken);
