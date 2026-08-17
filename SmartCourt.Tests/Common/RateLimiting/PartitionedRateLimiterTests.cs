@@ -12,6 +12,7 @@ using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.Contracts;
 using SmartCourt.Features.Disputes;
+using SmartCourt.Features.Disputes.Penalties;
 using SmartCourt.Features.Milestones;
 using SmartCourt.Features.Payments;
 using SmartCourt.Providers.Payments;
@@ -167,7 +168,8 @@ public sealed class PartitionedRateLimiterTests
             typeof(PaymentsController),
             typeof(WalletsController),
             typeof(AdminWalletsController),
-            typeof(DisputesController)
+            typeof(DisputesController),
+            typeof(LawyerPenaltiesController)
         ];
 
         var actions = controllerTypes
@@ -181,7 +183,7 @@ public sealed class PartitionedRateLimiterTests
                 .Any())
             .ToArray();
 
-        Assert.Equal(36, actions.Length);
+        Assert.Equal(43, actions.Length);
         foreach (var action in actions)
         {
             var attribute = action.GetCustomAttribute<SecurityRateLimitAttribute>();

@@ -345,6 +345,9 @@ public static class DependencyInjection
         services.AddScoped<IDisputeSettlementRecoveryService>(provider =>
             provider.GetRequiredService<DisputeService>());
         services.AddScoped<
+            SmartCourt.Features.Disputes.Penalties.ILawyerPenaltyService,
+            SmartCourt.Features.Disputes.Penalties.LawyerPenaltyService>();
+        services.AddScoped<
             IContractTerminationSettlementService,
             ContractTerminationSettlementService>();
         services.AddScoped<

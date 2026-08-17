@@ -33,6 +33,13 @@ public sealed class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
             .NullableUnicode(2_000);
         builder.Property(dispute => dispute.ResolvedAt).NullableUtc();
         builder.Property(dispute => dispute.ClosedAt).NullableUtc();
+        builder.Property(dispute => dispute.PreviousMilestoneStatus)
+            .HasConversion<int>();
+        builder.Property(dispute => dispute.PreviousContractStatus)
+            .HasConversion<int>();
+        builder.Property(dispute => dispute.CancelledAt).NullableUtc();
+        builder.Property(dispute => dispute.CancellationReason)
+            .NullableUnicode(2_000);
         builder.Property(dispute => dispute.CreatedAt).Utc();
         builder.Property(dispute => dispute.UpdatedAt).Utc();
         builder.Property(dispute => dispute.RowVersion)
@@ -59,6 +66,10 @@ public sealed class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
             .WithMany()
             .HasForeignKey(dispute => dispute.ResolvedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(dispute => dispute.CancelledByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(dispute => dispute.MilestoneId)
         .HasFilter("[Status] IN (0, 1, 2)")
@@ -75,7 +86,7 @@ public sealed class DisputeConfiguration : IEntityTypeConfiguration<Dispute>
             "[Category] BETWEEN 0 AND 5");
         builder.HasCheckConstraint(
             "CK_Disputes_Status_Range",
-            "[Status] BETWEEN 0 AND 4");
+            "[Status] BETWEEN 0 AND 5");
         builder.HasCheckConstraint(
             "CK_Disputes_RequestedOutcome_Range",
             "[RequestedOutcome] BETWEEN 0 AND 2");

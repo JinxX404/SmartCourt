@@ -10,6 +10,7 @@ using SmartCourt.Entities;
 using SmartCourt.Features.Contracts.DTOs;
 using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Disputes.DTOs;
+using SmartCourt.Features.Disputes.Entities;
 using SmartCourt.Features.Disputes.Enums;
 using SmartCourt.Features.Milestones.DTOs;
 using SmartCourt.Features.Payments.DTOs;
@@ -310,5 +311,96 @@ public class DisputeApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         Assert.Equal(HttpStatusCode.OK, closeResp.StatusCode);
         var finalData = (await closeResp.Content.ReadFromJsonAsync<ApiResponse<DisputeActionResultDto>>(JsonOptions))!.Data!;
         Assert.Equal(DisputeStatus.Closed.ToString(), finalData.Status);
+    }
+
+    [Fact]
+    public async Task WithdrawDispute_CancelsDisputeAndRestoresHold()
+    {
+        var (_, clientId, _, milestoneId) = await SeedFundedMilestoneAsync();
+        var clientUserClient = _factory.CreateAuthenticatedClient(clientId, "Client");
+
+        var createReq = new CreateDisputeRequest(
+            milestoneId,
+            DisputeCategory.NonDelivery,
+            "نزاع قبل السحب",
+            "تفاصيل النزاع المسحوب لاحقًا.",
+            DisputeRequestedOutcome.Refund,
+            []);
+        var msg = new HttpRequestMessage(HttpMethod.Post, "/api/disputes") { Content = JsonContent.Create(createReq) };
+        msg.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        var disputeResp = await clientUserClient.SendAsync(msg);
+        var disputeId = (await disputeResp.Content.ReadFromJsonAsync<ApiResponse<DisputeDto>>(JsonOptions))!.Data!.Id;
+
+        var withdrawResp = await clientUserClient.PostAsJsonAsync(
+            $"/api/disputes/{disputeId}/withdraw",
+            new WithdrawDisputeRequest("تم التفاهم وسحب النزاع وديًا."));
+
+        Assert.Equal(HttpStatusCode.OK, withdrawResp.StatusCode);
+        var result = (await withdrawResp.Content.ReadFromJsonAsync<ApiResponse<DisputeActionResultDto>>(JsonOptions))!.Data!;
+        Assert.Equal(DisputeStatus.Cancelled.ToString(), result.Status);
+    }
+
+    [Fact]
+    public async Task GetStats_ReturnsAccurateCountsForModerator()
+    {
+        var adminId = Guid.NewGuid();
+        await _factory.SeedUserAsync(adminId, "mod_stats@test.com", "Moderator");
+        var moderatorClient = _factory.CreateAuthenticatedClient(adminId, "Moderator");
+
+        var statsResp = await moderatorClient.GetAsync("/api/admin/disputes/stats");
+        Assert.Equal(HttpStatusCode.OK, statsResp.StatusCode);
+        var stats = (await statsResp.Content.ReadFromJsonAsync<ApiResponse<DisputeStatsDto>>(JsonOptions))!.Data!;
+        Assert.NotNull(stats);
+        Assert.True(stats.TotalOpen >= 0);
+    }
+
+    [Fact]
+    public async Task LawyerPenaltyEndpoints_ListAndRevokeWorkEndToEnd()
+    {
+        var superAdminId = Guid.NewGuid();
+        var lawyerId = Guid.NewGuid();
+        await _factory.SeedUserAsync(superAdminId, "superadmin@test.com", "SuperAdministrator");
+        await _factory.SeedUserAsync(lawyerId, "lawyer_penalized@test.com", "Lawyer");
+
+        var penaltyId = Guid.NewGuid();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var penalty = new LawyerPenalty(
+                penaltyId,
+                lawyerId,
+                Guid.NewGuid(),
+                PenaltyType.Suspension12Months,
+                "إخلال مهني جسيم",
+                DateTimeOffset.UtcNow,
+                DateTimeOffset.UtcNow.AddMonths(12),
+                superAdminId,
+                DateTimeOffset.UtcNow);
+            db.LawyerPenalties.Add(penalty);
+            await db.SaveChangesAsync();
+        }
+
+        var superAdminClient = _factory.CreateAuthenticatedClient(superAdminId, "SuperAdministrator");
+        var lawyerClient = _factory.CreateAuthenticatedClient(lawyerId, "Lawyer");
+
+        // Lawyer gets their penalties
+        var lawyerPenaltiesResp = await lawyerClient.GetAsync("/api/lawyer-penalties/me");
+        Assert.Equal(HttpStatusCode.OK, lawyerPenaltiesResp.StatusCode);
+        var lawyerResult = (await lawyerPenaltiesResp.Content.ReadFromJsonAsync<ApiResponse<PagedResult<LawyerPenaltyDto>>>(JsonOptions))!.Data!;
+        Assert.Single(lawyerResult.Items);
+        Assert.True(lawyerResult.Items[0].IsActive);
+
+        // SuperAdmin lists penalties
+        var adminPenaltiesResp = await superAdminClient.GetAsync("/api/admin/lawyer-penalties");
+        Assert.Equal(HttpStatusCode.OK, adminPenaltiesResp.StatusCode);
+
+        // SuperAdmin revokes penalty
+        var revokeResp = await superAdminClient.PostAsJsonAsync(
+            $"/api/admin/lawyer-penalties/{penaltyId}/revoke",
+            new RevokeLawyerPenaltyRequest("تم قبول الالتماس وإلغاء العقوبة."));
+        Assert.Equal(HttpStatusCode.OK, revokeResp.StatusCode);
+        var revokedResult = (await revokeResp.Content.ReadFromJsonAsync<ApiResponse<LawyerPenaltyDto>>(JsonOptions))!.Data!;
+        Assert.True(revokedResult.IsRevoked);
+        Assert.False(revokedResult.IsActive);
     }
 }

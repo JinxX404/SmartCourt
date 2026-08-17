@@ -14,18 +14,24 @@ namespace SmartCourt.Tests.Features.Case;
 
 public class ContractCaseLifecycleServiceTests
 {
-    private static ApplicationDbContext CreateInMemoryContext()
+    private static ApplicationDbContext CreateInMemoryContext(TimeProvider? timeProvider = null)
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(databaseName: $"CaseLifecycle_{Guid.NewGuid()}")
             .Options;
-        return new ApplicationDbContext(options);
+        return new ApplicationDbContext(options, timeProvider);
+    }
+
+    private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => utcNow;
     }
 
     [Fact]
     public async Task ApplyAsync_WhenContractCompleted_TransitionsCaseStatusToClosed()
     {
-        await using var context = CreateInMemoryContext();
+        var now = DateTimeOffset.UtcNow;
+        await using var context = CreateInMemoryContext(new FixedTimeProvider(now));
         var clientId = Guid.NewGuid();
         var clientUser = new ApplicationUser
         {
@@ -51,7 +57,6 @@ public class ContractCaseLifecycleServiceTests
         await context.SaveChangesAsync();
 
         var service = new ContractCaseLifecycleService(context);
-        var now = DateTimeOffset.UtcNow;
         var update = new ContractCaseLifecycleUpdate(
             Guid.NewGuid(),
             legalCase.Id,

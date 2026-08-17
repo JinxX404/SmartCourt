@@ -61,14 +61,19 @@ public sealed class ContractAndPaymentInvariantTests
             (MilestoneStatus.FundingProcessing, MilestoneStatus.AwaitingFunding),
             (MilestoneStatus.FundingProcessing, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundedInProgress, MilestoneStatus.Submitted),
+            (MilestoneStatus.FundedInProgress, MilestoneStatus.Disputed),
             (MilestoneStatus.FundedInProgress, MilestoneStatus.Cancelled),
             (MilestoneStatus.FundedInProgress, MilestoneStatus.Refunded),
             (MilestoneStatus.Submitted, MilestoneStatus.FundedInProgress),
             (MilestoneStatus.Submitted, MilestoneStatus.AcceptedHold),
+            (MilestoneStatus.Submitted, MilestoneStatus.Disputed),
             (MilestoneStatus.Submitted, MilestoneStatus.Refunded),
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Disputed),
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Released),
             (MilestoneStatus.AcceptedHold, MilestoneStatus.Refunded),
+            (MilestoneStatus.Disputed, MilestoneStatus.FundedInProgress),
+            (MilestoneStatus.Disputed, MilestoneStatus.Submitted),
+            (MilestoneStatus.Disputed, MilestoneStatus.AcceptedHold),
             (MilestoneStatus.Disputed, MilestoneStatus.Released),
             (MilestoneStatus.Disputed, MilestoneStatus.Refunded),
             (MilestoneStatus.ReleasePending, MilestoneStatus.Released)
@@ -88,6 +93,7 @@ public sealed class ContractAndPaymentInvariantTests
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Frozen),
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Released),
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Refunded),
+            (EscrowHoldStatus.Frozen, EscrowHoldStatus.Funded),
             (EscrowHoldStatus.Frozen, EscrowHoldStatus.Released),
             (EscrowHoldStatus.Frozen, EscrowHoldStatus.Refunded)
         ];
@@ -104,8 +110,12 @@ public sealed class ContractAndPaymentInvariantTests
         HashSet<(DisputeStatus, DisputeStatus)> allowed =
         [
             (DisputeStatus.Open, DisputeStatus.Assigned),
+            (DisputeStatus.Open, DisputeStatus.Cancelled),
+            (DisputeStatus.Assigned, DisputeStatus.Assigned),
             (DisputeStatus.Assigned, DisputeStatus.UnderReview),
+            (DisputeStatus.Assigned, DisputeStatus.Cancelled),
             (DisputeStatus.UnderReview, DisputeStatus.Resolved),
+            (DisputeStatus.UnderReview, DisputeStatus.Cancelled),
             (DisputeStatus.Resolved, DisputeStatus.Closed)
         ];
 
