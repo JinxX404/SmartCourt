@@ -10,7 +10,7 @@ namespace SmartCourt.Features.Users.Lawyers.Dashboard;
 
 [ApiController]
 [Route("api/lawyers/dashboard")]
-[Authorize(Roles = "Lawyer")]
+[Authorize(Roles = "Lawyer,Admin,SuperAdministrator")]
 public sealed class LawyerDashboardController(ILawyerDashboardService dashboardService) : ControllerBase
 {
     private readonly ILawyerDashboardService _dashboardService = dashboardService;

@@ -22,5 +22,7 @@ public class LawyerProfileResponse
     public bool IsAvailable { get; set; }
     public string? ProfilePictureUrl { get; set; }
     public string? RejectionReason { get; set; }
+    public decimal AverageRating { get; set; }
+    public int RatingCount { get; set; }
     public List<LawyerSpecializationDto> Specializations { get; set; } = new();
 }

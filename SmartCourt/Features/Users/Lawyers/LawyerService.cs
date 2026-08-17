@@ -65,6 +65,8 @@ public class LawyerService(
             IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
             ProfilePictureUrl = user.ProfilePictureUrl,
             RejectionReason = user.RejectionReason,
+            AverageRating = user.LawyerProfile?.AverageRating ?? 0m,
+            RatingCount = user.LawyerProfile?.TotalRatingCount ?? 0,
             Specializations = specializations,
             YearsOfExperience = specializations.FirstOrDefault()?.YearsOfExperience ?? 0,
             SpecializationName = specializations.FirstOrDefault()?.Specialization.ToString()
@@ -76,35 +78,13 @@ public class LawyerService(
         var user = await _userManager.Users
             .WherePublicLawyer(lawyerId)
             .Include(u => u.LawyerProfile)
-            .ThenInclude(lp => lp.Specializations)
+            .ThenInclude(lp => lp!.Specializations)
             .FirstOrDefaultAsync(cancellationToken);
 
         if (user == null)
             throw new NotFoundException("المحامي غير موجود");
 
-        var specializations = user.LawyerProfile?.Specializations
-            .Select(s => new LawyerSpecializationDto
-            {
-                Specialization = s.Specialization,
-                YearsOfExperience = s.YearsOfExperience,
-                CasesHandled = s.CasesHandled
-            }).ToList() ?? new List<LawyerSpecializationDto>();
-
-        return new PublicLawyerProfileResponse
-        {
-            Id = user.Id,
-            Name = user.FullName ?? string.Empty,
-            Gender = user.Gender,
-            Level = user.LawyerProfile != null ? user.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
-            Bio = user.LawyerProfile?.Bio,
-            Governorate = user.Governorate,
-            City = user.City,
-            IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
-            ProfilePictureUrl = user.ProfilePictureUrl,
-            Specializations = specializations,
-            YearsOfExperience = specializations.FirstOrDefault()?.YearsOfExperience ?? 0,
-            SpecializationName = specializations.FirstOrDefault()?.Specialization.ToString()
-        };
+        return MapToPublicDto(user);
     }
 
     public async Task<PagedResponse<List<PublicLawyerProfileResponse>>> SearchLawyersAsync(
@@ -158,23 +138,46 @@ public class LawyerService(
         var totalRecords = await query.CountAsync(cancellationToken);
         var totalPages = (int)Math.Ceiling(totalRecords / (double)request.PageSize);
 
-        var items = await query
+        var users = await query
+            .Include(u => u.LawyerProfile)
+                .ThenInclude(lp => lp!.Specializations)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(u => new PublicLawyerProfileResponse
-            {
-                Id = u.Id,
-                Name = u.FullName,
-                Gender = u.Gender,
-                Level = u.LawyerProfile!.Level,
-                Bio = u.LawyerProfile.Bio,
-                IsAvailable = u.LawyerProfile.IsAvailable,
-                ProfilePictureUrl = u.ProfilePictureUrl
-            })
             .ToListAsync(cancellationToken);
+
+        var items = users.Select(MapToPublicDto).ToList();
 
         return PagedResponse<List<PublicLawyerProfileResponse>>.OkPaged(
             items, request.PageNumber, request.PageSize, totalRecords, totalPages);
+    }
+
+    private static PublicLawyerProfileResponse MapToPublicDto(ApplicationUser user)
+    {
+        var specializations = user.LawyerProfile?.Specializations
+            .Select(s => new LawyerSpecializationDto
+            {
+                Specialization = s.Specialization,
+                YearsOfExperience = s.YearsOfExperience,
+                CasesHandled = s.CasesHandled
+            }).ToList() ?? new List<LawyerSpecializationDto>();
+
+        return new PublicLawyerProfileResponse
+        {
+            Id = user.Id,
+            Name = user.FullName ?? string.Empty,
+            Gender = user.Gender,
+            Level = user.LawyerProfile != null ? user.LawyerProfile.Level : SmartCourt.Common.Enums.LawyerLevel.GeneralRegistration,
+            Bio = user.LawyerProfile?.Bio,
+            Governorate = user.Governorate,
+            City = user.City,
+            IsAvailable = user.LawyerProfile != null && user.LawyerProfile.IsAvailable,
+            ProfilePictureUrl = user.ProfilePictureUrl,
+            AverageRating = user.LawyerProfile?.AverageRating ?? 0m,
+            RatingCount = user.LawyerProfile?.TotalRatingCount ?? 0,
+            Specializations = specializations,
+            YearsOfExperience = specializations.FirstOrDefault()?.YearsOfExperience ?? 0,
+            SpecializationName = specializations.FirstOrDefault()?.Specialization.ToString()
+        };
     }
 
     public async Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken)

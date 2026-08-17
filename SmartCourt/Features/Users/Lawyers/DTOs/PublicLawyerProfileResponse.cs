@@ -13,6 +13,8 @@ public class PublicLawyerProfileResponse
     public string? City { get; set; }
     public bool IsAvailable { get; set; }
     public string? ProfilePictureUrl { get; set; }
+    public decimal AverageRating { get; set; }
+    public int RatingCount { get; set; }
     public int YearsOfExperience { get; set; }
     public string? SpecializationName { get; set; }
     public List<LawyerSpecializationDto> Specializations { get; set; } = new();

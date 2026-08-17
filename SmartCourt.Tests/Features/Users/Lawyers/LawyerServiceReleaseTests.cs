@@ -58,6 +58,170 @@ public sealed class LawyerServiceReleaseTests
     }
 
     [Fact]
+    public async Task PublicProfile_ReturnsRatingsAndSpecializationExperienceCorrectly()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(
+            UserStatus.Active,
+            emailConfirmed: true);
+        
+        var user = await testContext.ReloadUserAsync(lawyer.Id);
+        user.Governorate = "Cairo";
+        user.City = "Nasr City";
+        
+        var profile = new LawyerProfile
+        {
+            UserId = lawyer.Id,
+            Level = LawyerLevel.AppealCourt,
+            IsAvailable = true,
+            AverageRating = 4.85m,
+            TotalRatingCount = 12,
+            TotalRatingSum = 58
+        };
+        testContext.DbContext.LawyerProfiles.Add(profile);
+        testContext.DbContext.LawyerSpecializations.AddRange(
+            new LawyerSpecialization
+            {
+                Id = Guid.NewGuid(),
+                LawyerProfileUserId = lawyer.Id,
+                Specialization = Specialization.CriminalLaw,
+                YearsOfExperience = 7,
+                CasesHandled = 45
+            },
+            new LawyerSpecialization
+            {
+                Id = Guid.NewGuid(),
+                LawyerProfileUserId = lawyer.Id,
+                Specialization = Specialization.CommercialLaw,
+                YearsOfExperience = 10,
+                CasesHandled = 80
+            }
+        );
+        await testContext.DbContext.SaveChangesAsync();
+        testContext.DbContext.ChangeTracker.Clear();
+
+        var service = CreateService(testContext, lawyer.Id);
+
+        var response = await service.GetPublicProfileAsync(lawyer.Id, CancellationToken.None);
+
+        Assert.Equal(lawyer.Id, response.Id);
+        Assert.Equal(4.85m, response.AverageRating);
+        Assert.Equal(12, response.RatingCount);
+        Assert.Equal("Cairo", response.Governorate);
+        Assert.Equal("Nasr City", response.City);
+        Assert.Equal(2, response.Specializations.Count);
+        Assert.Contains(response.Specializations, s => s.Specialization == Specialization.CriminalLaw && s.YearsOfExperience == 7 && s.CasesHandled == 45);
+        Assert.Contains(response.Specializations, s => s.Specialization == Specialization.CommercialLaw && s.YearsOfExperience == 10 && s.CasesHandled == 80);
+        Assert.Equal(response.Specializations.First().YearsOfExperience, response.YearsOfExperience);
+        Assert.Equal(response.Specializations.First().Specialization.ToString(), response.SpecializationName);
+    }
+
+    [Fact]
+    public async Task SearchLawyers_ReturnsRatingsAndSpecializationExperienceCorrectly()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(
+            UserStatus.Active,
+            emailConfirmed: true);
+        
+        var user = await testContext.ReloadUserAsync(lawyer.Id);
+        user.Governorate = "Giza";
+        user.City = "Dokki";
+        
+        var profile = new LawyerProfile
+        {
+            UserId = lawyer.Id,
+            Level = LawyerLevel.CassationCourt,
+            IsAvailable = true,
+            AverageRating = 4.90m,
+            TotalRatingCount = 25,
+            TotalRatingSum = 122
+        };
+        testContext.DbContext.LawyerProfiles.Add(profile);
+        testContext.DbContext.LawyerSpecializations.Add(
+            new LawyerSpecialization
+            {
+                Id = Guid.NewGuid(),
+                LawyerProfileUserId = lawyer.Id,
+                Specialization = Specialization.CorporateLaw,
+                YearsOfExperience = 15,
+                CasesHandled = 150
+            }
+        );
+        await testContext.DbContext.SaveChangesAsync();
+        testContext.DbContext.ChangeTracker.Clear();
+
+        var service = CreateService(testContext, lawyer.Id);
+
+        var response = await service.SearchLawyersAsync(new SearchLawyersRequest
+        {
+            PageNumber = 1,
+            PageSize = 10,
+            SortBy = LawyerSortBy.ExperienceLevel
+        }, CancellationToken.None);
+
+        Assert.NotNull(response.Data);
+        var item = Assert.Single(response.Data);
+        Assert.Equal(lawyer.Id, item.Id);
+        Assert.Equal(4.90m, item.AverageRating);
+        Assert.Equal(25, item.RatingCount);
+        Assert.Equal("Giza", item.Governorate);
+        Assert.Equal("Dokki", item.City);
+        Assert.Single(item.Specializations);
+        Assert.Equal(Specialization.CorporateLaw, item.Specializations[0].Specialization);
+        Assert.Equal(15, item.Specializations[0].YearsOfExperience);
+        Assert.Equal(150, item.Specializations[0].CasesHandled);
+        Assert.Equal(15, item.YearsOfExperience);
+        Assert.Equal(Specialization.CorporateLaw.ToString(), item.SpecializationName);
+    }
+
+    [Fact]
+    public async Task GetProfile_ReturnsRatingsAndSpecializationExperienceCorrectly()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(
+            UserStatus.Active,
+            emailConfirmed: true);
+        
+        var user = await testContext.ReloadUserAsync(lawyer.Id);
+        
+        var profile = new LawyerProfile
+        {
+            UserId = lawyer.Id,
+            Level = LawyerLevel.PrimaryCourt,
+            IsAvailable = true,
+            AverageRating = 4.20m,
+            TotalRatingCount = 5,
+            TotalRatingSum = 21
+        };
+        testContext.DbContext.LawyerProfiles.Add(profile);
+        testContext.DbContext.LawyerSpecializations.Add(
+            new LawyerSpecialization
+            {
+                Id = Guid.NewGuid(),
+                LawyerProfileUserId = lawyer.Id,
+                Specialization = Specialization.FamilyLaw,
+                YearsOfExperience = 3,
+                CasesHandled = 12
+            }
+        );
+        await testContext.DbContext.SaveChangesAsync();
+        testContext.DbContext.ChangeTracker.Clear();
+
+        var service = CreateService(testContext, lawyer.Id);
+
+        var response = await service.GetProfileAsync(CancellationToken.None);
+
+        Assert.Equal(lawyer.Id, response.Id);
+        Assert.Equal(4.20m, response.AverageRating);
+        Assert.Equal(5, response.RatingCount);
+        Assert.Single(response.Specializations);
+        Assert.Equal(Specialization.FamilyLaw, response.Specializations[0].Specialization);
+        Assert.Equal(3, response.Specializations[0].YearsOfExperience);
+        Assert.Equal(12, response.Specializations[0].CasesHandled);
+    }
+
+    [Fact]
     public async Task UpdateProfile_InvalidEnumFailsValidation()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();

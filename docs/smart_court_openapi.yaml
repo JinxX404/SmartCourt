@@ -230,6 +230,11 @@ components:
         profilePictureUrl:
           type: string
           nullable: true
+        averageRating:
+          type: number
+          format: double
+        ratingCount:
+          type: integer
       required:
         - id
         - name

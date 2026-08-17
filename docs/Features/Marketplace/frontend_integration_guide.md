@@ -123,22 +123,37 @@
 ```json
 {
   "success": true,
-  "data": [ { "id": "…", "name": "…", "gender": 1, "level": 3, "bio": "…",
-              "isAvailable": true, "profilePictureUrl": "…" } ],
+  "data": [
+    {
+      "id": "…",
+      "name": "…",
+      "gender": 1,
+      "level": 3,
+      "bio": "…",
+      "governorate": "Cairo",
+      "city": "Nasr City",
+      "isAvailable": true,
+      "profilePictureUrl": "…",
+      "averageRating": 4.85,
+      "ratingCount": 12,
+      "yearsOfExperience": 7,
+      "specializationName": "CriminalLaw",
+      "specializations": [
+        { "specialization": 4, "yearsOfExperience": 7, "casesHandled": 45 }
+      ]
+    }
+  ],
   "message": null,
   "errors": null,
   "statusCode": 200,
-  "pageNumber": 1, "pageSize": 10, "totalPages": 3, "totalRecords": 25,
-  "hasNextPage": true, "hasPreviousPage": false
+  "pageNumber": 1,
+  "pageSize": 10,
+  "totalPages": 3,
+  "totalRecords": 25,
+  "hasNextPage": true,
+  "hasPreviousPage": false
 }
 ```
-
-> **CRITICAL list-vs-detail difference:** the **list item** projection (see `SearchLawyersAsync` `Select(...)`) sets **only**:
-> `id`, `name`, `gender`, `level`, `bio`, `isAvailable`, `profilePictureUrl`.
-> All other members are **NOT populated in list responses**:
-> `governorate` → `null`, `city` → `null`, `yearsOfExperience` → `0`, `specializationName` → `null`, `specializations` → `[]`.
-> You must fetch `GET /api/lawyers/public/{id}` to display real governorate/city/years/specializations.
-> Cards must not render empty `governorate/city` placeholders from list data.
 
 ---
 
@@ -159,28 +174,39 @@
 {
   "success": true,
   "data": {
-    "id": "…", "name": "…", "gender": 1, "level": 4,
-    "bio": "…", "governorate": "…", "city": "…",
-    "isAvailable": true, "profilePictureUrl": "…",
-    "yearsOfExperience": 12, "specializationName": "Contracts",
+    "id": "…",
+    "name": "…",
+    "gender": 1,
+    "level": 4,
+    "bio": "…",
+    "governorate": "Cairo",
+    "city": "Nasr City",
+    "isAvailable": true,
+    "profilePictureUrl": "…",
+    "averageRating": 4.85,
+    "ratingCount": 12,
+    "yearsOfExperience": 12,
+    "specializationName": "Contracts",
     "specializations": [
       { "specialization": 10, "yearsOfExperience": 12, "casesHandled": 34 }
     ]
   },
-  "message": null, "errors": null, "statusCode": 200
+  "message": null,
+  "errors": null,
+  "statusCode": 200
 }
 ```
 
-- Here `governorate`, `city`, `yearsOfExperience`, `specializationName`, `specializations` **are** populated.
+- Both `governorate`, `city`, `averageRating`, `ratingCount`, `yearsOfExperience`, `specializationName`, and `specializations` are fully populated.
 - `specializationName` = `ToString()` of the **first** specialization entry (English enum name), or `null` if the lawyer has zero specializations.
 - `yearsOfExperience` = `yearsOfExperience` of the **first** specialization entry, or `0`.
-- `github`-style derivation rule you should replicate in UI fallbacks: primary specialization drives the badge and the displayed experience.
+- Primary specialization drives the badge and the displayed experience.
 
 ---
 
 ### 2.3 `GET /api/lawyers/profile` — Lawyer's own profile (private)
 
-- **Auth:** `[Authorize(Roles = "Lawyer")]` — Client role → `403`.
+- **Auth:** `[Authorize(Roles = "Lawyer,Admin,SuperAdministrator")]` — Client role → `403`.
 - **Rate limit:** `PrivateProfileGet` (300/min IP, 120/min user).
 - **Response:** `ApiResponse<LawyerProfileResponse>`.
 
@@ -219,7 +245,7 @@
 
 ### 2.4 `POST /api/lawyers/profile/complete` — Complete lawyer onboarding
 
-- **Auth:** `[Authorize(Roles = "Lawyer")]`.
+- **Auth:** `[Authorize(Roles = "Lawyer,Admin,SuperAdministrator")]`.
 - **Rate limit:** `PrivateProfileUpdate` (60/15 min IP, 20/15 min user).
 - **Response `200 OK`:** `{ "success": true, "message": "تم استكمال البيانات بنجاح", "statusCode": 200 }` (no `data`).
 - **Business rule:** if `user.Status == UserStatus.Active` → `400` `"تم استكمال الملف الشخصي مسبقاً."`
@@ -258,7 +284,7 @@ Nested `specializations[]` items (`LawyerSpecializationDto`):
 
 ### 2.5 `PUT /api/lawyers/profile` — Update lawyer profile
 
-- **Auth:** `[Authorize(Roles = "Lawyer")]`.
+- **Auth:** `[Authorize(Roles = "Lawyer,Admin,SuperAdministrator")]`.
 - **Rate limit:** `PrivateProfileUpdate` (60/15 min IP, 20/15 min user).
 - **Response `200 OK`:** `{ "success": true, "message": "تم تحديث البيانات بنجاح", "statusCode": 200 }`.
 
@@ -294,7 +320,7 @@ All fields optional in the DTO, but validators enforce rules **when present**:
 
 ### 2.6 `DELETE /api/lawyers/profile` — Delete account (hard delete)
 
-- **Auth:** `[Authorize(Roles = "Lawyer")]`.
+- **Auth:** `[Authorize(Roles = "Lawyer,Admin,SuperAdministrator")]`.
 - **Rate limit:** `PrivateProfileDelete` (10/day IP, 3/day user) — heavy, frontend gate with confirmations.
 - **Request body:** `{ "currentPassword": "…" }` (`DeleteAccountRequest`, `record`).
 
@@ -323,13 +349,15 @@ All fields optional in the DTO, but validators enforce rules **when present**:
 | `gender` | int? | ✅ | ✅ | `0` Male, `1` Female; `null` if unset |
 | `level` | int | ✅ | ✅ | `LawyerLevel` 1–4 |
 | `bio` | string? | ✅ | ✅ | may be `null` |
-| `governorate` | string? | ❌ **null** | ✅ | free-text, e.g. `"Cairo"` |
-| `city` | string? | ❌ **null** | ✅ | |
+| `governorate` | string? | ✅ | ✅ | free-text, e.g. `"Cairo"` |
+| `city` | string? | ✅ | ✅ | free-text, e.g. `"Nasr City"` |
 | `isAvailable` | bool | ✅ | ✅ | |
 | `profilePictureUrl` | string? | ✅ | ✅ | may be `null` → render initial avatar |
-| `yearsOfExperience` | int | ❌ **0** | ✅ | = first specialization's value |
-| `specializationName` | string? | ❌ **null** | ✅ | = first specialization's `Specialization.ToString()` (English enum name) |
-| `specializations` | array | ❌ **[]** | ✅ | full list |
+| `averageRating` | decimal | ✅ | ✅ | e.g. `4.85` |
+| `ratingCount` | int | ✅ | ✅ | e.g. `12` |
+| `yearsOfExperience` | int | ✅ | ✅ | = first specialization's value |
+| `specializationName` | string? | ✅ | ✅ | = first specialization's `Specialization.ToString()` (English enum name) |
+| `specializations` | array | ✅ | ✅ | full list (`LawyerSpecializationDto[]`) |
 
 ### 3.2 `LawyerSpecializationDto`
 
