@@ -3,7 +3,6 @@ using SmartCourt.Features.Disputes.DTOs;
 
 namespace SmartCourt.Features.Disputes;
 
-
 public interface IDisputeService
 {
     Task<DisputeDto> CreateAsync(
@@ -23,9 +22,24 @@ public interface IDisputeService
         AddDisputeEvidenceRequest request,
         CancellationToken cancellationToken);
 
+    Task<EvidenceDownloadUrlDto> GetEvidenceDownloadUrlAsync(
+        Guid disputeId,
+        Guid evidenceId,
+        CancellationToken cancellationToken);
+
     Task<DisputeDto> AssignAsync(
         Guid disputeId,
         AssignDisputeRequest request,
+        CancellationToken cancellationToken);
+
+    Task<DisputeDto> ReassignAsync(
+        Guid disputeId,
+        ReassignDisputeRequest request,
+        CancellationToken cancellationToken);
+
+    Task<DisputeActionResultDto> WithdrawAsync(
+        Guid disputeId,
+        WithdrawDisputeRequest request,
         CancellationToken cancellationToken);
 
     Task<DisputeDto> StartReviewAsync(
@@ -41,4 +55,8 @@ public interface IDisputeService
     Task<DisputeActionResultDto> CloseAsync(
         Guid disputeId,
         CancellationToken cancellationToken);
+
+    Task<DisputeStatsDto> GetStatsAsync(
+        CancellationToken cancellationToken);
 }
+

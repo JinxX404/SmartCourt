@@ -1,5 +1,7 @@
 using SmartCourt.Common.Domain;
+using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Disputes.Enums;
+using SmartCourt.Features.Milestones.Enums;
 
 namespace SmartCourt.Features.Disputes.Entities;
 
@@ -51,7 +53,13 @@ public sealed class Dispute
     public Guid? ResolvedByUserId { get; internal set; }
     public DateTimeOffset? ResolvedAt { get; internal set; }
     public DateTimeOffset? ClosedAt { get; internal set; }
+    public MilestoneStatus? PreviousMilestoneStatus { get; internal set; }
+    public ContractStatus? PreviousContractStatus { get; internal set; }
+    public Guid? CancelledByUserId { get; internal set; }
+    public DateTimeOffset? CancelledAt { get; internal set; }
+    public string? CancellationReason { get; internal set; }
     public byte[] RowVersion { get; internal set; } = [];
     public DateTimeOffset CreatedAt { get; internal set; }
     public DateTimeOffset UpdatedAt { get; internal set; }
 }
+

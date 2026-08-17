@@ -226,6 +226,21 @@ public class ApplicationDbContext
                 continue;
             }
 
+            // Lawyer penalties are append-only except for revocation metadata
+            // set when a SuperAdministrator revokes an active penalty upon appeal.
+            if (entry.Metadata.ClrType == typeof(LawyerPenalty)
+                && entry.State == EntityState.Modified
+                && entry.Properties
+                    .Where(property => property.IsModified)
+                    .All(property => property.Metadata.Name is
+                        nameof(LawyerPenalty.IsRevoked)
+                        or nameof(LawyerPenalty.RevokedAt)
+                        or nameof(LawyerPenalty.RevokedByUserId)
+                        or nameof(LawyerPenalty.RevocationReason)))
+            {
+                continue;
+            }
+
             throw new BusinessException(
                 $"السجل المالي أو التدقيقي من النوع {entry.Metadata.ClrType.Name} للإضافة فقط ولا يمكن تعديله أو حذفه.");
         }

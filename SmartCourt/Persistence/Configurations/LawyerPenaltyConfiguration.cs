@@ -20,6 +20,12 @@ public sealed class LawyerPenaltyConfiguration
             .Unicode(2_000);
         builder.Property(penalty => penalty.StartsAt).Utc();
         builder.Property(penalty => penalty.EndsAt).NullableUtc();
+        builder.Property(penalty => penalty.IsRevoked)
+            .IsRequired()
+            .HasDefaultValue(false);
+        builder.Property(penalty => penalty.RevokedAt).NullableUtc();
+        builder.Property(penalty => penalty.RevocationReason)
+            .NullableUnicode(2_000);
         builder.Property(penalty => penalty.CreatedAt).Utc();
 
         builder.HasOne<ApplicationUser>()
@@ -33,6 +39,10 @@ public sealed class LawyerPenaltyConfiguration
         builder.HasOne<ApplicationUser>()
             .WithMany()
             .HasForeignKey(penalty => penalty.CreatedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(penalty => penalty.RevokedByUserId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(penalty => new

@@ -12,6 +12,7 @@ internal static class EscrowHoldTransitionGuard
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Frozen),
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Released),
             (EscrowHoldStatus.Funded, EscrowHoldStatus.Refunded),
+            (EscrowHoldStatus.Frozen, EscrowHoldStatus.Funded),
             (EscrowHoldStatus.Frozen, EscrowHoldStatus.Released),
             (EscrowHoldStatus.Frozen, EscrowHoldStatus.Refunded)
         ];

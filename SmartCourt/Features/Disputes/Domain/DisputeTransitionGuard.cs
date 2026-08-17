@@ -9,8 +9,12 @@ internal static class DisputeTransitionGuard
         AllowedTransitions =
         [
             (DisputeStatus.Open, DisputeStatus.Assigned),
+            (DisputeStatus.Open, DisputeStatus.Cancelled),
             (DisputeStatus.Assigned, DisputeStatus.UnderReview),
+            (DisputeStatus.Assigned, DisputeStatus.Assigned),
+            (DisputeStatus.Assigned, DisputeStatus.Cancelled),
             (DisputeStatus.UnderReview, DisputeStatus.Resolved),
+            (DisputeStatus.UnderReview, DisputeStatus.Cancelled),
             (DisputeStatus.Resolved, DisputeStatus.Closed)
         ];
 
