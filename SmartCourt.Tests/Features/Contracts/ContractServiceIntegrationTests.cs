@@ -1199,7 +1199,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             contract.Id,
             CancellationToken.None);
 
-        Assert.Equal(ContractStatus.CompletedOnHold, result.Contract.Status);
+        Assert.Equal(ContractStatus.CompletedOnHold.ToString(), result.Status);
         var updated = await context.Contracts.FindAsync(contract.Id);
         Assert.NotNull(updated);
         Assert.Equal(ContractStatus.CompletedOnHold, updated.Status);
@@ -1232,7 +1232,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             contract.Id,
             CancellationToken.None);
 
-        Assert.Equal(ContractStatus.Completed, result.Contract.Status);
+        Assert.Equal(ContractStatus.Completed.ToString(), result.Status);
         var updated = await context.Contracts.FindAsync(contract.Id);
         Assert.NotNull(updated);
         Assert.Equal(ContractStatus.Completed, updated.Status);

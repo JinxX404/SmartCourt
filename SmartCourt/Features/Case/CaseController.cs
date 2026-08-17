@@ -142,5 +142,35 @@ namespace SmartCourt.Features.Case
 
             return Ok(result);
         }
+
+        [HttpPost("{caseId:guid}/documents/stored")]
+        [Authorize(Roles = "Client,Lawyer,Admin")]
+        public async Task<ActionResult<ApiResponse<AddedDocumentDto>>> AddStoredDocument(
+            [FromRoute] Guid caseId,
+            [FromBody] AddStoredCaseDocumentRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _addCaseDocumentService.AddStoredDocumentAsync(caseId, request, cancellationToken);
+
+            if (!result.Success)
+                return StatusCode(result.StatusCode, result);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{caseId:guid}/documents/{documentId:guid}")]
+        [Authorize(Roles = "Client,Lawyer,Admin")]
+        public async Task<ActionResult<ApiResponse>> DeleteDocument(
+            [FromRoute] Guid caseId,
+            [FromRoute] Guid documentId,
+            CancellationToken cancellationToken)
+        {
+            var result = await _addCaseDocumentService.DeleteDocumentAsync(caseId, documentId, cancellationToken);
+
+            if (!result.Success)
+                return StatusCode(result.StatusCode, result);
+
+            return Ok(result);
+        }
     }
 }

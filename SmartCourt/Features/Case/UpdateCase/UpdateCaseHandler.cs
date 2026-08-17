@@ -50,6 +50,9 @@ public class UpdateCaseHandler : IRequestHandler<UpdateCaseCommand, ApiResponse<
         if (existing.ClientId != clientId)
             return ApiResponse<UpdateCaseResponse>.Fail(new List<string>{"Not authorized to update this case"}, 403);
 
+        if (existing.Status == SmartCourt.Common.Enums.CaseStatus.Assigned)
+            return ApiResponse<UpdateCaseResponse>.Fail(new List<string> { "Cannot update a case that has already been assigned." }, 400);
+
         var clientUser = await _context.Users.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == clientId, cancellationToken);
 

@@ -19,20 +19,24 @@ namespace SmartCourt.Features.Case.AddCaseDocument;
 
 public class AddCaseDocumentService : IAddCaseDocumentService
 {
+    private static readonly string[] AllowedExtensions = [".pdf", ".docx", ".doc"];
     private readonly ApplicationDbContext _context;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IValidator<AddCaseDocumentRequest> _validator;
+    private readonly IValidator<AddStoredCaseDocumentRequest> _storedDocumentValidator;
     private readonly IFileStorageService _fileStorageService;
 
     public AddCaseDocumentService(
         ApplicationDbContext context,
         IHttpContextAccessor httpContextAccessor,
         IValidator<AddCaseDocumentRequest> validator,
+        IValidator<AddStoredCaseDocumentRequest> storedDocumentValidator,
         IFileStorageService fileStorageService)
     {
         _context = context;
         _httpContextAccessor = httpContextAccessor;
         _validator = validator;
+        _storedDocumentValidator = storedDocumentValidator;
         _fileStorageService = fileStorageService;
     }
 
@@ -164,5 +168,143 @@ public class AddCaseDocumentService : IAddCaseDocumentService
             AddedDocuments = addedDocuments,
             FailedDocuments = failedDocuments
         });
+    }
+
+    public async Task<ApiResponse<AddedDocumentDto>> AddStoredDocumentAsync(
+        Guid caseId,
+        AddStoredCaseDocumentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var validationResult = await _storedDocumentValidator.ValidateAsync(request, cancellationToken);
+        if (!validationResult.IsValid)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(
+                validationResult.Errors.Select(e => e.ErrorMessage).ToList(), 400);
+        }
+
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.User?.Identity?.IsAuthenticated != true)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(new List<string> { "User is not authenticated" }, 401);
+        }
+
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(new List<string> { "Invalid user identifier" }, 401);
+        }
+
+        var existingCase = await _context.Cases
+            .FirstOrDefaultAsync(c => c.Id == caseId, cancellationToken);
+
+        if (existingCase == null)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(new List<string> { "Case not found" }, 404);
+        }
+
+        var isAdmin = httpContext.User.IsInRole("Admin");
+        var isOwner = existingCase.ClientId == userId;
+        var isAssignedLawyer = existingCase.LawyerId == userId;
+
+        if (!isOwner && !isAssignedLawyer && !isAdmin)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(
+                new List<string> { "Not authorized to attach documents to this case" }, 403);
+        }
+
+        var storedFile = await _context.StoredFiles
+            .FirstOrDefaultAsync(f => f.Id == request.StoredFileId && !f.IsDeleted, cancellationToken);
+
+        if (storedFile == null)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(new List<string> { "Stored file not found" }, 404);
+        }
+
+        var ext = !string.IsNullOrWhiteSpace(storedFile.Extension)
+            ? (storedFile.Extension.StartsWith('.') ? storedFile.Extension.ToLowerInvariant() : $".{storedFile.Extension.ToLowerInvariant()}")
+            : Path.GetExtension(storedFile.OriginalFileName)?.ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(ext) || !AllowedExtensions.Contains(ext))
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(
+                new List<string> { "Only Word (.doc, .docx) and PDF (.pdf) documents are supported." }, 400);
+        }
+
+        var alreadyAttached = await _context.CaseDocuments
+            .AnyAsync(cd => cd.StoredFileId == request.StoredFileId, cancellationToken);
+
+        if (alreadyAttached)
+        {
+            return ApiResponse<AddedDocumentDto>.Fail(
+                new List<string> { "This document is already attached to a case." }, 400);
+        }
+
+        var caseDocument = new CaseDocument
+        {
+            Id = Guid.NewGuid(),
+            CaseId = caseId,
+            StoredFileId = storedFile.Id
+        };
+
+        _context.CaseDocuments.Add(caseDocument);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse<AddedDocumentDto>.Ok(new AddedDocumentDto
+        {
+            DocumentId = caseDocument.Id,
+            StoredFileId = storedFile.Id,
+            FileName = storedFile.OriginalFileName,
+            FileUrl = storedFile.FileUrl,
+            SizeInBytes = storedFile.SizeInBytes
+        });
+    }
+
+    public async Task<ApiResponse> DeleteDocumentAsync(
+        Guid caseId,
+        Guid documentId,
+        CancellationToken cancellationToken = default)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext?.User?.Identity?.IsAuthenticated != true)
+        {
+            return ApiResponse.Fail(new List<string> { "User is not authenticated" }, 401);
+        }
+
+        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return ApiResponse.Fail(new List<string> { "Invalid user identifier" }, 401);
+        }
+
+        var existingCase = await _context.Cases
+            .FirstOrDefaultAsync(c => c.Id == caseId, cancellationToken);
+
+        if (existingCase == null)
+        {
+            return ApiResponse.Fail(new List<string> { "Case not found" }, 404);
+        }
+
+        var isAdmin = httpContext.User.IsInRole("Admin");
+        var isOwner = existingCase.ClientId == userId;
+        var isAssignedLawyer = existingCase.LawyerId == userId;
+
+        if (!isOwner && !isAssignedLawyer && !isAdmin)
+        {
+            return ApiResponse.Fail(
+                new List<string> { "Not authorized to remove documents from this case" }, 403);
+        }
+
+        var caseDocument = await _context.CaseDocuments
+            .FirstOrDefaultAsync(cd => cd.CaseId == caseId && (cd.Id == documentId || cd.StoredFileId == documentId), cancellationToken);
+
+        if (caseDocument == null)
+        {
+            return ApiResponse.Fail(new List<string> { "Document not found in this case." }, 404);
+        }
+
+        _context.CaseDocuments.Remove(caseDocument);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return ApiResponse.Ok();
     }
 }
