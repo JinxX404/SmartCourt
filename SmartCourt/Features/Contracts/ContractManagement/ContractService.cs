@@ -377,6 +377,15 @@ public sealed class ContractService
                 status is MilestoneStatus.Released
                     or MilestoneStatus.Refunded
                     or MilestoneStatus.Cancelled);
+        var allMilestonesApprovedOrFinished =
+            milestones.Count > 0
+            && milestones.All(status =>
+                status is MilestoneStatus.AcceptedHold
+                    or MilestoneStatus.Released
+                    or MilestoneStatus.Refunded
+                    or MilestoneStatus.Cancelled)
+            && milestones.Any(status => status == MilestoneStatus.AcceptedHold);
+
         if (allMilestonesFinished
             && !contract.TerminatedByUserId.HasValue
             && !hasActiveDispute
@@ -401,6 +410,33 @@ public sealed class ContractService
                 now);
             await EnqueueContractEventAsync(
                 ContractPaymentEventTypes.ContractCompleted,
+                contract.Id,
+                correlationId,
+                cancellationToken);
+        }
+        else if (allMilestonesApprovedOrFinished
+            && contract.Status != ContractStatus.CompletedOnHold
+            && !contract.TerminatedByUserId.HasValue
+            && !hasActiveDispute
+            && !hasPendingProviderAttempt)
+        {
+            var previousStatus = contract.Status;
+            ContractTransitionGuard.EnsureCanTransition(
+                previousStatus,
+                ContractStatus.CompletedOnHold);
+            contract.Status = ContractStatus.CompletedOnHold;
+            contract.UpdatedAt = now;
+            AddHistory(
+                contract,
+                previousStatus,
+                ContractStatus.CompletedOnHold,
+                ContractPaymentEventTypes.ContractCompletedOnHold,
+                actorUserId,
+                "تم قبول جميع مراحل العقد، والعقد الآن قيد فترة الضمان بانتظار تحرير المستحقات.",
+                correlationId,
+                now);
+            await EnqueueContractEventAsync(
+                ContractPaymentEventTypes.ContractCompletedOnHold,
                 contract.Id,
                 correlationId,
                 cancellationToken);

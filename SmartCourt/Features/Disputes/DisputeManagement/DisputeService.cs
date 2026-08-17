@@ -76,11 +76,11 @@ public sealed class DisputeService(
                 "لا يمكن فتح نزاع على مرحلة مصروفات لأنها تُحرر مباشرة بعد التمويل.");
         }
 
-        if (contract.Status != ContractStatus.Active
+        if (contract.Status is not (ContractStatus.Active or ContractStatus.CompletedOnHold)
             || milestone.Status != MilestoneStatus.AcceptedHold)
         {
             throw new BusinessException(
-                "لا يمكن فتح نزاع إلا على مرحلة مقبولة تقع حاليًا ضمن مدة حجز الضمان لعقد نشط.");
+                "لا يمكن فتح نزاع إلا على مرحلة مقبولة تقع حاليًا ضمن مدة حجز الضمان.");
         }
 
         var verified = await fundingVerifier.VerifyAsync(

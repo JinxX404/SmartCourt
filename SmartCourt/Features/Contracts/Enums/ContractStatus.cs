@@ -6,5 +6,6 @@ public enum ContractStatus : int
     Active = 1,
     SuspendedByDispute = 2,
     Completed = 3,
-    Terminated = 4
+    Terminated = 4,
+    CompletedOnHold = 5
 }
