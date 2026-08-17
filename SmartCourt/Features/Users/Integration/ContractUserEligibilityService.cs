@@ -5,7 +5,8 @@ using SmartCourt.Persistence;
 namespace SmartCourt.Features.Users.Integration;
 
 public sealed class ContractUserEligibilityService(
-    ApplicationDbContext dbContext)
+    ApplicationDbContext dbContext,
+    TimeProvider timeProvider)
     : IContractUserEligibilityService
 {
     public async Task<ContractUserEligibilityFacts?>
@@ -41,13 +42,25 @@ public sealed class ContractUserEligibilityService(
             .Where(roleName => roleName != null)
             .ToListAsync(cancellationToken);
 
+        var now = timeProvider.GetUtcNow();
+        var hasActivePenalty = await dbContext.LawyerPenalties
+            .AsNoTracking()
+            .AnyAsync(
+                p => p.LawyerUserId == userId
+                    && !p.IsRevoked
+                    && (!p.EndsAt.HasValue || p.EndsAt.Value > now),
+                cancellationToken);
+
+        var canActAsLawyer = roles.Contains("Lawyer") && !hasActivePenalty;
+
         return new ContractUserEligibilityFacts(
             user.Id,
             user.Status == UserStatus.Active,
             roles.Contains("Client"),
-            roles.Contains("Lawyer"),
+            canActAsLawyer,
             roles.Contains("Moderator"),
             roles.Contains("FinanceAdministrator"),
             roles.Contains("SuperAdministrator"));
     }
 }
+

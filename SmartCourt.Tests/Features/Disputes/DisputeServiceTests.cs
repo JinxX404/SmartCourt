@@ -59,6 +59,140 @@ public sealed class DisputeServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_OnFundedInProgressMilestone_FreezesHoldAndTracksPreviousStatus()
+    {
+        var state = await CreateFundedStateAsync(MilestoneStatus.FundedInProgress);
+        await using var context = state.Context;
+        var service = CreateService(context, state.ClientUserId);
+
+        var result = await service.CreateAsync(
+            new CreateDisputeRequest(
+                state.Milestone.Id,
+                DisputeCategory.NonDelivery,
+                "تأخر غير مبرر",
+                "المحامي لم يبدأ العمل رغم مرور المدة المتفق عليها.",
+                DisputeRequestedOutcome.Refund,
+                []),
+            CancellationToken.None);
+
+        Assert.Equal(DisputeStatus.Open, result.Status);
+        Assert.Equal(EscrowHoldStatus.Frozen, state.Hold.Status);
+        Assert.Equal(MilestoneStatus.Disputed, state.Milestone.Status);
+        Assert.Equal(ContractStatus.SuspendedByDispute, state.Contract.Status);
+
+        var disputeEntity = await context.Disputes.FindAsync(result.Id);
+        Assert.NotNull(disputeEntity);
+        Assert.Equal(MilestoneStatus.FundedInProgress, disputeEntity.PreviousMilestoneStatus);
+        Assert.Equal(ContractStatus.Active, disputeEntity.PreviousContractStatus);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_RestoresHoldAndRestoresMilestoneAndContractStatus()
+    {
+        var state = await CreateFundedStateAsync(MilestoneStatus.FundedInProgress);
+        await using var context = state.Context;
+        var service = CreateService(context, state.ClientUserId);
+
+        var created = await service.CreateAsync(
+            new CreateDisputeRequest(
+                state.Milestone.Id,
+                DisputeCategory.NonDelivery,
+                "تأخر غير مبرر",
+                "المحامي لم يبدأ العمل.",
+                DisputeRequestedOutcome.Refund,
+                []),
+            CancellationToken.None);
+
+        var withdrawalResult = await service.WithdrawAsync(
+            created.Id,
+            new WithdrawDisputeRequest("تم التوصل إلى حل ودي مع المحامي."),
+            CancellationToken.None);
+
+        Assert.Equal(DisputeStatus.Cancelled.ToString(), withdrawalResult.Status);
+        Assert.Equal(EscrowHoldStatus.Funded, state.Hold.Status);
+        Assert.Null(state.Hold.FrozenAt);
+        Assert.Equal(MilestoneStatus.FundedInProgress, state.Milestone.Status);
+        Assert.Equal(ContractStatus.Active, state.Contract.Status);
+
+        var disputeEntity = await context.Disputes.FindAsync(created.Id);
+        Assert.NotNull(disputeEntity);
+        Assert.Equal(DisputeStatus.Cancelled, disputeEntity.Status);
+        Assert.NotNull(disputeEntity.CancelledAt);
+        Assert.Equal(state.ClientUserId, disputeEntity.CancelledByUserId);
+        Assert.Equal("تم التوصل إلى حل ودي مع المحامي.", disputeEntity.CancellationReason);
+    }
+
+    [Fact]
+    public async Task ReassignAsync_ModeratorCanReassignDispute()
+    {
+        var state = await CreateFundedStateAsync(MilestoneStatus.AcceptedHold);
+        await using var context = state.Context;
+        var mod1Id = Guid.NewGuid();
+        var mod2Id = Guid.NewGuid();
+
+        var eligibility = new TestEligibilityService();
+        eligibility.Results[mod1Id] = new ContractUserEligibilityFacts(mod1Id, true, false, false, true, false, false);
+        eligibility.Results[mod2Id] = new ContractUserEligibilityFacts(mod2Id, true, false, false, true, false, false);
+
+        var clientService = CreateService(context, state.ClientUserId, eligibility);
+        var created = await clientService.CreateAsync(
+            new CreateDisputeRequest(
+                state.Milestone.Id,
+                DisputeCategory.DeliverableQuality,
+                "نزاع جودة",
+                "تفاصيل النزاع",
+                DisputeRequestedOutcome.Refund,
+                []),
+            CancellationToken.None);
+
+        var mod1Service = CreateService(context, mod1Id, eligibility);
+        var assigned = await mod1Service.AssignAsync(
+            created.Id,
+            new AssignDisputeRequest(mod1Id),
+            CancellationToken.None);
+        Assert.Equal(DisputeStatus.Assigned, assigned.Status);
+        Assert.Equal(mod1Id, assigned.AssignedModeratorUserId);
+
+        var reassigned = await mod1Service.ReassignAsync(
+            created.Id,
+            new ReassignDisputeRequest(mod2Id, "إعادة توزيع الأحمال بين المشرفين"),
+            CancellationToken.None);
+
+        Assert.Equal(DisputeStatus.Assigned, reassigned.Status);
+        Assert.Equal(mod2Id, reassigned.AssignedModeratorUserId);
+    }
+
+    [Fact]
+    public async Task GetStatsAsync_AggregatesCountsCorrectly()
+    {
+        var state = await CreateFundedStateAsync(MilestoneStatus.AcceptedHold);
+        await using var context = state.Context;
+        var moderatorId = Guid.NewGuid();
+        var eligibility = new TestEligibilityService();
+        eligibility.Results[moderatorId] = new ContractUserEligibilityFacts(moderatorId, true, false, false, true, false, false);
+
+        var clientService = CreateService(context, state.ClientUserId, eligibility);
+        var created = await clientService.CreateAsync(
+            new CreateDisputeRequest(
+                state.Milestone.Id,
+                DisputeCategory.DeliverableQuality,
+                "نزاع جودة",
+                "تفاصيل النزاع",
+                DisputeRequestedOutcome.Refund,
+                []),
+            CancellationToken.None);
+
+        var modService = CreateService(context, moderatorId, eligibility);
+        var stats = await modService.GetStatsAsync(CancellationToken.None);
+
+        Assert.Equal(1, stats.TotalOpen);
+        Assert.Equal(1, stats.UnassignedCount);
+        Assert.Equal(0, stats.TotalResolved);
+        Assert.Equal(0, stats.TotalClosed);
+        Assert.Equal(0, stats.TotalCancelled);
+    }
+
+    [Fact]
     public async Task CreateAsync_ExpenseMilestoneIsNotDisputable()
     {
         var state = await CreateFundedStateAsync(

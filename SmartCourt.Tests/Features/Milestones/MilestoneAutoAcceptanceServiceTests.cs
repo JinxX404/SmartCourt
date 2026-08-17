@@ -248,10 +248,49 @@ public sealed class MilestoneAutoAcceptanceServiceTests
         return new MilestoneAutoAcceptanceService(
             context,
             new MilestoneFundingVerifier(context),
-            new NullContractService(),
+            new StubContractCompletionService(_utcNow),
             new OutboxWriter(context, timeProvider),
             timeProvider,
             NullLogger<MilestoneAutoAcceptanceService>.Instance);
+    }
+
+    private sealed class StubContractCompletionService(DateTime utcNow) : SmartCourt.Features.Contracts.IContractService
+    {
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractActionResultDto> EvaluateCompletionAsync(
+            Guid contractId,
+            CancellationToken cancellationToken)
+            => Task.FromResult(new SmartCourt.Features.Contracts.DTOs.ContractActionResultDto(contractId, "Active", utcNow));
+
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractDetailDto> CreateAsync(
+            SmartCourt.Features.Contracts.DTOs.CreateContractRequest request,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Common.Models.PagedResult<SmartCourt.Features.Contracts.DTOs.ContractSummaryDto>> ListAsync(
+            SmartCourt.Features.Contracts.DTOs.ContractListQuery query,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractDetailDto> GetAsync(
+            Guid contractId,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractDetailDto> UpdateDraftAsync(
+            Guid contractId,
+            SmartCourt.Features.Contracts.DTOs.UpdateContractRequest request,
+            string ifMatch,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractActionResultDto> AcceptAsync(
+            Guid contractId,
+            string ifMatch,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Common.Models.PagedResult<SmartCourt.Features.Contracts.DTOs.ContractStateHistoryDto>> GetStateHistoryAsync(
+            Guid contractId,
+            SmartCourt.Features.Contracts.DTOs.ContractStateHistoryQuery query,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractActionResultDto> EvaluateActivationAsync(
+            Guid contractId,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+        public Task<SmartCourt.Features.Contracts.DTOs.ContractDetailDto> TerminateAsync(
+            Guid contractId,
+            SmartCourt.Features.Contracts.DTOs.TerminateContractRequest request,
+            string ifMatch,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     private async Task<SubmittedFundingChain>

@@ -110,7 +110,9 @@ public sealed class ContractCreationIntegrationServiceTests
         });
         await context.SaveChangesAsync();
 
-        var result = await new ContractUserEligibilityService(context)
+        var result = await new ContractUserEligibilityService(
+                context,
+                new FixedTimeProvider(_utcNow))
             .FindEligibilityAsync(
                 user.Id,
                 CancellationToken.None);

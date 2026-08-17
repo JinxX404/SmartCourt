@@ -16,6 +16,8 @@ public sealed class DisputesController(
     IValidator<CreateDisputeRequest> createValidator,
     IValidator<AddDisputeEvidenceRequest> evidenceValidator,
     IValidator<AssignDisputeRequest> assignValidator,
+    IValidator<ReassignDisputeRequest> reassignValidator,
+    IValidator<WithdrawDisputeRequest> withdrawValidator,
     IValidator<ResolveDisputeRequest> resolveValidator,
     IValidator<DisputeListQuery> listValidator) : ControllerBase
 {
@@ -46,6 +48,16 @@ public sealed class DisputesController(
         return Ok(ApiResponse<PagedResult<DisputeDto>>.Ok(result));
     }
 
+    [HttpGet("admin/disputes/stats")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
+    [Authorize(Roles = "Moderator,SuperAdministrator")]
+    public async Task<ActionResult<ApiResponse<DisputeStatsDto>>> GetStatsAsync(
+        CancellationToken cancellationToken)
+    {
+        var result = await disputeService.GetStatsAsync(cancellationToken);
+        return Ok(ApiResponse<DisputeStatsDto>.Ok(result));
+    }
+
     [HttpGet("disputes/{disputeId:guid}")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
@@ -74,6 +86,39 @@ public sealed class DisputesController(
         return Ok(ApiResponse<DisputeActionResultDto>.Ok(result));
     }
 
+    [HttpGet("disputes/{disputeId:guid}/evidence/{evidenceId:guid}/download-url")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
+    [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]
+    public async Task<ActionResult<ApiResponse<EvidenceDownloadUrlDto>>>
+        GetEvidenceDownloadUrlAsync(
+            Guid disputeId,
+            Guid evidenceId,
+            CancellationToken cancellationToken)
+    {
+        var result = await disputeService.GetEvidenceDownloadUrlAsync(
+            disputeId,
+            evidenceId,
+            cancellationToken);
+        return Ok(ApiResponse<EvidenceDownloadUrlDto>.Ok(result));
+    }
+
+    [HttpPost("disputes/{disputeId:guid}/withdraw")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
+    [Authorize(Roles = "Client,Lawyer,SuperAdministrator")]
+    public async Task<ActionResult<ApiResponse<DisputeActionResultDto>>>
+        WithdrawAsync(
+            Guid disputeId,
+            [FromBody] WithdrawDisputeRequest request,
+            CancellationToken cancellationToken)
+    {
+        await withdrawValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
+        var result = await disputeService.WithdrawAsync(
+            disputeId,
+            request,
+            cancellationToken);
+        return Ok(ApiResponse<DisputeActionResultDto>.Ok(result));
+    }
+
     [HttpPost("admin/disputes/{disputeId:guid}/assign")]
     [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
     [Authorize(Roles = "Moderator,SuperAdministrator")]
@@ -84,6 +129,22 @@ public sealed class DisputesController(
     {
         await assignValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
         var dispute = await disputeService.AssignAsync(
+            disputeId,
+            request,
+            cancellationToken);
+        return Ok(ApiResponse<DisputeDto>.Ok(dispute));
+    }
+
+    [HttpPost("admin/disputes/{disputeId:guid}/reassign")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    [Authorize(Roles = "Moderator,SuperAdministrator")]
+    public async Task<ActionResult<ApiResponse<DisputeDto>>> ReassignAsync(
+        Guid disputeId,
+        [FromBody] ReassignDisputeRequest request,
+        CancellationToken cancellationToken)
+    {
+        await reassignValidator.ValidateAndThrowBusinessExceptionAsync(request, cancellationToken);
+        var dispute = await disputeService.ReassignAsync(
             disputeId,
             request,
             cancellationToken);
@@ -132,5 +193,6 @@ public sealed class DisputesController(
         return Ok(ApiResponse<DisputeActionResultDto>.Ok(result));
     }
 }
+
 
 

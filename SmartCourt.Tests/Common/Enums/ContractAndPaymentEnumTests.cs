@@ -58,7 +58,7 @@ public sealed class ContractAndPaymentEnumTests
     {
         {
             typeof(ContractStatus),
-            ["Draft=0", "Active=1", "SuspendedByDispute=2", "Completed=3", "Terminated=4"]
+            ["Draft=0", "Active=1", "SuspendedByDispute=2", "Completed=3", "Terminated=4", "CompletedOnHold=5"]
         },
         {
             typeof(MilestoneStatus),
@@ -94,7 +94,7 @@ public sealed class ContractAndPaymentEnumTests
         },
         {
             typeof(DisputeStatus),
-            ["Open=0", "Assigned=1", "UnderReview=2", "Resolved=3", "Closed=4"]
+            ["Open=0", "Assigned=1", "UnderReview=2", "Resolved=3", "Closed=4", "Cancelled=5"]
         },
         {
             typeof(DisputeResolutionType),

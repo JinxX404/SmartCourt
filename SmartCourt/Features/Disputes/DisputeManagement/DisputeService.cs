@@ -77,10 +77,13 @@ public sealed class DisputeService(
         }
 
         if (contract.Status is not (ContractStatus.Active or ContractStatus.CompletedOnHold)
-            || milestone.Status != MilestoneStatus.AcceptedHold)
+            || milestone.Status is not (
+                MilestoneStatus.FundedInProgress
+                or MilestoneStatus.Submitted
+                or MilestoneStatus.AcceptedHold))
         {
             throw new BusinessException(
-                "لا يمكن فتح نزاع إلا على مرحلة مقبولة تقع حاليًا ضمن مدة حجز الضمان.");
+                "لا يمكن فتح نزاع إلا على مرحلة ممولة قيد التنفيذ أو قيد المراجعة أو ضمن مدة حجز الضمان.");
         }
 
         var verified = await fundingVerifier.VerifyAsync(
@@ -90,22 +93,35 @@ public sealed class DisputeService(
         var hold = await dbContext.EscrowHolds.SingleAsync(
             item => item.Id == verified.EscrowHoldId,
             cancellationToken);
-        if (!hold.HoldExpiresAt.HasValue
-            || !milestone.HoldExpiresAt.HasValue
-            || hold.HoldExpiresAt.Value != milestone.HoldExpiresAt.Value
-            || hold.HoldExpiresAt.Value <= now)
+
+        if (milestone.Status == MilestoneStatus.AcceptedHold)
         {
-            throw new BusinessException(
-                "انتهت مدة حجز الضمان أو أن بياناتها غير مكتملة، لذلك لا يمكن فتح نزاع مالي على هذه المرحلة.");
+            if (!hold.HoldExpiresAt.HasValue
+                || !milestone.HoldExpiresAt.HasValue
+                || hold.HoldExpiresAt.Value != milestone.HoldExpiresAt.Value
+                || hold.HoldExpiresAt.Value <= now)
+            {
+                throw new BusinessException(
+                    "انتهت مدة حجز الضمان أو أن بياناتها غير مكتملة، لذلك لا يمكن فتح نزاع مالي على هذه المرحلة.");
+            }
+        }
+        else
+        {
+            if (hold.Status != EscrowHoldStatus.Funded)
+            {
+                throw new BusinessException(
+                    "حجز الضمان المرتبط بالمرحلة ليس في حالة ممولة صالحة لفتح النزاع.");
+            }
         }
 
         if (await dbContext.Disputes.AnyAsync(
                 item => item.MilestoneId == milestone.Id
-                    && item.Status != DisputeStatus.Closed,
+                    && item.Status != DisputeStatus.Closed
+                    && item.Status != DisputeStatus.Cancelled,
                 cancellationToken))
         {
             throw new BusinessException(
-                "يوجد نزاع قائم بالفعل على هذه المرحلة ولا يمكن فتح نزاع آخر قبل إغلاقه.");
+                "يوجد نزاع قائم بالفعل على هذه المرحلة ولا يمكن فتح نزاع آخر قبل حسمه أو إغلاقه.");
         }
 
         var dispute = new Dispute(
@@ -117,7 +133,11 @@ public sealed class DisputeService(
             request.Title,
             request.Description,
             request.RequestedOutcome,
-            now);
+            now)
+        {
+            PreviousMilestoneStatus = milestone.Status,
+            PreviousContractStatus = contract.Status
+        };
         dbContext.Disputes.Add(dispute);
         if (fileIds.Count > 0)
         {
@@ -214,9 +234,39 @@ public sealed class DisputeService(
                     == query.AssignedModeratorUserId.Value);
         }
 
+        if (query.ContractId.HasValue)
+        {
+            disputes = disputes.Where(item => item.ContractId == query.ContractId.Value);
+        }
+
+        if (query.MilestoneId.HasValue)
+        {
+            disputes = disputes.Where(item => item.MilestoneId == query.MilestoneId.Value);
+        }
+
         if (query.Status.HasValue)
         {
             disputes = disputes.Where(item => item.Status == query.Status.Value);
+        }
+
+        if (query.Category.HasValue)
+        {
+            disputes = disputes.Where(item => item.Category == query.Category.Value);
+        }
+
+        if (query.RaisedByUserId.HasValue)
+        {
+            disputes = disputes.Where(item => item.RaisedByUserId == query.RaisedByUserId.Value);
+        }
+
+        if (query.FromDate.HasValue)
+        {
+            disputes = disputes.Where(item => item.CreatedAt >= query.FromDate.Value);
+        }
+
+        if (query.ToDate.HasValue)
+        {
+            disputes = disputes.Where(item => item.CreatedAt <= query.ToDate.Value);
         }
 
         var totalCount = await disputes.CountAsync(cancellationToken);
@@ -316,6 +366,45 @@ public sealed class DisputeService(
             now);
     }
 
+    public async Task<EvidenceDownloadUrlDto> GetEvidenceDownloadUrlAsync(
+        Guid disputeId,
+        Guid evidenceId,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var dispute = await GetAuthorizedAsync(
+            disputeId,
+            actorUserId,
+            moderatorMutation: false,
+            cancellationToken);
+
+        var evidence = await dbContext.DisputeEvidence
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                item => item.Id == evidenceId && item.DisputeId == dispute.Id,
+                cancellationToken)
+            ?? throw new NotFoundException("دليل النزاع المطلوب غير موجود.");
+
+        if (!evidence.StoredFileId.HasValue)
+        {
+            throw new BusinessException("لا يوجد ملف مرفق بهذا الدليل.");
+        }
+
+        var readAccess = await fileAccessService.GetAuthorizedReadAccessAsync(
+            actorUserId,
+            evidence.StoredFileId.Value,
+            ContractFilePurpose.DisputeEvidence,
+            dispute.Id,
+            cancellationToken)
+            ?? throw new ForbiddenAccessException("غير مصرح لك بتحميل هذا الملف.");
+
+        return new EvidenceDownloadUrlDto(
+            evidence.Id,
+            evidence.StoredFileId.Value,
+            readAccess.SignedUri.ToString(),
+            readAccess.ExpiresAt);
+    }
+
     public async Task<DisputeDto> AssignAsync(
         Guid disputeId,
         AssignDisputeRequest request,
@@ -355,6 +444,162 @@ public sealed class DisputeService(
             cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         return await MapAsync(dispute, actorUserId, cancellationToken);
+    }
+
+    public async Task<DisputeDto> ReassignAsync(
+        Guid disputeId,
+        ReassignDisputeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var actorAccess = await GetAccessAsync(actorUserId, cancellationToken);
+        EnsureModerator(actorAccess);
+
+        var target = await userEligibilityService.FindEligibilityAsync(
+            request.ModeratorUserId,
+            cancellationToken);
+        if (target is null || !target.IsActive || !target.CanActAsModerator)
+        {
+            throw new BusinessException(
+                "لا يمكن إعادة تعيين النزاع للمستخدم المحدد لأنه ليس مشرفًا نشطًا ومؤهلًا.");
+        }
+
+        var dispute = await GetForMutationAsync(disputeId, cancellationToken);
+        if (dispute.Status is not (DisputeStatus.Open or DisputeStatus.Assigned))
+        {
+            throw new BusinessException(
+                "لا يمكن إعادة تعيين المشرف إلا للنزاعات المفتوحة أو المعينة قبل بدء المراجعة.");
+        }
+
+        DisputeTransitionGuard.EnsureCanTransition(
+            dispute.Status,
+            DisputeStatus.Assigned);
+
+        var now = UtcNow;
+        dispute.AssignedModeratorUserId = request.ModeratorUserId;
+        dispute.Status = DisputeStatus.Assigned;
+        dispute.UpdatedAt = now;
+        var correlationId = Guid.NewGuid();
+        await EnqueueDisputeEventAsync(
+            ContractPaymentEventTypes.DisputeAssigned,
+            dispute.Id,
+            correlationId,
+            cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return await MapAsync(dispute, actorUserId, cancellationToken);
+    }
+
+    public async Task<DisputeActionResultDto> WithdrawAsync(
+        Guid disputeId,
+        WithdrawDisputeRequest request,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var dispute = await GetForMutationAsync(disputeId, cancellationToken);
+        var access = await GetAccessAsync(actorUserId, cancellationToken);
+
+        if (dispute.RaisedByUserId != actorUserId && !access.IsSuperAdministrator)
+        {
+            throw new ForbiddenAccessException(
+                "لا يمكن سحب النزاع إلا بواسطة الطرف الذي قام بفتحه أو المشرف العام.");
+        }
+
+        if (dispute.Status is not (
+            DisputeStatus.Open
+            or DisputeStatus.Assigned
+            or DisputeStatus.UnderReview))
+        {
+            throw new BusinessException(
+                "لا يمكن سحب النزاع بعد صدور القرار النهائي أو إغلاقه.");
+        }
+
+        DisputeTransitionGuard.EnsureCanTransition(
+            dispute.Status,
+            DisputeStatus.Cancelled);
+
+        await using var transaction = await BeginSerializableAsync(cancellationToken);
+        var now = UtcNow;
+        var correlationId = Guid.NewGuid();
+
+        var milestone = await dbContext.Milestones.SingleAsync(
+            item => item.Id == dispute.MilestoneId,
+            cancellationToken);
+        var contract = await dbContext.Contracts.SingleAsync(
+            item => item.Id == dispute.ContractId,
+            cancellationToken);
+        var hold = await dbContext.EscrowHolds.SingleOrDefaultAsync(
+            item => item.MilestoneId == dispute.MilestoneId,
+            cancellationToken);
+
+        dispute.Status = DisputeStatus.Cancelled;
+        dispute.CancelledAt = now;
+        dispute.CancelledByUserId = actorUserId;
+        dispute.CancellationReason = request.Reason.Trim();
+        dispute.UpdatedAt = now;
+
+        if (hold is not null && hold.Status == EscrowHoldStatus.Frozen)
+        {
+            EscrowHoldTransitionGuard.EnsureCanTransition(
+                hold.Status,
+                EscrowHoldStatus.Funded);
+            hold.Status = EscrowHoldStatus.Funded;
+            hold.FrozenAt = null;
+            hold.UpdatedAt = now;
+        }
+
+        var restoredMilestoneStatus = dispute.PreviousMilestoneStatus
+            ?? MilestoneStatus.FundedInProgress;
+        if (milestone.Status == MilestoneStatus.Disputed)
+        {
+            MilestoneTransitionGuard.EnsureCanTransition(
+                milestone.Status,
+                restoredMilestoneStatus);
+            var prevMilestoneStatus = milestone.Status;
+            milestone.Status = restoredMilestoneStatus;
+            milestone.UpdatedAt = now;
+            dbContext.MilestoneStateHistories.Add(
+                MilestoneStateHistoryFactory.Create(
+                    Guid.NewGuid(),
+                    milestone.Id,
+                    prevMilestoneStatus,
+                    restoredMilestoneStatus,
+                    "DisputeCancelled",
+                    actorUserId,
+                    $"تم سحب النزاع وإعادة المرحلة لحالتها السابقة: {request.Reason}",
+                    correlationId,
+                    now));
+        }
+
+        var restoredContractStatus = dispute.PreviousContractStatus
+            ?? ContractStatus.Active;
+        if (contract.Status == ContractStatus.SuspendedByDispute)
+        {
+            ContractTransitionGuard.EnsureCanTransition(
+                contract.Status,
+                restoredContractStatus);
+            var prevContractStatus = contract.Status;
+            contract.Status = restoredContractStatus;
+            contract.UpdatedAt = now;
+            dbContext.ContractStateHistories.Add(
+                ContractStateHistoryFactory.Create(
+                    Guid.NewGuid(),
+                    contract.Id,
+                    prevContractStatus,
+                    restoredContractStatus,
+                    "DisputeCancelled",
+                    actorUserId,
+                    $"استؤنف العقد بعد سحب النزاع القائم: {request.Reason}",
+                    correlationId,
+                    now));
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await CommitAsync(transaction, cancellationToken);
+
+        return new DisputeActionResultDto(
+            dispute.Id,
+            dispute.Status.ToString(),
+            now);
     }
 
     public async Task<DisputeDto> StartReviewAsync(
@@ -699,6 +944,34 @@ public sealed class DisputeService(
             dispute.Id,
             dispute.Status.ToString(),
             now);
+    }
+
+    public async Task<DisputeStatsDto> GetStatsAsync(
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var access = await GetAccessAsync(actorUserId, cancellationToken);
+        EnsureModerator(access);
+
+        var query = dbContext.Disputes.AsNoTracking();
+        var totalOpen = await query.CountAsync(d => d.Status == DisputeStatus.Open, cancellationToken);
+        var totalAssigned = await query.CountAsync(d => d.Status == DisputeStatus.Assigned, cancellationToken);
+        var totalUnderReview = await query.CountAsync(d => d.Status == DisputeStatus.UnderReview, cancellationToken);
+        var totalResolved = await query.CountAsync(d => d.Status == DisputeStatus.Resolved, cancellationToken);
+        var totalClosed = await query.CountAsync(d => d.Status == DisputeStatus.Closed, cancellationToken);
+        var totalCancelled = await query.CountAsync(d => d.Status == DisputeStatus.Cancelled, cancellationToken);
+        var unassignedCount = await query.CountAsync(
+            d => d.Status == DisputeStatus.Open && !d.AssignedModeratorUserId.HasValue,
+            cancellationToken);
+
+        return new DisputeStatsDto(
+            totalOpen,
+            totalAssigned,
+            totalUnderReview,
+            totalResolved,
+            totalClosed,
+            totalCancelled,
+            unassignedCount);
     }
 
     public async Task<JobExecutionResult> RecoverPendingSettlementsAsync(
@@ -1202,6 +1475,9 @@ public sealed class DisputeService(
         var access = await GetAccessAsync(actorUserId, cancellationToken);
         var isAssigned = dispute.AssignedModeratorUserId == actorUserId
             || access.IsSuperAdministrator;
+        var canWithdraw = (dispute.RaisedByUserId == actorUserId || access.IsSuperAdministrator)
+            && dispute.Status is DisputeStatus.Open or DisputeStatus.Assigned or DisputeStatus.UnderReview;
+
         return new DisputeDto(
             dispute.Id,
             dispute.ContractId,
@@ -1217,6 +1493,8 @@ public sealed class DisputeService(
             dispute.ResolutionSummary,
             dispute.ResolvedAt,
             dispute.ClosedAt,
+            dispute.CancelledAt,
+            dispute.CancellationReason,
             dispute.CreatedAt,
             dispute.UpdatedAt,
             evidence,
@@ -1226,10 +1504,12 @@ public sealed class DisputeService(
                     or DisputeStatus.Assigned
                     or DisputeStatus.UnderReview,
                 access.IsModerator && dispute.Status == DisputeStatus.Open,
+                access.IsModerator && dispute.Status is DisputeStatus.Open or DisputeStatus.Assigned,
                 isAssigned && dispute.Status == DisputeStatus.Assigned,
                 isAssigned && dispute.Status == DisputeStatus.UnderReview,
                 isAssigned && dispute.Status == DisputeStatus.Resolved
-                    && settlement?.Status == "Completed"));
+                    && settlement?.Status == "Completed",
+                canWithdraw));
     }
 
     private async Task<Dispute> GetAuthorizedAsync(

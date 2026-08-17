@@ -6,5 +6,6 @@ public enum DisputeStatus : int
     Assigned = 1,
     UnderReview = 2,
     Resolved = 3,
-    Closed = 4
+    Closed = 4,
+    Cancelled = 5
 }
