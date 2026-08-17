@@ -122,6 +122,60 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task WithdrawAsync_ProviderPendingBalanceReturnsArabicConflict()
+    {
+        await using var context = CreateContext();
+        await AddEnabledPayoutAccountAsync(context, 2_000L);
+        var provider = new ConnectedTestPaymentProvider(
+            ProviderOperationOutcome.Succeeded,
+            availableAmountMinor: 0L,
+            pendingAmountMinor: 2_000L,
+            expectedAvailableAt: new DateTimeOffset(
+                2026, 8, 23, 0, 0, 0, TimeSpan.Zero));
+        var service = CreateService(context, provider);
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(() =>
+            service.WithdrawAsync(
+                new CreateWithdrawalRequest(400m, "bank-account-token"),
+                "withdraw-provider-pending",
+                CancellationToken.None));
+
+        Assert.Contains("معلّقًا", exception.Message);
+        Assert.Contains("23/08/2026", exception.Message);
+        Assert.Equal(0, provider.WithdrawCalls);
+        Assert.Equal(
+            1_000m,
+            (await context.LawyerWallets.SingleAsync()).AvailableBalance);
+        Assert.Empty(await context.WithdrawalRequests.ToListAsync());
+        Assert.Equal(
+            IdempotencyStatus.Failed,
+            (await context.IdempotencyRecords.SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_ProviderAvailableBalanceAllowsPayout()
+    {
+        await using var context = CreateContext();
+        await AddEnabledPayoutAccountAsync(context, 2_000L);
+        var provider = new ConnectedTestPaymentProvider(
+            ProviderOperationOutcome.Succeeded,
+            availableAmountMinor: 2_000L,
+            pendingAmountMinor: 0L,
+            expectedAvailableAt: null);
+        var service = CreateService(context, provider);
+
+        var result = await service.WithdrawAsync(
+            new CreateWithdrawalRequest(400m, "bank-account-token"),
+            "withdraw-provider-available",
+            CancellationToken.None);
+
+        Assert.Equal(WithdrawalStatus.Completed.ToString(), result.Status);
+        Assert.Equal(1, provider.WithdrawCalls);
+        Assert.Equal(800L, provider.LastRequest?.PayoutMoney?.AmountMinor);
+        Assert.Equal("usd", provider.LastRequest?.PayoutMoney?.Currency);
+    }
+
+    [Fact]
     public async Task WithdrawAsync_ConfirmedFailureReleasesReservedBalance()
     {
         await using var context = CreateContext();
@@ -394,6 +448,30 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
             logger ?? NullLogger<WalletService>.Instance);
     }
 
+    private async Task AddEnabledPayoutAccountAsync(
+        ApplicationDbContext context,
+        long availableProviderAmountMinor)
+    {
+        context.LawyerPayoutAccounts.Add(
+            new LawyerPayoutAccount(
+                Guid.NewGuid(),
+                _lawyerUserId,
+                "StripeConnect",
+                "acct_wallet_test",
+                false,
+                new DateTimeOffset(_utcNow))
+            {
+                Status = LawyerPayoutAccountStatus.Enabled,
+                DetailsSubmitted = true,
+                TransfersEnabled = true,
+                PayoutsEnabled = true,
+                Country = "US",
+                DefaultCurrency = "usd",
+                AvailableProviderAmountMinor = availableProviderAmountMinor
+            });
+        await context.SaveChangesAsync();
+    }
+
     private ApplicationDbContext CreateContext()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -431,7 +509,7 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
         public bool IsAuthenticated => true;
     }
 
-    private sealed class TestPaymentProvider(
+    private class TestPaymentProvider(
         ProviderOperationOutcome outcome)
         : IPaymentProvider, IPaymentReconciliationProvider
     {
@@ -512,6 +590,55 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
                 outcome == ProviderOperationOutcome.Succeeded
                     ? null
                     : "تعذر تنفيذ طلب السحب لدى مزود الدفع."));
+    }
+
+    private sealed class ConnectedTestPaymentProvider(
+        ProviderOperationOutcome outcome,
+        long availableAmountMinor,
+        long pendingAmountMinor,
+        DateTimeOffset? expectedAvailableAt)
+        : TestPaymentProvider(outcome), ILawyerPayoutAccountProvider
+    {
+        public ProviderPayoutAccountSettings Settings { get; } = new(
+            "StripeConnect",
+            true,
+            "US",
+            "https://example.test/return",
+            "https://example.test/refresh");
+
+        public Task<ProviderPayoutBalanceResult> GetBalanceAsync(
+            string providerAccountId,
+            string currency,
+            long requiredAmountMinor,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(new ProviderPayoutBalanceResult(
+                currency,
+                availableAmountMinor,
+                pendingAmountMinor,
+                expectedAvailableAt));
+        }
+
+        public Task<ProviderPayoutAccountResult> CreateAccountAsync(
+            ProviderPayoutAccountCreateRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderPayoutAccountResult> GetAccountAsync(
+            string providerAccountId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<ProviderOnboardingLinkResult> CreateOnboardingLinkAsync(
+            ProviderOnboardingLinkRequest request,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
+
+        public Task<string> CreateDashboardLinkAsync(
+            string providerAccountId,
+            CancellationToken cancellationToken)
+            => throw new NotSupportedException();
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow)

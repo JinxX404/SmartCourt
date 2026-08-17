@@ -329,14 +329,14 @@ public sealed class ConsultationPaymentService(
         CancellationToken cancellationToken)
     {
         var payoutAccount = paymentProvider is ILawyerPayoutAccountProvider
-            ? await dbContext.LawyerPayoutAccounts.AsNoTracking().SingleOrDefaultAsync(
+            ? await dbContext.LawyerPayoutAccounts.SingleOrDefaultAsync(
                 item => item.LawyerUserId == booking.LawyerId
                     && item.ProviderCode == ProviderCode
                     && item.Status == LawyerPayoutAccountStatus.Enabled
                     && item.TransfersEnabled, cancellationToken)
             : null;
         if (paymentProvider is ILawyerPayoutAccountProvider && payoutAccount is null)
-            throw new ConflictException("The lawyer payout account is not ready for consultation release.");
+            throw new ConflictException("حساب استلام أتعاب المحامي غير جاهز لتحرير دفعة الاستشارة.");
         var deposit = await dbContext.ConsultationPaymentTransactions.AsNoTracking()
             .SingleAsync(item => item.Id == hold.DepositTransactionId, cancellationToken);
         var transaction = NewTransaction(booking.Id, PaymentOperationType.Release,
@@ -354,16 +354,26 @@ public sealed class ConsultationPaymentService(
         if (result.Outcome != ProviderOperationOutcome.Succeeded)
         {
             await dbContext.SaveChangesAsync(cancellationToken);
-            throw new ConflictException(result.FailureReason ?? "The consultation payment release was not completed.");
+            throw new ConflictException(result.FailureReason ?? "تعذر تحرير دفعة الاستشارة للمحامي.");
         }
 
         var wallet = await dbContext.LawyerWallets.SingleAsync(
             item => item.LawyerUserId == booking.LawyerId, cancellationToken);
         if (wallet.PendingBalance < hold.NetAmount)
-            throw new ConflictException("The lawyer pending wallet does not match the consultation hold.");
+            throw new ConflictException("الرصيد المعلّق في محفظة المحامي لا يطابق حجز دفعة الاستشارة.");
         wallet.PendingBalance -= hold.NetAmount;
         wallet.AvailableBalance += lawyerNet;
         wallet.UpdatedAt = UtcNow;
+        if (payoutAccount is not null && result.ProviderMoney is not null)
+        {
+            if (payoutAccount.AvailableProviderAmountMinor
+                > long.MaxValue - result.ProviderMoney.AmountMinor)
+                throw new BusinessException("تجاوز رصيد مزود الدفع الحد العددي المسموح به.");
+            payoutAccount.AvailableProviderAmountMinor +=
+                result.ProviderMoney.AmountMinor;
+            payoutAccount.DefaultCurrency = result.ProviderMoney.Currency;
+            payoutAccount.UpdatedAt = UtcNow;
+        }
         hold.Status = EscrowHoldStatus.Released;
         hold.SettledAtUtc = UtcNow;
         hold.UpdatedAt = UtcNow;
