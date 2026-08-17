@@ -55,7 +55,7 @@ public sealed class GetProposalsHandler(
 
         var statuses = request.Statuses is { Count: > 0 }
             ? request.Statuses.Distinct().ToArray()
-            : [ProposalStatus.Pending];
+            : [ProposalStatus.Pending, ProposalStatus.Accepted];
 
         var query =
             from proposal in context.Proposals.AsNoTracking()
