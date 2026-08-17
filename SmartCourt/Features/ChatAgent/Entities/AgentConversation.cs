@@ -11,12 +11,12 @@ public sealed class AgentConversation
 
     internal AgentConversation(
         Guid id,
-        Guid userId,
+        Guid? userId,
         Guid? caseId,
         DateTimeOffset createdAt)
     {
         Id = EntityGuard.NotEmpty(id, nameof(id));
-        UserId = EntityGuard.NotEmpty(userId, nameof(userId));
+        UserId = EntityGuard.OptionalGuid(userId, nameof(userId));
         CaseId = EntityGuard.OptionalGuid(caseId, nameof(caseId));
         CreatedAt = EntityGuard.Utc(createdAt, nameof(createdAt));
         UpdatedAt = CreatedAt;
@@ -24,7 +24,7 @@ public sealed class AgentConversation
     }
 
     public Guid Id { get; internal set; }
-    public Guid UserId { get; internal set; }
+    public Guid? UserId { get; internal set; }
     public Guid? CaseId { get; internal set; }
     public string? Title { get; internal set; }
     public string? CachedCaseContext { get; internal set; }
@@ -37,7 +37,7 @@ public sealed class AgentConversation
 
     internal static AgentConversation Create(
         Guid id,
-        Guid userId,
+        Guid? userId,
         Guid? caseId,
         DateTimeOffset createdAt)
     {

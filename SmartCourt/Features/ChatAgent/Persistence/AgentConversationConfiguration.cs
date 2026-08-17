@@ -13,7 +13,7 @@ public sealed class AgentConversationConfiguration : IEntityTypeConfiguration<Ag
         builder.HasKey(c => c.Id);
 
         builder.Property(c => c.UserId)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(c => c.Title)
             .HasMaxLength(200);

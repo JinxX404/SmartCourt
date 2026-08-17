@@ -44,11 +44,16 @@ public class ChatAgentService(
         CreateAgentConversationRequest request,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
         CaseEntity? caseEntity = null;
 
         if (request.CaseId.HasValue)
         {
+            if (currentUserId == null)
+            {
+                throw new ForbiddenAccessException("يجب تسجيل الدخول للوصول إلى القضية.");
+            }
+
             caseEntity = await _dbContext.Cases
                 .FirstOrDefaultAsync(c => c.Id == request.CaseId.Value, cancellationToken);
 
@@ -81,7 +86,12 @@ public class ChatAgentService(
         int pageSize,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
+
+        if (currentUserId == null)
+        {
+            return new AgentConversationListDto([], page <= 0 ? 1 : page, pageSize <= 0 ? 20 : (pageSize > 100 ? 100 : pageSize), 0);
+        }
 
         var actualPage = page <= 0 ? 1 : page;
         var actualPageSize = pageSize <= 0 ? 20 : (pageSize > 100 ? 100 : pageSize);
@@ -108,7 +118,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
 
         var conversation = await _dbContext.AgentConversations
             .AsNoTracking()
@@ -120,7 +130,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != currentUserId)
+        if (conversation.UserId != null && conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
@@ -139,7 +149,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
 
         var conversation = await _dbContext.AgentConversations
             .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
@@ -149,7 +159,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != currentUserId)
+        if (conversation.UserId != null && conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
@@ -164,7 +174,7 @@ public class ChatAgentService(
         SendAgentMessageRequest request,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
 
         var conversation = await _dbContext.AgentConversations
             .Include(c => c.Case)
@@ -175,7 +185,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != currentUserId)
+        if (conversation.UserId != null && conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
@@ -333,7 +343,7 @@ public class ChatAgentService(
         int limit,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
 
         var conversation = await _dbContext.AgentConversations
             .AsNoTracking()
@@ -344,7 +354,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != currentUserId)
+        if (conversation.UserId != null && conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
@@ -391,7 +401,7 @@ public class ChatAgentService(
         Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId ?? Guid.Empty;
+        var currentUserId = _currentUserService.UserId;
 
         var conversation = await _dbContext.AgentConversations
             .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
@@ -401,7 +411,7 @@ public class ChatAgentService(
             throw new NotFoundException("المحادثة غير موجودة.");
         }
 
-        if (conversation.UserId != currentUserId)
+        if (conversation.UserId != null && conversation.UserId != currentUserId)
         {
             throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
         }
@@ -515,13 +525,13 @@ public class ChatAgentService(
         return retrievedLawArticles;
     }
 
-    private async Task<bool> IsUserLawyerAsync(Guid currentUserId, CancellationToken cancellationToken)
+    private async Task<bool> IsUserLawyerAsync(Guid? currentUserId, CancellationToken cancellationToken)
     {
         bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
-        if (!isLawyer && _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") != true)
+        if (!isLawyer && _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") != true && currentUserId.HasValue)
         {
             isLawyer = await _dbContext.UserRoles
-                .AnyAsync(ur => ur.UserId == currentUserId &&
+                .AnyAsync(ur => ur.UserId == currentUserId.Value &&
                     _dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Lawyer"),
                     cancellationToken);
         }
