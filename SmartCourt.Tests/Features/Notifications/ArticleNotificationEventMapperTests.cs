@@ -150,7 +150,9 @@ public class ArticleNotificationEventMapperTests
         var sample = drafts.First();
         Assert.Equal("article.reported", sample.Type);
         Assert.Equal(NotificationSeverity.Warning, sample.Severity);
-        Assert.Equal($"/articles/{articleId}", sample.ActionUrl);
+        Assert.Equal(
+            $"/dashboard?tab=admin-articles&section=reports&articleId={articleId}",
+            sample.ActionUrl);
         Assert.Equal(articleId.ToString(), sample.Data!["articleId"]);
         Assert.Equal(reportId.ToString(), sample.Data!["reportId"]);
         Assert.Equal("بلاغ جديد على مقال", sample.Title);
@@ -202,7 +204,7 @@ public class ArticleNotificationEventMapperTests
         Assert.Equal(authorId, draft.RecipientUserId);
         Assert.Equal("article.deleted-by-admin", draft.Type);
         Assert.Equal(NotificationSeverity.Warning, draft.Severity);
-        Assert.Equal($"/articles/{articleId}", draft.ActionUrl);
+        Assert.Equal("/dashboard?tab=articles", draft.ActionUrl);
         Assert.Equal(articleId.ToString(), draft.Data!["articleId"]);
         Assert.Equal("تم حذف مقالك من قبل الإدارة", draft.Title);
         Assert.Contains($"بعنوان \"{title}\"", draft.Body);

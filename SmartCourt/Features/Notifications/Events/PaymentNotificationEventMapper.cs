@@ -380,7 +380,11 @@ internal sealed class PaymentNotificationEventMapper(
             severity,
             title,
             body,
-            null,
+            type.StartsWith("wallet.", StringComparison.Ordinal)
+                ? NotificationActionUrls.Wallet
+                : NotificationActionUrls.Milestone(
+                    Guid.Parse(data["contractId"]),
+                    Guid.Parse(data["milestoneId"])),
             data);
 
     private static bool IsFundingEvent(string eventType) =>

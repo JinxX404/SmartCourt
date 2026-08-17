@@ -1172,6 +1172,73 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             pendingCompetitor.Id);
     }
 
+    [Fact]
+    public async Task EvaluateCompletion_WhenAllMilestonesAreAcceptedHold_TransitionsToCompletedOnHold()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.Active;
+        contract.ActivatedAt = _utcNow;
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        var milestone1 = CreateMilestone(contract.Id, 1, 1000m);
+        milestone1.Status = MilestoneStatus.AcceptedHold;
+        var milestone2 = CreateMilestone(contract.Id, 2, 2000m);
+        milestone2.Status = MilestoneStatus.AcceptedHold;
+
+        context.Contracts.Add(contract);
+        context.Milestones.AddRange(milestone1, milestone2);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.CompletedOnHold, result.Contract.Status);
+        var updated = await context.Contracts.FindAsync(contract.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(ContractStatus.CompletedOnHold, updated.Status);
+    }
+
+    [Fact]
+    public async Task EvaluateCompletion_WhenHoldsAreReleased_TransitionsFromCompletedOnHoldToCompleted()
+    {
+        await using var context = CreateContext();
+        var contract = CreateContract();
+        contract.Status = ContractStatus.CompletedOnHold;
+        contract.ActivatedAt = _utcNow;
+        await AddContractPrerequisitesAsync(
+            context,
+            contract.ProposalId,
+            contract.LegalCaseId);
+        var milestone1 = CreateMilestone(contract.Id, 1, 1000m);
+        milestone1.Status = MilestoneStatus.Released;
+        var milestone2 = CreateMilestone(contract.Id, 2, 2000m);
+        milestone2.Status = MilestoneStatus.Released;
+
+        context.Contracts.Add(contract);
+        context.Milestones.AddRange(milestone1, milestone2);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var result = await service.EvaluateCompletionAsync(
+            contract.Id,
+            CancellationToken.None);
+
+        Assert.Equal(ContractStatus.Completed, result.Contract.Status);
+        var updated = await context.Contracts.FindAsync(contract.Id);
+        Assert.NotNull(updated);
+        Assert.Equal(ContractStatus.Completed, updated.Status);
+        Assert.NotNull(updated.CompletedAt);
+    }
+
     private Milestone CreateMilestone(
         Guid contractId,
         int orderNumber,

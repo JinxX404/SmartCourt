@@ -53,7 +53,7 @@ internal sealed class ProposalNotificationEventMapper
             ["proposalId"] = payload.ProposalId.ToString(),
             ["legalCaseId"] = payload.LegalCaseId.ToString()
         };
-        var actionUrl = $"/proposals/{payload.ProposalId}";
+        var actionUrl = NotificationActionUrls.Proposal(payload.ProposalId);
         NotificationDraft draft = message.EventType switch
         {
             ContractPaymentEventTypes.ProposalCreated => new(

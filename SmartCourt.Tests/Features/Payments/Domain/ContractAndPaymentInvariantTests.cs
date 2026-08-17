@@ -27,10 +27,16 @@ public sealed class ContractAndPaymentInvariantTests
         [
             (ContractStatus.Draft, ContractStatus.Active),
             (ContractStatus.Draft, ContractStatus.Terminated),
+            (ContractStatus.Active, ContractStatus.CompletedOnHold),
             (ContractStatus.Active, ContractStatus.SuspendedByDispute),
             (ContractStatus.Active, ContractStatus.Completed),
             (ContractStatus.Active, ContractStatus.Terminated),
+            (ContractStatus.CompletedOnHold, ContractStatus.Active),
+            (ContractStatus.CompletedOnHold, ContractStatus.Completed),
+            (ContractStatus.CompletedOnHold, ContractStatus.SuspendedByDispute),
+            (ContractStatus.CompletedOnHold, ContractStatus.Terminated),
             (ContractStatus.SuspendedByDispute, ContractStatus.Active),
+            (ContractStatus.SuspendedByDispute, ContractStatus.CompletedOnHold),
             (ContractStatus.SuspendedByDispute, ContractStatus.Completed),
             (ContractStatus.SuspendedByDispute, ContractStatus.Terminated)
         ];

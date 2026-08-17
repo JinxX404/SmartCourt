@@ -73,7 +73,7 @@ internal sealed class AuthNotificationEventMapper(
                 NotificationSeverity.Critical,
                 contract.Title,
                 contract.Body,
-                null,
+                NotificationActionUrls.Security,
                 new Dictionary<string, string>
                 {
                     ["userId"] = context.UserId.ToString()

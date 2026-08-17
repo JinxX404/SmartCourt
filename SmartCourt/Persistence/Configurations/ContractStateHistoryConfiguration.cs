@@ -40,9 +40,9 @@ public sealed class ContractStateHistoryConfiguration
         .HasDatabaseName("IX_ContractStateHistories_ContractId_CreatedAt");
         builder.HasCheckConstraint(
             "CK_ContractStateHistories_NewStatus_Range",
-            "[NewStatus] BETWEEN 0 AND 4");
+            "[NewStatus] BETWEEN 0 AND 5");
         builder.HasCheckConstraint(
             "CK_ContractStateHistories_PreviousStatus_Range",
-            "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 4");
+            "[PreviousStatus] IS NULL OR [PreviousStatus] BETWEEN 0 AND 5");
     }
 }

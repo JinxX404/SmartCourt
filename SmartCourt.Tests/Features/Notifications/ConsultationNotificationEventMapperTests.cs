@@ -124,8 +124,13 @@ public class ConsultationNotificationEventMapperTests
         Assert.Equal(NotificationSeverity.Information, draft.Severity);
         Assert.Equal("حجز استشارة جديد", draft.Title);
         Assert.Equal("قام عميل بحجز موعد استشارة وهو بصدد إتمام الدفع.", draft.Body);
-        Assert.Equal($"/consultations/bookings/{bookingId}", draft.ActionUrl);
+        Assert.Equal(
+            $"/dashboard?tab=consultations&bookingId={bookingId}",
+            draft.ActionUrl);
         Assert.Equal(bookingId.ToString(), draft.Data!["bookingId"]);
+        Assert.Equal(clientId.ToString(), draft.Data["clientUserId"]);
+        Assert.Equal(lawyerId.ToString(), draft.Data["lawyerUserId"]);
+        Assert.Equal("Consultation 1", draft.Data["offeringTitle"]);
     }
 
     [Fact]

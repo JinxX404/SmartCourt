@@ -77,6 +77,6 @@ public sealed class ContractConfiguration : IEntityTypeConfiguration<Contract>
             "[Currency] = 'EGP'");
         builder.HasCheckConstraint(
             "CK_Contracts_Status_Range",
-            "[Status] BETWEEN 0 AND 4");
+            "[Status] BETWEEN 0 AND 5");
     }
 }
