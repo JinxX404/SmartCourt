@@ -46,9 +46,10 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
     public async Task<ActionResult<ApiResponse<AgentConversationListDto>>> ListConversationsAsync(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await _chatAgentService.ListConversationsAsync(page, pageSize, cancellationToken);
+        var result = await _chatAgentService.ListConversationsAsync(page, pageSize, search, cancellationToken);
         return Ok(ApiResponse<AgentConversationListDto>.Ok(result));
     }
 
@@ -62,6 +63,19 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
     {
         var result = await _chatAgentService.GetConversationAsync(id, cancellationToken);
         return Ok(ApiResponse<AgentConversationDetailDto>.Ok(result));
+    }
+
+    [AllowAnonymous]
+    [HttpPut("conversations/{id:guid}/title")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    [ProducesResponseType(typeof(ApiResponse<AgentConversationDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<AgentConversationDto>>> UpdateConversationTitleAsync(
+        [FromRoute] Guid id,
+        [FromBody] UpdateAgentConversationTitleRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _chatAgentService.UpdateConversationTitleAsync(id, request, cancellationToken);
+        return Ok(ApiResponse<AgentConversationDto>.Ok(result, "تم تحديث عنوان المحادثة بنجاح."));
     }
 
     [AllowAnonymous]

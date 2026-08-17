@@ -850,5 +850,292 @@ public sealed class ChatAgentServiceTests
         Assert.NotNull(savedAssistantMessage);
         Assert.Equal(responseDto.Content, savedAssistantMessage.Content);
     }
+
+    [Fact]
+    public async Task UpdateConversationTitle_HappyPath_UpdatesTitleAndReturnsDto()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        var conversation = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        dbContext.AgentConversations.Add(conversation);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        var request = new UpdateAgentConversationTitleRequest("عنوان مخصص جديد");
+
+        // Act
+        var result = await service.UpdateConversationTitleAsync(conversation.Id, request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("عنوان مخصص جديد", result.Title);
+
+        var updatedInDb = await dbContext.AgentConversations.FirstOrDefaultAsync(c => c.Id == conversation.Id);
+        Assert.NotNull(updatedInDb);
+        Assert.Equal("عنوان مخصص جديد", updatedInDb.Title);
+    }
+
+    [Fact]
+    public async Task UpdateConversationTitle_NotFound_ThrowsNotFoundException()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var currentUserService = new TestCurrentUserService { UserId = Guid.NewGuid() };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        var request = new UpdateAgentConversationTitleRequest("عنوان جديد");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.UpdateConversationTitleAsync(Guid.NewGuid(), request));
+    }
+
+    [Fact]
+    public async Task UpdateConversationTitle_ForbiddenAccess_ThrowsForbiddenAccessException()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var ownerId = Guid.NewGuid();
+        var conversation = AgentConversation.Create(Guid.NewGuid(), ownerId, caseId: null, DateTimeOffset.UtcNow);
+        dbContext.AgentConversations.Add(conversation);
+        await dbContext.SaveChangesAsync();
+
+        var attackerId = Guid.NewGuid();
+        var currentUserService = new TestCurrentUserService { UserId = attackerId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        var request = new UpdateAgentConversationTitleRequest("محاولة اختراق العنوان");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ForbiddenAccessException>(() =>
+            service.UpdateConversationTitleAsync(conversation.Id, request));
+    }
+
+    [Fact]
+    public async Task UpdateConversationTitle_UnauthenticatedUser_ThrowsAuthenticationException()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var ownerId = Guid.NewGuid();
+        var conversation = AgentConversation.Create(Guid.NewGuid(), ownerId, caseId: null, DateTimeOffset.UtcNow);
+        dbContext.AgentConversations.Add(conversation);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = null };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        var request = new UpdateAgentConversationTitleRequest("تعديل بدون تسجيل");
+
+        // Act & Assert
+        await Assert.ThrowsAsync<AuthenticationException>(() =>
+            service.UpdateConversationTitleAsync(conversation.Id, request));
+    }
+
+    [Fact]
+    public async Task ListConversations_MatchingTitleSearch_ReturnsMatchingConversations()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        var conv1 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        conv1.UpdateTitle("استشارة في قانون العمل المصري", DateTimeOffset.UtcNow);
+
+        var conv2 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        conv2.UpdateTitle("استفسار حول عقود الإيجار", DateTimeOffset.UtcNow);
+
+        var conv3 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        conv3.UpdateTitle("تفاصيل قانون العمل والتعويضات", DateTimeOffset.UtcNow);
+
+        dbContext.AgentConversations.AddRange(conv1, conv2, conv3);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        // Act
+        var result = await service.ListConversationsAsync(page: 1, pageSize: 20, search: "قانون العمل");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.TotalCount);
+        Assert.Equal(2, result.Items.Count);
+        Assert.All(result.Items, item => Assert.Contains("قانون العمل", item.Title));
+    }
+
+    [Fact]
+    public async Task ListConversations_NoMatchSearch_ReturnsEmptyList()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        var conv1 = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        conv1.UpdateTitle("استشارة جنائية", DateTimeOffset.UtcNow);
+        dbContext.AgentConversations.Add(conv1);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        // Act
+        var result = await service.ListConversationsAsync(page: 1, pageSize: 20, search: "مدني وتجاري");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(0, result.TotalCount);
+        Assert.Empty(result.Items);
+    }
+
+    [Fact]
+    public async Task ListConversations_WithSearchAndPagination_CalculatesCorrectSkipTakeAndTotalCount()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        for (int i = 1; i <= 5; i++)
+        {
+            var conv = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow.AddMinutes(i));
+            conv.UpdateTitle($"محادثة رقم {i}", DateTimeOffset.UtcNow.AddMinutes(i));
+            dbContext.AgentConversations.Add(conv);
+        }
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        // Act
+        var result = await service.ListConversationsAsync(page: 2, pageSize: 2, search: "محادثة");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(5, result.TotalCount);
+        Assert.Equal(2, result.Page);
+        Assert.Equal(2, result.PageSize);
+        Assert.Equal(2, result.Items.Count);
+    }
+
+    [Fact]
+    public async Task ListConversations_WithSearchExcludesDeletedAndOtherUserConversations()
+    {
+        // Arrange
+        var dbOptions = CreateInMemoryOptions();
+        await using var dbContext = new ApplicationDbContext(dbOptions);
+
+        var userId = Guid.NewGuid();
+        var otherUserId = Guid.NewGuid();
+
+        var myActiveConv = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        myActiveConv.UpdateTitle("محادثة نشطة لي", DateTimeOffset.UtcNow);
+
+        var myDeletedConv = AgentConversation.Create(Guid.NewGuid(), userId, caseId: null, DateTimeOffset.UtcNow);
+        myDeletedConv.UpdateTitle("محادثة محذوفة لي", DateTimeOffset.UtcNow);
+        myDeletedConv.SoftDelete(DateTimeOffset.UtcNow);
+
+        var otherUserConv = AgentConversation.Create(Guid.NewGuid(), otherUserId, caseId: null, DateTimeOffset.UtcNow);
+        otherUserConv.UpdateTitle("محادثة نشطة لمستخدم آخر", DateTimeOffset.UtcNow);
+
+        dbContext.AgentConversations.AddRange(myActiveConv, myDeletedConv, otherUserConv);
+        await dbContext.SaveChangesAsync();
+
+        var currentUserService = new TestCurrentUserService { UserId = userId };
+        var service = new ChatAgentService(
+            dbContext,
+            currentUserService,
+            new TestChatModelProvider(),
+            new TestEmbeddingProvider(),
+            new TestVectorStoreProvider(),
+            new TestFileStorageService(),
+            new TestDocumentParsingProvider(),
+            new TestRerankerProvider(),
+            Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
+
+        // Act
+        var result = await service.ListConversationsAsync(page: 1, pageSize: 20, search: "محادثة");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Single(result.Items);
+        Assert.Equal(myActiveConv.Id, result.Items[0].Id);
+    }
 }
 

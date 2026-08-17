@@ -11,6 +11,7 @@ public interface IChatAgentService
     Task<AgentConversationListDto> ListConversationsAsync(
         int page,
         int pageSize,
+        string? search = null,
         CancellationToken cancellationToken = default);
 
     Task<AgentConversationDetailDto> GetConversationAsync(
@@ -19,6 +20,11 @@ public interface IChatAgentService
 
     Task DeleteConversationAsync(
         Guid conversationId,
+        CancellationToken cancellationToken = default);
+
+    Task<AgentConversationDto> UpdateConversationTitleAsync(
+        Guid conversationId,
+        UpdateAgentConversationTitleRequest request,
         CancellationToken cancellationToken = default);
 
     Task<AgentMessageDto> SendMessageAsync(

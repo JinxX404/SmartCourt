@@ -47,13 +47,13 @@ public class ChatAgentService(
         var currentUserId = _currentUserService.UserId;
         CaseEntity? caseEntity = null;
 
+        if (currentUserId == null)
+        {
+            throw new AuthenticationException("يجب تسجيل الدخول لإنشاء محادثة.");
+        }
+
         if (request.CaseId.HasValue)
         {
-            if (currentUserId == null)
-            {
-                throw new ForbiddenAccessException("يجب تسجيل الدخول للوصول إلى القضية.");
-            }
-
             caseEntity = await _dbContext.Cases
                 .FirstOrDefaultAsync(c => c.Id == request.CaseId.Value, cancellationToken);
 
@@ -84,22 +84,29 @@ public class ChatAgentService(
     public async Task<AgentConversationListDto> ListConversationsAsync(
         int page,
         int pageSize,
+        string? search = null,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUserService.UserId;
 
-        if (currentUserId == null)
-        {
-            return new AgentConversationListDto([], page <= 0 ? 1 : page, pageSize <= 0 ? 20 : (pageSize > 100 ? 100 : pageSize), 0);
-        }
-
         var actualPage = page <= 0 ? 1 : page;
         var actualPageSize = pageSize <= 0 ? 20 : (pageSize > 100 ? 100 : pageSize);
+
+        if (currentUserId == null)
+        {
+            return new AgentConversationListDto([], actualPage, actualPageSize, 0);
+        }
 
         var query = _dbContext.AgentConversations
             .AsNoTracking()
             .Include(c => c.Case)
             .Where(c => c.UserId == currentUserId && !c.IsDeleted);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchTerm = search.Trim();
+            query = query.Where(c => c.Title != null && c.Title.Contains(searchTerm));
+        }
 
         var totalCount = await query.CountAsync(cancellationToken);
 
@@ -167,6 +174,42 @@ public class ChatAgentService(
         var utcNow = _timeProvider.GetUtcNow();
         conversation.SoftDelete(utcNow);
         await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<AgentConversationDto> UpdateConversationTitleAsync(
+        Guid conversationId,
+        UpdateAgentConversationTitleRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserId = _currentUserService.UserId;
+
+        var conversation = await _dbContext.AgentConversations
+            .Include(c => c.Case)
+            .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
+
+        if (conversation is null)
+        {
+            throw new NotFoundException("المحادثة غير موجودة.");
+        }
+
+        if (conversation.UserId != null)
+        {
+            if (currentUserId == null)
+            {
+                throw new AuthenticationException("يجب تسجيل الدخول لتعديل هذه المحادثة.");
+            }
+
+            if (conversation.UserId != currentUserId)
+            {
+                throw new ForbiddenAccessException("غير مصرح لك بتعديل هذه المحادثة.");
+            }
+        }
+
+        var utcNow = _timeProvider.GetUtcNow();
+        conversation.UpdateTitle(request.Title, utcNow);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return MapToDto(conversation, conversation.Case?.Title);
     }
 
     public async Task<AgentMessageDto> SendMessageAsync(

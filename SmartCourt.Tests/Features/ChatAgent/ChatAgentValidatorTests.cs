@@ -10,6 +10,7 @@ public sealed class ChatAgentValidatorTests
 {
     private readonly CreateAgentConversationRequestValidator _createValidator = new();
     private readonly SendAgentMessageRequestValidator _sendMessageValidator = new();
+    private readonly UpdateAgentConversationTitleRequestValidator _updateTitleValidator = new();
 
     [Fact]
     public void CreateConversationRequest_NullCaseId_PassesValidation()
@@ -58,5 +59,33 @@ public sealed class ChatAgentValidatorTests
         var request = new SendAgentMessageRequest(longContent);
         var result = _sendMessageValidator.TestValidate(request);
         result.ShouldHaveValidationErrorFor(x => x.Content);
+    }
+
+    [Fact]
+    public void UpdateTitleRequest_ValidTitle_PassesValidation()
+    {
+        var request = new UpdateAgentConversationTitleRequest("عنوان محادثة قانونية جديد");
+        var result = _updateTitleValidator.TestValidate(request);
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void UpdateTitleRequest_EmptyTitle_FailsValidation(string? emptyTitle)
+    {
+        var request = new UpdateAgentConversationTitleRequest(emptyTitle!);
+        var result = _updateTitleValidator.TestValidate(request);
+        result.ShouldHaveValidationErrorFor(x => x.Title);
+    }
+
+    [Fact]
+    public void UpdateTitleRequest_TitleExceeding200Chars_FailsValidation()
+    {
+        var longTitle = new string('س', 201);
+        var request = new UpdateAgentConversationTitleRequest(longTitle);
+        var result = _updateTitleValidator.TestValidate(request);
+        result.ShouldHaveValidationErrorFor(x => x.Title);
     }
 }
