@@ -8,6 +8,6 @@ internal sealed record NotificationDraft(
     NotificationSeverity Severity,
     string Title,
     string Body,
-    string? ActionUrl,
+    string ActionUrl,
     IReadOnlyDictionary<string, string>? Data,
     DateTimeOffset? ExpiresAtUtc = null);

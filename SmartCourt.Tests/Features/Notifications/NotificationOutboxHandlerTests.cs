@@ -90,7 +90,7 @@ public sealed class NotificationOutboxHandlerTests
         Assert.Equal(expectedTitle, saved.Title);
         Assert.Equal(expectedBody, saved.Body);
         Assert.Equal(message.Id, saved.SourceEventId);
-        Assert.Equal($"/proposals/{proposalId}", saved.ActionUrl);
+        Assert.Equal($"/dashboard/proposals/{proposalId}", saved.ActionUrl);
         var pushed = Assert.Single(notifier.Created);
         Assert.Equal(expectedTitle, pushed.Notification.Title);
         Assert.Equal(proposalId.ToString(), pushed.Notification.Data!["proposalId"]);
@@ -360,7 +360,7 @@ public sealed class NotificationOutboxHandlerTests
         NotificationSeverity.Information,
         "عنوان",
         "نص الإشعار",
-        null,
+        "/dashboard",
         new Dictionary<string, string> { ["source"] = "test" });
 
     private static ApplicationDbContext CreateContext()

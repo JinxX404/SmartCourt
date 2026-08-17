@@ -114,7 +114,9 @@ public sealed class MilestoneNotificationEventMapperTests
         Assert.Equal(expectedSeverity, saved.Severity.ToString());
         Assert.Equal(expectedTitle, saved.Title);
         Assert.Equal(expectedBody, saved.Body);
-        Assert.Null(saved.ActionUrl);
+        Assert.Equal(
+            $"/dashboard/contracts/{contract.Id}?milestoneId={milestone.Id}",
+            saved.ActionUrl);
         AssertMetadata(saved.DataJson, contract, milestone);
     }
 
@@ -147,7 +149,9 @@ public sealed class MilestoneNotificationEventMapperTests
             Assert.Equal(
                 "وافق طرفا العقد على شروط المرحلة وأصبحت جاهزة للانتقال إلى التمويل.",
                 item.Body);
-            Assert.Null(item.ActionUrl);
+            Assert.Equal(
+                $"/dashboard/contracts/{contract.Id}?milestoneId={milestone.Id}",
+                item.ActionUrl);
         });
     }
 
@@ -210,7 +214,9 @@ public sealed class MilestoneNotificationEventMapperTests
         Assert.Equal(expectedSeverity, saved.Severity.ToString());
         Assert.Equal(expectedTitle, saved.Title);
         Assert.Equal(expectedBody, saved.Body);
-        Assert.Null(saved.ActionUrl);
+        Assert.Equal(
+            $"/dashboard/contracts/{contract.Id}?milestoneId={milestone.Id}",
+            saved.ActionUrl);
     }
 
     [Fact]
@@ -347,7 +353,9 @@ public sealed class MilestoneNotificationEventMapperTests
         Assert.Equal(expectedType, saved.Type);
         Assert.Equal(expectedSeverity, saved.Severity.ToString());
         Assert.Equal(expectedTitle, saved.Title);
-        Assert.Null(saved.ActionUrl);
+        Assert.Equal(
+            $"/dashboard/contracts/{contract.Id}?milestoneId={milestone.Id}",
+            saved.ActionUrl);
         AssertMetadata(saved.DataJson, contract, milestone, changeRequest.Id);
     }
 

@@ -117,7 +117,7 @@ internal sealed class VerificationNotificationEventMapper(
                 contract.Severity,
                 contract.Title,
                 contract.Body,
-                null,
+                NotificationActionUrls.Verification,
                 new Dictionary<string, string>
                 {
                     ["documentId"] = context.DocumentId.ToString(),
@@ -184,7 +184,7 @@ internal sealed class VerificationNotificationEventMapper(
                 contract.Severity,
                 contract.Title,
                 contract.Body,
-                null,
+                NotificationActionUrls.Verification,
                 new Dictionary<string, string>
                 {
                     ["userId"] = context.UserId.ToString()
@@ -231,7 +231,7 @@ internal sealed class VerificationNotificationEventMapper(
                     NotificationSeverity.Information,
                     "طلب مراجعة مستندات التحقق",
                     "تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.",
-                    null,
+                    NotificationActionUrls.VerificationReview(context.UserId),
                     data);
             })
             .ToArray();

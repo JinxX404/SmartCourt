@@ -68,7 +68,7 @@ internal sealed class ArticleNotificationEventMapper : INotificationEventMapper
             Severity: NotificationSeverity.Information,
             Title: "تعليق جديد على مقالك",
             Body: "أضاف أحد المستخدمين تعليقًا على مقالك. يمكنك مراجعته والرد عليه.",
-            ActionUrl: $"/articles/{payload.ArticleId}",
+            ActionUrl: NotificationActionUrls.Article(payload.ArticleId),
             Data: new Dictionary<string, string>
             {
                 ["articleId"] = payload.ArticleId.ToString(),
@@ -100,7 +100,7 @@ internal sealed class ArticleNotificationEventMapper : INotificationEventMapper
                 Severity: NotificationSeverity.Warning,
                 Title: "بلاغ جديد على مقال",
                 Body: "تم الإبلاغ عن مقال من قبل أحد المستخدمين. يرجى مراجعته واتخاذ الإجراء المناسب.",
-                ActionUrl: $"/articles/{payload.ArticleId}",
+                ActionUrl: NotificationActionUrls.ArticleReport(payload.ArticleId),
                 Data: new Dictionary<string, string>
                 {
                     ["articleId"] = payload.ArticleId.ToString(),
@@ -126,7 +126,7 @@ internal sealed class ArticleNotificationEventMapper : INotificationEventMapper
             Severity: NotificationSeverity.Warning,
             Title: "تم حذف مقالك من قبل الإدارة",
             Body: $"قامت إدارة المنصة بحذف أحد مقالاتك{titleContent}. يمكنك مراجعة التفاصيل من حسابك.",
-            ActionUrl: $"/articles/{payload.ArticleId}",
+            ActionUrl: NotificationActionUrls.ArticleListing,
             Data: new Dictionary<string, string>
             {
                 ["articleId"] = payload.ArticleId.ToString()
@@ -146,7 +146,7 @@ internal sealed class ArticleNotificationEventMapper : INotificationEventMapper
             Severity: NotificationSeverity.Success,
             Title: "تفاعل جديد مع مقالك",
             Body: $"وصل مقالك إلى {payload.LikesCount} إعجاب.",
-            ActionUrl: $"/articles/{payload.ArticleId}",
+            ActionUrl: NotificationActionUrls.Article(payload.ArticleId),
             Data: new Dictionary<string, string>
             {
                 ["articleId"] = payload.ArticleId.ToString()

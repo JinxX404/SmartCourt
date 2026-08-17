@@ -116,7 +116,7 @@ public sealed class VerificationNotificationEventMapperTests
         Assert.Equal(expectedSeverity, draft.Severity.ToString());
         Assert.Equal(expectedTitle, draft.Title);
         Assert.Equal(expectedBody, draft.Body);
-        Assert.Null(draft.ActionUrl);
+        Assert.Equal("/dashboard?tab=verification", draft.ActionUrl);
         Assert.Equal(DocumentId.ToString(), draft.Data!["documentId"]);
         Assert.Equal(
             VerificationDocumentType.NationalIdFront.ToString(),
@@ -156,7 +156,7 @@ public sealed class VerificationNotificationEventMapperTests
         Assert.Equal(expectedSeverity, draft.Severity.ToString());
         Assert.Equal(expectedTitle, draft.Title);
         Assert.Equal(expectedBody, draft.Body);
-        Assert.Null(draft.ActionUrl);
+        Assert.Equal("/dashboard?tab=verification", draft.ActionUrl);
         Assert.Equal(UserId.ToString(), draft.Data!["userId"]);
         Assert.Single(draft.Data);
     }
@@ -185,7 +185,9 @@ public sealed class VerificationNotificationEventMapperTests
             Assert.Equal(
                 "تم رفع مستندات تحقق جديدة لأحد المستخدمين. يرجى مراجعتها واتخاذ الإجراء المناسب.",
                 draft.Body);
-            Assert.Null(draft.ActionUrl);
+            Assert.Equal(
+                $"/dashboard?tab=admin-verifications&userId={UserId}",
+                draft.ActionUrl);
             Assert.Equal(UserId.ToString(), draft.Data!["userId"]);
             Assert.Equal("2", draft.Data["documentCount"]);
             Assert.Equal(2, draft.Data.Count);

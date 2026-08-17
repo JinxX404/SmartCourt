@@ -411,7 +411,9 @@ internal sealed class MilestoneNotificationEventMapper(
             severity,
             title,
             body,
-            null,
+            NotificationActionUrls.Milestone(
+                Guid.Parse(data["contractId"]),
+                Guid.Parse(data["milestoneId"])),
             data);
 
     private static bool IsChangeRequestEvent(string eventType) =>

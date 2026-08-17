@@ -313,7 +313,8 @@ internal sealed class ContractNotificationEventMapper(
             severity,
             title,
             body,
-            null,
+            NotificationActionUrls.Contract(
+                Guid.Parse(data["contractId"])),
             data);
 
     private static T Deserialize<T>(OutboxMessage message)

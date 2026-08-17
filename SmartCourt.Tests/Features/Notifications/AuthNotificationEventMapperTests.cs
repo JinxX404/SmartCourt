@@ -58,7 +58,7 @@ public sealed class AuthNotificationEventMapperTests
         Assert.Equal("Critical", draft.Severity.ToString());
         Assert.Equal(expectedTitle, draft.Title);
         Assert.Equal(expectedBody, draft.Body);
-        Assert.Null(draft.ActionUrl);
+        Assert.Equal("/dashboard?tab=settings", draft.ActionUrl);
         Assert.Equal(UserId.ToString(), draft.Data!["userId"]);
         Assert.Single(draft.Data);
         Assert.DoesNotContain(

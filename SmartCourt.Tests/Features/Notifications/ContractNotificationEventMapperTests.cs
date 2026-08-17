@@ -62,7 +62,7 @@ public sealed class ContractNotificationEventMapperTests
         Assert.Equal(expectedSeverity, saved.Severity.ToString());
         Assert.Equal(expectedTitle, saved.Title);
         Assert.Equal(expectedBody, saved.Body);
-        Assert.Null(saved.ActionUrl);
+        Assert.Equal($"/dashboard/contracts/{contract.Id}", saved.ActionUrl);
         AssertMetadata(Assert.Single(notifier.Created).Notification, contract);
     }
 
@@ -194,7 +194,7 @@ public sealed class ContractNotificationEventMapperTests
             Assert.Equal(expectedSeverity, item.Severity.ToString());
             Assert.Equal(expectedTitle, item.Title);
             Assert.Equal(expectedBody, item.Body);
-            Assert.Null(item.ActionUrl);
+            Assert.Equal($"/dashboard/contracts/{contract.Id}", item.ActionUrl);
         });
     }
 
