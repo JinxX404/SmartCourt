@@ -114,9 +114,39 @@ public sealed class ConsultationOfferingHandler(
         offering.Price = command.Request.Price;
         offering.OfficeLocation = NormalizeOffice(command.Request.Mode, command.Request.OfficeLocation);
         offering.UpdatedAt = timeProvider.GetUtcNow();
-        dbContext.ConsultationOfferingInclusions.RemoveRange(offering.Inclusions);
-        offering.Inclusions.Clear();
-        ReplaceInclusions(offering, command.Request.Inclusions);
+
+        // Safely synchronize inclusions in-place to avoid IX_ConsultationOfferingInclusions_OfferingId_SortOrder collision
+        var newInclusions = command.Request.Inclusions;
+        var existingList = offering.Inclusions.OrderBy(item => item.SortOrder).ToList();
+
+        for (var i = 0; i < newInclusions.Count; i++)
+        {
+            var text = newInclusions[i].Trim();
+            if (i < existingList.Count)
+            {
+                existingList[i].Text = text;
+                existingList[i].SortOrder = i;
+            }
+            else
+            {
+                var newInclusion = new ConsultationOfferingInclusion
+                {
+                    Id = Guid.NewGuid(),
+                    OfferingId = offering.Id,
+                    Text = text,
+                    SortOrder = i
+                };
+                offering.Inclusions.Add(newInclusion);
+                dbContext.ConsultationOfferingInclusions.Add(newInclusion);
+            }
+        }
+
+        for (var i = newInclusions.Count; i < existingList.Count; i++)
+        {
+            offering.Inclusions.Remove(existingList[i]);
+            dbContext.ConsultationOfferingInclusions.Remove(existingList[i]);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return ApiResponse<ConsultationOfferingDto>.Ok(Map(offering, null, true));
     }
