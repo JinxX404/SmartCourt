@@ -306,22 +306,7 @@ public sealed class LawyerServiceReleaseTests
     }
 
     [Fact]
-    public async Task SwitchAvailability_WhenUserIsSuspended_ThrowsBusinessException()
-    {
-        await using var testContext = await PasswordServiceTestContext.CreateAsync();
-        var lawyer = await testContext.CreateUserAsync(UserStatus.Suspended, emailConfirmed: true);
-        await AddLawyerProfileAsync(testContext, lawyer.Id);
-        var service = CreateService(testContext, lawyer.Id);
-
-        var request = new UpdateLawyerAvailabilityRequest { IsAvailable = true };
-        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.SwitchAvailabilityAsync(request, CancellationToken.None));
-
-        Assert.Contains("معلق", exception.Message);
-    }
-
-    [Fact]
-    public async Task SwitchAvailability_WhenPendingReviewUserTriesToActivate_ThrowsBusinessException()
+    public async Task SwitchAvailability_WhenPendingReviewUserToggles_SucceedsWithoutAdminPermissions()
     {
         await using var testContext = await PasswordServiceTestContext.CreateAsync();
         var lawyer = await testContext.CreateUserAsync(UserStatus.PendingReview, emailConfirmed: true);
@@ -329,10 +314,14 @@ public sealed class LawyerServiceReleaseTests
         var service = CreateService(testContext, lawyer.Id);
 
         var request = new UpdateLawyerAvailabilityRequest { IsAvailable = true };
-        var exception = await Assert.ThrowsAsync<BusinessException>(() =>
-            service.SwitchAvailabilityAsync(request, CancellationToken.None));
+        var response = await service.SwitchAvailabilityAsync(request, CancellationToken.None);
 
-        Assert.Contains("قبل مراجعة واعتماد الحساب", exception.Message);
+        Assert.True(response.IsAvailable);
+        Assert.Equal(lawyer.Id, response.LawyerId);
+
+        testContext.DbContext.ChangeTracker.Clear();
+        var profile = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.True(profile.IsAvailable);
     }
 
     [Fact]
