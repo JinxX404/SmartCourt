@@ -391,6 +391,53 @@ public class LawyerService(
         }
     }
 
+    public async Task<LawyerAvailabilityResponse> SwitchAvailabilityAsync(
+        UpdateLawyerAvailabilityRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.UserId;
+        var user = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+        if (user is null || user.Status == UserStatus.Deleted)
+            throw new NotFoundException("المحامي غير موجود");
+
+        if (user.Status == UserStatus.Suspended)
+            throw new BusinessException("لا يمكن تغيير حالة التوافر لأن الحساب معلق.");
+
+        if (user.Status == UserStatus.Rejected)
+            throw new BusinessException("لا يمكن تغيير حالة التوافر لأن الحساب مرفوض.");
+
+        var currentAvailability = user.LawyerProfile?.IsAvailable ?? false;
+        var targetAvailability = request?.IsAvailable ?? !currentAvailability;
+
+        if (targetAvailability && user.Status != UserStatus.Active)
+            throw new BusinessException("لا يمكن تفعيل التوافر قبل مراجعة واعتماد الحساب من قبل الإدارة.");
+
+        if (user.LawyerProfile == null)
+        {
+            user.LawyerProfile = new LawyerProfile
+            {
+                UserId = user.Id,
+                IsAvailable = targetAvailability
+            };
+            _dbContext.LawyerProfiles.Add(user.LawyerProfile);
+        }
+        else
+        {
+            user.LawyerProfile.IsAvailable = targetAvailability;
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return new LawyerAvailabilityResponse
+        {
+            LawyerId = user.Id,
+            IsAvailable = user.LawyerProfile.IsAvailable
+        };
+    }
+
     public async Task DeleteProfileAsync(
         DeleteAccountRequest request,
         CancellationToken cancellationToken)

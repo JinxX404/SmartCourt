@@ -46,6 +46,18 @@ public class LawyersController : ControllerBase
         return Ok(ApiResponse.Ok("تم تحديث البيانات بنجاح"));
     }
 
+    [HttpPatch("availability")]
+    [HttpPut("availability")]
+    [Authorize(Roles = "Lawyer")]
+    [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileUpdate)]
+    public async Task<IActionResult> SwitchAvailability(
+        [FromBody] UpdateLawyerAvailabilityRequest? request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _lawyerService.SwitchAvailabilityAsync(request, cancellationToken);
+        return Ok(ApiResponse<LawyerAvailabilityResponse>.Ok(result, "تم تحديث حالة التوافر بنجاح."));
+    }
+
     [HttpDelete("profile")]
     [Authorize(Roles = "Lawyer")]
     [SecurityRateLimit(RateLimitPolicyNames.PrivateProfileDelete)]
