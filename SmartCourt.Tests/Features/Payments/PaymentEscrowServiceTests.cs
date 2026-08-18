@@ -141,6 +141,61 @@ public sealed class PaymentEscrowServiceTests
     }
 
     [Fact]
+    public async Task FundAsync_Succeeds_WhenEarlierMilestoneIsInAcceptedHold()
+    {
+        await using var context = CreateContext();
+        var first = CreateMilestone(orderNumber: 1);
+        first.Status = MilestoneStatus.AcceptedHold;
+        first.FundedAt = Now.AddDays(-3);
+        first.AcceptedAt = Now.AddHours(-2);
+        first.HoldStartsAt = Now.AddHours(-2);
+        first.HoldExpiresAt = Now.AddDays(12);
+        var firstHold = new EscrowHold(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            _contractId,
+            first.Id,
+            1_000m,
+            150m,
+            850m,
+            Guid.NewGuid(),
+            first.FundedAt.Value,
+            first.FundedAt.Value)
+        {
+            HoldStartsAt = first.HoldStartsAt,
+            HoldExpiresAt = first.HoldExpiresAt
+        };
+        context.Milestones.Add(first);
+        context.EscrowHolds.Add(firstHold);
+
+        var second = CreateMilestone(orderNumber: 2);
+        second.Status = MilestoneStatus.AwaitingFunding;
+        second.ReadyForFundingAt = Now.AddHours(-1);
+        context.Milestones.Add(second);
+        await context.SaveChangesAsync();
+
+        var provider = new TestPaymentProvider(ProviderOperationOutcome.Succeeded);
+        var idempotency = new TestIdempotencyService();
+        var service = CreateService(
+            context,
+            provider,
+            idempotency,
+            new MutableCurrentUser(_clientUserId));
+
+        var result = await service.FundAsync(
+            second.Id,
+            new FundMilestoneRequest("mock-card-success"),
+            "fund-success-second-milestone",
+            CancellationToken.None);
+
+        var payment = Assert.IsType<PaymentDto>(result.Payment);
+        Assert.Equal(EscrowHoldStatus.Funded, payment.Status);
+        Assert.Equal(MilestoneStatus.FundedInProgress, second.Status);
+        Assert.NotNull(second.FundedAt);
+        Assert.Equal(2, await context.EscrowHolds.CountAsync());
+    }
+
+    [Fact]
     public async Task FundAsync_ConfirmedFailureLeavesNoHoldAndReturnsToAwaitingFunding()
     {
         await using var context = CreateContext();
