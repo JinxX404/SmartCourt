@@ -117,7 +117,10 @@ public sealed class WalletsApiTests
             "EGP",
             50m,
             500m,
-            1_000m);
+            1_000m,
+            500m,
+            0m,
+            null);
 
         public PaymentActionResultDto ActionResult { get; } = new(
             Guid.NewGuid(),
