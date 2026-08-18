@@ -19,6 +19,8 @@ public class ChatAgentService(
     IVectorStoreProvider vectorStoreProvider,
     IFileStorageService fileStorageService,
     IDocumentParsingProvider documentParsingProvider,
+    IQuotaService quotaService,
+    ICostCalculatorService costCalculatorService,
     IRerankerProvider? rerankerProvider = null,
     IOptions<RagOptions>? ragOptions = null,
     IHttpContextAccessor? httpContextAccessor = null,
@@ -33,6 +35,8 @@ public class ChatAgentService(
     private readonly IVectorStoreProvider _vectorStoreProvider = vectorStoreProvider;
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
+    private readonly IQuotaService _quotaService = quotaService;
+    private readonly ICostCalculatorService _costCalculatorService = costCalculatorService;
     private readonly IRerankerProvider? _rerankerProvider = rerankerProvider;
     private readonly RagOptions _ragOptions = ragOptions?.Value ?? new RagOptions();
     private readonly IHttpContextAccessor? _httpContextAccessor = httpContextAccessor;
@@ -45,6 +49,21 @@ public class ChatAgentService(
         CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUserService.UserId;
+        if (currentUserId == null)
+        {
+            throw new AuthenticationException("يجب تسجيل الدخول لبدء محادثة.");
+        }
+
+        bool isClient = _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") == true;
+        if (isClient && currentUserId.HasValue)
+        {
+            var quota = await _quotaService.GetQuotaAsync(currentUserId.Value, cancellationToken);
+            if (quota.TotalRemainingCredits <= 0)
+            {
+                throw new BusinessException("لقد استنفدت الرصيد المتاح لك، ولا يمكنك بدء محادثة جديدة.");
+            }
+        }
+
         CaseEntity? caseEntity = null;
 
         if (request.CaseId.HasValue)
@@ -175,103 +194,244 @@ public class ChatAgentService(
         CancellationToken cancellationToken = default)
     {
         var currentUserId = _currentUserService.UserId;
+        bool isClient = _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") == true;
 
-        var conversation = await _dbContext.AgentConversations
-            .Include(c => c.Case)
-            .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
-
-        if (conversation is null)
-        {
-            throw new NotFoundException("المحادثة غير موجودة.");
-        }
-
-        if (conversation.UserId != null && conversation.UserId != currentUserId)
-        {
-            throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
-        }
-
-        var utcNow = _timeProvider.GetUtcNow();
-        var userMessage = AgentMessage.CreateUserMessage(
-            Guid.NewGuid(),
-            conversation.Id,
-            request.Content,
-            utcNow);
-
-        _dbContext.AgentMessages.Add(userMessage);
-        conversation.MarkMessageAdded(utcNow);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        // Perform RAG embedding API call in parallel with DB operations
+        QuotaReservation? totalReservation = null;
+        int actualTokensUsed = 0;
         var normalizedQuery = SmartCourt.Providers.PdfParser.ArabicTextNormalizer.Normalize(request.Content);
-        var embeddingTask = _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
 
-        // Load conversation history (last 20 messages before the current one)
-        var historyMessages = await _dbContext.AgentMessages
-            .Where(m => m.ConversationId == conversationId && m.Id != userMessage.Id)
-            .OrderByDescending(m => m.CreatedAt)
-            .Take(20)
-            .OrderBy(m => m.CreatedAt)
-            .ToListAsync(cancellationToken);
-
-        // Fetch or get cached case context
-        var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
-
-        List<string> retrievedLawArticles = await RetrieveRelevantLawArticlesAsync(embeddingTask, normalizedQuery, conversationId, cancellationToken);
-
-        // Determine role-based prompt guidelines
-        bool isLawyer = await IsUserLawyerAsync(currentUserId, cancellationToken);
-
-        // Build System Prompt based on User Role using Prompts class
-        var systemPromptText = ChatAgentPrompts.BuildSystemPrompt(isLawyer, retrievedLawArticles, caseContextText);
-
-        // Build User Prompt with History
-        var userPromptText = BuildUserPrompt(historyMessages, request.Content);
-
-        var aiResponseText = await _chatModelProvider.GenerateAsync(
-            systemPromptText,
-            userPromptText,
-            cancellationToken);
-
-        if (string.IsNullOrWhiteSpace(aiResponseText))
+        if (isClient && currentUserId.HasValue)
         {
-            aiResponseText = "تمت مراجعة طلبك، ويرجى توضيح السؤال للحصول على تفاصيل أكثر.";
-        }
-        else
-        {
-            aiResponseText = SanitizeMarkdown(aiResponseText);
+            int stage1Ceiling = Math.Min(normalizedQuery.Length, 2000);
+            totalReservation = await _quotaService.ReserveQuotaAsync(currentUserId.Value, stage1Ceiling, cancellationToken);
         }
 
-        var responseTime = _timeProvider.GetUtcNow();
-
-        var assistantMessage = AgentMessage.CreateAssistantMessage(
-            Guid.NewGuid(),
-            conversation.Id,
-            aiResponseText,
-            responseTime);
-
-        _dbContext.AgentMessages.Add(assistantMessage);
-        conversation.MarkMessageAdded(responseTime);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        if (_serviceScopeFactory != null)
+        try
         {
-            _ = Task.Run(() => TryGenerateTitleAsync(conversation.Id, request.Content));
-        }
-        else
-        {
-            await TryGenerateTitleAsync(conversation.Id, request.Content, cancellationToken);
-        }
+            var conversation = await _dbContext.AgentConversations
+                .Include(c => c.Case)
+                .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
 
-        return new AgentMessageDto(
-            assistantMessage.Id,
-            assistantMessage.Role.ToString(),
-            assistantMessage.Content,
-            assistantMessage.CreatedAt);
+            if (conversation is null)
+            {
+                throw new NotFoundException("المحادثة غير موجودة.");
+            }
+
+            if (conversation.UserId != null && conversation.UserId != currentUserId)
+            {
+                throw new ForbiddenAccessException("غير مصرح لك بالوصول إلى هذه المحادثة.");
+            }
+
+            var utcNow = _timeProvider.GetUtcNow();
+            var userMessage = AgentMessage.CreateUserMessage(
+                Guid.NewGuid(),
+                conversation.Id,
+                request.Content,
+                utcNow);
+
+            _dbContext.AgentMessages.Add(userMessage);
+            conversation.MarkMessageAdded(utcNow);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Perform RAG embedding API call
+            var embeddingResponse = await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
+            int embeddingTokens = embeddingResponse.InputTokens;
+            
+            if (isClient && currentUserId.HasValue)
+            {
+                if (embeddingTokens > 0)
+                {
+                    actualTokensUsed += embeddingTokens;
+                }
+                else
+                {
+                    // Fallback ceiling if Alibaba usage is missing
+                    int fallback = Math.Min(normalizedQuery.Length, 2000);
+                    _logger?.LogWarning("Alibaba embedding returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                    actualTokensUsed += fallback;
+                }
+            }
+
+            // Load conversation history (last 20 messages before the current one)
+            var historyMessages = await _dbContext.AgentMessages
+                .Where(m => m.ConversationId == conversationId && m.Id != userMessage.Id)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(20)
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            // Fetch or get cached case context
+            var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
+
+            // Retrieve relevant law articles
+            List<string> retrievedLawArticles = [];
+            int rerankTokens = 0;
+
+            if (embeddingResponse.Embeddings.Count > 0)
+            {
+                var searchResults = await _vectorStoreProvider.SearchAsync(
+                    _ragOptions.LegalCollectionName,
+                    embeddingResponse.Embeddings[0],
+                    topK: _ragOptions.CandidateCount,
+                    filters: null,
+                    cancellationToken: cancellationToken);
+
+                retrievedLawArticles = searchResults
+                    .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
+                    .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
+                               : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t!)
+                    .ToList();
+            }
+
+            bool isLawyer = await IsUserLawyerAsync(currentUserId, cancellationToken);
+            var systemPromptText = ChatAgentPrompts.BuildSystemPrompt(isLawyer, retrievedLawArticles, caseContextText);
+            var userPromptText = BuildUserPrompt(historyMessages, request.Content);
+
+            // Stage 2 Reservation
+            if (isClient && currentUserId.HasValue)
+            {
+                int rerankCeiling = retrievedLawArticles.Sum(doc => normalizedQuery.Length + doc.Length + 50);
+                int chatInputCeiling = systemPromptText.Length + userPromptText.Length;
+                int chatOutputCeiling = 5000;
+                
+                int stage2Ceiling = rerankCeiling + chatInputCeiling + chatOutputCeiling;
+                var stage2Reservation = await _quotaService.ReserveQuotaAsync(currentUserId.Value, stage2Ceiling, cancellationToken);
+                
+                if (totalReservation != null)
+                {
+                    totalReservation = new QuotaReservation
+                    {
+                        TotalReservedTokens = totalReservation.TotalReservedTokens + stage2Reservation.TotalReservedTokens,
+                        FreeReservedTokens = totalReservation.FreeReservedTokens + stage2Reservation.FreeReservedTokens,
+                        PaidReservedTokens = totalReservation.PaidReservedTokens + stage2Reservation.PaidReservedTokens
+                    };
+                }
+                else
+                {
+                    totalReservation = stage2Reservation;
+                }
+            }
+
+            // Rerank
+            if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
+            {
+                try
+                {
+                    var topN = Math.Min(_ragOptions.RerankedCount, retrievedLawArticles.Count);
+                    var rerankResponse = await _rerankerProvider.RerankAsync(normalizedQuery, retrievedLawArticles, topN, cancellationToken);
+                    rerankTokens = rerankResponse.InputTokens;
+
+                    if (isClient && currentUserId.HasValue)
+                    {
+                        if (rerankTokens > 0)
+                        {
+                            actualTokensUsed += rerankTokens;
+                        }
+                        else
+                        {
+                            int fallback = retrievedLawArticles.Sum(doc => normalizedQuery.Length + doc.Length + 50);
+                            _logger?.LogWarning("Alibaba reranker returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                            actualTokensUsed += fallback;
+                        }
+                    }
+
+                    retrievedLawArticles = rerankResponse.Results
+                        .Where(r => r.Index >= 0 && r.Index < retrievedLawArticles.Count)
+                        .OrderByDescending(r => r.RelevanceScore)
+                        .Select(r => retrievedLawArticles[r.Index])
+                        .ToList();
+
+                    // Rebuild prompt with reranked docs
+                    systemPromptText = ChatAgentPrompts.BuildSystemPrompt(isLawyer, retrievedLawArticles, caseContextText);
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning(ex, "Reranker failed for conversation {ConversationId}; using unranked results", conversationId);
+                }
+            }
+
+            var aiResponse = await _chatModelProvider.GenerateAsync(
+                systemPromptText,
+                userPromptText,
+                cancellationToken);
+                
+            var aiResponseText = aiResponse.Content;
+
+            if (string.IsNullOrWhiteSpace(aiResponseText))
+            {
+                aiResponseText = "تمت مراجعة طلبك، ويرجى توضيح السؤال للحصول على تفاصيل أكثر.";
+            }
+            else
+            {
+                aiResponseText = SanitizeMarkdown(aiResponseText);
+            }
+
+            if (isClient && currentUserId.HasValue)
+            {
+                int chatTokens = aiResponse.Usage?.TotalTokens ?? 0;
+                if (chatTokens > 0)
+                {
+                    actualTokensUsed += chatTokens;
+                }
+                else
+                {
+                    int fallback = systemPromptText.Length + userPromptText.Length + aiResponseText.Length;
+                    _logger?.LogWarning("Alibaba chat returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                    actualTokensUsed += fallback;
+                }
+
+                var usages = new ModelUsageRecord[]
+                {
+                    new("text-embedding-v4", embeddingTokens, 0),
+                    new("qwen3-rerank", rerankTokens, 0),
+                    new("qwen-flash", aiResponse.Usage?.InputTokens ?? 0, aiResponse.Usage?.OutputTokens ?? 0)
+                };
+
+                await _costCalculatorService.RecordUsageAndCostAsync(currentUserId.Value, conversationId, usages, "Singapore", cancellationToken);
+            }
+
+            var responseTime = _timeProvider.GetUtcNow();
+
+            var assistantMessage = AgentMessage.CreateAssistantMessage(
+                Guid.NewGuid(),
+                conversation.Id,
+                aiResponseText,
+                responseTime);
+
+            _dbContext.AgentMessages.Add(assistantMessage);
+            conversation.MarkMessageAdded(responseTime);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (_serviceScopeFactory != null)
+            {
+                _ = Task.Run(() => TryGenerateTitleAsync(conversation.Id, request.Content, currentUserId));
+            }
+            else
+            {
+                await TryGenerateTitleAsync(conversation.Id, request.Content, currentUserId, cancellationToken);
+            }
+
+            return new AgentMessageDto(
+                assistantMessage.Id,
+                assistantMessage.Role.ToString(),
+                assistantMessage.Content,
+                assistantMessage.CreatedAt);
+        }
+        finally
+        {
+            if (isClient && currentUserId.HasValue && totalReservation != null && totalReservation.TotalReservedTokens > 0)
+            {
+                await _quotaService.SettleQuotaAsync(currentUserId.Value, totalReservation, actualTokensUsed, CancellationToken.None);
+            }
+        }
     }
 
     private async Task TryGenerateTitleAsync(
         Guid conversationId,
         string userMessageContent,
+        Guid? currentUserId = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -279,6 +439,8 @@ public class ChatAgentService(
             ApplicationDbContext dbContext = _dbContext;
             IChatModelProvider chatModelProvider = _chatModelProvider;
             TimeProvider timeProvider = _timeProvider;
+            IQuotaService quotaService = _quotaService;
+            IHttpContextAccessor? httpContextAccessor = _httpContextAccessor;
             IServiceScope? scope = null;
 
             if (_serviceScopeFactory != null)
@@ -287,6 +449,8 @@ public class ChatAgentService(
                 dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 chatModelProvider = scope.ServiceProvider.GetRequiredService<IChatModelProvider>();
                 timeProvider = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
+                quotaService = scope.ServiceProvider.GetRequiredService<IQuotaService>();
+                httpContextAccessor = scope.ServiceProvider.GetService<IHttpContextAccessor>();
             }
 
             try
@@ -300,7 +464,8 @@ public class ChatAgentService(
                 }
 
                 var systemPrompt = ChatAgentPrompts.GetTitleGenerationPrompt();
-                var generatedTitle = await chatModelProvider.GenerateAsync(systemPrompt, userMessageContent, cancellationToken);
+                var titleResponse = await chatModelProvider.GenerateAsync(systemPrompt, userMessageContent, cancellationToken);
+                var generatedTitle = titleResponse.Content;
 
                 if (!string.IsNullOrWhiteSpace(generatedTitle))
                 {
@@ -316,6 +481,30 @@ public class ChatAgentService(
                     if (cleanTitle.Length > 150)
                     {
                         cleanTitle = cleanTitle[..150].Trim();
+                    }
+
+                    if (currentUserId.HasValue)
+                    {
+                        bool isClient = false;
+                        if (httpContextAccessor?.HttpContext?.User != null)
+                        {
+                            isClient = httpContextAccessor.HttpContext.User.IsInRole("Client");
+                        }
+                        else
+                        {
+                            // Fallback to checking the database if no http context available in background task
+                            isClient = await dbContext.UserRoles.AnyAsync(ur => ur.UserId == currentUserId.Value && dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Client"), cancellationToken);
+                        }
+                        
+                        if (isClient)
+                        {
+                            int titleTokens = titleResponse.Usage?.TotalTokens ?? 0;
+                            if (titleTokens <= 0)
+                            {
+                                titleTokens = (systemPrompt.Length + userMessageContent.Length + cleanTitle.Length) / 4;
+                            }
+                            await quotaService.ConsumeQuotaAsync(currentUserId.Value, titleTokens, cancellationToken);
+                        }
                     }
 
                     if (!string.IsNullOrWhiteSpace(cleanTitle))
@@ -468,16 +657,21 @@ public class ChatAgentService(
         return contextText;
     }
 
-    private async Task<List<string>> RetrieveRelevantLawArticlesAsync(
-        Task<IReadOnlyList<float[]>> embeddingTask,
+    private async Task<(List<string> Articles, int EmbeddingTokens, int RerankerTokens)> RetrieveRelevantLawArticlesAsync(
+        Task<SmartCourt.Interfaces.Providers.EmbeddingResponse> embeddingTask,
         string normalizedQuery,
         Guid conversationId,
         CancellationToken cancellationToken)
     {
         List<string> retrievedLawArticles = [];
+        int embTokens = 0;
+        int rerankTokens = 0;
         try
         {
-            var queryEmbeddings = await embeddingTask;
+            var embeddingResponse = await embeddingTask;
+            embTokens = embeddingResponse.InputTokens;
+            var queryEmbeddings = embeddingResponse.Embeddings;
+            
             if (queryEmbeddings.Count > 0)
             {
                 var searchResults = await _vectorStoreProvider.SearchAsync(
@@ -502,8 +696,11 @@ public class ChatAgentService(
                     try
                     {
                         var topN = Math.Min(_ragOptions.RerankedCount, retrievedLawArticles.Count);
-                        var reranked = await _rerankerProvider.RerankAsync(
+                        var rerankResponse = await _rerankerProvider.RerankAsync(
                             normalizedQuery, retrievedLawArticles, topN, cancellationToken);
+                            
+                        rerankTokens = rerankResponse.InputTokens;
+                        var reranked = rerankResponse.Results;
 
                         retrievedLawArticles = reranked
                             .Where(r => r.Index >= 0 && r.Index < retrievedLawArticles.Count)
@@ -522,7 +719,7 @@ public class ChatAgentService(
         {
             _logger?.LogWarning(ex, "Failed to perform RAG vector search for conversation {ConversationId}", conversationId);
         }
-        return retrievedLawArticles;
+        return (retrievedLawArticles, embTokens, rerankTokens);
     }
 
     private async Task<bool> IsUserLawyerAsync(Guid? currentUserId, CancellationToken cancellationToken)

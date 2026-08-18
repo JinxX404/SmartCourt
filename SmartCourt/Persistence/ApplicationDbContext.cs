@@ -39,7 +39,8 @@ public class ApplicationDbContext
         typeof(ContractStateHistory),
         typeof(MilestoneStateHistory),
         typeof(ContractRating),
-        typeof(ConsultationLedgerEntry)
+        typeof(ConsultationLedgerEntry),
+        typeof(QuotaTransaction)
     ];
 
     private static readonly HashSet<Type> ContractPaymentTypes =
@@ -100,6 +101,13 @@ public class ApplicationDbContext
                 {
                     property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.DateTimeOffsetToBinaryConverter());
                 }
+
+                var rowVersionProperties = entityType.GetProperties()
+                    .Where(p => p.ClrType == typeof(byte[]) && p.IsConcurrencyToken);
+                foreach (var property in rowVersionProperties)
+                {
+                    property.SetDefaultValueSql("x'0000000000000001'");
+                }
             }
         }
     }
@@ -127,6 +135,14 @@ public class ApplicationDbContext
         Set<AgentConversation>();
     public DbSet<AgentMessage> AgentMessages => Set<AgentMessage>();
 
+    public DbSet<QuotaProfile> QuotaProfiles => Set<QuotaProfile>();
+    public DbSet<DailyUsage> DailyUsages => Set<DailyUsage>();
+    public DbSet<QuotaLedger> QuotaLedgers => Set<QuotaLedger>();
+    public DbSet<QuotaTransaction> QuotaTransactions => Set<QuotaTransaction>();
+    public DbSet<TokenUsageHistory> TokenUsageHistories => Set<TokenUsageHistory>();
+    
+    public DbSet<ModelPricing> ModelPricings => Set<ModelPricing>();
+    public DbSet<ModelUsageHistory> ModelUsageHistories => Set<ModelUsageHistory>();
     public DbSet<Contract> Contracts => Set<Contract>();
     public DbSet<Milestone> Milestones => Set<Milestone>();
     public DbSet<MilestoneChangeRequest> MilestoneChangeRequests =>
@@ -178,6 +194,7 @@ public class ApplicationDbContext
     public DbSet<ConsultationPaymentTransaction> ConsultationPaymentTransactions => Set<ConsultationPaymentTransaction>();
     public DbSet<ConsultationEscrowHold> ConsultationEscrowHolds => Set<ConsultationEscrowHold>();
     public DbSet<ConsultationLedgerEntry> ConsultationLedgerEntries => Set<ConsultationLedgerEntry>();
+    public DbSet<TokenBundlePaymentTransaction> TokenBundlePaymentTransactions => Set<TokenBundlePaymentTransaction>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {

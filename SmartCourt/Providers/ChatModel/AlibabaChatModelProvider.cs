@@ -50,7 +50,7 @@ public class AlibabaChatModelProvider : IChatModelProvider
         }
     }
 
-    public async Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+    public async Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("AlibabaChatModelProvider.GenerateAsync called. Model={Model}, SystemPromptLength={SysLen}, UserPromptLength={UserLen}",
             _options.Model, systemPrompt.Length, userPrompt.Length);
@@ -132,16 +132,32 @@ public class AlibabaChatModelProvider : IChatModelProvider
         {
             using var responseData = JsonDocument.Parse(rawBody);
 
+            string content = string.Empty;
             if (responseData.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
             {
                 var message = choices[0].GetProperty("message");
                 if (message.TryGetProperty("content", out var contentProp))
                 {
-                    return contentProp.GetString() ?? string.Empty;
+                    content = contentProp.GetString() ?? string.Empty;
                 }
             }
+            else
+            {
+                content = responseData.RootElement.ToString();
+            }
 
-            return responseData.RootElement.ToString();
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            if (responseData.RootElement.TryGetProperty("usage", out var usage))
+            {
+                if (usage.TryGetProperty("prompt_tokens", out var promptProp) && promptProp.TryGetInt32(out int pTokens))
+                    inputTokens = pTokens;
+                if (usage.TryGetProperty("completion_tokens", out var compProp) && compProp.TryGetInt32(out int cTokens))
+                    outputTokens = cTokens;
+                if (usage.TryGetProperty("total_tokens", out var totalProp) && totalProp.TryGetInt32(out int tTokens))
+                    totalTokens = tTokens;
+            }
+
+            return new ChatModelResponse(content, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
         }
         catch (Exception ex)
         {

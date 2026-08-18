@@ -4,15 +4,22 @@ using SmartCourt.Common.Models;
 using SmartCourt.Common.RateLimiting;
 using SmartCourt.Features.ChatAgent.DTOs;
 
+using SmartCourt.Interfaces;
+
 namespace SmartCourt.Features.ChatAgent;
 
 [ApiController]
 [Authorize(Roles = "Client,Lawyer")]
 [Route("api/agent")]
 [Produces("application/json")]
-public class ChatAgentController(IChatAgentService chatAgentService) : ControllerBase
+public class ChatAgentController(
+    IChatAgentService chatAgentService,
+    IQuotaService quotaService,
+    ICurrentUserService currentUserService) : ControllerBase
 {
     private readonly IChatAgentService _chatAgentService = chatAgentService;
+    private readonly IQuotaService _quotaService = quotaService;
+    private readonly ICurrentUserService _currentUserService = currentUserService;
 
     [AllowAnonymous]
     [HttpPost("conversations")]
@@ -35,8 +42,104 @@ public class ChatAgentController(IChatAgentService chatAgentService) : Controlle
         [FromBody] SendAgentMessageRequest request,
         CancellationToken cancellationToken)
     {
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == null)
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("يجب تسجيل الدخول لإرسال رسائل.");
+        }
+
         var result = await _chatAgentService.SendMessageAsync(id, request, cancellationToken);
+        
+        bool isClient = User.IsInRole("Client");
+        if (isClient)
+        {
+            var quota = await _quotaService.GetQuotaAsync(currentUserId.Value, cancellationToken);
+            Response.Headers["X-RateLimit-Limit"] = quota.DailyCreditLimit.ToString();
+            Response.Headers["X-RateLimit-Remaining"] = quota.TotalRemainingCredits.ToString();
+        }
+
         return Ok(ApiResponse<AgentMessageDto>.Ok(result));
+    }
+
+    [HttpGet("quota")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
+    [ProducesResponseType(typeof(ApiResponse<QuotaInfoResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<QuotaInfoResponse>>> GetQuotaAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == null)
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("يجب تسجيل الدخول.");
+        }
+
+        if (!User.IsInRole("Client"))
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("خاصية الاستعلام عن الحصص متاحة للعملاء فقط.");
+        }
+
+        var quota = await _quotaService.GetQuotaAsync(currentUserId.Value, cancellationToken);
+        return Ok(ApiResponse<QuotaInfoResponse>.Ok(quota));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("quota/default")]
+    [ProducesResponseType(typeof(ApiResponse<DefaultQuotaResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<DefaultQuotaResponse>>> GetDefaultQuotaAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await _quotaService.GetDefaultQuotaAsync(cancellationToken);
+        return Ok(ApiResponse<DefaultQuotaResponse>.Ok(result));
+    }
+
+    [HttpGet("quota/history")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
+    [ProducesResponseType(typeof(ApiResponse<QuotaHistoryResponse>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<QuotaHistoryResponse>>> GetQuotaHistoryAsync(
+        [FromQuery] int days = 7,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == null)
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("يجب تسجيل الدخول.");
+        }
+
+        if (!User.IsInRole("Client"))
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("خاصية الاستعلام عن الحصص متاحة للعملاء فقط.");
+        }
+
+        // Limit the maximum days to prevent abuse
+        days = Math.Clamp(days, 1, 30);
+
+        var history = await _quotaService.GetQuotaHistoryAsync(currentUserId.Value, days, cancellationToken);
+        return Ok(ApiResponse<QuotaHistoryResponse>.Ok(history));
+    }
+
+    [HttpGet("quota/transactions")]
+    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
+    [ProducesResponseType(typeof(ApiResponse<QuotaTransactionListDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<QuotaTransactionListDto>>> GetQuotaTransactionsAsync(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var currentUserId = _currentUserService.UserId;
+        if (currentUserId == null)
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("يجب تسجيل الدخول.");
+        }
+
+        if (!User.IsInRole("Client"))
+        {
+            throw new Common.Exceptions.ForbiddenAccessException("خاصية الاستعلام عن الحصص متاحة للعملاء فقط.");
+        }
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
+        var transactions = await _quotaService.GetQuotaTransactionsAsync(currentUserId.Value, page, pageSize, cancellationToken);
+        return Ok(ApiResponse<QuotaTransactionListDto>.Ok(transactions));
     }
 
     [AllowAnonymous]

@@ -204,7 +204,8 @@ public class CaseAnalysisService(
         string aiResponse;
         try
         {
-            aiResponse = await _chatModelProvider.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+            var aiResponseModel = await _chatModelProvider.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+            aiResponse = aiResponseModel.Content;
         }
         catch (Exception ex)
         {

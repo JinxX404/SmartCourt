@@ -81,7 +81,7 @@ public sealed class CompleteProfileAgeValidationTests
             new DummyAuthHelperService(),
             new DummyFileStorageService());
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
         var age21Dob = today.AddYears(-21);
 
         var request = new CompleteClientProfileRequest
@@ -183,7 +183,7 @@ public sealed class CompleteProfileAgeValidationTests
             new DummyAuthHelperService(),
             new DummyFileStorageService());
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = DateOnly.FromDateTime(DateTimeOffset.UtcNow.Date);
         var age21Dob = today.AddYears(-21);
 
         var request = new CompleteLawyerProfileRequest

@@ -47,10 +47,10 @@ public sealed class BedrockGatewaySmokeTest
             userPrompt:   "What is 2 + 2?");
 
         // Assert
-        _output.WriteLine($"[Bedrock Gateway Response]: {result}");
+        _output.WriteLine($"[Bedrock Gateway Response]: {result.Content}");
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 
     [Fact]
@@ -77,9 +77,9 @@ public sealed class BedrockGatewaySmokeTest
             userPrompt:   "What is a contract?");
 
         // Assert
-        _output.WriteLine($"[Bedrock Gateway Legal Response]: {result}");
+        _output.WriteLine($"[Bedrock Gateway Legal Response]: {result.Content}");
 
         Assert.NotNull(result);
-        Assert.NotEmpty(result);
+        Assert.NotEmpty(result.Content);
     }
 }

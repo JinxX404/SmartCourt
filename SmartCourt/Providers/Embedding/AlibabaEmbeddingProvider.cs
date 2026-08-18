@@ -45,11 +45,11 @@ public class AlibabaEmbeddingProvider : IEmbeddingProvider
 
     public int Dimensions => _options.Dimensions;
 
-    public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(
+    public async Task<EmbeddingResponse> GenerateEmbeddingsAsync(
         IReadOnlyList<string> texts,
         CancellationToken cancellationToken = default)
     {
-        if (texts.Count == 0) return Array.Empty<float[]>();
+        if (texts.Count == 0) return new EmbeddingResponse(Array.Empty<float[]>(), 0);
 
         var requestBody = new
         {
@@ -120,7 +120,16 @@ public class AlibabaEmbeddingProvider : IEmbeddingProvider
         {
             throw new BusinessException($"Alibaba API returned {results.Count} embeddings, expected {texts.Count}.");
         }
+        
+        int inputTokens = 0;
+        if (responseData.RootElement.TryGetProperty("usage", out var usageProp))
+        {
+            if (usageProp.TryGetProperty("total_tokens", out var totalTokensProp) && totalTokensProp.TryGetInt32(out int tokens))
+            {
+                inputTokens = tokens;
+            }
+        }
 
-        return results;
+        return new EmbeddingResponse(results, inputTokens);
     }
 }

@@ -204,6 +204,7 @@ public static class DependencyInjection
     {
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<SmartCourt.Features.Auth.Login.ILoginService, SmartCourt.Features.Auth.Login.LoginService>();
         services.AddSingleton(TimeProvider.System);
         services.AddOptions<OutboxDispatchOptions>()
             .Bind(configuration.GetSection(OutboxDispatchOptions.SectionName))
@@ -720,7 +721,10 @@ public static class DependencyInjection
         services.AddAuthorization();
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IAuthHelperService, AuthHelperService>();
-        services.AddScoped<ILoginService, LoginService>();
+        services.AddScoped<SmartCourt.Features.ChatAgent.IQuotaService, SmartCourt.Features.ChatAgent.QuotaService>();
+        services.AddScoped<SmartCourt.Features.Admin.Quotas.IAdminQuotaService, SmartCourt.Features.Admin.Quotas.AdminQuotaService>();
+        services.AddScoped<SmartCourt.Features.ChatAgent.Monetization.ITokenBundlePurchaseService, SmartCourt.Features.ChatAgent.Monetization.TokenBundlePurchaseService>();
+        services.AddScoped<SmartCourt.Features.ChatAgent.Monetization.ITokenBundleFulfillmentService, SmartCourt.Features.ChatAgent.Monetization.TokenBundleFulfillmentService>();
 
         services.AddScoped<IConfirmEmailService, ConfirmEmailService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
@@ -761,6 +765,11 @@ public static class DependencyInjection
             .Validate(x => x.RerankedCount is > 0 and <= 20, "Rag:RerankedCount must be between 1 and 20.")
             .Validate(x => x.MinimumSimilarityScore is >= -1 and <= 1, "Rag:MinimumSimilarityScore must be between -1 and 1.")
             .ValidateOnStart();
+        services.AddOptions<SmartCourt.Common.Configuration.QuotaOptions>()
+            .Bind(configuration.GetSection(SmartCourt.Common.Configuration.QuotaOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.Configure<List<SmartCourt.Common.Configuration.TokenBundleOptions>>(configuration.GetSection("TokenBundles"));
         services.AddSingleton<QdrantClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
@@ -816,6 +825,8 @@ public static class DependencyInjection
 
         // --- Feature: Chat Agent ---
         services.AddScoped<SmartCourt.Features.ChatAgent.IChatAgentService, SmartCourt.Features.ChatAgent.ChatAgentService>();
+        services.AddScoped<SmartCourt.Features.ChatAgent.IQuotaService, SmartCourt.Features.ChatAgent.QuotaService>();
+        services.AddScoped<SmartCourt.Features.ChatAgent.ICostCalculatorService, SmartCourt.Features.ChatAgent.CostCalculatorService>();
 
         // --- Feature: Matching ---
         services.AddScoped<SmartCourt.Features.Matching.IMatchingService, SmartCourt.Features.Matching.MatchingService>();

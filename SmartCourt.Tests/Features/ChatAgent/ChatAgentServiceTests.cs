@@ -47,7 +47,8 @@ public sealed class ChatAgentServiceTests
             vectorStoreProvider,
             fileStorageService,
             documentParsingProvider,
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: null);
@@ -96,7 +97,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
@@ -140,7 +142,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
@@ -170,7 +173,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: null);
@@ -196,7 +200,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: Guid.NewGuid());
@@ -235,7 +240,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new CreateAgentConversationRequest(CaseId: caseId);
@@ -262,7 +268,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
@@ -337,7 +344,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             fileStorage,
             parsingProvider,
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversationDto = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: caseId));
@@ -390,7 +398,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             fileStorage,
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -429,7 +438,8 @@ public sealed class ChatAgentServiceTests
             vectorStoreProvider,
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
@@ -471,7 +481,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act & Assert
@@ -501,7 +512,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act & Assert
@@ -527,7 +539,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var conversation = await service.CreateConversationAsync(new CreateAgentConversationRequest(CaseId: null));
@@ -566,7 +579,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -607,7 +621,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -654,7 +669,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -690,7 +706,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -732,7 +749,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -774,7 +792,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         // Act
@@ -831,7 +850,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
-            new TestRerankerProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(), new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
         var request = new SendAgentMessageRequest("ما هي إجراءات رفع دعوى صحة ونفاذ؟");
