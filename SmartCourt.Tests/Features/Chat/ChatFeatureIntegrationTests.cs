@@ -100,6 +100,33 @@ public sealed class ChatFeatureIntegrationTests
     }
 
     [Fact]
+    public async Task GetConversation_ExposesWriteCapabilitiesOnlyForActiveAcceptedConversation()
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+
+        var detailResult = await new GetChatConversationHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId)).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var listResult = await new GetChatConversationsHandler(
+            context,
+            new MutableCurrentUserService(_clientUserId),
+            new GetChatConversationsQueryValidator()).Handle(
+                new GetChatConversationsQuery(),
+                CancellationToken.None);
+
+        Assert.True(detailResult.Success);
+        Assert.True(detailResult.Data!.CanSendMessages);
+        Assert.True(detailResult.Data.CanUploadAttachments);
+        var listItem = Assert.Single(listResult.Data!.Items);
+        Assert.True(listItem.CanSendMessages);
+        Assert.True(listItem.CanUploadAttachments);
+    }
+
+    [Fact]
     public async Task SendAttachments_PersistsReturnsAndBroadcastsSecureMetadata()
     {
         await using var context = CreateContext();
@@ -381,9 +408,38 @@ public sealed class ChatFeatureIntegrationTests
             new GetChatMessagesQueryValidator()).Handle(
                 new GetChatMessagesQuery(conversation.Id),
                 CancellationToken.None);
+        var clientDetailResult = await new GetChatConversationHandler(
+            context,
+            lawyerUser).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var clientListResult = await new GetChatConversationsHandler(
+            context,
+            lawyerUser,
+            new GetChatConversationsQueryValidator()).Handle(
+                new GetChatConversationsQuery(),
+                CancellationToken.None);
+        var clientSendResult = await new SendChatMessageHandler(
+            context,
+            lawyerUser,
+            new SendChatMessageCommandValidator(),
+            new RecordingNotifier(),
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "Client should also be read-only."),
+                CancellationToken.None);
 
         Assert.True(clientMessagesResult.Success);
         Assert.Single(clientMessagesResult.Data!.Items);
+        Assert.True(clientDetailResult.Success);
+        Assert.False(clientDetailResult.Data!.CanSendMessages);
+        Assert.False(clientDetailResult.Data.CanUploadAttachments);
+        var clientListItem = Assert.Single(clientListResult.Data!.Items);
+        Assert.False(clientListItem.CanSendMessages);
+        Assert.False(clientListItem.CanUploadAttachments);
+        Assert.False(clientSendResult.Success);
+        Assert.Equal(409, clientSendResult.StatusCode);
     }
 
     [Theory]

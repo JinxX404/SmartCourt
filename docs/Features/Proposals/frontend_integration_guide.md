@@ -555,6 +555,20 @@ Before rendering a message composer, require both:
 conversationStatus == "Open" AND canChat == true
 ```
 
+When the chat page loads `GET /api/chat/conversations` or
+`GET /api/chat/conversations/{conversationId}`, use the chat DTO flags as the
+final UI switch:
+
+```text
+canSendMessages == true AND canUploadAttachments == true
+```
+
+For the client's superseded proposal history, proposal data may expose
+`ViewChatHistory`, but chat detail/list returns both booleans as `false`.
+Show the old messages and files, hide the composer and upload button. For the
+affected lawyer, proposal DTOs hide `conversationId`, chat list omits the
+conversation, and direct chat access returns `404`.
+
 ## Suggested TypeScript contracts
 
 ```ts
@@ -622,6 +636,21 @@ export interface ChatMessage {
   createdAt: string;
   isMine: boolean;
   attachments: ChatAttachment[];
+}
+
+export interface ChatConversation {
+  id: string;
+  proposalId: string;
+  legalCaseId: string;
+  caseTitle: string;
+  client: { userId: string; name: string; role: "Client" };
+  lawyer: { userId: string; name: string; role: "Lawyer" };
+  status: "Open" | "Closed";
+  createdAt: string;
+  updatedAt: string;
+  lastMessageAt: string | null;
+  canSendMessages: boolean;
+  canUploadAttachments: boolean;
 }
 ```
 
