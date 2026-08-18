@@ -517,7 +517,7 @@ public sealed class StripePaymentProvider :
         var availableAmount = available?.Amount ?? 0L;
         var pendingAmount = pending?.Amount ?? 0L;
         DateTimeOffset? expectedAvailableAt = null;
-        if (pendingAmount > 0 && availableAmount < requiredAmountMinor)
+        if (pendingAmount > 0 && (requiredAmountMinor <= 0 || availableAmount < requiredAmountMinor))
         {
             var transactions = await _balanceTransactions.ListAsync(
                 new global::Stripe.BalanceTransactionListOptions
@@ -531,7 +531,9 @@ public sealed class StripePaymentProvider :
                 },
                 cancellationToken);
             decimal accumulatedPending = 0m;
-            var shortfall = requiredAmountMinor - availableAmount;
+            var shortfall = requiredAmountMinor > 0 && availableAmount < requiredAmountMinor
+                ? requiredAmountMinor - availableAmount
+                : 1;
             foreach (var transaction in transactions.Data
                          .Where(item =>
                              string.Equals(

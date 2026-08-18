@@ -9,6 +9,7 @@ using SmartCourt.Features.Consultations.DTOs;
 using SmartCourt.Features.Consultations.Offerings;
 using SmartCourt.Features.Payments.Enums;
 using SmartCourt.Infrastructure.Providers.Payments;
+using SmartCourt.Interfaces.Providers;
 using SmartCourt.Persistence;
 using SmartCourt.Providers.Payments;
 
@@ -25,6 +26,7 @@ public sealed class ConsultationDiscoveryHandler(
     IPaymentProvider paymentProvider,
     IOptions<PaymentProviderOptions> paymentOptions,
     TimeProvider timeProvider,
+    IFileStorageService fileStorageService,
     IValidator<ConsultationLawyerFilter> validator)
     : IRequestHandler<SearchConsultationLawyersQuery, ApiResponse<ConsultationPageDto<ConsultationLawyerDto>>>,
       IRequestHandler<GetConsultationLawyerQuery, ApiResponse<ConsultationLawyerDto>>
@@ -142,7 +144,7 @@ public sealed class ConsultationDiscoveryHandler(
             .Select(group => new { OfferingId = group.Key, Next = group.Min(item => item.StartAtUtc) })
             .ToDictionaryAsync(item => item.OfferingId, item => (DateTimeOffset?)item.Next, cancellationToken);
 
-        return users.Select(user =>
+        var dtos = await Task.WhenAll(users.Select(async user =>
         {
             var lawyerOfferings = offerings.Where(item => item.LawyerId == user.Id)
                 .OrderBy(item => item.Price)
@@ -150,13 +152,24 @@ public sealed class ConsultationDiscoveryHandler(
                     item, nextSlots.GetValueOrDefault(item.Id), includePrivateLocation: false))
                 .ToList();
             var next = lawyerOfferings.Min(item => item.NextAvailableAtUtc);
+
+            string? pictureUrl = null;
+            if (!string.IsNullOrEmpty(user.ProfilePictureUrl))
+            {
+                try { pictureUrl = await fileStorageService.GetDownloadUrlAsync(user.ProfilePictureUrl, cancellationToken); }
+                catch { pictureUrl = null; }
+            }
+
             return new ConsultationLawyerDto(
-                user.Id, user.FullName, user.ProfilePictureUrl, user.Governorate, user.City,
+                user.Id, user.FullName, pictureUrl, user.Governorate, user.City,
                 user.LawyerProfile?.AverageRating ?? 0m,
                 true, lawyerOfferings.Count > 0, lawyerOfferings.Count > 0 ? null : "No available slots.",
                 lawyerOfferings.Min(item => item.Price), "EGP", next, lawyerOfferings);
-        }).Where(item => item.Offerings.Count > 0)
-          .OrderBy(item => Array.IndexOf(lawyerIds.ToArray(), item.LawyerId))
-          .ToList();
+        }));
+
+        return dtos
+            .Where(item => item.Offerings.Count > 0)
+            .OrderBy(item => Array.IndexOf(lawyerIds.ToArray(), item.LawyerId))
+            .ToList();
     }
 }

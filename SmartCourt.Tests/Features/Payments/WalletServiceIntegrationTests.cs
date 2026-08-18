@@ -69,6 +69,68 @@ public sealed class WalletServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(200m, result.PendingBalance);
         Assert.Equal(1_000m, result.AvailableBalance);
         Assert.Equal(0m, result.TotalReleased);
+        Assert.Equal(1_000m, result.WithdrawableAmount);
+        Assert.Equal(0m, result.PendingSettlementAmount);
+        Assert.Null(result.ExpectedAvailableAt);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenPayoutProviderHasPendingBalance_ReturnsAccurateSettlementBreakdown()
+    {
+        await using var context = CreateContext();
+        await AddEnabledPayoutAccountAsync(context, 2_000L);
+        var expectedDate = new DateTimeOffset(2026, 8, 23, 0, 0, 0, TimeSpan.Zero);
+        var provider = new ConnectedTestPaymentProvider(
+            ProviderOperationOutcome.Succeeded,
+            availableAmountMinor: 500L,
+            pendingAmountMinor: 1_500L,
+            expectedAvailableAt: expectedDate);
+        var service = CreateService(context, provider);
+
+        var result = await service.GetAsync(CancellationToken.None);
+
+        Assert.Equal(_lawyerUserId, result.LawyerUserId);
+        Assert.Equal(1_000m, result.AvailableBalance);
+        Assert.Equal(250m, result.WithdrawableAmount);
+        Assert.Equal(750m, result.PendingSettlementAmount);
+        Assert.Equal(expectedDate, result.ExpectedAvailableAt);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenPayoutAccountNotEnabled_ReturnsZeroWithdrawable()
+    {
+        await using var context = CreateContext();
+        context.LawyerPayoutAccounts.Add(
+            new LawyerPayoutAccount(
+                Guid.NewGuid(),
+                _lawyerUserId,
+                "StripeConnect",
+                "acct_onboarding",
+                false,
+                new DateTimeOffset(_utcNow))
+            {
+                Status = LawyerPayoutAccountStatus.Onboarding,
+                DetailsSubmitted = false,
+                TransfersEnabled = false,
+                PayoutsEnabled = false,
+                Country = "US",
+                DefaultCurrency = "usd",
+                AvailableProviderAmountMinor = 2_000L
+            });
+        await context.SaveChangesAsync();
+        var provider = new ConnectedTestPaymentProvider(
+            ProviderOperationOutcome.Succeeded,
+            availableAmountMinor: 2_000L,
+            pendingAmountMinor: 0L,
+            expectedAvailableAt: null);
+        var service = CreateService(context, provider);
+
+        var result = await service.GetAsync(CancellationToken.None);
+
+        Assert.Equal(1_000m, result.AvailableBalance);
+        Assert.Equal(0m, result.WithdrawableAmount);
+        Assert.Equal(1_000m, result.PendingSettlementAmount);
+        Assert.Null(result.ExpectedAvailableAt);
     }
 
     [Fact]
