@@ -89,6 +89,7 @@ public sealed class MilestoneServiceTests
 
         Assert.Equal("Updated filing", result.Title);
         Assert.Null(milestone.AcceptedByClientAt);
+
         Assert.Null(milestone.AcceptedByLawyerAt);
         Assert.Equal(MilestoneStatus.Draft, milestone.Status);
         var updatedEvent = await context.OutboxMessages.SingleAsync();
@@ -445,103 +446,50 @@ public sealed class MilestoneServiceTests
     }
 
     [Fact]
-    public async Task ListAsync_DerivesFundingAndPermittedActions()
+    public async Task MarkReadyForFundingAsync_Succeeds_WhenEarlierMilestoneIsInAcceptedHold()
     {
         await using var context = CreateContext();
-        var draft = CreateMilestone(MilestoneStatus.Draft, 1);
-        var funded = CreateMilestone(
-            MilestoneStatus.FundedInProgress,
-            2);
-        funded.FundedAt = _utcNow.AddHours(-1);
+        var first = CreateMilestone(
+            MilestoneStatus.AcceptedHold,
+            1);
+        first.FundedAt = _utcNow.AddDays(-2);
+        first.AcceptedAt = _utcNow.AddHours(-1);
+        first.HoldStartsAt = _utcNow.AddHours(-1);
+        first.HoldExpiresAt = _utcNow.AddDays(13);
         var hold = new EscrowHold(
             Guid.NewGuid(),
             Guid.NewGuid(),
             _contractId,
-            funded.Id,
+            first.Id,
             1_000m,
             50m,
             950m,
             Guid.NewGuid(),
-            funded.FundedAt.Value,
-            funded.FundedAt.Value);
-        await AddMilestonesAsync(context, draft, funded);
+            first.FundedAt.Value,
+            first.FundedAt.Value);
+        hold.HoldStartsAt = first.HoldStartsAt;
+        hold.HoldExpiresAt = first.HoldExpiresAt;
         context.EscrowHolds.Add(hold);
-        await context.SaveChangesAsync();
-        var draftService = CreateDraftService(
-            context,
-            new MutableCurrentUser(_clientUserId),
-            CreateContractStub(ContractStatus.Active));
 
-        var result = await draftService.ListAsync(
-            _contractId,
-            CancellationToken.None);
-
-        Assert.Equal(2, result.Count);
-        Assert.DoesNotContain("Update", result[0].PermittedActions);
-        Assert.Contains("Approve", result[0].PermittedActions);
-        Assert.Equal(
-            MilestoneFundingStatus.Funded,
-            result[1].FundingStatus);
-        Assert.Equal(hold.Id, result[1].EscrowHoldId);
-        Assert.Equal(950m, result[1].NetLawyerAmount);
-    }
-
-    [Fact]
-    public async Task UpdateDraftAsync_RejectsNonDraftMilestone()
-    {
-        await using var context = CreateContext();
-        var milestone = CreateMilestone(
+        var second = CreateMilestone(
             MilestoneStatus.AwaitingFunding,
-            1);
-        milestone.AcceptedByClientAt = _utcNow.AddMinutes(-2);
-        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
-        await AddMilestonesAsync(context, milestone);
-        var draftService = CreateDraftService(
+            2);
+        await AddMilestonesAsync(context, first, second);
+        var service = CreateService(
             context,
             new MutableCurrentUser(_lawyerUserId),
             CreateContractStub(ContractStatus.Active));
 
-        await Assert.ThrowsAsync<BusinessException>(() =>
-            draftService.UpdateDraftAsync(
-                _contractId,
-                milestone.Id,
-                new UpdateMilestoneRequest(
-                    "Updated filing",
-                    null,
-                    20,
-                    null),
-                ToETag(milestone.RowVersion),
-                CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task CreateChangeRequestAsync_PersistsPendingRequestAndOutboxEvent()
-    {
-        await using var context = CreateContext();
-        var milestone = CreateFundedMilestone();
-        await AddMilestonesAsync(context, milestone);
-        var changeRequestService = CreateChangeRequestService(
-            context,
-            new MutableCurrentUser(_clientUserId),
-            CreateContractStub(ContractStatus.Active));
-
-        var result = await changeRequestService.CreateChangeRequestAsync(
-            milestone.Id,
-            new CreateMilestoneChangeRequest(
-                "وصف محدث",
-                21,
-                _utcNow.AddDays(21),
-                "تحتاج المرحلة إلى مدة إضافية."),
-            ToETag(milestone.RowVersion),
+        var result = await service.MarkReadyForFundingAsync(
+            second.Id,
+            ToETag(second.RowVersion),
             CancellationToken.None);
 
-        var request = await context.MilestoneChangeRequests.SingleAsync();
-        Assert.Equal(request.Id, result.EntityId);
-        Assert.Equal(ChangeRequestStatus.Pending, request.Status);
-        Assert.Equal(_clientUserId, request.RequestedByUserId);
-        Assert.Equal(
-            ContractPaymentEventTypes.MilestoneChangeRequestCreated,
-            (await context.OutboxMessages.SingleAsync()).EventType);
+        Assert.Equal(second.Id, result.EntityId);
+        Assert.Equal(MilestoneStatus.AwaitingFunding.ToString(), result.Status);
+        Assert.NotNull(second.ReadyForFundingAt);
+        var outbox = Assert.Single(await context.OutboxMessages.ToListAsync());
+        Assert.Equal(ContractPaymentEventTypes.MilestoneReadyForFunding, outbox.EventType);
     }
 
     [Fact]

@@ -284,6 +284,7 @@ public sealed class MilestoneService(
                 item.ContractId == contract.Id
                 && item.Id != milestone.Id
                 && item.Type == MilestoneType.Standard
+                && item.Status != MilestoneStatus.AcceptedHold
                 && dbContext.EscrowHolds.Any(hold =>
                     hold.MilestoneId == item.Id
                     && (hold.Status == EscrowHoldStatus.Funded
@@ -782,7 +783,8 @@ public sealed class MilestoneService(
                 && item.OrderNumber < milestone.OrderNumber
                 && item.Status != MilestoneStatus.Released
                 && item.Status != MilestoneStatus.Refunded
-                && item.Status != MilestoneStatus.Cancelled,
+                && item.Status != MilestoneStatus.Cancelled
+                && item.Status != MilestoneStatus.AcceptedHold,
             cancellationToken);
     }
 

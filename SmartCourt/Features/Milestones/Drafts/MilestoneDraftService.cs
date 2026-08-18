@@ -114,6 +114,7 @@ public sealed class MilestoneDraftService(
         var currentSequentialId = milestones
             .Where(milestone =>
                 milestone.Type == MilestoneType.Standard
+                && milestone.Status != MilestoneStatus.AcceptedHold
                 && !IsTerminal(milestone.Status))
             .Select(milestone => (Guid?)milestone.Id)
             .FirstOrDefault();
@@ -341,7 +342,8 @@ public sealed class MilestoneDraftService(
                 && item.Type == MilestoneType.Standard
                 && item.Status != MilestoneStatus.Cancelled
                 && item.Status != MilestoneStatus.Refunded
-                && item.Status != MilestoneStatus.Released)
+                && item.Status != MilestoneStatus.Released
+                && item.Status != MilestoneStatus.AcceptedHold)
             .OrderBy(item => item.OrderNumber)
             .Select(item => (Guid?)item.Id)
             .FirstOrDefaultAsync(cancellationToken);
