@@ -48,7 +48,8 @@ public sealed class GetChatConversationsHandler(
                 conversation,
                 legalCase,
                 client,
-                lawyer
+                lawyer,
+                proposal
             };
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -79,6 +80,7 @@ public sealed class GetChatConversationsHandler(
                 item.conversation.LawyerUserId,
                 LawyerName = item.lawyer.FullName,
                 item.conversation.IsClosed,
+                ProposalStatus = item.proposal.Status,
                 item.conversation.CreatedAt,
                 item.conversation.UpdatedAt,
                 item.conversation.LastMessageAt
@@ -136,6 +138,8 @@ public sealed class GetChatConversationsHandler(
             lastMessageByConversationId.TryGetValue(
                 row.Id,
                 out var lastMessage);
+            var canWrite = !row.IsClosed
+                && row.ProposalStatus == ProposalStatus.Accepted;
             return new ChatConversationListItemDto(
                 row.Id,
                 row.ProposalId,
@@ -147,7 +151,11 @@ public sealed class GetChatConversationsHandler(
                 row.CreatedAt,
                 row.UpdatedAt,
                 row.LastMessageAt,
-                lastMessage);
+                lastMessage)
+            {
+                CanSendMessages = canWrite,
+                CanUploadAttachments = canWrite
+            };
         }).ToList();
 
         var page = new ChatConversationPageDto(

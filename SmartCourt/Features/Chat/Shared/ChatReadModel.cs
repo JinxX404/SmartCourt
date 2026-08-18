@@ -38,12 +38,16 @@ internal static class ChatReadModel
                 conversation.LawyerUserId,
                 LawyerName = lawyer.FullName,
                 conversation.IsClosed,
+                ProposalStatus = proposal.Status,
                 conversation.CreatedAt,
                 conversation.UpdatedAt,
                 conversation.LastMessageAt
             })
             .SingleOrDefaultAsync(cancellationToken);
 
+        var canWrite = row is not null
+            && !row.IsClosed
+            && row.ProposalStatus == ProposalStatus.Accepted;
         return row is null
             ? null
             : new ChatConversationDetailDto(
@@ -62,7 +66,11 @@ internal static class ChatReadModel
                 row.IsClosed ? "Closed" : "Open",
                 row.CreatedAt,
                 row.UpdatedAt,
-                row.LastMessageAt);
+                row.LastMessageAt)
+            {
+                CanSendMessages = canWrite,
+                CanUploadAttachments = canWrite
+            };
     }
 
     public static async Task<ChatMessageDto?> FindMessageAsync(
