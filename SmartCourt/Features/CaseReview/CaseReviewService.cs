@@ -226,7 +226,8 @@ public class CaseReviewService(
             {docInfoBuilder}
             """;
 
-        var aiResponse = await _chatModelProvider.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+        var aiResponseModel = await _chatModelProvider.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
+        var aiResponse = aiResponseModel.Content;
 
         return ParseReviewPoints(aiResponse);
     }

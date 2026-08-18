@@ -14,6 +14,7 @@ public sealed class PaymentProviderWebhookService(
     IWalletService walletService,
     ILawyerPayoutAccountService payoutAccountService,
     IConsultationPaymentService consultationPaymentService,
+    SmartCourt.Features.ChatAgent.Monetization.ITokenBundleFulfillmentService tokenBundleFulfillmentService,
     Microsoft.Extensions.Options.IOptions<SmartCourt.Providers.Payments.PaymentProviderOptions> options,
     TimeProvider timeProvider,
     ILogger<PaymentProviderWebhookService> logger)
@@ -115,7 +116,14 @@ public sealed class PaymentProviderWebhookService(
             }
             else if (!string.IsNullOrWhiteSpace(providerEvent.ProviderObjectId))
             {
+                // We don't know ahead of time if the object ID belongs to consultation or chat agent,
+                // so we can attempt to reconcile it in both services. Each service handles internally
+                // if the object ID doesn't belong to them.
                 await consultationPaymentService.ReconcileProviderObjectAsync(
+                    providerEvent.ProviderObjectId,
+                    cancellationToken);
+                
+                await tokenBundleFulfillmentService.ReconcileProviderObjectAsync(
                     providerEvent.ProviderObjectId,
                     cancellationToken);
             }

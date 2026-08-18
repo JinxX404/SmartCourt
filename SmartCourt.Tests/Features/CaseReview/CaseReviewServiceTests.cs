@@ -271,13 +271,13 @@ public sealed class CaseReviewServiceTests
         public string OutputToReturn { get; set; } = """[{"type":"Suggestion","description":"ملاحظة أصلية"}]""";
         public Exception? ExceptionToThrow { get; set; }
 
-        public Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+        public Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
         {
             if (ExceptionToThrow != null)
             {
                 throw ExceptionToThrow;
             }
-            return Task.FromResult(OutputToReturn);
+            return Task.FromResult(new ChatModelResponse(OutputToReturn, new TokenUsageMetadata(0, 0, 0, "test")));
         }
     }
 }

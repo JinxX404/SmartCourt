@@ -182,7 +182,8 @@ public class LawIngestionService : ILawIngestionService
             for (var offset = 0; offset < chunks.Count; offset += _ragOptions.EmbeddingBatchSize)
             {
                 var batch = chunks.Skip(offset).Take(_ragOptions.EmbeddingBatchSize).ToList();
-                var embeddings = await _embeddingProvider.GenerateEmbeddingsAsync(batch.Select(c => c.Text).ToList());
+                var embeddingResponse = await _embeddingProvider.GenerateEmbeddingsAsync(batch.Select(c => c.Text).ToList());
+                var embeddings = embeddingResponse.Embeddings;
                 if (embeddings.Count != batch.Count || embeddings.Any(v => v.Length != _embeddingProvider.Dimensions))
                     throw new BusinessException("Embedding provider returned invalid vectors.");
 
