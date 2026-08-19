@@ -101,6 +101,9 @@ public sealed class MutationResponseTests
         public Task<PublicLawyerProfileResponse> GetPublicProfileAsync(Guid lawyerId, CancellationToken cancellationToken)
             => Task.FromResult(new PublicLawyerProfileResponse());
 
+        public Task<List<PublicLawyerProfileResponse>> GetTopLawyersAsync(CancellationToken cancellationToken)
+            => Task.FromResult(new List<PublicLawyerProfileResponse>());
+
         public Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;
 

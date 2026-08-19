@@ -88,4 +88,14 @@ public class LawyersController : ControllerBase
         var result = await _lawyerService.GetPublicProfileAsync(id, cancellationToken);
         return Ok(ApiResponse<PublicLawyerProfileResponse>.Ok(result));
     }
+
+    [HttpGet("top")]
+    [HttpGet("top-rated")]
+    [AllowAnonymous]
+    [SecurityRateLimit(RateLimitPolicyNames.PublicLawyerGet)]
+    public async Task<IActionResult> GetTopLawyers(CancellationToken cancellationToken)
+    {
+        var result = await _lawyerService.GetTopLawyersAsync(cancellationToken);
+        return Ok(ApiResponse<List<PublicLawyerProfileResponse>>.Ok(result));
+    }
 }
