@@ -1160,7 +1160,7 @@ public sealed class PaymentEscrowService(
                 "يجب أن يوافق العميل والمحامي على المرحلة قبل تمويلها.");
         }
 
-        if (!milestone.ReadyForFundingAt.HasValue)
+        if (milestone.Type != MilestoneType.Expense && !milestone.ReadyForFundingAt.HasValue)
         {
             throw new BusinessException(
                 "يجب أن يجهز المحامي المرحلة للتمويل قبل تنفيذ الدفع.");

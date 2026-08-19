@@ -886,7 +886,7 @@ public sealed class MilestoneService(
 
         if (milestone.Status == MilestoneStatus.AwaitingFunding
             && isClient
-            && milestone.ReadyForFundingAt.HasValue)
+            && (milestone.Type == MilestoneType.Expense || milestone.ReadyForFundingAt.HasValue))
         {
             actions.Add("Fund");
         }

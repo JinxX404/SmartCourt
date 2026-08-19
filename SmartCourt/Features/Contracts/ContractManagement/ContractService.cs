@@ -726,6 +726,10 @@ public sealed class ContractService
             milestone.AcceptedByClientAt ??= contract.AcceptedByClientAt ?? now;
             milestone.AcceptedByLawyerAt ??= contract.AcceptedByLawyerAt ?? now;
             milestone.Status = MilestoneStatus.AwaitingFunding;
+            if (milestone.Type == MilestoneType.Expense)
+            {
+                milestone.ReadyForFundingAt = now;
+            }
             milestone.UpdatedAt = now;
             _dbContext.MilestoneStateHistories.Add(
                 MilestoneStateHistoryFactory.Create(
