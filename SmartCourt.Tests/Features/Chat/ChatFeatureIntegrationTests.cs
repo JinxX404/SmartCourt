@@ -16,6 +16,8 @@ using SmartCourt.Features.Chat.Integration;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.SendMessage;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Contracts.Entities;
+using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Proposals.AcceptProposal;
 using SmartCourt.Features.Proposals.DTOs;
 using SmartCourt.Features.Proposals.Entities;
@@ -440,6 +442,104 @@ public sealed class ChatFeatureIntegrationTests
         Assert.False(clientListItem.CanUploadAttachments);
         Assert.False(clientSendResult.Success);
         Assert.Equal(409, clientSendResult.StatusCode);
+    }
+
+    [Theory]
+    [InlineData(ContractStatus.Completed)]
+    [InlineData(ContractStatus.Terminated)]
+    public async Task TerminalContractConversation_IsHiddenFromLawyerButReadableByClient(
+        ContractStatus terminalStatus)
+    {
+        await using var context = CreateContext();
+        await SeedUsersAsync(context);
+        var conversation = await SeedConversationAsync(context);
+        var contract = new Contract(
+            Guid.NewGuid(),
+            _proposalId,
+            _legalCaseId,
+            _clientUserId,
+            _lawyerUserId,
+            "Representation contract",
+            "Terms",
+            _utcNow.AddMinutes(-10));
+        contract.Status = terminalStatus;
+        if (terminalStatus == ContractStatus.Completed)
+        {
+            contract.CompletedAt = _utcNow;
+        }
+        else
+        {
+            contract.TerminatedAt = _utcNow;
+            contract.TerminatedByUserId = _clientUserId;
+        }
+
+        conversation.Close(_utcNow);
+        context.Contracts.Add(contract);
+        context.ChatMessages.Add(
+            ChatMessage.CreateUserMessage(
+                Guid.NewGuid(),
+                conversation.Id,
+                _clientUserId,
+                "Private closed-case details.",
+                _utcNow.AddMinutes(-1)));
+        await context.SaveChangesAsync();
+
+        var lawyerUser = new MutableCurrentUserService(_lawyerUserId);
+        var lawyerList = await new GetChatConversationsHandler(
+            context,
+            lawyerUser,
+            new GetChatConversationsQueryValidator()).Handle(
+                new GetChatConversationsQuery(),
+                CancellationToken.None);
+        var lawyerDetail = await new GetChatConversationHandler(
+            context,
+            lawyerUser).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var lawyerMessages = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+        var lawyerSend = await new SendChatMessageHandler(
+            context,
+            lawyerUser,
+            new SendChatMessageCommandValidator(),
+            new RecordingNotifier(),
+            new FixedTimeProvider(_utcNow)).Handle(
+                new SendChatMessageCommand(
+                    conversation.Id,
+                    "Trying to reopen a terminal contract chat."),
+                CancellationToken.None);
+
+        Assert.True(lawyerList.Success);
+        Assert.Empty(lawyerList.Data!.Items);
+        Assert.False(lawyerDetail.Success);
+        Assert.Equal(404, lawyerDetail.StatusCode);
+        Assert.False(lawyerMessages.Success);
+        Assert.Equal(404, lawyerMessages.StatusCode);
+        Assert.False(lawyerSend.Success);
+        Assert.Equal(404, lawyerSend.StatusCode);
+
+        lawyerUser.UserId = _clientUserId;
+        var clientDetail = await new GetChatConversationHandler(
+            context,
+            lawyerUser).Handle(
+                new GetChatConversationQuery(conversation.Id),
+                CancellationToken.None);
+        var clientMessages = await new GetChatMessagesHandler(
+            context,
+            lawyerUser,
+            new GetChatMessagesQueryValidator()).Handle(
+                new GetChatMessagesQuery(conversation.Id),
+                CancellationToken.None);
+
+        Assert.True(clientDetail.Success);
+        Assert.False(clientDetail.Data!.CanSendMessages);
+        Assert.False(clientDetail.Data.CanUploadAttachments);
+        Assert.True(clientMessages.Success);
+        Assert.Single(clientMessages.Data!.Items);
     }
 
     [Theory]

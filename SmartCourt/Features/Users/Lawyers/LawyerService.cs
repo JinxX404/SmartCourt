@@ -87,6 +87,24 @@ public class LawyerService(
         return MapToPublicDto(user);
     }
 
+    public async Task<List<PublicLawyerProfileResponse>> GetTopLawyersAsync(CancellationToken cancellationToken)
+    {
+        var users = await _dbContext.Users
+            .AsNoTracking()
+            .Where(u =>
+                u.LawyerProfile != null &&
+                u.EmailConfirmed &&
+                u.Status == UserStatus.Active)
+            .OrderByDescending(u => u.LawyerProfile!.TotalRatingCount)
+            .ThenByDescending(u => (double)u.LawyerProfile!.AverageRating)
+            .Include(u => u.LawyerProfile)
+                .ThenInclude(lp => lp!.Specializations)
+            .Take(3)
+            .ToListAsync(cancellationToken);
+
+        return users.Select(MapToPublicDto).ToList();
+    }
+
     public async Task<PagedResponse<List<PublicLawyerProfileResponse>>> SearchLawyersAsync(
         SearchLawyersRequest request,
         CancellationToken cancellationToken)

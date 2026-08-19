@@ -23,10 +23,19 @@ internal static class ChatReadModel
                 on conversation.LawyerUserId equals lawyer.Id
             join proposal in context.Proposals
                 on conversation.ProposalId equals proposal.Id
+            join contract in context.Contracts
+                on conversation.ProposalId equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
             where conversation.Id == conversationId
                 && (conversation.ClientUserId == actorUserId
-                    || (conversation.LawyerUserId == actorUserId
-                        && proposal.Status != ProposalStatus.Superseded))
+                    || conversation.LawyerUserId == actorUserId)
+                && !ChatAccess.IsHiddenFromLawyer(
+                    proposal.Status,
+                    contract == null
+                        ? null
+                        : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
+                    conversation.LawyerUserId,
+                    actorUserId)
             select new
             {
                 conversation.Id,
@@ -39,6 +48,9 @@ internal static class ChatReadModel
                 LawyerName = lawyer.FullName,
                 conversation.IsClosed,
                 ProposalStatus = proposal.Status,
+                ContractStatus = contract == null
+                    ? null
+                    : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
                 conversation.CreatedAt,
                 conversation.UpdatedAt,
                 conversation.LastMessageAt
@@ -47,7 +59,9 @@ internal static class ChatReadModel
 
         var canWrite = row is not null
             && !row.IsClosed
-            && row.ProposalStatus == ProposalStatus.Accepted;
+            && row.ProposalStatus == ProposalStatus.Accepted
+            && row.ContractStatus is not SmartCourt.Features.Contracts.Enums.ContractStatus.Completed
+                and not SmartCourt.Features.Contracts.Enums.ContractStatus.Terminated;
         return row is null
             ? null
             : new ChatConversationDetailDto(
@@ -85,13 +99,22 @@ internal static class ChatReadModel
                 on message.ConversationId equals conversation.Id
             join proposal in context.Proposals.AsNoTracking()
                 on conversation.ProposalId equals proposal.Id
+            join contract in context.Contracts.AsNoTracking()
+                on conversation.ProposalId equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
             join sender in context.Users.AsNoTracking()
                 on message.SenderUserId equals sender.Id into senderJoin
             from sender in senderJoin.DefaultIfEmpty()
             where message.Id == messageId
                 && (conversation.ClientUserId == actorUserId
-                    || (conversation.LawyerUserId == actorUserId
-                        && proposal.Status != ProposalStatus.Superseded))
+                    || conversation.LawyerUserId == actorUserId)
+                && !ChatAccess.IsHiddenFromLawyer(
+                    proposal.Status,
+                    contract == null
+                        ? null
+                        : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
+                    conversation.LawyerUserId,
+                    actorUserId)
             select new
             {
                 message.Id,

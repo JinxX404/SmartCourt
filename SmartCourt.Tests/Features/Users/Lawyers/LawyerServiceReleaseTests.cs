@@ -336,6 +336,105 @@ public sealed class LawyerServiceReleaseTests
             service.SwitchAvailabilityAsync(request, CancellationToken.None));
     }
 
+    [Fact]
+    public async Task GetTopLawyers_ReturnsTopThreeLawyersOrderedByTotalRatingCountThenAverageRating()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+
+        // Lawyer 1: 100 count, 4.8 rating (1st: highest count and higher rating than Lawyer 2)
+        var lawyer1 = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        var u1 = await testContext.ReloadUserAsync(lawyer1.Id);
+        u1.FullName = "Lawyer One";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer1.Id,
+            AverageRating = 4.8m,
+            TotalRatingCount = 100,
+            TotalRatingSum = 480
+        });
+
+        // Lawyer 2: 100 count, 4.5 rating (2nd: same 100 count, but lower rating than Lawyer 1)
+        var lawyer2 = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        var u2 = await testContext.ReloadUserAsync(lawyer2.Id);
+        u2.FullName = "Lawyer Two";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer2.Id,
+            AverageRating = 4.5m,
+            TotalRatingCount = 100,
+            TotalRatingSum = 450
+        });
+
+        // Lawyer 3: 50 count, 4.9 rating (3rd: 50 count, higher rating than Lawyer 4)
+        var lawyer3 = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        var u3 = await testContext.ReloadUserAsync(lawyer3.Id);
+        u3.FullName = "Lawyer Three";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer3.Id,
+            AverageRating = 4.9m,
+            TotalRatingCount = 50,
+            TotalRatingSum = 245
+        });
+
+        // Lawyer 4: 50 count, 4.2 rating (4th: excluded by take 3)
+        var lawyer4 = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        var u4 = await testContext.ReloadUserAsync(lawyer4.Id);
+        u4.FullName = "Lawyer Four";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer4.Id,
+            AverageRating = 4.2m,
+            TotalRatingCount = 50,
+            TotalRatingSum = 210
+        });
+
+        // Lawyer 5: 200 count, 5.0 rating but PendingReview (should be excluded)
+        var lawyer5 = await testContext.CreateUserAsync(UserStatus.PendingReview, emailConfirmed: true);
+        var u5 = await testContext.ReloadUserAsync(lawyer5.Id);
+        u5.FullName = "Lawyer Five";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer5.Id,
+            AverageRating = 5.0m,
+            TotalRatingCount = 200,
+            TotalRatingSum = 1000
+        });
+
+        // Lawyer 6: 200 count, 5.0 rating but Email not confirmed (should be excluded)
+        var lawyer6 = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: false);
+        var u6 = await testContext.ReloadUserAsync(lawyer6.Id);
+        u6.FullName = "Lawyer Six";
+        testContext.DbContext.LawyerProfiles.Add(new LawyerProfile
+        {
+            UserId = lawyer6.Id,
+            AverageRating = 5.0m,
+            TotalRatingCount = 200,
+            TotalRatingSum = 1000
+        });
+
+        await testContext.DbContext.SaveChangesAsync();
+        testContext.DbContext.ChangeTracker.Clear();
+
+        var service = CreateService(testContext, Guid.NewGuid());
+        var topLawyers = await service.GetTopLawyersAsync(CancellationToken.None);
+
+        Assert.NotNull(topLawyers);
+        Assert.Equal(3, topLawyers.Count);
+
+        Assert.Equal(lawyer1.Id, topLawyers[0].Id);
+        Assert.Equal(100, topLawyers[0].RatingCount);
+        Assert.Equal(4.8m, topLawyers[0].AverageRating);
+
+        Assert.Equal(lawyer2.Id, topLawyers[1].Id);
+        Assert.Equal(100, topLawyers[1].RatingCount);
+        Assert.Equal(4.5m, topLawyers[1].AverageRating);
+
+        Assert.Equal(lawyer3.Id, topLawyers[2].Id);
+        Assert.Equal(50, topLawyers[2].RatingCount);
+        Assert.Equal(4.9m, topLawyers[2].AverageRating);
+    }
+
     private static LawyerService CreateService(
         PasswordServiceTestContext testContext,
         Guid userId)
