@@ -11,6 +11,7 @@ using SmartCourt.Features.Contracts.Entities;
 using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Contracts.Integration;
 using SmartCourt.Features.Disputes.Enums;
+using SmartCourt.Features.Milestones.Domain;
 using SmartCourt.Features.Milestones.Entities;
 using SmartCourt.Features.Milestones.Enums;
 using SmartCourt.Features.Payments.Entities;
@@ -714,17 +715,29 @@ public sealed class ContractService
             return false;
         }
 
-        var hasApprovedMilestone = await _dbContext.Milestones.AnyAsync(
-            milestone =>
+        var draftMilestones = await _dbContext.Milestones
+            .Where(milestone =>
                 milestone.ContractId == contract.Id
-                && milestone.Amount > 0
-                && milestone.AcceptedByClientAt != null
-                && milestone.AcceptedByLawyerAt != null
-                && milestone.Status != MilestoneStatus.Cancelled,
-            cancellationToken);
-        if (!hasApprovedMilestone)
+                && milestone.Status == MilestoneStatus.Draft)
+            .ToListAsync(cancellationToken);
+
+        foreach (var milestone in draftMilestones)
         {
-            return false;
+            milestone.AcceptedByClientAt ??= contract.AcceptedByClientAt ?? now;
+            milestone.AcceptedByLawyerAt ??= contract.AcceptedByLawyerAt ?? now;
+            milestone.Status = MilestoneStatus.AwaitingFunding;
+            milestone.UpdatedAt = now;
+            _dbContext.MilestoneStateHistories.Add(
+                MilestoneStateHistoryFactory.Create(
+                    Guid.NewGuid(),
+                    milestone.Id,
+                    MilestoneStatus.Draft,
+                    MilestoneStatus.AwaitingFunding,
+                    ContractPaymentEventTypes.MilestoneApproved,
+                    actorUserId,
+                    "وافق طرفا العقد على شروط المرحلة بتوقيع العقد.",
+                    correlationId,
+                    now));
         }
 
         await _caseAssignmentService.AssignAsync(
@@ -749,7 +762,7 @@ public sealed class ContractService
             ContractStatus.Active,
             ContractPaymentEventTypes.ContractActivated,
             actorUserId,
-            "وافق طرفا العقد على نسخة تتضمن مرحلة معتمدة ومسعّرة.",
+            "وافق طرفا العقد على مسودة العقد وتم تفعيله.",
             correlationId,
             now);
         await EnqueueContractEventAsync(

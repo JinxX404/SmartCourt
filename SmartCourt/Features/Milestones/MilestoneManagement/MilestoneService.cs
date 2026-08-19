@@ -858,8 +858,7 @@ public sealed class MilestoneService(
             {
                 actions.Add("Update");
             }
-            if (isClient && !milestone.AcceptedByClientAt.HasValue
-                || isLawyer && !milestone.AcceptedByLawyerAt.HasValue)
+            if (isClient && !milestone.AcceptedByClientAt.HasValue)
             {
                 actions.Add("Approve");
             }
