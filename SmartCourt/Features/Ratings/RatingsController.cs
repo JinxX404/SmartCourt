@@ -33,6 +33,25 @@ public sealed class RatingsController(IRatingService ratingService) : Controller
             ApiResponse<ContractRatingDto>.Created(rating));
     }
 
+    [HttpPut("contracts/{contractId:guid}/ratings")]
+    [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
+    [Authorize(Roles = "Client,Lawyer")]
+    [ProducesResponseType(
+        typeof(ApiResponse<ContractRatingDto>),
+        StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<ContractRatingDto>>> UpdateAsync(
+        [FromRoute] Guid contractId,
+        [FromBody] UpdateRatingRequest request,
+        CancellationToken cancellationToken)
+    {
+        var rating = await ratingService.UpdateAsync(
+            contractId,
+            request,
+            cancellationToken);
+
+        return Ok(ApiResponse<ContractRatingDto>.Ok(rating));
+    }
+
     [HttpGet("contracts/{contractId:guid}/ratings")]
     [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
     [Authorize(Roles = "Client,Lawyer,Moderator,SuperAdministrator")]

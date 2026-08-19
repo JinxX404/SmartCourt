@@ -10,9 +10,15 @@ public interface IRatingService
         SubmitRatingRequest request,
         CancellationToken cancellationToken);
 
+    Task<ContractRatingDto> UpdateAsync(
+        Guid contractId,
+        UpdateRatingRequest request,
+        CancellationToken cancellationToken);
+
     Task<ContractRatingSummaryDto> GetByContractAsync(
         Guid contractId,
         CancellationToken cancellationToken);
+
 
     Task<PagedResult<ContractRatingDto>> GetByLawyerAsync(
         Guid lawyerUserId,

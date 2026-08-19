@@ -265,6 +265,20 @@ public class ApplicationDbContext
                 continue;
             }
 
+            // Contract ratings are append-only except for rating score (Stars) and
+            // feedback (Comment) updated within the allowed review window.
+            if (entry.Metadata.ClrType == typeof(ContractRating)
+                && entry.State == EntityState.Modified
+                && entry.Properties
+                    .Where(property => property.IsModified)
+                    .All(property => property.Metadata.Name is
+                        nameof(ContractRating.Stars)
+                        or nameof(ContractRating.Comment)))
+            {
+                continue;
+            }
+
+
             throw new BusinessException(
                 $"السجل المالي أو التدقيقي من النوع {entry.Metadata.ClrType.Name} للإضافة فقط ولا يمكن تعديله أو حذفه.");
         }
