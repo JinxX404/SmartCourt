@@ -114,7 +114,8 @@ public class LawyerService(
             .Where(u =>
                 u.LawyerProfile != null &&
                 u.EmailConfirmed &&
-                u.Status == UserStatus.Active);
+                u.Status == UserStatus.Active &&
+                u.LawyerProfile.IsAvailable);
 
         // Apply optional filters
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
