@@ -180,7 +180,7 @@ internal sealed class QuotaService : IQuotaService
         
         if (currentUsage == null)
         {
-            throw new InvalidOperationException("Failed to consume quota due to an infrastructure issue: DailyUsage row could not be created or accessed.");
+            throw new InvalidOperationException("فشل في استهلاك الرصيد بسبب مشكلة في النظام: تعذر إنشاء أو الوصول إلى سجل الاستهلاك اليومي.");
         }
 
         int consumedDaily = currentUsage.ConsumedTokens;
@@ -243,7 +243,8 @@ internal sealed class QuotaService : IQuotaService
                 dailyLimit,
                 consumedDaily, // Might be stale due to concurrency, but good enough for exception context
                 tokenAmount,
-                GetNextResetAt()
+                GetNextResetAt(),
+                "رصيدك غير كافٍ. يرجى الانتظار حتى يوم غد أو شراء باقة كلمات جديدة."
             );
         }
         
