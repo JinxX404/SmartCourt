@@ -48,14 +48,16 @@ public sealed class RatingService(
             throw new BusinessException("العقد غير موجود.");
         }
 
-        if (contract.Status is not (ContractStatus.Completed or ContractStatus.Terminated))
+        if (contract.Status is not (ContractStatus.Completed or ContractStatus.Terminated or ContractStatus.CompletedOnHold))
         {
             throw new BusinessException("لا يمكن تقييم عقد لم ينتهِ بعد.");
         }
 
         var endedAt = contract.Status == ContractStatus.Completed
             ? contract.CompletedAt
-            : contract.TerminatedAt;
+            : contract.Status == ContractStatus.Terminated
+                ? contract.TerminatedAt
+                : contract.UpdatedAt;
 
         if (endedAt is null)
         {

@@ -470,7 +470,7 @@ public sealed class MilestoneDraftService(
 
         if (milestone.Status == MilestoneStatus.AwaitingFunding
             && isClient
-            && milestone.ReadyForFundingAt.HasValue)
+            && (milestone.Type == MilestoneType.Expense || milestone.ReadyForFundingAt.HasValue))
         {
             actions.Add("Fund");
         }
