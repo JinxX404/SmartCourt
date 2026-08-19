@@ -9,6 +9,7 @@ internal sealed class DailyUsageConfiguration : IEntityTypeConfiguration<DailyUs
     public void Configure(EntityTypeBuilder<DailyUsage> builder)
     {
         builder.HasKey(x => new { x.ClientId, x.UsageDate });
+        
         builder.Property(x => x.ConsumedTokens).IsRequired();
         builder.Property(x => x.RowVersion).IsRowVersion();
     }
