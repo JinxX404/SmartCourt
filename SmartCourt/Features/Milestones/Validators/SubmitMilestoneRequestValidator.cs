@@ -14,9 +14,8 @@ public sealed class SubmitMilestoneRequestValidator
             .MaximumLength(10_000)
             .WithMessage("ملاحظات التسليم يجب ألا تتجاوز 10000 حرف.");
         RuleFor(request => request.StoredFileIds)
-            .NotNull()
-            .WithMessage("يجب إرفاق ملف واحد على الأقل.")
             .Must(HasAuthorizedFileIds)
+            .When(request => request.StoredFileIds is { Count: > 0 })
             .WithMessage("يجب تحديد معرّفات ملفات صالحة ومصرح بها.");
     }
 

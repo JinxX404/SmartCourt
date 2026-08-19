@@ -219,7 +219,7 @@ public static class DependencyInjection
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? configuration.GetConnectionString("LocalConnection")
-            ?? throw new InvalidOperationException("لم يتم العثور على نص الاتصال بقاعدة البيانات (DefaultConnection / LocalConnection).");
+            ?? throw new InvalidOperationException("Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ù†Øµ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª (DefaultConnection / LocalConnection).");
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
@@ -369,26 +369,26 @@ public static class DependencyInjection
                 options => !options.UseMockProvider
                     || !string.IsNullOrWhiteSpace(
                         options.WebhookSecret),
-                "يجب إعداد سر التحقق من إشعارات مزود الدفع التجريبي.")
+                "ÙŠØ¬Ø¨ Ø¥Ø¹Ø¯Ø§Ø¯ Ø³Ø± Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ù…Ø²ÙˆØ¯ Ø§Ù„Ø¯ÙØ¹ Ø§Ù„ØªØ¬Ø±ÙŠØ¨ÙŠ.")
             .Validate(
                 options => !string.IsNullOrWhiteSpace(
                     options.ProviderCode),
-                "يجب إعداد رمز ثابت لمزود الدفع.")
+                "ÙŠØ¬Ø¨ Ø¥Ø¹Ø¯Ø§Ø¯ Ø±Ù…Ø² Ø«Ø§Ø¨Øª Ù„Ù…Ø²ÙˆØ¯ Ø§Ù„Ø¯ÙØ¹.")
             .Validate(
                 options => options.WebhookMaximumBodySizeBytes
                     is >= 1_024 and <= 1_048_576,
-                "يجب أن يكون الحد الأقصى لإشعار مزود الدفع بين 1 كيلوبايت و1 ميجابايت.")
+                "ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø§Ù„Ø­Ø¯ Ø§Ù„Ø£Ù‚ØµÙ‰ Ù„Ø¥Ø´Ø¹Ø§Ø± Ù…Ø²ÙˆØ¯ Ø§Ù„Ø¯ÙØ¹ Ø¨ÙŠÙ† 1 ÙƒÙŠÙ„ÙˆØ¨Ø§ÙŠØª Ùˆ1 Ù…ÙŠØ¬Ø§Ø¨Ø§ÙŠØª.")
             .Validate(
                 options => options.WebhookAllowedIpRanges is not null
                     && options.WebhookAllowedIpRanges.All(
                         range => System.Net.IPNetwork.TryParse(
                             range,
                             out _)),
-                "تحتوي قائمة عناوين مزود الدفع المسموح بها على نطاق غير صالح.")
+                "ØªØ­ØªÙˆÙŠ Ù‚Ø§Ø¦Ù…Ø© Ø¹Ù†Ø§ÙˆÙŠÙ† Ù…Ø²ÙˆØ¯ Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ù…Ø³Ù…ÙˆØ­ Ø¨Ù‡Ø§ Ø¹Ù„Ù‰ Ù†Ø·Ø§Ù‚ ØºÙŠØ± ØµØ§Ù„Ø­.")
             .Validate(
                 options => options.ProcessingSlaMinutes
                     is >= 5 and <= 10_080,
-                "يجب أن تكون مهلة معالجة العمليات المالية بين 5 دقائق و7 أيام.")
+                "ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù…Ù‡Ù„Ø© Ù…Ø¹Ø§Ù„Ø¬Ø© Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ù…Ø§Ù„ÙŠØ© Ø¨ÙŠÙ† 5 Ø¯Ù‚Ø§Ø¦Ù‚ Ùˆ7 Ø£ÙŠØ§Ù….")
             .ValidateOnStart();
 
         var useMockPaymentProvider = configuration.GetValue<bool?>(
@@ -494,7 +494,7 @@ public static class DependencyInjection
                         options.BaseUrl,
                         UriKind.Absolute)
                         && !string.IsNullOrWhiteSpace(options.WebhookSecret),
-                    "يجب ضبط BaseUrl و WebhookSecret لمزود Paymob لإثبات ملكية الويب هوك.")
+                    "ÙŠØ¬Ø¨ Ø¶Ø¨Ø· BaseUrl Ùˆ WebhookSecret Ù„Ù…Ø²ÙˆØ¯ Paymob Ù„Ø¥Ø«Ø¨Ø§Øª Ù…Ù„ÙƒÙŠØ© Ø§Ù„ÙˆÙŠØ¨ Ù‡ÙˆÙƒ.")
                 .ValidateOnStart();
 
             services.AddHttpClient<PaymobPaymentProvider>(
@@ -743,6 +743,10 @@ public static class DependencyInjection
         services.AddScoped<IResendVerificationService, ResendVerificationService>();
         services.AddScoped<SmartCourt.Features.Users.Lawyers.ILawyerService, SmartCourt.Features.Users.Lawyers.LawyerService>();
         services.AddScoped<SmartCourt.Features.Users.Clients.IClientService, SmartCourt.Features.Users.Clients.ClientService>();
+        
+        services.AddScoped<SmartCourt.Features.LawyerSubscription.ILawyerQuotaService, SmartCourt.Features.LawyerSubscription.LawyerQuotaService>();
+        services.AddScoped<SmartCourt.Features.LawyerSubscription.ILawyerSubscriptionPaymentService, SmartCourt.Features.LawyerSubscription.LawyerSubscriptionPaymentService>();
+        services.AddScoped<SmartCourt.Features.Admin.LawyerSubscriptions.IAdminLawyerSubscriptionService, SmartCourt.Features.Admin.LawyerSubscriptions.AdminLawyerSubscriptionService>();
 
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
 
@@ -775,7 +779,12 @@ public static class DependencyInjection
             .Bind(configuration.GetSection(SmartCourt.Common.Configuration.QuotaOptions.SectionName))
             .ValidateDataAnnotations()
             .ValidateOnStart();
+        services.AddOptions<SmartCourt.Common.Configuration.LawyerPlanOptions>()
+            .Bind(configuration.GetSection(SmartCourt.Common.Configuration.LawyerPlanOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
         services.Configure<List<SmartCourt.Common.Configuration.TokenBundleOptions>>(configuration.GetSection("TokenBundles"));
+
         services.AddSingleton<QdrantClient>(sp =>
         {
             var opts = sp.GetRequiredService<IOptions<QdrantOptions>>().Value;
@@ -962,3 +971,4 @@ public static class DependencyInjection
         return isDevelopment || !uri.IsLoopback;
     }
 }
+
