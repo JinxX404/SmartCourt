@@ -421,7 +421,8 @@ public sealed class MilestoneDraftService(
             milestone.HoldExpiresAt,
             hold?.NetAmount,
             "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
-            milestone.Type)
+            milestone.Type,
+            milestone.RejectionReason)
         {
             PermittedActions = GetPermittedActions(
                 milestone,

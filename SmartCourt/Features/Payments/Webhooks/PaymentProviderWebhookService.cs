@@ -15,6 +15,7 @@ public sealed class PaymentProviderWebhookService(
     ILawyerPayoutAccountService payoutAccountService,
     IConsultationPaymentService consultationPaymentService,
     SmartCourt.Features.ChatAgent.Monetization.ITokenBundleFulfillmentService tokenBundleFulfillmentService,
+    SmartCourt.Features.LawyerSubscription.ILawyerSubscriptionPaymentService lawyerSubscriptionPaymentService,
     Microsoft.Extensions.Options.IOptions<SmartCourt.Providers.Payments.PaymentProviderOptions> options,
     TimeProvider timeProvider,
     ILogger<PaymentProviderWebhookService> logger)
@@ -124,6 +125,10 @@ public sealed class PaymentProviderWebhookService(
                     cancellationToken);
                 
                 await tokenBundleFulfillmentService.ReconcileProviderObjectAsync(
+                    providerEvent.ProviderObjectId,
+                    cancellationToken);
+                    
+                await lawyerSubscriptionPaymentService.ReconcileProviderObjectAsync(
                     providerEvent.ProviderObjectId,
                     cancellationToken);
             }

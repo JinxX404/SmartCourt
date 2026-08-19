@@ -141,6 +141,13 @@ public class ApplicationDbContext
     public DbSet<QuotaTransaction> QuotaTransactions => Set<QuotaTransaction>();
     public DbSet<TokenUsageHistory> TokenUsageHistories => Set<TokenUsageHistory>();
     
+    // Lawyer Subscription DbSets
+    public DbSet<SmartCourt.Features.LawyerSubscription.Entities.LawyerSubscription> LawyerSubscriptions => Set<SmartCourt.Features.LawyerSubscription.Entities.LawyerSubscription>();
+    public DbSet<SmartCourt.Features.LawyerSubscription.Entities.LawyerDailyUsage> LawyerDailyUsages => Set<SmartCourt.Features.LawyerSubscription.Entities.LawyerDailyUsage>();
+    public DbSet<SmartCourt.Features.LawyerSubscription.Entities.LawyerQuotaLedger> LawyerQuotaLedgers => Set<SmartCourt.Features.LawyerSubscription.Entities.LawyerQuotaLedger>();
+    public DbSet<SmartCourt.Features.LawyerSubscription.Entities.LawyerQuotaTransaction> LawyerQuotaTransactions => Set<SmartCourt.Features.LawyerSubscription.Entities.LawyerQuotaTransaction>();
+    public DbSet<SmartCourt.Features.LawyerSubscription.Entities.LawyerPaymentTransaction> LawyerPaymentTransactions => Set<SmartCourt.Features.LawyerSubscription.Entities.LawyerPaymentTransaction>();
+    
     public DbSet<ModelPricing> ModelPricings => Set<ModelPricing>();
     public DbSet<ModelUsageHistory> ModelUsageHistories => Set<ModelUsageHistory>();
     public DbSet<Contract> Contracts => Set<Contract>();

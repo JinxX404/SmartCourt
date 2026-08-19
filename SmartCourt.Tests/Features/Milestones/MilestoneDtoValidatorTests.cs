@@ -93,18 +93,32 @@ public sealed class MilestoneDtoValidatorTests
     }
 
     [Fact]
-    public void SubmitMilestone_RequiresNotesAndValidUniqueFileIds()
+    public void SubmitMilestone_RequiresNotes()
     {
-        var fileId = Guid.NewGuid();
         var request = new SubmitMilestoneRequest(
             string.Empty,
-            [fileId, fileId, Guid.Empty]);
+            null);
 
         var result = new SubmitMilestoneRequestValidator().Validate(request);
 
         Assert.Contains(
             result.Errors,
             error => error.PropertyName == nameof(request.Notes));
+        Assert.DoesNotContain(
+            result.Errors,
+            error => error.PropertyName == nameof(request.StoredFileIds));
+    }
+
+    [Fact]
+    public void SubmitMilestone_ValidatesUniqueFileIdsIfProvided()
+    {
+        var fileId = Guid.NewGuid();
+        var request = new SubmitMilestoneRequest(
+            "Notes",
+            [fileId, fileId, Guid.Empty]);
+
+        var result = new SubmitMilestoneRequestValidator().Validate(request);
+
         Assert.Contains(
             result.Errors,
             error => error.PropertyName == nameof(request.StoredFileIds));

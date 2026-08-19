@@ -20,6 +20,7 @@ public class ChatAgentService(
     IFileStorageService fileStorageService,
     IDocumentParsingProvider documentParsingProvider,
     IQuotaService quotaService,
+    SmartCourt.Features.LawyerSubscription.ILawyerQuotaService lawyerQuotaService,
     ICostCalculatorService costCalculatorService,
     IRerankerProvider? rerankerProvider = null,
     IOptions<RagOptions>? ragOptions = null,
@@ -36,6 +37,7 @@ public class ChatAgentService(
     private readonly IFileStorageService _fileStorageService = fileStorageService;
     private readonly IDocumentParsingProvider _documentParsingProvider = documentParsingProvider;
     private readonly IQuotaService _quotaService = quotaService;
+    private readonly SmartCourt.Features.LawyerSubscription.ILawyerQuotaService _lawyerQuotaService = lawyerQuotaService;
     private readonly ICostCalculatorService _costCalculatorService = costCalculatorService;
     private readonly IRerankerProvider? _rerankerProvider = rerankerProvider;
     private readonly RagOptions _ragOptions = ragOptions?.Value ?? new RagOptions();
@@ -55,9 +57,19 @@ public class ChatAgentService(
         }
 
         bool isClient = _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") == true;
+        bool isLawyer = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
+
         if (isClient && currentUserId.HasValue)
         {
             var quota = await _quotaService.GetQuotaAsync(currentUserId.Value, cancellationToken);
+            if (quota.TotalRemainingCredits <= 0)
+            {
+                throw new BusinessException("لقد استنفدت الرصيد المتاح لك، ولا يمكنك بدء محادثة جديدة.");
+            }
+        }
+        else if (isLawyer && currentUserId.HasValue)
+        {
+            var quota = await _lawyerQuotaService.GetQuotaAsync(currentUserId.Value, cancellationToken);
             if (quota.TotalRemainingCredits <= 0)
             {
                 throw new BusinessException("لقد استنفدت الرصيد المتاح لك، ولا يمكنك بدء محادثة جديدة.");
@@ -238,6 +250,7 @@ public class ChatAgentService(
     {
         var currentUserId = _currentUserService.UserId;
         bool isClient = _httpContextAccessor?.HttpContext?.User?.IsInRole("Client") == true;
+        bool isLawyerCheck = _httpContextAccessor?.HttpContext?.User?.IsInRole("Lawyer") == true;
 
         QuotaReservation? totalReservation = null;
         int actualTokensUsed = 0;
@@ -247,6 +260,11 @@ public class ChatAgentService(
         {
             int stage1Ceiling = Math.Min(normalizedQuery.Length, 2000);
             totalReservation = await _quotaService.ReserveQuotaAsync(currentUserId.Value, stage1Ceiling, cancellationToken);
+        }
+        else if (isLawyerCheck && currentUserId.HasValue)
+        {
+            int stage1Ceiling = Math.Min(normalizedQuery.Length, 2000);
+            totalReservation = await _lawyerQuotaService.ReserveQuotaAsync(currentUserId.Value, stage1Ceiling, cancellationToken);
         }
 
         try
@@ -289,6 +307,19 @@ public class ChatAgentService(
                 else
                 {
                     // Fallback ceiling if Alibaba usage is missing
+                    int fallback = Math.Min(normalizedQuery.Length, 2000);
+                    _logger?.LogWarning("Alibaba embedding returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                    actualTokensUsed += fallback;
+                }
+            }
+            else if (isLawyerCheck && currentUserId.HasValue)
+            {
+                if (embeddingTokens > 0)
+                {
+                    actualTokensUsed += embeddingTokens;
+                }
+                else
+                {
                     int fallback = Math.Min(normalizedQuery.Length, 2000);
                     _logger?.LogWarning("Alibaba embedding returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
                     actualTokensUsed += fallback;
@@ -356,6 +387,29 @@ public class ChatAgentService(
                     totalReservation = stage2Reservation;
                 }
             }
+            else if (isLawyerCheck && currentUserId.HasValue)
+            {
+                int rerankCeiling = retrievedLawArticles.Sum(doc => normalizedQuery.Length + doc.Length + 50);
+                int chatInputCeiling = systemPromptText.Length + userPromptText.Length;
+                int chatOutputCeiling = 5000;
+                
+                int stage2Ceiling = rerankCeiling + chatInputCeiling + chatOutputCeiling;
+                var stage2Reservation = await _lawyerQuotaService.ReserveQuotaAsync(currentUserId.Value, stage2Ceiling, cancellationToken);
+                
+                if (totalReservation != null)
+                {
+                    totalReservation = new QuotaReservation
+                    {
+                        TotalReservedTokens = totalReservation.TotalReservedTokens + stage2Reservation.TotalReservedTokens,
+                        FreeReservedTokens = totalReservation.FreeReservedTokens + stage2Reservation.FreeReservedTokens,
+                        PaidReservedTokens = totalReservation.PaidReservedTokens + stage2Reservation.PaidReservedTokens
+                    };
+                }
+                else
+                {
+                    totalReservation = stage2Reservation;
+                }
+            }
 
             // Rerank
             if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
@@ -367,6 +421,19 @@ public class ChatAgentService(
                     rerankTokens = rerankResponse.InputTokens;
 
                     if (isClient && currentUserId.HasValue)
+                    {
+                        if (rerankTokens > 0)
+                        {
+                            actualTokensUsed += rerankTokens;
+                        }
+                        else
+                        {
+                            int fallback = retrievedLawArticles.Sum(doc => normalizedQuery.Length + doc.Length + 50);
+                            _logger?.LogWarning("Alibaba reranker returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                            actualTokensUsed += fallback;
+                        }
+                    }
+                    else if (isLawyerCheck && currentUserId.HasValue)
                     {
                         if (rerankTokens > 0)
                         {
@@ -434,6 +501,29 @@ public class ChatAgentService(
 
                 await _costCalculatorService.RecordUsageAndCostAsync(currentUserId.Value, conversationId, usages, "Singapore", cancellationToken);
             }
+            else if (isLawyerCheck && currentUserId.HasValue)
+            {
+                int chatTokens = aiResponse.Usage?.TotalTokens ?? 0;
+                if (chatTokens > 0)
+                {
+                    actualTokensUsed += chatTokens;
+                }
+                else
+                {
+                    int fallback = systemPromptText.Length + userPromptText.Length + aiResponseText.Length;
+                    _logger?.LogWarning("Alibaba chat returned 0 usage. Using conservative ceiling: {Tokens}", fallback);
+                    actualTokensUsed += fallback;
+                }
+                
+                var usages = new ModelUsageRecord[]
+                {
+                    new("text-embedding-v4", embeddingTokens, 0),
+                    new("qwen3-rerank", rerankTokens, 0),
+                    new("qwen-flash", aiResponse.Usage?.InputTokens ?? 0, aiResponse.Usage?.OutputTokens ?? 0)
+                };
+                
+                await _costCalculatorService.RecordUsageAndCostAsync(currentUserId.Value, conversationId, usages, "Singapore", cancellationToken);
+            }
 
             var responseTime = _timeProvider.GetUtcNow();
 
@@ -468,6 +558,10 @@ public class ChatAgentService(
             {
                 await _quotaService.SettleQuotaAsync(currentUserId.Value, totalReservation, actualTokensUsed, CancellationToken.None);
             }
+            else if (isLawyerCheck && currentUserId.HasValue && totalReservation != null && totalReservation.TotalReservedTokens > 0)
+            {
+                await _lawyerQuotaService.SettleQuotaAsync(currentUserId.Value, totalReservation, actualTokensUsed, CancellationToken.None);
+            }
         }
     }
 
@@ -483,6 +577,7 @@ public class ChatAgentService(
             IChatModelProvider chatModelProvider = _chatModelProvider;
             TimeProvider timeProvider = _timeProvider;
             IQuotaService quotaService = _quotaService;
+            SmartCourt.Features.LawyerSubscription.ILawyerQuotaService lawyerQuotaService = _lawyerQuotaService;
             IHttpContextAccessor? httpContextAccessor = _httpContextAccessor;
             IServiceScope? scope = null;
 
@@ -493,6 +588,7 @@ public class ChatAgentService(
                 chatModelProvider = scope.ServiceProvider.GetRequiredService<IChatModelProvider>();
                 timeProvider = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
                 quotaService = scope.ServiceProvider.GetRequiredService<IQuotaService>();
+                lawyerQuotaService = scope.ServiceProvider.GetRequiredService<SmartCourt.Features.LawyerSubscription.ILawyerQuotaService>();
                 httpContextAccessor = scope.ServiceProvider.GetService<IHttpContextAccessor>();
             }
 
@@ -529,14 +625,17 @@ public class ChatAgentService(
                     if (currentUserId.HasValue)
                     {
                         bool isClient = false;
+                        bool isLawyer = false;
                         if (httpContextAccessor?.HttpContext?.User != null)
                         {
                             isClient = httpContextAccessor.HttpContext.User.IsInRole("Client");
+                            isLawyer = httpContextAccessor.HttpContext.User.IsInRole("Lawyer");
                         }
                         else
                         {
                             // Fallback to checking the database if no http context available in background task
                             isClient = await dbContext.UserRoles.AnyAsync(ur => ur.UserId == currentUserId.Value && dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Client"), cancellationToken);
+                            isLawyer = await dbContext.UserRoles.AnyAsync(ur => ur.UserId == currentUserId.Value && dbContext.Roles.Any(r => r.Id == ur.RoleId && r.Name == "Lawyer"), cancellationToken);
                         }
                         
                         if (isClient)
@@ -547,6 +646,15 @@ public class ChatAgentService(
                                 titleTokens = (systemPrompt.Length + userMessageContent.Length + cleanTitle.Length) / 4;
                             }
                             await quotaService.ConsumeQuotaAsync(currentUserId.Value, titleTokens, cancellationToken);
+                        }
+                        else if (isLawyer)
+                        {
+                            int titleTokens = titleResponse.Usage?.TotalTokens ?? 0;
+                            if (titleTokens <= 0)
+                            {
+                                titleTokens = (systemPrompt.Length + userMessageContent.Length + cleanTitle.Length) / 4;
+                            }
+                            await lawyerQuotaService.ConsumeQuotaAsync(currentUserId.Value, titleTokens, cancellationToken);
                         }
                     }
 

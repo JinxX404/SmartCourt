@@ -97,12 +97,15 @@ public sealed class TokenBundlePurchaseService : ITokenBundlePurchaseService
             .Select(item => item.ProviderCustomerId)
             .SingleOrDefaultAsync(cancellationToken) ?? string.Empty;
 
+        var isPm = confirmationTokenReference.Trim().StartsWith("pm_", StringComparison.OrdinalIgnoreCase) || confirmationTokenReference.Trim().StartsWith("tok_", StringComparison.OrdinalIgnoreCase);
         var request = new ProviderDepositRequest(
             bundle.PriceEgp, "EGP", transaction.Id, key, transaction.Id,
-            PaymentMethodReference: _paymentOptions.Value.UseMockProvider
+            PaymentMethodReference: _paymentOptions.Value.UseMockProvider || isPm
                 ? confirmationTokenReference.Trim()
                 : string.Empty,
-            ConfirmationTokenReference: confirmationTokenReference.Trim(),
+            ConfirmationTokenReference: _paymentOptions.Value.UseMockProvider || isPm
+                ? string.Empty
+                : confirmationTokenReference.Trim(),
             CustomerReference: customerReference);
 
         ProviderResult result;
@@ -134,6 +137,33 @@ public sealed class TokenBundlePurchaseService : ITokenBundlePurchaseService
 
         if (transaction.Status != PaymentTransactionStatus.Processing)
             transaction.ProcessedAtUtc = _timeProvider.GetUtcNow();
+
+        if (transaction.Status == PaymentTransactionStatus.Completed)
+        {
+            var ledger = await _dbContext.QuotaLedgers
+                .FirstOrDefaultAsync(x => x.ClientId == transaction.ClientId, cancellationToken);
+
+            if (ledger == null)
+            {
+                ledger = QuotaLedger.Create(transaction.ClientId);
+                ledger.AddBalance(transaction.TokenAmount);
+                _dbContext.QuotaLedgers.Add(ledger);
+            }
+            else
+            {
+                ledger.AddBalance(transaction.TokenAmount);
+            }
+
+            var quotaTransaction = QuotaTransaction.Create(
+                Guid.NewGuid(),
+                transaction.ClientId,
+                transaction.TokenAmount,
+                QuotaTransactionReason.BundlePurchase,
+                transaction.Id.ToString(),
+                _timeProvider.GetUtcNow()
+            );
+            _dbContext.QuotaTransactions.Add(quotaTransaction);
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
