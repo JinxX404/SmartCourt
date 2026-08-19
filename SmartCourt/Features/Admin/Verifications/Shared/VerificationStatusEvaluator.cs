@@ -67,7 +67,7 @@ internal static class VerificationStatusEvaluator
 
         if (allRequiredDocumentsAreVerified)
         {
-            return isPhoneConfirmed ? UserStatus.Active : UserStatus.Unverified;
+            return UserStatus.Active;
         }
 
         if (currentDocuments.Any(document => document.Status == VerificationDocumentStatus.Pending))
