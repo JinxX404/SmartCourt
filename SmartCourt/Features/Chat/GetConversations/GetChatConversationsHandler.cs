@@ -40,15 +40,26 @@ public sealed class GetChatConversationsHandler(
                 on conversation.LawyerUserId equals lawyer.Id
             join proposal in context.Proposals
                 on conversation.ProposalId equals proposal.Id
+            join contract in context.Contracts
+                on conversation.ProposalId equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
             where conversation.ClientUserId == actorUserId
-                || (conversation.LawyerUserId == actorUserId
-                    && proposal.Status != ProposalStatus.Superseded)
+                || conversation.LawyerUserId == actorUserId
+                && !ChatAccess.IsHiddenFromLawyer(
+                    proposal.Status,
+                    contract == null
+                        ? null
+                        : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
+                    conversation.LawyerUserId,
+                    actorUserId)
             select new
             {
                 conversation,
                 legalCase,
                 client,
-                lawyer
+                lawyer,
+                proposal,
+                contract
             };
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -79,6 +90,10 @@ public sealed class GetChatConversationsHandler(
                 item.conversation.LawyerUserId,
                 LawyerName = item.lawyer.FullName,
                 item.conversation.IsClosed,
+                ProposalStatus = item.proposal.Status,
+                ContractStatus = item.contract == null
+                    ? null
+                    : (SmartCourt.Features.Contracts.Enums.ContractStatus?)item.contract.Status,
                 item.conversation.CreatedAt,
                 item.conversation.UpdatedAt,
                 item.conversation.LastMessageAt
@@ -136,6 +151,10 @@ public sealed class GetChatConversationsHandler(
             lastMessageByConversationId.TryGetValue(
                 row.Id,
                 out var lastMessage);
+            var canWrite = !row.IsClosed
+                && row.ProposalStatus == ProposalStatus.Accepted
+                && row.ContractStatus is not SmartCourt.Features.Contracts.Enums.ContractStatus.Completed
+                    and not SmartCourt.Features.Contracts.Enums.ContractStatus.Terminated;
             return new ChatConversationListItemDto(
                 row.Id,
                 row.ProposalId,
@@ -147,7 +166,11 @@ public sealed class GetChatConversationsHandler(
                 row.CreatedAt,
                 row.UpdatedAt,
                 row.LastMessageAt,
-                lastMessage);
+                lastMessage)
+            {
+                CanSendMessages = canWrite,
+                CanUploadAttachments = canWrite
+            };
         }).ToList();
 
         var page = new ChatConversationPageDto(

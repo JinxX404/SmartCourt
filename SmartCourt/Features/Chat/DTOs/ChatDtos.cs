@@ -36,7 +36,11 @@ public sealed record ChatConversationListItemDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? LastMessageAt,
-    ChatMessageDto? LastMessage);
+    ChatMessageDto? LastMessage)
+{
+    public bool CanSendMessages { get; init; }
+    public bool CanUploadAttachments { get; init; }
+}
 
 public sealed record ChatConversationDetailDto(
     Guid Id,
@@ -48,7 +52,11 @@ public sealed record ChatConversationDetailDto(
     string Status,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    DateTimeOffset? LastMessageAt);
+    DateTimeOffset? LastMessageAt)
+{
+    public bool CanSendMessages { get; init; }
+    public bool CanUploadAttachments { get; init; }
+}
 
 public sealed record ChatConversationPageDto(
     IReadOnlyList<ChatConversationListItemDto> Items,

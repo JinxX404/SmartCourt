@@ -19,4 +19,11 @@ public interface IMilestoneDraftService
         UpdateMilestoneRequest request,
         string ifMatch,
         CancellationToken cancellationToken);
+
+    Task DeleteDraftAsync(
+        Guid contractId,
+        Guid milestoneId,
+        string ifMatch,
+        CancellationToken cancellationToken);
 }
+

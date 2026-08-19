@@ -192,6 +192,57 @@ public sealed class MilestoneDraftService(
             actorUserId);
     }
 
+    public async Task DeleteDraftAsync(
+        Guid contractId,
+        Guid milestoneId,
+        string ifMatch,
+        CancellationToken cancellationToken)
+    {
+        var actorUserId = GetActorUserId();
+        var contract = await GetContractAsync(
+            contractId,
+            cancellationToken);
+        EnsureLawyer(contract, actorUserId);
+
+        if (contract.Status != ContractStatus.Draft)
+        {
+            throw new ConflictException(
+                "يمكن حذف المراحل أثناء مسودة العقد فقط.");
+        }
+
+        var milestone = await GetMilestoneForMutationAsync(
+            milestoneId,
+            cancellationToken);
+        EnsureBelongsToContract(milestone, contractId);
+        EnsureDraft(milestone);
+        EnsureExpectedVersion(milestone, ifMatch);
+
+        var deletedOrder = milestone.OrderNumber;
+        dbContext.Milestones.Remove(milestone);
+
+        var subsequentMilestones = await dbContext.Milestones
+            .Where(item => item.ContractId == contractId && item.OrderNumber > deletedOrder)
+            .OrderBy(item => item.OrderNumber)
+            .ToListAsync(cancellationToken);
+
+        var now = UtcNow;
+        foreach (var subsequent in subsequentMilestones)
+        {
+            subsequent.OrderNumber -= 1;
+            subsequent.UpdatedAt = now;
+        }
+
+        await EnqueueParticipantEventAsync(
+            ContractPaymentEventTypes.MilestoneDraftUpdated,
+            milestone.Id,
+            actorUserId,
+            Guid.NewGuid(),
+            cancellationToken);
+
+        await SaveChangesAsync(cancellationToken);
+    }
+
+
     private Guid GetActorUserId() => currentUserService.RequireUserId(
         "يجب تسجيل الدخول للوصول إلى خدمات المراحل.");
 

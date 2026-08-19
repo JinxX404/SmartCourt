@@ -61,7 +61,7 @@ public class DocumentReviewService : IDocumentReviewService
         var normalizedQuery = ArabicTextNormalizer.Normalize(request.Query);
 
         // 1. Embed query
-        var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).First();
+        var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).Embeddings.First();
         
         // 2. Retrieve from the existing egyptian_law collection (over-fetch)
         var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
@@ -74,8 +74,8 @@ public class DocumentReviewService : IDocumentReviewService
         // 3. Rerank to get the top 5 most relevant chunks
         if (retrievedChunks.Count > 0)
         {
-            var reranked = await _rerankerProvider.RerankAsync(request.Query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
-            retrievedChunks = reranked.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count)
+            var rerankResponse = await _rerankerProvider.RerankAsync(request.Query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
+            retrievedChunks = rerankResponse.Results.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count)
                 .OrderByDescending(r => r.RelevanceScore).Select(r => retrievedChunks[r.Index]).ToList();
         }
 
@@ -95,7 +95,8 @@ public class DocumentReviewService : IDocumentReviewService
 
         var systemPrompt = DocumentReviewPrompts.GetAskLawSystemPrompt(contextBuilder.ToString());
 
-        var answer = await _chatModelProvider.GenerateAsync(systemPrompt, request.Query, cancellationToken);
+        var answerResponse = await _chatModelProvider.GenerateAsync(systemPrompt, request.Query, cancellationToken);
+        var answer = answerResponse.Content;
 
         return new AnalyzeResponse
         {
@@ -126,7 +127,8 @@ public class DocumentReviewService : IDocumentReviewService
             for (var offset = 0; offset < chunks.Count; offset += _ragOptions.EmbeddingBatchSize)
             {
                 var batch = chunks.Skip(offset).Take(_ragOptions.EmbeddingBatchSize).Select(c => c.Text).ToList();
-                var batchEmbeddings = await _embeddingProvider.GenerateEmbeddingsAsync(batch, cancellationToken);
+                var batchEmbeddingsResponse = await _embeddingProvider.GenerateEmbeddingsAsync(batch, cancellationToken);
+                var batchEmbeddings = batchEmbeddingsResponse.Embeddings;
                 if (batchEmbeddings.Count != batch.Count || batchEmbeddings.Any(x => x.Length != _embeddingProvider.Dimensions))
                     throw new InvalidOperationException("Embedding provider returned invalid vectors.");
                 embeddings.AddRange(batchEmbeddings);
@@ -148,7 +150,7 @@ public class DocumentReviewService : IDocumentReviewService
 
             // 4. Retrieve (over-fetch)
             var normalizedQuery = ArabicTextNormalizer.Normalize(query);
-            var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).First();
+            var queryEmbedding = (await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken)).Embeddings.First();
             var searchResults = await _vectorStore.SearchAsync(collectionName, queryEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
 
             var retrievedChunks = searchResults
@@ -159,8 +161,8 @@ public class DocumentReviewService : IDocumentReviewService
             // Rerank document chunks
             if (retrievedChunks.Count > 0)
             {
-                var reranked = await _rerankerProvider.RerankAsync(query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
-                retrievedChunks = reranked.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => retrievedChunks[r.Index]!).ToList();
+                var rerankResponse = await _rerankerProvider.RerankAsync(query, retrievedChunks, topN: Math.Min(_ragOptions.RerankedCount, retrievedChunks.Count), cancellationToken);
+                retrievedChunks = rerankResponse.Results.Where(r => r.Index >= 0 && r.Index < retrievedChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => retrievedChunks[r.Index]!).ToList();
             }
 
             if (retrievedChunks.Count == 0)
@@ -181,7 +183,8 @@ public class DocumentReviewService : IDocumentReviewService
 
             // 5a. Generate multi-queries for search
             var searchQueriesPrompt = DocumentReviewPrompts.GetMultiQuerySearchPrompt($"USER QUESTION:\n{query}\n\n{documentContextString}");
-            var searchQueriesResponse = await _chatModelProvider.GenerateAsync(searchQueriesPrompt, "Generate queries", cancellationToken);
+            var searchQueriesResponseModel = await _chatModelProvider.GenerateAsync(searchQueriesPrompt, "Generate queries", cancellationToken);
+            var searchQueriesResponse = searchQueriesResponseModel.Content;
             
             var rawQueries = searchQueriesResponse
                 .Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
@@ -198,15 +201,16 @@ public class DocumentReviewService : IDocumentReviewService
 
             // 5b. Generate document summary for reranking
             var rerankSummaryPrompt = DocumentReviewPrompts.GetRerankerSummaryPrompt(documentContextString);
-            var documentSummary = await _chatModelProvider.GenerateAsync(rerankSummaryPrompt, "Generate summary", cancellationToken);
+            var documentSummaryResponse = await _chatModelProvider.GenerateAsync(rerankSummaryPrompt, "Generate summary", cancellationToken);
+            var documentSummary = documentSummaryResponse.Content;
             var rerankQuery = $"{normalizedQuery}\n{documentSummary}";
 
             // Embed all queries
-            var queryEmbeddings = await _embeddingProvider.GenerateEmbeddingsAsync(rawQueries, cancellationToken);
+            var queryEmbeddingsResponse = await _embeddingProvider.GenerateEmbeddingsAsync(rawQueries, cancellationToken);
             
             // Search Qdrant for each query and aggregate results
             var allLawSearchResults = new List<SmartCourt.Interfaces.Providers.VectorSearchResult>();
-            foreach (var qEmbedding in queryEmbeddings)
+            foreach (var qEmbedding in queryEmbeddingsResponse.Embeddings)
             {
                 var lawSearchResults = await _vectorStore.SearchAsync(_ragOptions.LegalCollectionName, qEmbedding, topK: _ragOptions.CandidateCount, filters: null, cancellationToken: cancellationToken);
                 allLawSearchResults.AddRange(lawSearchResults);
@@ -229,8 +233,9 @@ public class DocumentReviewService : IDocumentReviewService
             // Rerank law chunks using the document summary
             if (retrievedLawTexts.Count > 0)
             {
-                var rerankedLaw = await _rerankerProvider.RerankAsync(rerankQuery, retrievedLawTexts, topN: Math.Min(10, retrievedLawTexts.Count), cancellationToken);
-                var finalLawChunks = rerankedLaw.Where(r => r.Index >= 0 && r.Index < uniqueLawChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => uniqueLawChunks[r.Index]).ToList();
+                var validLawTexts = retrievedLawTexts.Where(t => t != null).Select(t => t!).ToList();
+                var rerankResponseLaw = await _rerankerProvider.RerankAsync(rerankQuery, validLawTexts, topN: Math.Min(10, validLawTexts.Count), cancellationToken);
+                var finalLawChunks = rerankResponseLaw.Results.Where(r => r.Index >= 0 && r.Index < uniqueLawChunks.Count).OrderByDescending(r => r.RelevanceScore).Select(r => uniqueLawChunks[r.Index]).ToList();
 
                 var lawContextBuilder = new StringBuilder();
                 for (int i = 0; i < finalLawChunks.Count; i++)
@@ -249,7 +254,8 @@ public class DocumentReviewService : IDocumentReviewService
                 // 6. Generate final response
                 var systemPrompt = DocumentReviewPrompts.GetReviewDocumentSystemPrompt(documentContextString, lawContextBuilder.ToString());
 
-                var answer = await _chatModelProvider.GenerateAsync(systemPrompt, query, cancellationToken);
+                var answerResponse = await _chatModelProvider.GenerateAsync(systemPrompt, query, cancellationToken);
+                var answer = answerResponse.Content;
 
                 return new AnalyzeResponse
                 {

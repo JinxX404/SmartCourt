@@ -37,11 +37,11 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
 
     public int Dimensions => _options.Dimensions;
 
-    public async Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(
+    public async Task<EmbeddingResponse> GenerateEmbeddingsAsync(
         IReadOnlyList<string> texts,
         CancellationToken cancellationToken = default)
     {
-        if (texts.Count == 0) return Array.Empty<float[]>();
+        if (texts.Count == 0) return new EmbeddingResponse(Array.Empty<float[]>(), 0);
 
         var requests = new List<object>();
         foreach (var text in texts)
@@ -125,6 +125,6 @@ public class GeminiEmbeddingProvider : IEmbeddingProvider
             throw new BusinessException($"Gemini API returned {results.Count} embeddings, expected {texts.Count}.");
         }
 
-        return results;
+        return new EmbeddingResponse(results, 0);
     }
 }

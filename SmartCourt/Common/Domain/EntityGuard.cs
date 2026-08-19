@@ -123,4 +123,15 @@ internal static class EntityGuard
 
         return value;
     }
+
+    public static int NonNegative(int value, string fieldName)
+    {
+        if (value < 0)
+        {
+            throw new BusinessException(
+                $"يجب ألا تكون قيمة الحقل {fieldName} سالبة.");
+        }
+
+        return value;
+    }
 }

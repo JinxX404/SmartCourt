@@ -57,16 +57,18 @@ await connection.invoke("JoinConversation", conversationId);
 | `LeaveConversation` | `conversationId` | Removes this browser connection from the conversation group. |
 | `SendMessage` | `conversationId`, `{ content }` | Creates a text message and returns the created message. |
 
-Join only after loading a conversation returned by the API. Call
-`LeaveConversation` when the user changes chats, then join the next one:
+Join only after loading a conversation returned by the API and confirming
+`canSendMessages === true`. Read-only history does not need a SignalR group.
+Call `LeaveConversation` when the user changes chats, then join the next one:
 
 ```ts
 await connection.invoke("LeaveConversation", previousConversationId);
 await connection.invoke("JoinConversation", nextConversationId);
 ```
 
-The server authorizes every `JoinConversation`. An outsider or a lawyer whose
-proposal became `Superseded` receives a `HubException` with
+The server authorizes every `JoinConversation`. An outsider, a lawyer whose
+proposal became `Superseded` or `Terminated`, or a lawyer whose contract is
+`Completed` or `Terminated`, receives a `HubException` with
 `Conversation was not found.` Treat this as a privacy response: remove the
 conversation and all cached message/attachment state from that lawyer's UI.
 
@@ -129,9 +131,10 @@ upsertMessageById(created);
 ```
 
 The backend also emits this exact message through `ReceiveMessage`, so the
-other participant receives it immediately. A closed conversation causes a hub
-error. Only render a composer when the proposal data says both
-`conversationStatus === "Open"` and `canChat === true`.
+other participant receives it immediately. A closed or read-only conversation
+causes a hub error. Only render a composer and attachment upload controls when
+the chat conversation data says both `canSendMessages === true` and
+`canUploadAttachments === true`.
 
 ## Sending documents
 
@@ -205,8 +208,7 @@ after refreshing its REST detail or proposal state:
 ```ts
 connection.onreconnected(async () => {
   const conversation = await refreshCurrentConversation();
-  const proposal = await refreshCurrentProposal();
-  if (conversation?.status === "Open" && proposal?.canChat) {
+  if (conversation?.canSendMessages) {
     await connection.invoke("JoinConversation", conversation.id);
   }
 });
@@ -227,3 +229,26 @@ GET /api/chat/conversations/{conversationId}/messages?page=1&pageSize=50
 
 The response uses the same `ChatMessage` DTO and includes attachment metadata.
 Merge history and events by message ID, ordered by `createdAt` then `id`.
+
+## Conversation DTO permissions
+
+`GET /api/chat/conversations` and
+`GET /api/chat/conversations/{conversationId}` include:
+
+```ts
+export interface ChatConversation {
+  id: string;
+  proposalId: string;
+  legalCaseId: string;
+  caseTitle: string;
+  status: "Open" | "Closed";
+  canSendMessages: boolean;
+  canUploadAttachments: boolean;
+}
+```
+
+For an active accepted conversation, both booleans are `true`. For a client's
+read-only history after a superseded/terminated proposal or completed/terminated
+contract, the conversation can still be returned but both booleans are `false`.
+For the affected lawyer, the conversation is not returned at all and direct
+REST/SignalR access returns `404` / `Conversation was not found.`.

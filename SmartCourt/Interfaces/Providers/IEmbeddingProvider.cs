@@ -8,12 +8,17 @@ public interface IEmbeddingProvider
 {
     /// <summary>
     /// Generate embeddings for a batch of text inputs.
-    /// Returns vectors in the same order as the inputs.
+    /// Returns the vectors and token usage.
     /// </summary>
-    Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(
+    Task<EmbeddingResponse> GenerateEmbeddingsAsync(
         IReadOnlyList<string> texts,
         CancellationToken cancellationToken = default);
 
     /// <summary>The dimensionality of vectors this provider produces.</summary>
     int Dimensions { get; }
 }
+
+public record EmbeddingResponse(
+    IReadOnlyList<float[]> Embeddings,
+    int InputTokens
+);

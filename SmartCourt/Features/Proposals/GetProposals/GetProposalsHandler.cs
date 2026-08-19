@@ -140,7 +140,8 @@ public sealed class GetProposalsHandler(
             var hideConversation = ProposalChatVisibility.IsHiddenFromActor(
                 actorUserId,
                 item.LawyerUserId,
-                item.Status);
+                item.Status,
+                item.ContractStatus);
             var visibleConversationId = hideConversation
                 ? null
                 : item.ConversationId;
@@ -171,6 +172,7 @@ public sealed class GetProposalsHandler(
                     item.ClientUserId,
                     item.LawyerUserId,
                     item.Status,
+                    item.ContractStatus,
                     item.ContractId,
                     item.ConversationId,
                     item.ConversationIsClosed),

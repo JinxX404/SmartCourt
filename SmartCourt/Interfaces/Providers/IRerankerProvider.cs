@@ -6,7 +6,7 @@ namespace SmartCourt.Interfaces.Providers;
 
 public interface IRerankerProvider
 {
-    Task<IReadOnlyList<RerankedResult>> RerankAsync(
+    Task<RerankResponse> RerankAsync(
         string query,
         IReadOnlyList<string> documents,
         int topN,
@@ -14,3 +14,8 @@ public interface IRerankerProvider
 }
 
 public record RerankedResult(int Index, float RelevanceScore);
+
+public record RerankResponse(
+    IReadOnlyList<RerankedResult> Results,
+    int InputTokens
+);
