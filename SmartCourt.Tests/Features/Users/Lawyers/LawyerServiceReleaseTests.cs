@@ -9,6 +9,7 @@ using SmartCourt.Interfaces;
 using SmartCourt.Tests.Features.Auth;
 using SmartCourt.Interfaces.Providers;
 using SmartCourt.Common.Models;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace SmartCourt.Tests.Features.Users.Lawyers;
@@ -234,6 +235,105 @@ public sealed class LawyerServiceReleaseTests
             service.UpdateProfileAsync(request, CancellationToken.None));
 
         Assert.Contains(nameof(request.Level), exception.Errors.Keys);
+    }
+
+    [Fact]
+    public async Task SwitchAvailability_FromAvailableToUnavailable_Succeeds()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        await AddLawyerProfileAsync(testContext, lawyer.Id);
+        var service = CreateService(testContext, lawyer.Id);
+
+        var request = new UpdateLawyerAvailabilityRequest { IsAvailable = false };
+        var response = await service.SwitchAvailabilityAsync(request, CancellationToken.None);
+
+        Assert.False(response.IsAvailable);
+        Assert.Equal(lawyer.Id, response.LawyerId);
+
+        var profile = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.False(profile.IsAvailable);
+    }
+
+    [Fact]
+    public async Task SwitchAvailability_FromUnavailableToAvailable_Succeeds()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        await AddLawyerProfileAsync(testContext, lawyer.Id);
+        
+        var profile = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        profile.IsAvailable = false;
+        await testContext.DbContext.SaveChangesAsync();
+        testContext.DbContext.ChangeTracker.Clear();
+
+        var service = CreateService(testContext, lawyer.Id);
+
+        var request = new UpdateLawyerAvailabilityRequest { IsAvailable = true };
+        var response = await service.SwitchAvailabilityAsync(request, CancellationToken.None);
+
+        Assert.True(response.IsAvailable);
+        Assert.Equal(lawyer.Id, response.LawyerId);
+
+        testContext.DbContext.ChangeTracker.Clear();
+        var updatedProfile = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.True(updatedProfile.IsAvailable);
+    }
+
+    [Fact]
+    public async Task SwitchAvailability_ToggleWithoutBody_FlipsAvailability()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(UserStatus.Active, emailConfirmed: true);
+        await AddLawyerProfileAsync(testContext, lawyer.Id);
+        var service = CreateService(testContext, lawyer.Id);
+
+        // Initially true -> should flip to false
+        var response1 = await service.SwitchAvailabilityAsync(null, CancellationToken.None);
+        Assert.False(response1.IsAvailable);
+
+        testContext.DbContext.ChangeTracker.Clear();
+        var profile1 = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.False(profile1.IsAvailable);
+
+        // Next toggle -> should flip back to true
+        var response2 = await service.SwitchAvailabilityAsync(new UpdateLawyerAvailabilityRequest(), CancellationToken.None);
+        Assert.True(response2.IsAvailable);
+
+        testContext.DbContext.ChangeTracker.Clear();
+        var profile2 = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.True(profile2.IsAvailable);
+    }
+
+    [Fact]
+    public async Task SwitchAvailability_WhenPendingReviewUserToggles_SucceedsWithoutAdminPermissions()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var lawyer = await testContext.CreateUserAsync(UserStatus.PendingReview, emailConfirmed: true);
+        await AddLawyerProfileAsync(testContext, lawyer.Id);
+        var service = CreateService(testContext, lawyer.Id);
+
+        var request = new UpdateLawyerAvailabilityRequest { IsAvailable = true };
+        var response = await service.SwitchAvailabilityAsync(request, CancellationToken.None);
+
+        Assert.True(response.IsAvailable);
+        Assert.Equal(lawyer.Id, response.LawyerId);
+
+        testContext.DbContext.ChangeTracker.Clear();
+        var profile = await testContext.DbContext.LawyerProfiles.SingleAsync(lp => lp.UserId == lawyer.Id);
+        Assert.True(profile.IsAvailable);
+    }
+
+    [Fact]
+    public async Task SwitchAvailability_NonExistentUser_ThrowsNotFoundException()
+    {
+        await using var testContext = await PasswordServiceTestContext.CreateAsync();
+        var nonExistentId = Guid.NewGuid();
+        var service = CreateService(testContext, nonExistentId);
+
+        var request = new UpdateLawyerAvailabilityRequest { IsAvailable = false };
+        await Assert.ThrowsAsync<NotFoundException>(() =>
+            service.SwitchAvailabilityAsync(request, CancellationToken.None));
     }
 
     private static LawyerService CreateService(

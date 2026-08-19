@@ -48,7 +48,10 @@ public sealed record WalletDto(
     string Currency,
     decimal PendingBalance,
     decimal AvailableBalance,
-    decimal TotalReleased);
+    decimal TotalReleased,
+    decimal WithdrawableAmount,
+    decimal PendingSettlementAmount,
+    DateTimeOffset? ExpectedAvailableAt);
 
 public sealed record WithdrawalDto(
     Guid Id,

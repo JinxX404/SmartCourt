@@ -473,7 +473,7 @@ public sealed class FinalizeCaseOrchestrationTests
 
     private sealed class FailingChatModelProvider : IChatModelProvider
     {
-        public Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+        public Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("AI Service Connection Timeout.");
         }

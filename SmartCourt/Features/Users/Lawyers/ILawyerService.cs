@@ -11,5 +11,6 @@ public interface ILawyerService
     Task<PagedResponse<List<PublicLawyerProfileResponse>>> SearchLawyersAsync(SearchLawyersRequest request, CancellationToken cancellationToken);
     Task CompleteProfileAsync(CompleteLawyerProfileRequest request, CancellationToken cancellationToken);
     Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken);
+    Task<LawyerAvailabilityResponse> SwitchAvailabilityAsync(UpdateLawyerAvailabilityRequest? request, CancellationToken cancellationToken);
     Task DeleteProfileAsync(DeleteAccountRequest request, CancellationToken cancellationToken);
 }

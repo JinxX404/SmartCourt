@@ -312,7 +312,7 @@ public class MatchingService(
         try
         {
             var response = await _chatModelProvider.GenerateAsync(systemPrompt, userPrompt, cancellationToken);
-            var cleanedJson = CleanJsonResponse(response);
+            var cleanedJson = CleanJsonResponse(response.Content);
             using var doc = JsonDocument.Parse(cleanedJson);
             foreach (var element in doc.RootElement.EnumerateObject())
             {

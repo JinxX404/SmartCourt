@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Entities;
 using SmartCourt.Entities;
@@ -95,6 +95,32 @@ namespace SmartCourt.Persistence.DataSeeders
             context.ClientProfile.Add(clientProfile);
 
             await context.SaveChangesAsync();
+        }
+        public static async Task SeedTestAdminAsync(UserManager<ApplicationUser> userManager)
+        {
+            const string email = "mahmoud@admin.com";
+
+            if (await userManager.Users.AnyAsync(x => x.Email == email))
+                return;
+
+            var user = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                FullName = "Admin Mahmoud",
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                Status = UserStatus.Active
+            };
+
+            var result = await userManager.CreateAsync(user, "Mn12345678");
+
+            if (!result.Succeeded)
+            {
+                throw new Exception($"Failed to create admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+            await userManager.AddToRoleAsync(user, "Admin");
         }
     }
 }

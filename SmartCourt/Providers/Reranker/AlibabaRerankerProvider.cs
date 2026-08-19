@@ -47,7 +47,7 @@ public class AlibabaRerankerProvider : IRerankerProvider
         }
     }
 
-    public async Task<IReadOnlyList<RerankedResult>> RerankAsync(
+    public async Task<RerankResponse> RerankAsync(
         string query,
         IReadOnlyList<string> documents,
         int topN,
@@ -55,7 +55,7 @@ public class AlibabaRerankerProvider : IRerankerProvider
     {
         if (documents == null || documents.Count == 0)
         {
-            return Array.Empty<RerankedResult>();
+            return new RerankResponse(Array.Empty<RerankedResult>(), 0);
         }
 
         var requestBody = new
@@ -128,7 +128,17 @@ public class AlibabaRerankerProvider : IRerankerProvider
                         rerankedResults.Add(new RerankedResult(indexProp.GetInt32(), (float)scoreProp.GetDouble()));
                     }
                 }
-                return rerankedResults;
+                
+                int inputTokens = 0;
+                if (responseData.RootElement.TryGetProperty("usage", out var usageProp))
+                {
+                    if (usageProp.TryGetProperty("total_tokens", out var totalTokensProp) && totalTokensProp.TryGetInt32(out int tokens))
+                    {
+                        inputTokens = tokens;
+                    }
+                }
+
+                return new RerankResponse(rerankedResults, inputTokens);
             }
 
             throw new BusinessException("Alibaba Reranker API returned an unexpected response format (missing 'results').");

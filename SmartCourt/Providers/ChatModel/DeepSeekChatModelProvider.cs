@@ -52,7 +52,7 @@ public class DeepSeekChatModelProvider : IChatModelProvider
         }
     }
 
-    public async Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+    public async Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
     {
         bool isOfficialDeepSeek = _options.BaseUrl.Contains("api.deepseek.com", StringComparison.OrdinalIgnoreCase);
 
@@ -125,18 +125,18 @@ public class DeepSeekChatModelProvider : IChatModelProvider
                 }
 
                 _logger.LogWarning("DeepSeek Chat API returned HTTP {StatusCode}: {Error}. Using tailored Egyptian Law fallback provider.", response.StatusCode, lastErrorMessage);
-                return GenerateFallbackResponse(systemPrompt, userPrompt);
+                return new ChatModelResponse(GenerateFallbackResponse(systemPrompt, userPrompt), new TokenUsageMetadata(0, 0, 0, _options.Model));
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to connect to DeepSeek API endpoint. Using tailored Egyptian Law fallback provider.");
-                return GenerateFallbackResponse(systemPrompt, userPrompt);
+                return new ChatModelResponse(GenerateFallbackResponse(systemPrompt, userPrompt), new TokenUsageMetadata(0, 0, 0, _options.Model));
             }
         }
 
         if (response == null || !response.IsSuccessStatusCode)
         {
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            return new ChatModelResponse(GenerateFallbackResponse(systemPrompt, userPrompt), new TokenUsageMetadata(0, 0, 0, _options.Model));
         }
 
         var rawBody = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -144,12 +144,20 @@ public class DeepSeekChatModelProvider : IChatModelProvider
 
         if (string.IsNullOrWhiteSpace(rawBody))
         {
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            return new ChatModelResponse(GenerateFallbackResponse(systemPrompt, userPrompt), new TokenUsageMetadata(0, 0, 0, _options.Model));
         }
 
         try
         {
             using var responseData = JsonDocument.Parse(rawBody);
+
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            if (responseData.RootElement.TryGetProperty("usage", out var usage))
+            {
+                if (usage.TryGetProperty("prompt_tokens", out var ptProp) && ptProp.TryGetInt32(out int pt)) inputTokens = pt;
+                if (usage.TryGetProperty("completion_tokens", out var ctProp) && ctProp.TryGetInt32(out int ct)) outputTokens = ct;
+                if (usage.TryGetProperty("total_tokens", out var ttProp) && ttProp.TryGetInt32(out int tt)) totalTokens = tt;
+            }
 
             // Try OpenAI/DeepSeek official format first
             if (responseData.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
@@ -157,7 +165,7 @@ public class DeepSeekChatModelProvider : IChatModelProvider
                 var message = choices[0].GetProperty("message");
                 if (message.TryGetProperty("content", out var contentProp))
                 {
-                    return contentProp.GetString() ?? string.Empty;
+                    return new ChatModelResponse(contentProp.GetString() ?? string.Empty, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
                 }
             }
 
@@ -166,26 +174,26 @@ public class DeepSeekChatModelProvider : IChatModelProvider
             {
                 if (anthropicContent[0].TryGetProperty("text", out var textProp))
                 {
-                    return textProp.GetString() ?? string.Empty;
+                    return new ChatModelResponse(textProp.GetString() ?? string.Empty, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
                 }
             }
 
             // Try simple string or direct answer format
             if (responseData.RootElement.TryGetProperty("answer", out var answerProp))
             {
-                return answerProp.GetString() ?? string.Empty;
+                return new ChatModelResponse(answerProp.GetString() ?? string.Empty, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
             }
             if (responseData.RootElement.TryGetProperty("reply", out var replyProp))
             {
-                return replyProp.GetString() ?? string.Empty;
+                return new ChatModelResponse(replyProp.GetString() ?? string.Empty, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
             }
 
-            return responseData.RootElement.ToString();
+            return new ChatModelResponse(responseData.RootElement.ToString(), new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to parse DeepSeek API response: {Response}", rawBody);
-            return GenerateFallbackResponse(systemPrompt, userPrompt);
+            return new ChatModelResponse(GenerateFallbackResponse(systemPrompt, userPrompt), new TokenUsageMetadata(0, 0, 0, _options.Model));
         }
     }
 

@@ -10,11 +10,11 @@ public class TestEmbeddingProvider : IEmbeddingProvider
 {
     public int Dimensions => 1536;
 
-    public Task<IReadOnlyList<float[]>> GenerateEmbeddingsAsync(
+    public Task<EmbeddingResponse> GenerateEmbeddingsAsync(
         IReadOnlyList<string> texts,
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<float[]> result = texts.Select(_ => new float[Dimensions]).ToList();
-        return Task.FromResult(result);
+        return Task.FromResult(new EmbeddingResponse(result, texts.Sum(t => t.Length)));
     }
 }

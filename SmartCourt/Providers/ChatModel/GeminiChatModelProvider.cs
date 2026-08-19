@@ -37,7 +37,7 @@ public class GeminiChatModelProvider : IChatModelProvider
         }
     }
 
-    public async Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
+    public async Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default)
     {
         var requestBody = new
         {
@@ -103,7 +103,15 @@ public class GeminiChatModelProvider : IChatModelProvider
                 .GetProperty("text")
                 .GetString();
 
-            return text ?? string.Empty;
+            int inputTokens = 0, outputTokens = 0, totalTokens = 0;
+            if (responseData.RootElement.TryGetProperty("usageMetadata", out var usageMetadata))
+            {
+                if (usageMetadata.TryGetProperty("promptTokenCount", out var ptProp) && ptProp.TryGetInt32(out int pt)) inputTokens = pt;
+                if (usageMetadata.TryGetProperty("candidatesTokenCount", out var ctProp) && ctProp.TryGetInt32(out int ct)) outputTokens = ct;
+                if (usageMetadata.TryGetProperty("totalTokenCount", out var ttProp) && ttProp.TryGetInt32(out int tt)) totalTokens = tt;
+            }
+
+            return new ChatModelResponse(text ?? string.Empty, new TokenUsageMetadata(inputTokens, outputTokens, totalTokens, _options.Model));
         }
         catch (Exception ex)
         {

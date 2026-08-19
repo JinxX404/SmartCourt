@@ -6,19 +6,10 @@ public class TestRerankerProvider : IRerankerProvider
 {
     public IReadOnlyList<RerankedResult>? ResultsToReturn { get; set; }
 
-    public Task<IReadOnlyList<RerankedResult>> RerankAsync(string query, IReadOnlyList<string> documents, int topN, CancellationToken cancellationToken = default)
+    public Task<RerankResponse> RerankAsync(string query, IReadOnlyList<string> documents, int topN, CancellationToken cancellationToken = default)
     {
-        if (ResultsToReturn != null)
-        {
-            return Task.FromResult(ResultsToReturn);
-        }
-
-        var results = new List<RerankedResult>();
-        for (int i = 0; i < Math.Min(documents.Count, topN); i++)
-        {
-            results.Add(new RerankedResult(i, 0.9f));
-        }
-
-        return Task.FromResult<IReadOnlyList<RerankedResult>>(results);
+        // Simple dummy implementation: just return them in original order, with a mock score.
+        var results = documents.Take(topN).Select((doc, i) => new RerankedResult(i, 0.9f - (i * 0.1f))).ToList();
+        return Task.FromResult(new RerankResponse(results, query.Length + documents.Sum(d => d.Length)));
     }
 }

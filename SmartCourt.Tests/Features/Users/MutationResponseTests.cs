@@ -51,6 +51,21 @@ public sealed class MutationResponseTests
         AssertMessageOnlyResponse(result);
     }
 
+    [Fact]
+    public async Task LawyerSwitchAvailability_ReturnsApiResponseWithData()
+    {
+        var result = await new LawyersController(new TestLawyerService()).SwitchAvailability(
+            new UpdateLawyerAvailabilityRequest { IsAvailable = true },
+            CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<ApiResponse<LawyerAvailabilityResponse>>(okResult.Value);
+        Assert.True(response.Success);
+        Assert.NotNull(response.Data);
+        Assert.True(response.Data.IsAvailable);
+        Assert.False(string.IsNullOrWhiteSpace(response.Message));
+    }
+
     private static void AssertMessageOnlyResponse(IActionResult actionResult)
     {
         var response = Assert.IsType<OkObjectResult>(actionResult).Value;
@@ -88,6 +103,13 @@ public sealed class MutationResponseTests
 
         public Task UpdateProfileAsync(UpdateLawyerProfileRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task<LawyerAvailabilityResponse> SwitchAvailabilityAsync(UpdateLawyerAvailabilityRequest? request, CancellationToken cancellationToken)
+            => Task.FromResult(new LawyerAvailabilityResponse
+            {
+                LawyerId = Guid.NewGuid(),
+                IsAvailable = request?.IsAvailable ?? true
+            });
 
         public Task DeleteProfileAsync(DeleteAccountRequest request, CancellationToken cancellationToken)
             => Task.CompletedTask;

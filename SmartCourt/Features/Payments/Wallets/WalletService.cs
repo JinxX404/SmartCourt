@@ -61,12 +61,79 @@ public sealed class WalletService(
             .SumAsync(transaction => (decimal?)transaction.Amount, cancellationToken)
             ?? 0m;
 
+        var availableBalance = wallet?.AvailableBalance ?? 0m;
+        var pendingBalance = wallet?.PendingBalance ?? 0m;
+        var withdrawableAmount = availableBalance;
+        var pendingSettlementAmount = 0m;
+        DateTimeOffset? expectedAvailableAt = null;
+
+        var payoutAccountProvider =
+            paymentProvider as ILawyerPayoutAccountProvider;
+        if (payoutAccountProvider is not null)
+        {
+            var payoutAccount = await dbContext.LawyerPayoutAccounts
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    item => item.LawyerUserId == lawyerUserId
+                        && item.ProviderCode == payoutAccountProvider.Settings.ProviderCode,
+                    cancellationToken);
+
+            if (payoutAccount is null || payoutAccount.Status != LawyerPayoutAccountStatus.Enabled)
+            {
+                withdrawableAmount = 0m;
+                pendingSettlementAmount = availableBalance;
+            }
+            else if (availableBalance > 0 && payoutAccount.AvailableProviderAmountMinor > 0)
+            {
+                try
+                {
+                    var providerBalance = await payoutAccountProvider.GetBalanceAsync(
+                        payoutAccount.ProviderAccountId,
+                        payoutAccount.DefaultCurrency,
+                        0L,
+                        cancellationToken);
+
+                    if (providerBalance.AvailableAmountMinor >= payoutAccount.AvailableProviderAmountMinor)
+                    {
+                        withdrawableAmount = availableBalance;
+                        pendingSettlementAmount = 0m;
+                    }
+                    else
+                    {
+                        var allocated = decimal.Floor(
+                            availableBalance
+                            * providerBalance.AvailableAmountMinor
+                            / payoutAccount.AvailableProviderAmountMinor
+                            * 100m) / 100m;
+                        withdrawableAmount = Math.Clamp(allocated, 0m, availableBalance);
+                        pendingSettlementAmount = Math.Max(0m, availableBalance - withdrawableAmount);
+                        expectedAvailableAt = providerBalance.ExpectedAvailableAt;
+                    }
+                }
+                catch (OperationCanceledException)
+                    when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (Exception exception)
+                {
+                    logger.LogWarning(
+                        exception,
+                        "Could not retrieve real-time balance from payout provider for lawyer {LawyerUserId}.",
+                        lawyerUserId);
+                }
+            }
+        }
+
         return new WalletDto(
             lawyerUserId,
             "EGP",
-            wallet?.PendingBalance ?? 0m,
-            wallet?.AvailableBalance ?? 0m,
-            totalReleased);
+            pendingBalance,
+            availableBalance,
+            totalReleased,
+            withdrawableAmount,
+            pendingSettlementAmount,
+            expectedAvailableAt);
     }
 
     public async Task<IReadOnlyList<WithdrawalDto>> GetWithdrawalsAsync(

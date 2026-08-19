@@ -5,5 +5,5 @@ namespace SmartCourt.Interfaces.Providers;
 
 public interface IChatModelProvider
 {
-    Task<string> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default);
+    Task<ChatModelResponse> GenerateAsync(string systemPrompt, string userPrompt, CancellationToken cancellationToken = default);
 }

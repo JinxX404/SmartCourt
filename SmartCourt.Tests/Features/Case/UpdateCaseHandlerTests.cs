@@ -111,7 +111,7 @@ public class UpdateCaseHandlerTests
             Assert.False(result.Success);
             Assert.Equal(400, result.StatusCode);
             Assert.NotNull(result.Errors);
-            Assert.Contains(result.Errors, e => e.Contains("Cannot update a case that has already been assigned"));
+            Assert.Contains(result.Errors, e => e.Contains("لا يمكن تعديل القضية"));
         }
     }
 

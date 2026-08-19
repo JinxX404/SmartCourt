@@ -44,6 +44,7 @@ public class ExceptionHandlingMiddleware
         var statusCode = (int)HttpStatusCode.InternalServerError;
         var message = "An internal server error occurred.";
         var errors = new System.Collections.Generic.List<string>();
+        object? data = null;
 
         switch (exception)
         {
@@ -55,6 +56,18 @@ public class ExceptionHandlingMiddleware
             case AuthenticationException e:
                 statusCode = (int)HttpStatusCode.Unauthorized;
                 message = e.Message;
+                break;
+            case InsufficientQuotaException e:
+                statusCode = StatusCodes.Status429TooManyRequests;
+                message = e.Message;
+                data = new
+                {
+                    e.DailyLimitCredits,
+                    e.ConsumedCredits,
+                    e.RemainingCredits,
+                    e.RequestedCredits,
+                    e.NextResetAt
+                };
                 break;
             case BusinessException e:
                 statusCode = (int)HttpStatusCode.BadRequest;
@@ -88,11 +101,18 @@ public class ExceptionHandlingMiddleware
 
         context.Response.StatusCode = statusCode;
 
-        ApiResponse<string> response;
-        if (errors.Any())
+        object response;
+        if (data != null)
         {
-            response = ApiResponse<string>.Fail(errors, statusCode);
-            response.Message = message;
+            var apiResponse = ApiResponse<object>.Fail(message, statusCode);
+            apiResponse.Data = data;
+            response = apiResponse;
+        }
+        else if (errors.Any())
+        {
+            var apiResponse = ApiResponse<string>.Fail(errors, statusCode);
+            apiResponse.Message = message;
+            response = apiResponse;
         }
         else
         {
