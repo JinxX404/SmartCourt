@@ -72,7 +72,8 @@ internal static class ProposalReadModel
         var hideConversation = ProposalChatVisibility.IsHiddenFromActor(
             actorUserId,
             row.LawyerUserId,
-            row.Status);
+            row.Status,
+            row.ContractStatus);
         var visibleConversationId = hideConversation
             ? null
             : row.ConversationId;
@@ -105,6 +106,7 @@ internal static class ProposalReadModel
                     row.ClientUserId,
                     row.LawyerUserId,
                     row.Status,
+                    row.ContractStatus,
                     row.ContractId,
                     row.ConversationId,
                     row.ConversationIsClosed),

@@ -6,6 +6,7 @@ using SmartCourt.Features.Chat.DTOs;
 using SmartCourt.Features.Chat.Entities;
 using SmartCourt.Features.Chat.Realtime;
 using SmartCourt.Features.Chat.Shared;
+using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -46,8 +47,16 @@ public sealed class SendChatMessageHandler(
                 404);
         }
 
-        if (conversation.Proposal.Status == ProposalStatus.Superseded
-            && conversation.LawyerUserId == actorUserId)
+        var contractStatus = await context.Contracts
+            .Where(contract => contract.ProposalId == conversation.ProposalId)
+            .Select(contract => (ContractStatus?)contract.Status)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (ChatAccess.IsHiddenFromLawyer(
+                conversation.Proposal.Status,
+                contractStatus,
+                conversation.LawyerUserId,
+                actorUserId))
         {
             return ApiResponse<ChatMessageDto>.Fail(
                 "Conversation was not found.",

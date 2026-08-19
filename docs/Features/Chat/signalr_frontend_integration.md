@@ -66,8 +66,9 @@ await connection.invoke("LeaveConversation", previousConversationId);
 await connection.invoke("JoinConversation", nextConversationId);
 ```
 
-The server authorizes every `JoinConversation`. An outsider or a lawyer whose
-proposal became `Superseded` receives a `HubException` with
+The server authorizes every `JoinConversation`. An outsider, a lawyer whose
+proposal became `Superseded` or `Terminated`, or a lawyer whose contract is
+`Completed` or `Terminated`, receives a `HubException` with
 `Conversation was not found.` Treat this as a privacy response: remove the
 conversation and all cached message/attachment state from that lawyer's UI.
 
@@ -247,6 +248,7 @@ export interface ChatConversation {
 ```
 
 For an active accepted conversation, both booleans are `true`. For a client's
-superseded history, the conversation can still be returned but both booleans
-are `false`. For the affected lawyer, the conversation is not returned at all
-and direct REST/SignalR access returns `404` / `Conversation was not found.`.
+read-only history after a superseded/terminated proposal or completed/terminated
+contract, the conversation can still be returned but both booleans are `false`.
+For the affected lawyer, the conversation is not returned at all and direct
+REST/SignalR access returns `404` / `Conversation was not found.`.
