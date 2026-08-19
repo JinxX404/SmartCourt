@@ -359,6 +359,7 @@ conversation becomes closed/read-only and remains available as history.
 | Rejected/cancelled/expired | Show terminal reason/status; no chat button. |
 | Superseded | Client may retain read-only history; the affected lawyer cannot access it. |
 | Terminated | Show read-only chat history when available. |
+| Completed/terminated contract | Client may retain read-only history; the lawyer cannot access the old chat. |
 
 ## Lawyer UI rules
 
@@ -369,7 +370,8 @@ conversation becomes closed/read-only and remains available as history.
 | Accepted with contract | Open chat and View contract. |
 | Assigned through this proposal | Show Active client relationship. |
 | Superseded | Show the proposal status and notification only. Remove all chat UI and identifiers. |
-| Terminated | Show read-only history; no message composer. |
+| Terminated proposal | Show the proposal status only. Remove all chat UI and identifiers. |
+| Completed/terminated contract | Show contract status only. Remove all chat UI and identifiers. |
 
 ## Chat traceability and lifecycle
 
@@ -400,11 +402,13 @@ Contract Completed                       -> closed conversation
 Contract Terminated                      -> closed conversation
 ```
 
-Closed conversations normally remain readable by both participants. A
-superseded conversation is the privacy exception: it remains available to the
-client but is completely hidden from the affected lawyer.
+Closed conversations normally remain readable by both participants. Privacy
+exceptions apply when the lawyer relationship is no longer active: superseded
+proposals, terminated proposals, completed contracts, and terminated contracts
+remain available to the client but are completely hidden from the affected
+lawyer.
 
-For a superseded lawyer, the backend:
+For an affected lawyer in those privacy states, the backend:
 
 - returns `null` for `conversationId` and `conversationStatus` in proposal DTOs;
 - never returns `OpenChat` or `ViewChatHistory` in `permittedActions`;

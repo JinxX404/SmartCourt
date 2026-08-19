@@ -1,3 +1,4 @@
+using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Proposals.Enums;
 
 namespace SmartCourt.Features.Proposals.Shared;
@@ -21,6 +22,7 @@ internal static class ProposalPermittedActions
         Guid clientUserId,
         Guid lawyerUserId,
         ProposalStatus proposalStatus,
+        ContractStatus? contractStatus,
         Guid? contractId,
         Guid? conversationId,
         bool conversationIsClosed)
@@ -53,7 +55,8 @@ internal static class ProposalPermittedActions
             if (!ProposalChatVisibility.IsHiddenFromActor(
                     actorUserId,
                     lawyerUserId,
-                    proposalStatus))
+                    proposalStatus,
+                    contractStatus))
             {
                 actions.Add(
                     proposalStatus == ProposalStatus.Accepted
@@ -85,9 +88,11 @@ internal static class ProposalChatVisibility
     public static bool IsHiddenFromActor(
         Guid actorUserId,
         Guid lawyerUserId,
-        ProposalStatus proposalStatus)
+        ProposalStatus proposalStatus,
+        ContractStatus? contractStatus = null)
     {
-        return proposalStatus == ProposalStatus.Superseded
-            && actorUserId == lawyerUserId;
+        return actorUserId == lawyerUserId
+            && (proposalStatus is ProposalStatus.Superseded or ProposalStatus.Terminated
+                || contractStatus is ContractStatus.Completed or ContractStatus.Terminated);
     }
 }

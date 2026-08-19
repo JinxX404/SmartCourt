@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Exceptions;
+using SmartCourt.Features.Contracts.Enums;
 using SmartCourt.Features.Proposals.Enums;
 using SmartCourt.Interfaces;
 using SmartCourt.Persistence;
@@ -24,12 +25,31 @@ internal static class ChatAccess
             from conversation in context.ChatConversations
             join proposal in context.Proposals
                 on conversation.ProposalId equals proposal.Id
+            join contract in context.Contracts
+                on conversation.ProposalId equals contract.ProposalId into contractJoin
+            from contract in contractJoin.DefaultIfEmpty()
             where conversation.Id == conversationId
                 && (conversation.ClientUserId == userId
                     || conversation.LawyerUserId == userId)
-                && !(proposal.Status == ProposalStatus.Superseded
-                    && conversation.LawyerUserId == userId)
+                && !IsHiddenFromLawyer(
+                    proposal.Status,
+                    contract == null
+                        ? null
+                        : (ContractStatus?)contract.Status,
+                    conversation.LawyerUserId,
+                    userId)
             select conversation.Id)
             .AnyAsync(cancellationToken);
+    }
+
+    public static bool IsHiddenFromLawyer(
+        ProposalStatus proposalStatus,
+        ContractStatus? contractStatus,
+        Guid lawyerUserId,
+        Guid actorUserId)
+    {
+        return actorUserId == lawyerUserId
+            && (proposalStatus is ProposalStatus.Superseded or ProposalStatus.Terminated
+                || contractStatus is ContractStatus.Completed or ContractStatus.Terminated);
     }
 }
