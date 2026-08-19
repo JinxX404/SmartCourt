@@ -59,10 +59,7 @@ public sealed class MilestoneDraftService(
             request.Deliverables,
             now,
             request.Type);
-        if (milestone.Type == MilestoneType.Expense)
-        {
-            milestone.AcceptedByLawyerAt = now;
-        }
+        milestone.AcceptedByLawyerAt = now;
         dbContext.Milestones.Add(milestone);
         await EnqueueParticipantEventAsync(
             ContractPaymentEventTypes.MilestoneCreated,
@@ -170,9 +167,7 @@ public sealed class MilestoneDraftService(
         milestone.DueDate = request.DueDate;
         milestone.AcceptedByClientAt = null;
         var now = UtcNow;
-        milestone.AcceptedByLawyerAt = updatedType == MilestoneType.Expense
-            ? now
-            : null;
+        milestone.AcceptedByLawyerAt = now;
         milestone.UpdatedAt = now;
         await EnqueueParticipantEventAsync(
             ContractPaymentEventTypes.MilestoneDraftUpdated,
@@ -452,8 +447,7 @@ public sealed class MilestoneDraftService(
             {
                 actions.Add("Update");
             }
-            if (isClient && !milestone.AcceptedByClientAt.HasValue
-                || isLawyer && !milestone.AcceptedByLawyerAt.HasValue)
+            if (isClient && !milestone.AcceptedByClientAt.HasValue)
             {
                 actions.Add("Approve");
             }

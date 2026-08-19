@@ -198,7 +198,7 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AcceptAsync_ActivatesOnlyAfterBothAcceptAndAMilestoneIsApproved()
+    public async Task AcceptAsync_ActivatesImmediatelyWhenBothPartiesAccept()
     {
         await using var context = CreateContext();
         var contract = CreateContract();
@@ -207,6 +207,8 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             contract.ProposalId,
             contract.LegalCaseId);
         context.Contracts.Add(contract);
+        var milestone = CreateMilestone(contract.Id, 1, 1_250m);
+        context.Milestones.Add(milestone);
         await context.SaveChangesAsync();
         var currentUser = new MutableCurrentUserService(_clientUserId);
         var service = CreateService(context, currentUser);
@@ -219,6 +221,9 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
         Assert.Equal(
             ContractStatus.Draft.ToString(),
             firstAcceptance.Status);
+        Assert.Null(contract.ActivatedAt);
+        Assert.Equal(MilestoneStatus.Draft, milestone.Status);
+
         currentUser.UserId = _lawyerUserId;
         var secondAcceptance = await service.AcceptAsync(
             contract.Id,
@@ -226,26 +231,14 @@ public sealed class ContractServiceIntegrationTests : IAsyncLifetime
             CancellationToken.None);
 
         Assert.Equal(
-            ContractStatus.Draft.ToString(),
+            ContractStatus.Active.ToString(),
             secondAcceptance.Status);
-        Assert.Null(contract.ActivatedAt);
-        var milestone = CreateMilestone(contract.Id, 1, 1_250m);
-        milestone.AcceptedByClientAt = _utcNow.AddMinutes(-2);
-        milestone.AcceptedByLawyerAt = _utcNow.AddMinutes(-1);
-        context.Milestones.Add(milestone);
-        await context.SaveChangesAsync();
-
-        currentUser.UserId = null;
-        await ((IContractActivationEvaluator)service)
-            .EvaluateActivationAsync(
-                contract.Id,
-                _lawyerUserId,
-                CancellationToken.None);
-
         Assert.Equal(
             ContractStatus.Active,
             contract.Status);
         Assert.NotNull(contract.ActivatedAt);
+        Assert.Equal(MilestoneStatus.AwaitingFunding, milestone.Status);
+
         var activationHistory = Assert.Single(
             await context.ContractStateHistories
                 .Where(item =>
