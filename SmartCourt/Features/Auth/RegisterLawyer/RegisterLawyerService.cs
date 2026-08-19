@@ -14,15 +14,18 @@ public class RegisterLawyerService : IRegisterLawyerService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IAuthHelperService _authHelper;
     private readonly ApplicationDbContext _dbContext;
+    private readonly SmartCourt.Features.LawyerSubscription.ILawyerQuotaService _lawyerQuotaService;
 
     public RegisterLawyerService(
         UserManager<ApplicationUser> userManager,
         IAuthHelperService authHelper,
-        ApplicationDbContext dbContext)
+        ApplicationDbContext dbContext,
+        SmartCourt.Features.LawyerSubscription.ILawyerQuotaService lawyerQuotaService)
     {
         _userManager = userManager;
         _authHelper = authHelper;
         _dbContext = dbContext;
+        _lawyerQuotaService = lawyerQuotaService;
     }
 
     public async Task<RegisterResponse> RegisterLawyerAsync(RegisterLawyerRequest request, CancellationToken cancellationToken = default)
@@ -63,6 +66,10 @@ public class RegisterLawyerService : IRegisterLawyerService
             }
 
             await _userManager.AddToRoleAsync(user, "Lawyer");
+            
+            // Auto-provision Free plan for Lawyer AI Tokens
+            await _lawyerQuotaService.GetOrCreateSubscriptionAsync(user.Id, cancellationToken);
+            
             await _authHelper.SendConfirmationEmailAsync(user, cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
