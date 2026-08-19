@@ -274,6 +274,16 @@ public sealed class MilestonesControllerTests
             return Task.FromResult(Milestone);
         }
 
+        public Task DeleteDraftAsync(
+            Guid contractId,
+            Guid milestoneId,
+            string ifMatch,
+            CancellationToken cancellationToken)
+        {
+            RecordIfMatch(ifMatch);
+            return Task.CompletedTask;
+        }
+
         public Task<MilestoneActionResultDto> ApproveAsync(
             Guid milestoneId,
             string ifMatch,

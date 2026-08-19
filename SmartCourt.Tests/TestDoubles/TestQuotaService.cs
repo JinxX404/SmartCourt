@@ -42,4 +42,9 @@ public class TestQuotaService : IQuotaService
     {
         return Task.CompletedTask;
     }
+
+    public Task<DefaultQuotaResponse> GetDefaultQuotaAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult(new DefaultQuotaResponse(100));
+    }
 }

@@ -51,10 +51,10 @@ public sealed class ProposalConversationOutboxHandler(
 
         var occurredAt = message.CreatedAt;
         var content = message.EventType == ContractPaymentEventTypes.ProposalSuperseded
-            ? "This negotiation was closed because another contract was activated for the case."
+            ? "تم إغلاق هذه المحادثة التفاوضية لتفعيل عقد آخر لنفس القضية."
             : string.IsNullOrWhiteSpace(payload.Reason)
-                ? "This proposal negotiation was ended."
-                : $"This proposal negotiation was ended. Reason: {payload.Reason.Trim()}";
+                ? "تم إنهاء التفاوض على هذا العرض."
+                : $"تم إنهاء التفاوض على هذا العرض. السبب: {payload.Reason.Trim()}";
         var chatMessage = ChatMessage.CreateSystemMessage(
             message.Id,
             conversation.Id,

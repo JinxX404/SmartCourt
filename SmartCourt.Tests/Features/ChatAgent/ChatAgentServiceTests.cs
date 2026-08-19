@@ -892,6 +892,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -925,6 +927,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -957,6 +961,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -988,6 +994,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -1027,6 +1035,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -1062,6 +1072,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -1099,6 +1111,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 
@@ -1145,6 +1159,8 @@ public sealed class ChatAgentServiceTests
             new TestVectorStoreProvider(),
             new TestFileStorageService(),
             new TestDocumentParsingProvider(),
+            new TestQuotaService(),
+            new TestCostCalculatorService(),
             new TestRerankerProvider(),
             Microsoft.Extensions.Options.Options.Create(new SmartCourt.Common.Configuration.RagOptions()));
 

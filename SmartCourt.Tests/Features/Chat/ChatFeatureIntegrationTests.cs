@@ -333,7 +333,7 @@ public sealed class ChatFeatureIntegrationTests
         Assert.Equal(2, result.Data!.Items.Count);
         Assert.Equal("First", result.Data.Items[0].Content);
         Assert.True(result.Data.Items[0].IsMine);
-        Assert.Equal("Contract draft was accepted.", result.Data.Items[1].Content);
+        Assert.Equal("تمت الموافقة على مسودة العقد.", result.Data.Items[1].Content);
         Assert.False(result.Data.Items[1].IsMine);
     }
 

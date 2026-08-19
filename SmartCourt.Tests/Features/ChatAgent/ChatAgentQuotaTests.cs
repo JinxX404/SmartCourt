@@ -78,6 +78,11 @@ public class ChatAgentQuotaTests
             SettledActualUsed = actualTokensUsed;
             return Task.CompletedTask;
         }
+
+        public Task<DefaultQuotaResponse> GetDefaultQuotaAsync(CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(new DefaultQuotaResponse(100));
+        }
     }
 
     private class ConfigurableProviders

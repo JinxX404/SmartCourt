@@ -7,50 +7,50 @@ internal static class ChatSystemMessageText
         return type switch
         {
             ContractConversationMessageType.ContractCreated =>
-                "Contract draft was created.",
+                "تم إنشاء مسودة العقد.",
             ContractConversationMessageType.ContractAccepted =>
-                "Contract draft was accepted.",
+                "تمت الموافقة على مسودة العقد.",
             ContractConversationMessageType.ContractActivated =>
-                "Contract is now active.",
+                "العقد أصبح نشطاً وسارياً الآن.",
             ContractConversationMessageType.ContractCompleted =>
-                "Contract was completed.",
+                "تم اكتمال العقد بنجاح.",
             ContractConversationMessageType.MilestoneReadyForFunding =>
-                "Milestone is ready for funding.",
+                "المرحلة جاهزة للتمويل وتأكيد الدفعة.",
             ContractConversationMessageType.MilestoneFundingStarted =>
-                "Milestone funding started.",
+                "بدأت عملية تمويل المرحلة.",
             ContractConversationMessageType.MilestoneFunded =>
-                "Milestone was funded.",
+                "تم تمويل المرحلة وإيداع المبلغ في الضمان.",
             ContractConversationMessageType.MilestoneFundingFailed =>
-                "Milestone funding failed.",
+                "فشلت عملية تمويل المرحلة.",
             ContractConversationMessageType.MilestoneSubmitted =>
-                "Milestone work was submitted.",
+                "تم تسليم أعمال المرحلة للمراجعة والاعتماد.",
             ContractConversationMessageType.MilestoneAutoAccepted =>
-                "Milestone was accepted automatically.",
+                "تم قبول المرحلة واعتمادها تلقائياً.",
             ContractConversationMessageType.MilestoneAccepted =>
-                "Milestone was accepted.",
+                "تم قبول المرحلة واعتماد الأعمال.",
             ContractConversationMessageType.MilestoneChangesRequested =>
-                "Milestone changes were requested.",
+                "تم طلب تعديلات على أعمال المرحلة.",
             ContractConversationMessageType.MilestoneChangeRequestApproved =>
-                "Milestone change request was approved.",
+                "تمت الموافقة على طلب تعديل المرحلة.",
             ContractConversationMessageType.MilestoneChangeRequestRejected =>
-                "Milestone change request was rejected.",
+                "تم رفض طلب تعديل المرحلة.",
             ContractConversationMessageType.MilestoneChangeRequestCancelled =>
-                "Milestone change request was cancelled.",
+                "تم إلغاء طلب تعديل المرحلة.",
             ContractConversationMessageType.DisputeOpened =>
-                "A dispute was opened.",
+                "تم فتح نزاع بشأن العقد.",
             ContractConversationMessageType.DisputeAssigned =>
-                "A moderator was assigned to the dispute.",
+                "تم تعيين وسيط / محكم للنزاع.",
             ContractConversationMessageType.DisputeResolved =>
-                "Dispute was resolved.",
+                "تم حل النزاع والتوصل لاتفاق.",
             ContractConversationMessageType.DisputeClosed =>
-                "Dispute was closed.",
+                "تم إغلاق ملف النزاع.",
             ContractConversationMessageType.FundsReleased =>
-                "Funds were released.",
+                "تم تحرير الدفعة المالية للمحامي.",
             ContractConversationMessageType.FundsRefunded =>
-                "Funds were refunded.",
+                "تم استرداد الدفعة المالية للموكل.",
             ContractConversationMessageType.ContractTerminated =>
-                "Contract was terminated.",
-            _ => "Conversation was updated."
+                "تم إنهاء العقد وتصفيته.",
+            _ => "تم تحديث المحادثة والاتفاق."
         };
     }
 }
