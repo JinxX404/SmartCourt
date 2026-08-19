@@ -92,7 +92,6 @@ public class ClientService(
             user.NationalNumber = request.NationalNumber;
             user.Governorate = request.Governorate;
             user.City = request.City;
-            user.Status = UserStatus.PendingReview;
 
             if (user.ClientProfile == null)
             {
