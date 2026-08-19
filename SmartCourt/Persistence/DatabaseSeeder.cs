@@ -29,7 +29,7 @@ public static class DatabaseSeeder
 
         await DataSeeders.LegalCategorySeeder.SeedAsync(context);
 
-        var roles = new[] { "Client", "Lawyer", "Admin" };
+        var roles = new[] { "SuperAdministrator", "Client", "Lawyer", "Admin" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))
@@ -57,6 +57,28 @@ public static class DatabaseSeeder
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(adminUser, "Admin");
+            }
+        }
+
+        var superAdminEmail = "superadmin@smartcourt.com";
+        var superAdminUser = await userManager.FindByEmailAsync(superAdminEmail);
+
+        if (superAdminUser == null)
+        {
+            superAdminUser = new ApplicationUser
+            {
+                UserName = superAdminEmail,
+                Email = superAdminEmail,
+                FullName = "Super Administrator",
+                NationalNumber = "11111111111111",
+                Status = UserStatus.Active,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(superAdminUser, "SuperAdmin@123");
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(superAdminUser, "SuperAdministrator");
             }
         }
 

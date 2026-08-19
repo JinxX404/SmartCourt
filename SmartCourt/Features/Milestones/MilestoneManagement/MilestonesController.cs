@@ -76,6 +76,29 @@ public sealed class MilestonesController(
         return Ok(ApiResponse<MilestoneDto>.Ok(milestone));
     }
 
+    [HttpDelete(
+        "contracts/{contractId:guid}/milestones/{milestoneId:guid}")]
+    [SecurityRateLimit(RateLimitPolicyNames.StandardMutation)]
+    [Authorize(Roles = "Lawyer")]
+    public async Task<ActionResult<ApiResponse<bool>>>
+        DeleteDraftAsync(
+            Guid contractId,
+            Guid milestoneId,
+            [FromHeader(Name = "If-Match")] string? ifMatch,
+            CancellationToken cancellationToken)
+    {
+        var validatedIfMatch = await ValidateIfMatchAsync(
+            ifMatch,
+            cancellationToken);
+        await milestoneDraftService.DeleteDraftAsync(
+            contractId,
+            milestoneId,
+            validatedIfMatch,
+            cancellationToken);
+        return Ok(ApiResponse<bool>.Ok(true));
+    }
+
+
     [HttpPost("milestones/{milestoneId:guid}/approve")]
     [SecurityRateLimit(RateLimitPolicyNames.SensitiveMutation)]
     [Authorize(Roles = "Client,Lawyer")]
