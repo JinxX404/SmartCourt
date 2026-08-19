@@ -244,7 +244,8 @@ public sealed class ContractQueryService(
             hold?.NetAmount,
             "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
             milestone.Type,
-            milestone.Deliverables);
+            milestone.Deliverables,
+            milestone.RejectionReason);
     }
 
     private static IReadOnlyList<string> GetPermittedActions(

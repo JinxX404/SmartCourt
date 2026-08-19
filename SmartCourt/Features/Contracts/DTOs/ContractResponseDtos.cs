@@ -36,7 +36,8 @@ public sealed record ContractMilestoneDto(
     string Version,
     MilestoneType Type = MilestoneType.Standard,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    IReadOnlyList<string>? Deliverables = null);
+    IReadOnlyList<string>? Deliverables = null,
+    string? RejectionReason = null);
 
 public sealed record ContractPaymentDto(
     Guid Id,

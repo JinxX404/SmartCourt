@@ -24,7 +24,8 @@ public sealed record MilestoneDto(
     DateTimeOffset? HoldExpiresAt,
     decimal? NetLawyerAmount,
     string Version,
-    MilestoneType Type = MilestoneType.Standard)
+    MilestoneType Type = MilestoneType.Standard,
+    string? RejectionReason = null)
 {
     public IReadOnlyList<string> PermittedActions { get; init; } = [];
 
@@ -62,7 +63,9 @@ public sealed record MilestoneDto(
             autoAcceptEligibleAt,
             holdExpiresAt,
             netLawyerAmount,
-            version)
+            version,
+            MilestoneType.Standard,
+            null)
     {
     }
 }

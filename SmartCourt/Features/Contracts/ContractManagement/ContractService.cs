@@ -925,7 +925,8 @@ public sealed class ContractService
             hold?.NetAmount,
             "\"" + Convert.ToBase64String(milestone.RowVersion) + "\"",
             milestone.Type,
-            milestone.Deliverables);
+            milestone.Deliverables,
+            milestone.RejectionReason);
     }
 
     private IReadOnlyList<string> GetPermittedActions(Contract contract)
