@@ -372,23 +372,27 @@ public sealed class MilestoneService(
                 "بيانات تمويل المرحلة لا تطابق العقد أو المبلغ أو العملة المطلوبة للتسليم.");
         }
 
-        var authorizedFiles =
-            await fileAccessService.AuthorizeForUseAsync(
-                actorUserId,
-                request.StoredFileIds,
-                ContractFilePurpose.MilestoneSubmission,
-                milestone.Id,
-                cancellationToken);
-        var authorizedFileIds = authorizedFiles
-            .Where(file => file.OwnerUserId == actorUserId)
-            .Select(file => file.StoredFileId)
-            .ToHashSet();
-        if (authorizedFileIds.Count != request.StoredFileIds.Count
-            || request.StoredFileIds.Any(
-                fileId => !authorizedFileIds.Contains(fileId)))
+        var storedFileIds = request.StoredFileIds ?? [];
+        if (storedFileIds.Count > 0)
         {
-            throw new ForbiddenAccessException(
-                "تعذر التحقق من ملكية جميع ملفات تسليم المرحلة للمحامي الحالي.");
+            var authorizedFiles =
+                await fileAccessService.AuthorizeForUseAsync(
+                    actorUserId,
+                    storedFileIds,
+                    ContractFilePurpose.MilestoneSubmission,
+                    milestone.Id,
+                    cancellationToken);
+            var authorizedFileIds = authorizedFiles
+                .Where(file => file.OwnerUserId == actorUserId)
+                .Select(file => file.StoredFileId)
+                .ToHashSet();
+            if (authorizedFileIds.Count != storedFileIds.Count
+                || storedFileIds.Any(
+                    fileId => !authorizedFileIds.Contains(fileId)))
+            {
+                throw new ForbiddenAccessException(
+                    "تعذر التحقق من ملكية جميع ملفات تسليم المرحلة للمحامي الحالي.");
+            }
         }
 
         var latestVersion = await dbContext.MilestoneSubmissions
@@ -409,7 +413,7 @@ public sealed class MilestoneService(
             now);
         dbContext.MilestoneSubmissions.Add(submission);
         dbContext.MilestoneSubmissionAttachments.AddRange(
-            request.StoredFileIds.Select(fileId =>
+            storedFileIds.Select(fileId =>
                 new MilestoneSubmissionAttachment(
                     Guid.NewGuid(),
                     submission.Id,

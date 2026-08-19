@@ -62,7 +62,7 @@ public sealed record UpdateMilestoneRequest(
 
 public sealed record SubmitMilestoneRequest(
     string Notes,
-    IReadOnlyList<Guid> StoredFileIds);
+    IReadOnlyList<Guid>? StoredFileIds);
 
 public sealed record RequestMilestoneChangesRequest(string Reason);
 
