@@ -784,6 +784,7 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         services.Configure<List<SmartCourt.Common.Configuration.TokenBundleOptions>>(configuration.GetSection("TokenBundles"));
+        services.Configure<List<SmartCourt.Common.Configuration.LawyerTokenBundleOptions>>(configuration.GetSection("LawyerTokenBundles"));
 
         services.AddSingleton<QdrantClient>(sp =>
         {

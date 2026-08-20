@@ -21,17 +21,20 @@ internal sealed class AdminLawyerSubscriptionService : IAdminLawyerSubscriptionS
     private readonly ILawyerQuotaService _lawyerQuotaService;
     private readonly TimeProvider _timeProvider;
     private readonly LawyerPlanOptions _planOptions;
+    private readonly QuotaOptions _quotaOptions;
 
     public AdminLawyerSubscriptionService(
         ApplicationDbContext dbContext,
         ILawyerQuotaService lawyerQuotaService,
         TimeProvider timeProvider,
-        Microsoft.Extensions.Options.IOptions<SmartCourt.Common.Configuration.LawyerPlanOptions> planOptions)
+        Microsoft.Extensions.Options.IOptions<SmartCourt.Common.Configuration.LawyerPlanOptions> planOptions,
+        Microsoft.Extensions.Options.IOptions<SmartCourt.Common.Configuration.QuotaOptions> quotaOptions)
     {
         _dbContext = dbContext;
         _lawyerQuotaService = lawyerQuotaService;
         _timeProvider = timeProvider;
         _planOptions = planOptions.Value;
+        _quotaOptions = quotaOptions.Value;
     }
 
     public async Task<AdminLawyerSubscriptionListDto> GetLawyersSubscriptionSummaryAsync(string? search, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -64,8 +67,20 @@ internal sealed class AdminLawyerSubscriptionService : IAdminLawyerSubscriptionS
         var items = lawyers.Select(l => {
             var planType = l.Subscription?.PlanType ?? LawyerPlanType.Free;
             var planTypeStr = planType.ToString();
-            var planDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType == planTypeStr) 
-                          ?? _planOptions.Plans.First(p => p.PlanType == LawyerPlanType.Free.ToString());
+            
+            int dailyTokenLimit = 0;
+            if (planType == LawyerPlanType.Free)
+            {
+                dailyTokenLimit = _quotaOptions.LawyerDailyFreeTokens;
+            }
+            else
+            {
+                var planDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType.Equals(planTypeStr, StringComparison.OrdinalIgnoreCase));
+                if (planDef != null)
+                {
+                    dailyTokenLimit = planDef.DailyTokenLimit;
+                }
+            }
 
             return new AdminLawyerSubscriptionSummaryDto(
                 LawyerId: l.Id,
@@ -73,7 +88,7 @@ internal sealed class AdminLawyerSubscriptionService : IAdminLawyerSubscriptionS
                 LastName: "",
                 Email: l.Email ?? string.Empty,
                 PlanName: planType.ToString(),
-                DailyCreditLimit: CreditConverter.ToCredits(planDef.DailyTokenLimit),
+                DailyCreditLimit: CreditConverter.ToCredits(dailyTokenLimit),
                 PurchasedCreditBalance: l.Ledger != null ? CreditConverter.ToCredits(l.Ledger.PurchasedTokenBalance) : 0,
                 CreatedAt: DateTimeOffset.MinValue
             );

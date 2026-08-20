@@ -62,9 +62,9 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 | `GET` | `/api/agent/quota/transactions` | Client | `200` | None |
 | `GET` | `/api/lawyer/subscription` | Lawyer | `200` | None |
 | `GET` | `/api/lawyer/subscription/plans` | Lawyer | `200` | None |
-| `GET` | `/api/lawyer/subscription/bundles` | Lawyer | `200` | None |
-| `POST` | `/api/lawyer/subscription/change-plan` | Lawyer | `200` | `LawyerChangePlanRequest` |
-| `POST` | `/api/lawyer/subscription/buy-bundle` | Lawyer | `200` | `LawyerPurchaseBundleRequest` |
+| `GET` | `/api/lawyer/bundles` | Lawyer | `200` | None |
+| `POST` | `/api/lawyer/subscription/change` | Lawyer | `200` | `LawyerChangePlanRequest` |
+| `POST` | `/api/lawyer/bundles/purchase` | Lawyer | `200` | `LawyerPurchaseBundleRequest` |
 | `GET` | `/api/admin/quotas/default-limit` | Admin | `200` | None |
 | `PUT` | `/api/admin/quotas/default-limit` | Admin | `200` | `UpdateDailyLimitRequest` |
 | `GET` | `/api/admin/quotas/clients` | Admin | `200` | None |
@@ -73,10 +73,10 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 | `POST` | `/api/admin/quotas/clients/{clientId}/adjust` | Admin | `200` | `AdjustQuotaRequest` |
 | `GET` | `/api/admin/quotas/clients/{clientId}/transactions` | Admin | `200` | None |
 | `GET` | `/api/admin/quotas/purchases` | Admin | `200` | None |
-| `GET` | `/api/admin/lawyer-subscriptions` | Admin | `200` | None |
-| `GET` | `/api/admin/lawyer-subscriptions/{lawyerId}` | Admin | `200` | None |
-| `POST` | `/api/admin/lawyer-subscriptions/{lawyerId}/adjust` | Admin | `200` | `AdjustQuotaRequest` |
-| `POST` | `/api/admin/lawyer-subscriptions/{lawyerId}/change-plan` | Admin | `200` | `AdminChangeLawyerPlanRequest` |
+| `GET` | `/api/admin/lawyers/subscriptions` | Admin | `200` | None |
+| `GET` | `/api/admin/lawyers/{lawyerId}/subscription` | Admin | `200` | None |
+| `POST` | `/api/admin/lawyers/{lawyerId}/subscription/adjust-tokens` | Admin | `200` | `AdjustQuotaRequest` |
+| `PUT` | `/api/admin/lawyers/{lawyerId}/subscription/change-plan` | Admin | `200` | `AdminChangeLawyerPlanRequest` |
 
 ---
 
@@ -221,12 +221,12 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 **Authentication:** Required (Lawyer).  
 
 #### Get Available Bundles
-**HTTP Method & Exact Route:** `GET /api/lawyer/subscription/bundles`  
+**HTTP Method & Exact Route:** `GET /api/lawyer/bundles`  
 **Purpose:** Returns the list of token bundles available for purchase by the lawyer (shared with client bundles).
 **Authentication:** Required (Lawyer).  
 
 #### Change Subscription Plan
-**HTTP Method & Exact Route:** `POST /api/lawyer/subscription/change-plan`  
+**HTTP Method & Exact Route:** `POST /api/lawyer/subscription/change`  
 **Purpose:** Upgrades or downgrades the lawyer's subscription plan. Generates a Stripe checkout session if the plan is paid.
 **Authentication:** Required (Lawyer).  
 **Request Body:** `application/json`
@@ -239,7 +239,7 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 ```
 
 #### Purchase Token Bundle
-**HTTP Method & Exact Route:** `POST /api/lawyer/subscription/buy-bundle`  
+**HTTP Method & Exact Route:** `POST /api/lawyer/bundles/purchase`  
 **Purpose:** Purchases an extra bundle of tokens. Generates a Stripe checkout session if payment is required.
 **Authentication:** Required (Lawyer).  
 **Request Body:** `application/json`
@@ -256,18 +256,18 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 ### 1.4 Admin Lawyer Management Endpoints
 
 #### Get All Lawyers Quota Summary
-**HTTP Method & Exact Route:** `GET /api/admin/lawyer-subscriptions`  
+**HTTP Method & Exact Route:** `GET /api/admin/lawyers/subscriptions`  
 **Purpose:** To display a paginated dashboard of all lawyers, showing their plans, daily limits, and any additional purchased balance.  
 **Query Parameters:** `search` (name or email), `page`, `pageSize`.  
 **Authentication:** Required (Admin).  
 
 #### View Lawyer Quota Detail
-**HTTP Method & Exact Route:** `GET /api/admin/lawyer-subscriptions/{lawyerId}`  
+**HTTP Method & Exact Route:** `GET /api/admin/lawyers/{lawyerId}/subscription`  
 **Purpose:** Same response as `GET /api/lawyer/subscription`, but requested by an Admin for a specific lawyer.  
 **Authentication:** Required (Admin).  
 
 #### Adjust Lawyer Balance Manually
-**HTTP Method & Exact Route:** `POST /api/admin/lawyer-subscriptions/{lawyerId}/adjust`  
+**HTTP Method & Exact Route:** `POST /api/admin/lawyers/{lawyerId}/subscription/adjust-tokens`  
 **Purpose:** To manually grant or deduct paid credits from a lawyer's wallet.  
 **Request Body:** `application/json`
 ```json
@@ -279,7 +279,7 @@ When a client consumes AI tokens and exhausts their daily limits and purchased c
 **Authentication:** Required (Admin).  
 
 #### Force Change Lawyer Plan
-**HTTP Method & Exact Route:** `POST /api/admin/lawyer-subscriptions/{lawyerId}/change-plan`  
+**HTTP Method & Exact Route:** `PUT /api/admin/lawyers/{lawyerId}/subscription/change-plan`  
 **Purpose:** Admin override to forcefully change a lawyer's subscription plan without payment.  
 **Request Body:** `application/json`
 ```json

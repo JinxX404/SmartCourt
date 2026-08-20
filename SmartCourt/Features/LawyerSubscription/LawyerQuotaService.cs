@@ -72,15 +72,11 @@ internal sealed class LawyerQuotaService : ILawyerQuotaService
 
         if (subscription == null)
         {
-            var freePlanDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType.Equals(LawyerPlanType.Free.ToString(), StringComparison.OrdinalIgnoreCase));
-            if (freePlanDef == null)
-                throw new InvalidOperationException("Free plan definition is missing from configuration.");
-
             subscription = new Entities.LawyerSubscription
             {
                 LawyerId = lawyerId,
                 PlanType = LawyerPlanType.Free,
-                DailyTokenLimit = freePlanDef.DailyTokenLimit,
+                DailyTokenLimit = _quotaOptions.LawyerDailyFreeTokens,
                 StartedAt = now,
                 ExpiresAt = null,
                 IsActive = true
@@ -94,11 +90,10 @@ internal sealed class LawyerQuotaService : ILawyerQuotaService
         // Lazy expiry check
         if (subscription.ExpiresAt.HasValue && subscription.ExpiresAt.Value <= now)
         {
-            var freePlanDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType.Equals(LawyerPlanType.Free.ToString(), StringComparison.OrdinalIgnoreCase));
-            if (freePlanDef != null && subscription.PlanType != LawyerPlanType.Free)
+            if (subscription.PlanType != LawyerPlanType.Free)
             {
                 subscription.PlanType = LawyerPlanType.Free;
-                subscription.DailyTokenLimit = freePlanDef.DailyTokenLimit;
+                subscription.DailyTokenLimit = _quotaOptions.LawyerDailyFreeTokens;
                 subscription.ExpiresAt = null;
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
@@ -111,20 +106,20 @@ internal sealed class LawyerQuotaService : ILawyerQuotaService
     {
         var now = _timeProvider.GetUtcNow();
         var subscription = await GetOrCreateSubscriptionAsync(lawyerId, cancellationToken);
-        var planDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType.Equals(newPlan.ToString(), StringComparison.OrdinalIgnoreCase));
-        
-        if (planDef == null)
-            throw new InvalidOperationException($"Plan definition for {newPlan} is missing from configuration.");
-
-        subscription.PlanType = newPlan;
-        subscription.DailyTokenLimit = planDef.DailyTokenLimit;
-        
         if (newPlan == LawyerPlanType.Free)
         {
+            subscription.PlanType = LawyerPlanType.Free;
+            subscription.DailyTokenLimit = _quotaOptions.LawyerDailyFreeTokens;
             subscription.ExpiresAt = null;
         }
         else
         {
+            var planDef = _planOptions.Plans.FirstOrDefault(p => p.PlanType.Equals(newPlan.ToString(), StringComparison.OrdinalIgnoreCase));
+            if (planDef == null)
+                throw new InvalidOperationException($"Plan definition for {newPlan} is missing from configuration.");
+
+            subscription.PlanType = newPlan;
+            subscription.DailyTokenLimit = planDef.DailyTokenLimit;
             subscription.ExpiresAt = now.AddDays(30);
         }
 
