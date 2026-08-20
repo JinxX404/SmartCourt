@@ -17,6 +17,20 @@ public static class ApplicationBuilderExtensions
             if (db.Database.IsSqlServer())
             {
                 db.Database.Migrate();
+                
+                try
+                {
+                    var conn = db.Database.GetDbConnection();
+                    if (conn.State != System.Data.ConnectionState.Open)
+                    {
+                        conn.Open();
+                    }
+                    Hangfire.SqlServer.SqlServerObjectsInstaller.Install((System.Data.Common.DbConnection)conn);
+                }
+                catch
+                {
+                    // Fallback to default Hangfire initialization if installer fails
+                }
             }
         }
         catch (Exception ex)
