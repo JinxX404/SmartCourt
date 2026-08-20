@@ -23,14 +23,14 @@ public sealed class LawyerSubscriptionController : ControllerBase
     private readonly ILawyerQuotaService _quotaService;
     private readonly ILawyerSubscriptionPaymentService _paymentService;
     private readonly IOptions<LawyerPlanOptions> _planOptions;
-    private readonly IOptions<List<TokenBundleOptions>> _bundleOptions;
+    private readonly IOptions<List<LawyerTokenBundleOptions>> _bundleOptions;
     private readonly ICurrentUserService _currentUserService;
 
     public LawyerSubscriptionController(
         ILawyerQuotaService quotaService,
         ILawyerSubscriptionPaymentService paymentService,
         IOptions<LawyerPlanOptions> planOptions,
-        IOptions<List<TokenBundleOptions>> bundleOptions,
+        IOptions<List<LawyerTokenBundleOptions>> bundleOptions,
         ICurrentUserService currentUserService)
     {
         _quotaService = quotaService;

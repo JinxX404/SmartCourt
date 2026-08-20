@@ -3,6 +3,7 @@ namespace SmartCourt.Features.LawyerSubscription.Enums;
 public enum LawyerPlanType
 {
     Free = 0,
-    Professional = 1,
-    Business = 2
+    Basic = 1,
+    Professional = 2,
+    Business = 3
 }

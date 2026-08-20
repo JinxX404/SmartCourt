@@ -27,7 +27,7 @@ internal sealed class LawyerSubscriptionPaymentService : ILawyerSubscriptionPaym
     private readonly IPaymentProvider _paymentProvider;
     private readonly IPaymentReconciliationProvider _reconciliationProvider;
     private readonly IOptions<PaymentProviderOptions> _paymentOptions;
-    private readonly IOptions<List<TokenBundleOptions>> _bundleOptions;
+    private readonly IOptions<List<LawyerTokenBundleOptions>> _bundleOptions;
     private readonly IOptions<LawyerPlanOptions> _planOptions;
     private readonly ILawyerQuotaService _lawyerQuotaService;
     private readonly TimeProvider _timeProvider;
@@ -39,7 +39,7 @@ internal sealed class LawyerSubscriptionPaymentService : ILawyerSubscriptionPaym
         IPaymentProvider paymentProvider,
         IPaymentReconciliationProvider reconciliationProvider,
         IOptions<PaymentProviderOptions> paymentOptions,
-        IOptions<List<TokenBundleOptions>> bundleOptions,
+        IOptions<List<LawyerTokenBundleOptions>> bundleOptions,
         IOptions<LawyerPlanOptions> planOptions,
         ILawyerQuotaService lawyerQuotaService,
         TimeProvider timeProvider,
