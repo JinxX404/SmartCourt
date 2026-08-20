@@ -30,14 +30,12 @@ internal static class ChatAccess
             from contract in contractJoin.DefaultIfEmpty()
             where conversation.Id == conversationId
                 && (conversation.ClientUserId == userId
-                    || conversation.LawyerUserId == userId)
-                && !IsHiddenFromLawyer(
-                    proposal.Status,
-                    contract == null
-                        ? null
-                        : (ContractStatus?)contract.Status,
-                    conversation.LawyerUserId,
-                    userId)
+                    || (conversation.LawyerUserId == userId
+                        && proposal.Status != ProposalStatus.Superseded
+                        && proposal.Status != ProposalStatus.Terminated
+                        && (contract == null
+                            || (contract.Status != ContractStatus.Completed
+                                && contract.Status != ContractStatus.Terminated))))
             select conversation.Id)
             .AnyAsync(cancellationToken);
     }

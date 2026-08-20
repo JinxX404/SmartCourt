@@ -28,14 +28,12 @@ internal static class ChatReadModel
             from contract in contractJoin.DefaultIfEmpty()
             where conversation.Id == conversationId
                 && (conversation.ClientUserId == actorUserId
-                    || conversation.LawyerUserId == actorUserId)
-                && !ChatAccess.IsHiddenFromLawyer(
-                    proposal.Status,
-                    contract == null
-                        ? null
-                        : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
-                    conversation.LawyerUserId,
-                    actorUserId)
+                    || (conversation.LawyerUserId == actorUserId
+                        && proposal.Status != ProposalStatus.Superseded
+                        && proposal.Status != ProposalStatus.Terminated
+                        && (contract == null
+                            || (contract.Status != SmartCourt.Features.Contracts.Enums.ContractStatus.Completed
+                                && contract.Status != SmartCourt.Features.Contracts.Enums.ContractStatus.Terminated))))
             select new
             {
                 conversation.Id,
@@ -107,14 +105,12 @@ internal static class ChatReadModel
             from sender in senderJoin.DefaultIfEmpty()
             where message.Id == messageId
                 && (conversation.ClientUserId == actorUserId
-                    || conversation.LawyerUserId == actorUserId)
-                && !ChatAccess.IsHiddenFromLawyer(
-                    proposal.Status,
-                    contract == null
-                        ? null
-                        : (SmartCourt.Features.Contracts.Enums.ContractStatus?)contract.Status,
-                    conversation.LawyerUserId,
-                    actorUserId)
+                    || (conversation.LawyerUserId == actorUserId
+                        && proposal.Status != ProposalStatus.Superseded
+                        && proposal.Status != ProposalStatus.Terminated
+                        && (contract == null
+                            || (contract.Status != SmartCourt.Features.Contracts.Enums.ContractStatus.Completed
+                                && contract.Status != SmartCourt.Features.Contracts.Enums.ContractStatus.Terminated))))
             select new
             {
                 message.Id,
