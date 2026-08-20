@@ -70,8 +70,8 @@ public sealed class RatingsController(IRatingService ratingService) : Controller
     }
 
     [HttpGet("lawyers/{lawyerUserId:guid}/ratings")]
-    [SecurityRateLimit(RateLimitPolicyNames.AuthenticatedQuery)]
-    [Authorize]
+    [AllowAnonymous]
+    [SecurityRateLimit(RateLimitPolicyNames.PublicLawyerGet)]
     [ProducesResponseType(
         typeof(ApiResponse<PagedResult<ContractRatingDto>>),
         StatusCodes.Status200OK)]

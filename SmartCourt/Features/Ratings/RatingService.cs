@@ -164,14 +164,16 @@ public sealed class RatingService(
             throw new BusinessException("العقد غير موجود.");
         }
 
-        if (contract.Status is not (ContractStatus.Completed or ContractStatus.Terminated))
+        if (contract.Status is not (ContractStatus.Completed or ContractStatus.Terminated or ContractStatus.CompletedOnHold))
         {
             throw new BusinessException("لا يمكن تعديل تقييم عقد لم ينتهِ بعد.");
         }
 
         var endedAt = contract.Status == ContractStatus.Completed
             ? contract.CompletedAt
-            : contract.TerminatedAt;
+            : contract.Status == ContractStatus.Terminated
+                ? contract.TerminatedAt
+                : contract.UpdatedAt;
 
         if (endedAt is null)
         {
@@ -347,9 +349,6 @@ public sealed class RatingService(
             throw new BusinessException("المحامي غير موجود.");
         }
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var windowThreshold = now.AddDays(-RatingWindowDays);
-
         var queryable = from rating in dbContext.ContractRatings.AsNoTracking()
                         join contract in dbContext.Contracts.AsNoTracking() on rating.ContractId equals contract.Id
                         join rater in dbContext.Users.AsNoTracking() on rating.RaterUserId equals rater.Id into raterJoin
@@ -357,9 +356,6 @@ public sealed class RatingService(
                         join rated in dbContext.Users.AsNoTracking() on rating.RatedUserId equals rated.Id into ratedJoin
                         from rated in ratedJoin.DefaultIfEmpty()
                         where rating.RatedUserId == lawyerUserId && rating.RaterRole == RaterRole.Client
-                        where dbContext.ContractRatings.Any(other => other.ContractId == rating.ContractId && other.RaterRole == RaterRole.Lawyer)
-                           || (contract.Status == ContractStatus.Completed && contract.CompletedAt <= windowThreshold)
-                           || (contract.Status == ContractStatus.Terminated && contract.TerminatedAt <= windowThreshold)
                         select new
                         {
                             Rating = rating,
