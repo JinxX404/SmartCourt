@@ -338,4 +338,45 @@ public class RatingApiE2ETests : IClassFixture<SmartCourtWebApplicationFactory>
         Assert.Equal(5, summary.ClientRating.Stars);
         Assert.Null(summary.LawyerRating);
     }
+
+    [Fact]
+    public async Task UpdateRating_SuccessfullyUpdatesRatingAndRecalculatesProfile_E2E()
+    {
+        var (lawyerId, clientId, contractId) = await SeedCompletedContractAsync();
+
+        var clientHttp = _factory.CreateAuthenticatedClient(clientId, "Client");
+
+        // 1. Initial rating
+        var submitResponse = await clientHttp.PostAsJsonAsync(
+            $"/api/contracts/{contractId}/ratings",
+            new SubmitRatingRequest(3, "خدمة متوسطة"),
+            JsonOptions);
+        Assert.Equal(HttpStatusCode.Created, submitResponse.StatusCode);
+
+        // 2. Update rating
+        var updateRequest = new UpdateRatingRequest(5, "خدمة ممتازة بعد المتابعة");
+        var updateResponse = await clientHttp.PutAsJsonAsync(
+            $"/api/contracts/{contractId}/ratings",
+            updateRequest,
+            JsonOptions);
+
+        Assert.Equal(HttpStatusCode.OK, updateResponse.StatusCode);
+        var updatedDto = (await updateResponse.Content.ReadFromJsonAsync<ApiResponse<ContractRatingDto>>(JsonOptions))?.Data;
+        Assert.NotNull(updatedDto);
+        Assert.Equal(5, updatedDto.Stars);
+        Assert.Equal("خدمة ممتازة بعد المتابعة", updatedDto.Comment);
+        Assert.Equal("Test Client", updatedDto.RaterName);
+        Assert.Equal("Test Lawyer", updatedDto.RatedName);
+
+
+        // 3. Verify in database
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var lawyerProfile = await db.LawyerProfiles.FirstOrDefaultAsync(p => p.UserId == lawyerId);
+        Assert.NotNull(lawyerProfile);
+        Assert.Equal(1, lawyerProfile.TotalRatingCount);
+        Assert.Equal(5, lawyerProfile.TotalRatingSum);
+        Assert.Equal(5.00m, lawyerProfile.AverageRating);
+    }
 }
+

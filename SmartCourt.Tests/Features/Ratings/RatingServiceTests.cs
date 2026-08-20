@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using SmartCourt.Common.Entities;
 using SmartCourt.Common.Exceptions;
@@ -22,6 +23,10 @@ public sealed class RatingServiceTests
     private readonly Guid _lawyerUserId = Guid.NewGuid();
     private readonly Guid _moderatorUserId = Guid.NewGuid();
     private readonly Guid _otherUserId = Guid.NewGuid();
+
+    private readonly IValidator<SubmitRatingRequest> _submitValidator = new SubmitRatingRequestValidator();
+    private readonly IValidator<LawyerRatingsQuery> _queryValidator = new LawyerRatingsQueryValidator();
+    private readonly IValidator<UpdateRatingRequest> _updateValidator = new UpdateRatingRequestValidator();
 
     private sealed class MutableCurrentUserService(Guid userId) : ICurrentUserService
     {
@@ -78,6 +83,57 @@ public sealed class RatingServiceTests
             .Options;
 
         return new ApplicationDbContext(options, new FixedTimeProvider(_utcNow));
+    }
+
+    private async Task SeedUsersAsync(ApplicationDbContext context)
+    {
+        var client = new ApplicationUser
+        {
+            Id = _clientUserId,
+            UserName = "client@test.com",
+            Email = "client@test.com",
+            FullName = "أحمد العميل"
+        };
+        var lawyer = new ApplicationUser
+        {
+            Id = _lawyerUserId,
+            UserName = "lawyer@test.com",
+            Email = "lawyer@test.com",
+            FullName = "محمود المحامي"
+        };
+        var moderator = new ApplicationUser
+        {
+            Id = _moderatorUserId,
+            UserName = "mod@test.com",
+            Email = "mod@test.com",
+            FullName = "طارق المشرف"
+        };
+        var other = new ApplicationUser
+        {
+            Id = _otherUserId,
+            UserName = "other@test.com",
+            Email = "other@test.com",
+            FullName = "مستخدم آخر"
+        };
+
+        context.Users.AddRange(client, lawyer, moderator, other);
+        await context.SaveChangesAsync();
+    }
+
+    private RatingService CreateService(
+        ApplicationDbContext context,
+        ICurrentUserService currentUser,
+        IContractUserEligibilityService? eligibilityService = null,
+        TimeProvider? timeProvider = null)
+    {
+        return new RatingService(
+            context,
+            currentUser,
+            eligibilityService ?? new StubUserEligibilityService(),
+            timeProvider ?? new FixedTimeProvider(_utcNow),
+            _submitValidator,
+            _queryValidator,
+            _updateValidator);
     }
 
     private Contract CreateCompletedContract(Guid contractId, DateTime completedAt)
@@ -137,6 +193,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var lawyerProfile = new LawyerProfile
         {
@@ -153,19 +210,15 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5, "Great lawyer!");
         var result = await service.SubmitAsync(contractId, request, CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(contractId, result.ContractId);
-        Assert.Equal(_clientUserId, result.RaterUserId);
-        Assert.Equal(_lawyerUserId, result.RatedUserId);
+        Assert.Equal("أحمد العميل", result.RaterName);
+        Assert.Equal("محمود المحامي", result.RatedName);
         Assert.Equal(RaterRole.Client, result.RaterRole);
         Assert.Equal(5, result.Stars);
         Assert.Equal("Great lawyer!", result.Comment);
@@ -182,6 +235,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var lawyerProfile = new LawyerProfile
         {
@@ -198,11 +252,7 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5, "Second rating");
         await service.SubmitAsync(contractId, request, CancellationToken.None);
@@ -219,6 +269,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var lawyerProfile = new LawyerProfile
         {
@@ -235,18 +286,14 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_lawyerUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(4, "Good client");
         var result = await service.SubmitAsync(contractId, request, CancellationToken.None);
 
         Assert.Equal(RaterRole.Lawyer, result.RaterRole);
-        Assert.Equal(_lawyerUserId, result.RaterUserId);
-        Assert.Equal(_clientUserId, result.RatedUserId);
+        Assert.Equal("محمود المحامي", result.RaterName);
+        Assert.Equal("أحمد العميل", result.RatedName);
 
         var updatedLawyer = await context.Set<LawyerProfile>().FindAsync(_lawyerUserId);
         Assert.NotNull(updatedLawyer);
@@ -260,6 +307,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateActiveContract(contractId);
@@ -267,11 +315,7 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5);
         var ex = await Assert.ThrowsAsync<BusinessException>(
@@ -285,6 +329,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-15)); // 15 days ago
@@ -292,11 +337,7 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5);
         var ex = await Assert.ThrowsAsync<BusinessException>(
@@ -310,6 +351,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
@@ -317,11 +359,7 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_otherUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5);
         var ex = await Assert.ThrowsAsync<BusinessException>(
@@ -335,6 +373,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
@@ -342,11 +381,7 @@ public sealed class RatingServiceTests
         await context.SaveChangesAsync();
 
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(5);
         await service.SubmitAsync(contractId, request, CancellationToken.None);
@@ -365,14 +400,11 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var currentUser = new MutableCurrentUserService(_clientUserId);
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
-        var service = new RatingService(context, currentUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, currentUser);
 
         var request = new SubmitRatingRequest(stars);
         await Assert.ThrowsAsync<BusinessException>(
@@ -380,10 +412,231 @@ public sealed class RatingServiceTests
     }
 
     [Fact]
+    public async Task UpdateAsync_ClientUpdatesRatingAndComment_SuccessfullyUpdatesAndRecalculatesLawyerAverage()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var lawyerProfile = new LawyerProfile
+        {
+            UserId = _lawyerUserId,
+            AverageRating = 3.00m,
+            TotalRatingSum = 3,
+            TotalRatingCount = 1
+        };
+        context.Set<LawyerProfile>().Add(lawyerProfile);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
+        context.Contracts.Add(contract);
+
+        var rating = new ContractRating(
+            Guid.NewGuid(),
+            contractId,
+            _clientUserId,
+            _lawyerUserId,
+            RaterRole.Client,
+            3,
+            "Initial comment",
+            _utcNow.AddDays(-2));
+        context.ContractRatings.Add(rating);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(5, "Updated comment: Excellent!");
+        var result = await service.UpdateAsync(contractId, request, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("أحمد العميل", result.RaterName);
+        Assert.Equal("محمود المحامي", result.RatedName);
+        Assert.Equal(5, result.Stars);
+        Assert.Equal("Updated comment: Excellent!", result.Comment);
+
+        var updatedLawyer = await context.Set<LawyerProfile>().FindAsync(_lawyerUserId);
+        Assert.NotNull(updatedLawyer);
+        Assert.Equal(1, updatedLawyer.TotalRatingCount);
+        Assert.Equal(5, updatedLawyer.TotalRatingSum);
+        Assert.Equal(5.00m, updatedLawyer.AverageRating);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_LawyerUpdatesRating_DoesNotAffectLawyerProfile()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var lawyerProfile = new LawyerProfile
+        {
+            UserId = _lawyerUserId,
+            AverageRating = 5.00m,
+            TotalRatingSum = 5,
+            TotalRatingCount = 1
+        };
+        context.Set<LawyerProfile>().Add(lawyerProfile);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
+        context.Contracts.Add(contract);
+
+        var rating = new ContractRating(
+            Guid.NewGuid(),
+            contractId,
+            _lawyerUserId,
+            _clientUserId,
+            RaterRole.Lawyer,
+            2,
+            "Initial lawyer note",
+            _utcNow.AddDays(-2));
+        context.ContractRatings.Add(rating);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_lawyerUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(4, "Updated lawyer note");
+        var result = await service.UpdateAsync(contractId, request, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("محمود المحامي", result.RaterName);
+        Assert.Equal("أحمد العميل", result.RatedName);
+        Assert.Equal(4, result.Stars);
+        Assert.Equal("Updated lawyer note", result.Comment);
+
+        var updatedLawyer = await context.Set<LawyerProfile>().FindAsync(_lawyerUserId);
+        Assert.NotNull(updatedLawyer);
+        Assert.Equal(1, updatedLawyer.TotalRatingCount);
+        Assert.Equal(5, updatedLawyer.TotalRatingSum);
+        Assert.Equal(5.00m, updatedLawyer.AverageRating);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NotRatedYet_ThrowsBusinessException()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
+        context.Contracts.Add(contract);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(5, "Update without rating first");
+        var ex = await Assert.ThrowsAsync<BusinessException>(
+            () => service.UpdateAsync(contractId, request, CancellationToken.None));
+
+        Assert.Contains("لم تقم بتقديم تقييم", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ActiveContract_ThrowsBusinessException()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateActiveContract(contractId);
+        context.Contracts.Add(contract);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(5);
+        var ex = await Assert.ThrowsAsync<BusinessException>(
+            () => service.UpdateAsync(contractId, request, CancellationToken.None));
+
+        Assert.Contains("لم ينتهِ بعد", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_After14DayWindow_ThrowsBusinessException()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-15));
+        context.Contracts.Add(contract);
+
+        var rating = new ContractRating(
+            Guid.NewGuid(),
+            contractId,
+            _clientUserId,
+            _lawyerUserId,
+            RaterRole.Client,
+            3,
+            "Old comment",
+            _utcNow.AddDays(-15));
+        context.ContractRatings.Add(rating);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(5);
+        var ex = await Assert.ThrowsAsync<BusinessException>(
+            () => service.UpdateAsync(contractId, request, CancellationToken.None));
+
+        Assert.Contains("انتهت مهلة", ex.Message);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_NonPartyUser_ThrowsBusinessException()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var contractId = Guid.NewGuid();
+        var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
+        context.Contracts.Add(contract);
+        await context.SaveChangesAsync();
+
+        var currentUser = new MutableCurrentUserService(_otherUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(5);
+        var ex = await Assert.ThrowsAsync<BusinessException>(
+            () => service.UpdateAsync(contractId, request, CancellationToken.None));
+
+        Assert.Contains("لست طرفًا", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(6)]
+    [InlineData(-1)]
+    public async Task UpdateAsync_InvalidStars_ThrowsBusinessException(int stars)
+    {
+        var dbName = Guid.NewGuid().ToString();
+        await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
+
+        var contractId = Guid.NewGuid();
+        var currentUser = new MutableCurrentUserService(_clientUserId);
+        var service = CreateService(context, currentUser);
+
+        var request = new UpdateRatingRequest(stars);
+        await Assert.ThrowsAsync<BusinessException>(
+            () => service.UpdateAsync(contractId, request, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task GetByContractAsync_SingleRatingWithinWindow_SealsUnsubmittedSideFromOtherParty()
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2)); // within 14 days
@@ -401,24 +654,23 @@ public sealed class RatingServiceTests
         context.ContractRatings.Add(clientRating);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibilityService = new ExplicitEligibilityService(isModerator: false);
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
 
         // 1. Client views -> sees own rating, lawyer rating is null, AreRevealed = false
         var clientUser = new MutableCurrentUserService(_clientUserId);
-        var clientService = new RatingService(context, clientUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var clientService = CreateService(context, clientUser, eligibilityService);
         var clientView = await clientService.GetByContractAsync(contractId, CancellationToken.None);
 
         Assert.False(clientView.AreRevealed);
         Assert.NotNull(clientView.ClientRating);
+        Assert.Equal("أحمد العميل", clientView.ClientRating.RaterName);
+        Assert.Equal("محمود المحامي", clientView.ClientRating.RatedName);
         Assert.Equal(5, clientView.ClientRating.Stars);
         Assert.Null(clientView.LawyerRating);
 
         // 2. Lawyer views -> sees null for client rating (sealed!), lawyer rating is null, AreRevealed = false
         var lawyerUser = new MutableCurrentUserService(_lawyerUserId);
-        var lawyerService = new RatingService(context, lawyerUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var lawyerService = CreateService(context, lawyerUser, eligibilityService);
         var lawyerView = await lawyerService.GetByContractAsync(contractId, CancellationToken.None);
 
         Assert.False(lawyerView.AreRevealed);
@@ -431,6 +683,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-3));
@@ -459,19 +712,20 @@ public sealed class RatingServiceTests
         context.ContractRatings.AddRange(clientRating, lawyerRating);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibilityService = new ExplicitEligibilityService(isModerator: false);
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
 
         var clientUser = new MutableCurrentUserService(_clientUserId);
-        var clientService = new RatingService(context, clientUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var clientService = CreateService(context, clientUser, eligibilityService);
         var summary = await clientService.GetByContractAsync(contractId, CancellationToken.None);
 
         Assert.True(summary.AreRevealed);
         Assert.NotNull(summary.ClientRating);
+        Assert.Equal("أحمد العميل", summary.ClientRating.RaterName);
+        Assert.Equal("محمود المحامي", summary.ClientRating.RatedName);
         Assert.Equal(5, summary.ClientRating.Stars);
         Assert.NotNull(summary.LawyerRating);
+        Assert.Equal("محمود المحامي", summary.LawyerRating.RaterName);
+        Assert.Equal("أحمد العميل", summary.LawyerRating.RatedName);
         Assert.Equal(4, summary.LawyerRating.Stars);
     }
 
@@ -480,6 +734,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-16)); // 16 days ago (> 14 days)
@@ -497,18 +752,17 @@ public sealed class RatingServiceTests
         context.ContractRatings.Add(clientRating);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibilityService = new ExplicitEligibilityService(isModerator: false);
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
 
         // Lawyer views -> because window expired, AreRevealed = true and lawyer sees client's rating!
         var lawyerUser = new MutableCurrentUserService(_lawyerUserId);
-        var lawyerService = new RatingService(context, lawyerUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var lawyerService = CreateService(context, lawyerUser, eligibilityService);
         var lawyerView = await lawyerService.GetByContractAsync(contractId, CancellationToken.None);
 
         Assert.True(lawyerView.AreRevealed);
         Assert.NotNull(lawyerView.ClientRating);
+        Assert.Equal("أحمد العميل", lawyerView.ClientRating.RaterName);
+        Assert.Equal("محمود المحامي", lawyerView.ClientRating.RatedName);
         Assert.Equal(5, lawyerView.ClientRating.Stars);
         Assert.Null(lawyerView.LawyerRating);
     }
@@ -518,6 +772,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2)); // within 14 days
@@ -535,17 +790,16 @@ public sealed class RatingServiceTests
         context.ContractRatings.Add(clientRating);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibilityService = new ExplicitEligibilityService(isModerator: true);
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
 
         var modUser = new MutableCurrentUserService(_moderatorUserId);
-        var modService = new RatingService(context, modUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var modService = CreateService(context, modUser, eligibilityService);
         var modView = await modService.GetByContractAsync(contractId, CancellationToken.None);
 
         Assert.False(modView.AreRevealed);
         Assert.NotNull(modView.ClientRating);
+        Assert.Equal("أحمد العميل", modView.ClientRating.RaterName);
+        Assert.Equal("محمود المحامي", modView.ClientRating.RatedName);
         Assert.Equal(5, modView.ClientRating.Stars);
         Assert.Null(modView.LawyerRating);
     }
@@ -555,19 +809,17 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var contractId = Guid.NewGuid();
         var contract = CreateCompletedContract(contractId, _utcNow.AddDays(-2));
         context.Contracts.Add(contract);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
         var eligibilityService = new ExplicitEligibilityService(isModerator: false);
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
 
         var otherUser = new MutableCurrentUserService(_otherUserId);
-        var service = new RatingService(context, otherUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, otherUser, eligibilityService);
 
         var ex = await Assert.ThrowsAsync<BusinessException>(
             () => service.GetByContractAsync(contractId, CancellationToken.None));
@@ -580,6 +832,7 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
         var lawyerProfile = new LawyerProfile
         {
@@ -610,12 +863,8 @@ public sealed class RatingServiceTests
         context.ContractRatings.AddRange(rating1Client, rating1Lawyer, rating2Client, rating3Client);
         await context.SaveChangesAsync();
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
         var anyUser = new MutableCurrentUserService(_otherUserId);
-        var service = new RatingService(context, anyUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, anyUser);
 
         var query = new LawyerRatingsQuery(Page: 1, PageSize: 10);
         var result = await service.GetByLawyerAsync(_lawyerUserId, query, CancellationToken.None);
@@ -625,7 +874,12 @@ public sealed class RatingServiceTests
         Assert.Contains(result.Items, r => r.Comment == "C1");
         Assert.Contains(result.Items, r => r.Comment == "C2");
         Assert.DoesNotContain(result.Items, r => r.Comment == "C3 secret");
-        Assert.All(result.Items, r => Assert.Equal(RaterRole.Client, r.RaterRole));
+        Assert.All(result.Items, r =>
+        {
+            Assert.Equal(RaterRole.Client, r.RaterRole);
+            Assert.Equal("أحمد العميل", r.RaterName);
+            Assert.Equal("محمود المحامي", r.RatedName);
+        });
     }
 
     [Fact]
@@ -633,13 +887,10 @@ public sealed class RatingServiceTests
     {
         var dbName = Guid.NewGuid().ToString();
         await using var context = CreateContext(dbName);
+        await SeedUsersAsync(context);
 
-        var timeProvider = new FixedTimeProvider(_utcNow);
-        var eligibilityService = new StubUserEligibilityService();
-        var submitValidator = new SubmitRatingRequestValidator();
-        var queryValidator = new LawyerRatingsQueryValidator();
         var anyUser = new MutableCurrentUserService(_otherUserId);
-        var service = new RatingService(context, anyUser, eligibilityService, timeProvider, submitValidator, queryValidator);
+        var service = CreateService(context, anyUser);
 
         var ex = await Assert.ThrowsAsync<BusinessException>(
             () => service.GetByLawyerAsync(Guid.NewGuid(), new LawyerRatingsQuery(), CancellationToken.None));

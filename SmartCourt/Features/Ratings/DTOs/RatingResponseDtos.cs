@@ -5,12 +5,13 @@ namespace SmartCourt.Features.Ratings.DTOs;
 public sealed record ContractRatingDto(
     Guid Id,
     Guid ContractId,
-    Guid RaterUserId,
-    Guid RatedUserId,
+    string RaterName,
+    string RatedName,
     RaterRole RaterRole,
     int Stars,
     string? Comment,
     DateTime CreatedAt);
+
 
 public sealed record ContractRatingSummaryDto(
     Guid ContractId,

@@ -59,4 +59,21 @@ public sealed class ContractRating
     public int Stars { get; internal set; }
     public string? Comment { get; internal set; }
     public DateTime CreatedAt { get; internal set; }
+
+    public void Update(int stars, string? comment)
+    {
+        if (stars is < 1 or > 5)
+        {
+            throw new BusinessException("يجب أن يكون التقييم بين 1 و 5 نجوم.");
+        }
+
+        if (comment is not null && comment.Length > 500)
+        {
+            throw new BusinessException("يجب ألا يتجاوز التعليق 500 حرف.");
+        }
+
+        Stars = stars;
+        Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
+    }
 }
+

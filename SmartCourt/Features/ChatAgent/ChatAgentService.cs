@@ -269,6 +269,42 @@ public class ChatAgentService(
 
         try
         {
+            var totalSw = System.Diagnostics.Stopwatch.StartNew();
+            var ragApiSw = System.Diagnostics.Stopwatch.StartNew();
+
+            // 1. Start External I/O for RAG Pipeline (Embedding -> Qdrant) concurrently
+            async Task<(SmartCourt.Interfaces.Providers.EmbeddingResponse Response, List<string> Articles, long ElapsedMs)> GetEmbeddingAndQdrantAsync()
+            {
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var response = await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
+                List<string> lawArticles = [];
+                
+                if (response.Embeddings.Count > 0)
+                {
+                    var searchResults = await _vectorStoreProvider.SearchAsync(
+                        _ragOptions.LegalCollectionName,
+                        response.Embeddings[0],
+                        topK: _ragOptions.CandidateCount,
+                        filters: null,
+                        cancellationToken: cancellationToken);
+
+                    lawArticles = searchResults
+                        .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
+                        .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
+                                   : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .Select(t => t!)
+                        .ToList();
+                }
+                sw.Stop();
+                return (response, lawArticles, sw.ElapsedMilliseconds);
+            }
+
+            var ragPipelineTask = GetEmbeddingAndQdrantAsync();
+
+            var dbOpsSw = System.Diagnostics.Stopwatch.StartNew();
+
+            // 2. Perform DB operations sequentially to avoid EF Core DbContext concurrency issues
             var conversation = await _dbContext.AgentConversations
                 .Include(c => c.Case)
                 .FirstOrDefaultAsync(c => c.Id == conversationId && !c.IsDeleted, cancellationToken);
@@ -294,9 +330,30 @@ public class ChatAgentService(
             conversation.MarkMessageAdded(utcNow);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Perform RAG embedding API call
-            var embeddingResponse = await _embeddingProvider.GenerateEmbeddingsAsync(new[] { normalizedQuery }, cancellationToken);
+            // Load conversation history (last 20 messages before the current one)
+            var historyMessages = await _dbContext.AgentMessages
+                .Where(m => m.ConversationId == conversationId && m.Id != userMessage.Id)
+                .OrderByDescending(m => m.CreatedAt)
+                .Take(20)
+                .OrderBy(m => m.CreatedAt)
+                .ToListAsync(cancellationToken);
+
+            // Fetch or get cached case context
+            var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
+
+            bool isLawyer = await IsUserLawyerAsync(currentUserId, cancellationToken);
+
+            dbOpsSw.Stop();
+
+            // 3. Await the external API pipeline results
+            var (embeddingResponse, retrievedLawArticles, ragElapsedMs) = await ragPipelineTask;
+            ragApiSw.Stop();
+
+            _logger?.LogInformation("ChatAgent Concurrency: DB Ops took {DbOpsMs}ms. RAG API Ops took {RagApiMs}ms. Total concurrent wait took {TotalMs}ms.", 
+                dbOpsSw.ElapsedMilliseconds, ragElapsedMs, ragApiSw.ElapsedMilliseconds);
+
             int embeddingTokens = embeddingResponse.InputTokens;
+            int rerankTokens = 0;
             
             if (isClient && currentUserId.HasValue)
             {
@@ -325,41 +382,6 @@ public class ChatAgentService(
                     actualTokensUsed += fallback;
                 }
             }
-
-            // Load conversation history (last 20 messages before the current one)
-            var historyMessages = await _dbContext.AgentMessages
-                .Where(m => m.ConversationId == conversationId && m.Id != userMessage.Id)
-                .OrderByDescending(m => m.CreatedAt)
-                .Take(20)
-                .OrderBy(m => m.CreatedAt)
-                .ToListAsync(cancellationToken);
-
-            // Fetch or get cached case context
-            var caseContextText = await GetOrFetchCaseContextAsync(conversation, cancellationToken);
-
-            // Retrieve relevant law articles
-            List<string> retrievedLawArticles = [];
-            int rerankTokens = 0;
-
-            if (embeddingResponse.Embeddings.Count > 0)
-            {
-                var searchResults = await _vectorStoreProvider.SearchAsync(
-                    _ragOptions.LegalCollectionName,
-                    embeddingResponse.Embeddings[0],
-                    topK: _ragOptions.CandidateCount,
-                    filters: null,
-                    cancellationToken: cancellationToken);
-
-                retrievedLawArticles = searchResults
-                    .Where(r => r.Score >= _ragOptions.MinimumSimilarityScore)
-                    .Select(r => r.Payload.TryGetValue("chunk_text", out var chunkVal) ? chunkVal?.ToString()
-                               : r.Payload.TryGetValue("text", out var textVal) ? textVal?.ToString() : null)
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-                    .Select(t => t!)
-                    .ToList();
-            }
-
-            bool isLawyer = await IsUserLawyerAsync(currentUserId, cancellationToken);
             var systemPromptText = ChatAgentPrompts.BuildSystemPrompt(isLawyer, retrievedLawArticles, caseContextText);
             var userPromptText = BuildUserPrompt(historyMessages, request.Content);
 
@@ -412,6 +434,7 @@ public class ChatAgentService(
             }
 
             // Rerank
+            var rerankSw = System.Diagnostics.Stopwatch.StartNew();
             if (retrievedLawArticles.Count > 0 && _rerankerProvider != null)
             {
                 try
@@ -461,11 +484,14 @@ public class ChatAgentService(
                     _logger?.LogWarning(ex, "Reranker failed for conversation {ConversationId}; using unranked results", conversationId);
                 }
             }
+            rerankSw.Stop();
 
+            var llmSw = System.Diagnostics.Stopwatch.StartNew();
             var aiResponse = await _chatModelProvider.GenerateAsync(
                 systemPromptText,
                 userPromptText,
                 cancellationToken);
+            llmSw.Stop();
                 
             var aiResponseText = aiResponse.Content;
 
@@ -545,6 +571,10 @@ public class ChatAgentService(
             {
                 await TryGenerateTitleAsync(conversation.Id, request.Content, currentUserId, cancellationToken);
             }
+
+            totalSw.Stop();
+            _logger?.LogInformation("ChatAgent Total Latency: Reranker {RerankerMs}ms. LLM {LlmMs}ms. Total Request {TotalMs}ms.",
+                rerankSw.ElapsedMilliseconds, llmSw.ElapsedMilliseconds, totalSw.ElapsedMilliseconds);
 
             return new AgentMessageDto(
                 assistantMessage.Id,

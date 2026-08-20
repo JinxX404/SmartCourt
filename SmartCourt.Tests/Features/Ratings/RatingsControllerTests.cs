@@ -15,8 +15,8 @@ public sealed class RatingsControllerTests
         public ContractRatingDto RatingToReturn { get; set; } = new(
             Guid.NewGuid(),
             Guid.NewGuid(),
-            Guid.NewGuid(),
-            Guid.NewGuid(),
+            "Client Name",
+            "Lawyer Name",
             RaterRole.Client,
             5,
             "Excellent",
@@ -28,8 +28,8 @@ public sealed class RatingsControllerTests
             new ContractRatingDto(
                 Guid.NewGuid(),
                 Guid.NewGuid(),
-                Guid.NewGuid(),
-                Guid.NewGuid(),
+                "Client Name",
+                "Lawyer Name",
                 RaterRole.Client,
                 5,
                 "Excellent",
@@ -41,8 +41,8 @@ public sealed class RatingsControllerTests
                 new ContractRatingDto(
                     Guid.NewGuid(),
                     Guid.NewGuid(),
-                    Guid.NewGuid(),
-                    Guid.NewGuid(),
+                    "Client Name",
+                    "Lawyer Name",
                     RaterRole.Client,
                     5,
                     "Excellent",
@@ -53,9 +53,18 @@ public sealed class RatingsControllerTests
             1,
             false);
 
+
         public Task<ContractRatingDto> SubmitAsync(
             Guid contractId,
             SubmitRatingRequest request,
+            CancellationToken cancellationToken)
+        {
+            return Task.FromResult(RatingToReturn);
+        }
+
+        public Task<ContractRatingDto> UpdateAsync(
+            Guid contractId,
+            UpdateRatingRequest request,
             CancellationToken cancellationToken)
         {
             return Task.FromResult(RatingToReturn);
@@ -95,6 +104,26 @@ public sealed class RatingsControllerTests
         Assert.Equal(StatusCodes.Status201Created, response.StatusCode);
         Assert.Equal(stubService.RatingToReturn, response.Data);
     }
+
+    [Fact]
+    public async Task UpdateAsync_ReturnsOkApiResponse()
+    {
+        var stubService = new StubRatingService();
+        var controller = new RatingsController(stubService);
+        var contractId = Guid.NewGuid();
+        var request = new UpdateRatingRequest(4, "Updated comment");
+
+        var actionResult = await controller.UpdateAsync(contractId, request, CancellationToken.None);
+
+        var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
+        Assert.Equal(StatusCodes.Status200OK, okResult.StatusCode);
+
+        var response = Assert.IsType<ApiResponse<ContractRatingDto>>(okResult.Value);
+        Assert.True(response.Success);
+        Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
+        Assert.Equal(stubService.RatingToReturn, response.Data);
+    }
+
 
     [Fact]
     public async Task GetByContractAsync_ReturnsOkApiResponse()
